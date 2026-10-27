@@ -199,7 +199,18 @@ See `Android-studio-guide.md`. Key points:
 - Start Windows ADB server: `adb.exe -a start-server` (listens on 0.0.0.0:5037)
 - Start Windows emulator from Android Studio Device Manager (`Medium_Phone_API_37.0`)
 - WSL: `source ~/.bashrc` then `adb devices -l` and `flutter devices`
+- **Important:** `ADB_SERVER_SOCKET` must use the WSL default gateway (recomputed per shell),
+  not `10.255.255.254`. Each new shell: `export ADB_SERVER_SOCKET="tcp:$(ip route show default | awk '/^default/ {print $3; exit}'):5037"`
 - Keep Flutter projects on the Linux filesystem, not `/mnt/d`
+
+#### Known WSL2 limitation (validated Oct 2026)
+- The Flutter app **installs and runs on the Windows emulator** (process visible via `adb shell ps`).
+- The **VM Service / hot-reload channel** cannot connect from WSL across the ADB bridge
+  (`Connection refused` on `127.0.0.1:<random-port>`). This is a dev-tooling-only limitation;
+  the app itself runs on the device. Use full rebuild/reinstall for code changes rather than
+  hot reload, or run Flutter from Windows for full dev tooling.
+- The app targets `http://10.0.2.2:8080` (emulator alias for host). WSL2 localhost forwarding
+  lets the Windows emulator reach the Go API running in WSL2 on port 8080.
 
 ---
 
