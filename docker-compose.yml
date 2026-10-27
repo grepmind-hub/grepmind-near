@@ -1,0 +1,200 @@
+# Grepmind Near — Docker Compose (local development)
+#
+# Start:  docker compose up -d
+# Stop:   docker compose down
+# Logs:   docker compose logs -f [service]
+#
+# Notes:
+# - Flutter projects must live on the Linux filesystem (not /mnt/d) for build speed.
+# - The Android emulator runs on Windows and is bridged via ADB (see Android-studio-guide.md).
+# - Redis is intentionally excluded from MVP. Add when justified.
+
+version: "3.8"
+
+services:
+  # ---------------------------------------------------------------
+  # Database: PostgreSQL 16 + PostGIS
+  # ---------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: grepmind_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-grepmind}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-grepmind_dev}
+      POSTGRES_DB: ${DB_NAME:-grepmind_near}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-grepmind} -d ${DB_NAME:-grepmind_near}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Object storage: MinIO (S3-compatible)
+  # ---------------------------------------------------------------
+  minio:
+    image: bitnami/minio:2024
+    container_name: grepmind_minio
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      MINIO_DEFAULT_BUCKETS: ${S3_BUCKET:-grepmind-near}
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grepmind
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+
+  # ---------------------------------------------------------------
+  # Backend API: Go modular monolith
+  # ---------------------------------------------------------------
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: api
+    container_name: grepmind_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_PORT: ${APP_PORT:-8080}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-grepmind}
+      DB_PASSWORD: ${DB_PASSWORD:-grepmind_dev}
+      DB_NAME: ${DB_NAME:-grepmind_near}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-strong-secret-min-32-chars}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-720h}
+      OTP_TTL: ${OTP_TTL:-10m}
+      OTP_RESEND_COOLDOWN: ${OTP_RESEND_COOLDOWN:-60s}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      OTP_PROVIDER: ${OTP_PROVIDER:-stub}
+      OTP_FROM: ${OTP_FROM:-Grepmind Near}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-grepmind-near}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-grepmind-near-dev}
+      RATE_LIMIT_AUTH: ${RATE_LIMIT_AUTH:-5/min}
+      RATE_LIMIT_API: ${RATE_LIMIT_API:-100/min}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Background worker: Go (OTP, notifications, expiry, cleanup)
+  # ---------------------------------------------------------------
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: worker
+    container_name: grepmind_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-grepmind}
+      DB_PASSWORD: ${DB_PASSWORD:-grepmind_dev}
+      DB_NAME: ${DB_NAME:-grepmind_near}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-strong-secret-min-32-chars}
+      OTP_TTL: ${OTP_TTL:-10m}
+      OTP_PROVIDER: ${OTP_PROVIDER:-stub}
+      OTP_FROM: ${OTP_FROM:-Grepmind Near}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-grepmind-near}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-grepmind-near-dev}
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Admin web portal: Next.js
+  # ---------------------------------------------------------------
+  admin-web:
+    build:
+      context: ./apps/admin-web
+      dockerfile: Dockerfile
+    container_name: grepmind_admin_web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_APP_NAME: Grepmind Near Admin
+    ports:
+      - "3000:3000"
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
+  # Merchant web dashboard: Next.js
+  # ---------------------------------------------------------------
+  merchant-web:
+    build:
+      context: ./apps/merchant-web
+      dockerfile: Dockerfile
+    container_name: grepmind_merchant_web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_APP_NAME: Grepmind Near Merchant
+    ports:
+      - "3001:3001"
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+networks:
+  grepmind:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:

@@ -1,0 +1,1778 @@
+openapi: 3.0.3
+info:
+  title: Grepmind Near API
+  version: v1
+  description: |
+    Local discovery platform API for customers, merchants, professionals,
+    and administrators. Base path: /api/v1
+  contact:
+    name: Grepmind Near
+    email: support@grepmind.local
+  license:
+    name: Proprietary
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.grepmind.local/api/v1
+    description: Staging
+tags:
+  - name: auth
+    description: Phone OTP authentication and session management
+  - name: me
+    description: Authenticated user profile
+  - name: discovery
+    description: Categories, business search, nearby, business details
+  - name: merchant
+    description: Merchant business, products, offers, service requests
+  - name: customer
+    description: Customer service requests and favourites
+  - name: admin
+    description: Administrator moderation and operations
+  - name: health
+    description: Health checks
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      tags: [health]
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # ---------------------------------------------------------------
+  # Authentication
+  # ---------------------------------------------------------------
+  /auth/otp/request:
+    post:
+      summary: Request a phone OTP
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_e164]
+              properties:
+                phone_e164:
+                  type: string
+                  format: email
+                  example: "+919876543210"
+                  description: E.164 formatted phone number
+      responses:
+        '202':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/otp/verify:
+    post:
+      summary: Verify OTP and establish a session
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_e164, otp_code]
+              properties:
+                phone_e164:
+                  type: string
+                  example: "+919876543210"
+                otp_code:
+                  type: string
+                  example: "123456"
+                idempotency_key:
+                  type: string
+                  example: "otp-verify-unique-key"
+      responses:
+        '200':
+          description: Session established
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Rotate refresh credentials
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: New access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: Revoke the current session
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  # ---------------------------------------------------------------
+  # Me (authenticated user)
+  # ---------------------------------------------------------------
+  /me:
+    get:
+      summary: Get the authenticated user
+      tags: [me]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+    patch:
+      summary: Update allowed profile fields
+      tags: [me]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                preferred_language:
+                  type: string
+                  example: "en"
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  # ---------------------------------------------------------------
+  # Discovery
+  # ---------------------------------------------------------------
+  /categories:
+    get:
+      summary: Get active categories
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /businesses:
+    get:
+      summary: Search businesses by query and filters
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Lng'
+        - $ref: '#/components/parameters/RadiusM'
+        - $ref: '#/components/parameters/CategorySlug'
+        - $ref: '#/components/parameters/OpenNow'
+        - $ref: '#/components/parameters/AvailableNow'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Paginated business results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /businesses/{id}:
+    get:
+      summary: Get a business profile
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: Business detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BusinessDetail'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '404':
+          description: Business not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /businesses/{id}/products:
+    get:
+      summary: List published products
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /businesses/{id}/services:
+    get:
+      summary: List active services
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /businesses/{id}/offers:
+    get:
+      summary: List current published offers
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      responses:
+        '200':
+          description: List of offers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Offer'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /nearby:
+    get:
+      summary: Nearby discovery endpoint
+      tags: [discovery]
+      parameters:
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Lng'
+        - $ref: '#/components/parameters/RadiusM'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Nearby businesses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  # ---------------------------------------------------------------
+  # Favourites
+  # ---------------------------------------------------------------
+  /favorites:
+    get:
+      summary: List saved businesses
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Favourited businesses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /favorites/{businessId}:
+    put:
+      summary: Save a business
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: Business saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '404':
+          description: Business not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Remove a saved business
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: Business unsaved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  # ---------------------------------------------------------------
+  # Merchant
+  # ---------------------------------------------------------------
+  /merchant/businesses:
+    get:
+      summary: List businesses the user manages
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Managed businesses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+    post:
+      summary: Create a business listing
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBusinessRequest'
+      responses:
+        '201':
+          description: Business created (draft)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/businesses/{id}:
+    patch:
+      summary: Update an authorized business
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBusinessRequest'
+      responses:
+        '200':
+          description: Business updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Business not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /merchant/businesses/{id}/submit:
+    post:
+      summary: Submit for approval
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: Submitted for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /merchant/businesses/{id}/hours:
+    put:
+      summary: Replace configured hours
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hours:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/BusinessHourInput'
+      responses:
+        '200':
+          description: Hours updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /merchant/businesses/{id}/products:
+    post:
+      summary: Create a product
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/products/{id}:
+    patch:
+      summary: Update a product
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/businesses/{id}/offers:
+    post:
+      summary: Create an offer
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfferRequest'
+      responses:
+        '201':
+          description: Offer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Offer'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/offers/{id}:
+    patch:
+      summary: Update an offer
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OfferIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfferRequest'
+      responses:
+        '200':
+          description: Offer updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Offer'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/requests:
+    get:
+      summary: List incoming service requests
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Service requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceRequest'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /merchant/requests/{id}/accept:
+    post:
+      summary: Accept a service request
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '409':
+          description: Request cannot be accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /merchant/requests/{id}/decline:
+    post:
+      summary: Decline a service request
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Not available at requested time"
+      responses:
+        '200':
+          description: Request declined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /merchant/analytics/summary:
+    get:
+      summary: Basic listing and enquiry metrics
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Merchant metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      profile_complete:
+                        type: boolean
+                      listing_approved:
+                        type: boolean
+                      active_offers:
+                        type: integer
+                      incoming_requests:
+                        type: integer
+                      total_views:
+                        type: integer
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  # ---------------------------------------------------------------
+  # Customer service requests
+  # ---------------------------------------------------------------
+  /service-requests:
+    get:
+      summary: List the customer's requests
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Customer service requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceRequest'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+    post:
+      summary: Submit a service request
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequestRequest'
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ServiceRequest'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '409':
+          description: Request conflict (capacity)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /service-requests/{id}:
+    get:
+      summary: Get request details
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ServiceRequest'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '403':
+          description: Not your request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /service-requests/{id}/cancel:
+    post:
+      summary: Cancel an eligible request
+      tags: [customer]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  # ---------------------------------------------------------------
+  # Administration
+  # ---------------------------------------------------------------
+  /admin/businesses/pending:
+    get:
+      summary: Review pending listings
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending businesses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /admin/businesses/{id}/approve:
+    post:
+      summary: Approve a listing
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Listing meets platform rules"
+      responses:
+        '200':
+          description: Listing approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '403':
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/businesses/{id}/reject:
+    post:
+      summary: Reject a listing
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  example: "Incomplete information"
+      responses:
+        '200':
+          description: Listing rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /admin/businesses/{id}/verify:
+    post:
+      summary: Record verification outcome
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verification_status]
+              properties:
+                verification_status:
+                  type: string
+                  enum: [verified, rejected]
+                  example: verified
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Verification recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /admin/reports:
+    get:
+      summary: Review user reports
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reports list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+  /admin/reports/{id}/resolve:
+    post:
+      summary: Resolve a report
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+                  enum: [dismissed, action_taken]
+                  example: action_taken
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Report resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /admin/audit-logs:
+    get:
+      summary: Review administrative activity
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
+# ---------------------------------------------------------------
+# Components
+# ---------------------------------------------------------------
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /auth/otp/verify
+
+  parameters:
+    Q:
+      name: q
+      in: query
+      schema:
+        type: string
+      description: Search query (shop name, category, product, service)
+    Lat:
+      name: lat
+      in: query
+      required: true
+      schema:
+        type: number
+        minimum: -90
+        maximum: 90
+      example: 20.46
+      description: Latitude
+    Lng:
+      name: lng
+      in: query
+      required: true
+      schema:
+        type: number
+        minimum: -180
+        maximum: 180
+      example: 85.88
+      description: Longitude
+    RadiusM:
+      name: radius_m
+      in: query
+      schema:
+        type: integer
+        minimum: 100
+        maximum: 50000
+        default: 5000
+      example: 5000
+      description: Search radius in metres
+    CategorySlug:
+      name: category_slug
+      in: query
+      schema:
+        type: string
+      example: "hardware"
+    OpenNow:
+      name: open_now
+      in: query
+      schema:
+        type: boolean
+      description: Filter to currently open businesses
+    AvailableNow:
+      name: available_now
+      in: query
+      schema:
+        type: boolean
+      description: Filter to professionals accepting requests now
+    Sort:
+      name: sort
+      in: query
+      schema:
+        type: string
+        enum: [relevance, distance]
+        default: relevance
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Cursor for pagination
+    Lang:
+      name: lang
+      in: query
+      schema:
+        type: string
+        default: "en"
+      description: Preferred language
+    BusinessId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Business ID
+    BusinessIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ProductIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OfferIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RequestIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ReportIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Status:
+      name: status
+      in: query
+      schema:
+        type: string
+      description: Filter by status
+
+  schemas:
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: "req_abc123"
+
+    StandardResponse:
+      type: object
+      properties:
+        data:
+          type: object
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: "The request contains invalid fields."
+            details:
+              type: object
+              description: Field-specific validation errors
+            request_id:
+              type: string
+              example: "req_abc123"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone_e164:
+          type: string
+        display_name:
+          type: string
+        status:
+          type: string
+        preferred_language:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        icon_name:
+          type: string
+        description:
+          type: string
+
+    Business:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        category_slug:
+          type: string
+        category_name:
+          type: string
+        address_text:
+          type: string
+        city:
+          type: string
+        distance_m:
+          type: integer
+        status:
+          type: string
+        verification_status:
+          type: string
+        phone_e164:
+          type: string
+        whatsapp_e164:
+          type: string
+        is_open_now:
+          type: boolean
+        accepts_requests:
+          type: boolean
+        cover_photo_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    BusinessDetail:
+      allOf:
+        - $ref: '#/components/schemas/Business'
+        - type: object
+          properties:
+            description:
+              type: string
+            postal_code:
+              type: string
+            location:
+              type: object
+              properties:
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+            business_hours:
+              type: array
+              items:
+                $ref: '#/components/schemas/BusinessHour'
+            products:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+            offers:
+              type: array
+              items:
+                $ref: '#/components/schemas/Offer'
+            services:
+              type: array
+              items:
+                $ref: '#/components/schemas/Service'
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/BusinessMedia'
+            service_radius_m:
+              type: integer
+            experience_years:
+              type: integer
+            service_description:
+              type: string
+            next_available_appointment:
+              type: string
+              format: date-time
+              nullable: true
+
+    BusinessHour:
+      type: object
+      properties:
+        weekday:
+          type: integer
+          minimum: 0
+          maximum: 6
+        opens_at:
+          type: string
+          nullable: true
+        closes_at:
+          type: string
+          nullable: true
+        is_closed:
+          type: boolean
+
+    CreateBusinessRequest:
+      type: object
+      required: [name, category_slug, address_text, city]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        slug:
+          type: string
+        description:
+          type: string
+          maxLength: 2000
+        category_slug:
+          type: string
+        phone_e164:
+          type: string
+        whatsapp_e164:
+          type: string
+        address_text:
+          type: string
+        locality:
+          type: string
+        city:
+          type: string
+        postal_code:
+          type: string
+
+    UpdateBusinessRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category_slug:
+          type: string
+        phone_e164:
+          type: string
+        whatsapp_e164:
+          type: string
+        address_text:
+          type: string
+        locality:
+          type: string
+        city:
+          type: string
+        postal_code:
+          type: string
+
+    BusinessHourInput:
+      type: object
+      required: [weekday]
+      properties:
+        weekday:
+          type: integer
+          minimum: 0
+          maximum: 6
+        opens_at:
+          type: string
+          nullable: true
+        closes_at:
+          type: string
+          nullable: true
+        is_closed:
+          type: boolean
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        currency:
+          type: string
+        stock_status:
+          type: string
+        is_published:
+          type: boolean
+        image_url:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProductRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: INR
+        stock_status:
+          type: string
+          default: unknown
+        image_url:
+          type: string
+          nullable: true
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        currency:
+          type: string
+        stock_status:
+          type: string
+        is_published:
+          type: boolean
+        image_url:
+          type: string
+          nullable: true
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        indicative_price_min:
+          type: number
+          format: double
+          nullable: true
+        indicative_price_max:
+          type: number
+          format: double
+          nullable: true
+        currency:
+          type: string
+        is_active:
+          type: boolean
+
+    Offer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        terms:
+          type: string
+          nullable: true
+        discount_percent:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateOfferRequest:
+      type: object
+      required: [title, starts_at, ends_at]
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        terms:
+          type: string
+          maxLength: 1000
+        discount_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        image_url:
+          type: string
+          nullable: true
+
+    UpdateOfferRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        terms:
+          type: string
+        discount_percent:
+          type: integer
+          nullable: true
+
+    CreateServiceRequestRequest:
+      type: object
+      required: [business_id, description]
+      properties:
+        business_id:
+          type: string
+          format: uuid
+        service_id:
+          type: string
+          format: uuid
+          nullable: true
+        slot_id:
+          type: string
+          format: uuid
+          nullable: true
+        description:
+          type: string
+          minLength: 5
+          maxLength: 1000
+        requested_for:
+          type: string
+          format: date-time
+          nullable: true
+
+    ServiceRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer_user_id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        service_id:
+          type: string
+          format: uuid
+          nullable: true
+        slot_id:
+          type: string
+          format: uuid
+          nullable: true
+        description:
+          type: string
+        requested_for:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporter_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_type:
+          type: string
+        target_id:
+          type: string
+        reason:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        action:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    BusinessMedia:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        object_key:
+          type: string
+        media_type:
+          type: string
+        sort_order:
+          type: integer
+        url:
+          type: string
+          nullable: true

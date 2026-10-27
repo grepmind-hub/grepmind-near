@@ -1,0 +1,60 @@
+# Grepmind Near — ignore list
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Go
+*.exe
+/test-unit.out
+/vendor/
+go.sum backup
+
+# Flutter
+.dart_tool/
+.build/
+*.local
+android/.gradle/
+android/gradle-wrapper.jar
+android/key.properties
+android/app/google-services.json
+build/
+flutter_export_*.json
+*.keystore
+
+# Node
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+*.env.local
+*.env.*.local
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+*.pem
+*.key
+*.crt
+secrets/
+
+# Docker
+.dockerignore
+
+# Misc
+*.log
+coverage/
+.turbo/
