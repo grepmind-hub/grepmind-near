@@ -5,8 +5,8 @@ class AppConstants {
   static const String appName = 'Grepmind Near';
   static const String appVersion = '1.0.0';
 
-  // API base URL. Emulator reaches host via 10.0.2.2.
-  static const String apiBaseUrl = 'http://10.0.2.2:8080';
+  // API base URL. Emulator on Windows reaches WSL2 Docker API via WSL2 IP.
+  static const String apiBaseUrl = 'http://172.18.160.150:8080';
   static const String apiVersion = '/api/v1';
 
   // Request timeout (seconds).
