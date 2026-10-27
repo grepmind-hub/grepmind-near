@@ -152,6 +152,23 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------
+  # Nginx reverse proxy: exposes API on port 80 for mobile/web clients
+  # ---------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: grepmind_nginx
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./infrastructure/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - grepmind
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
   # Admin web portal: Next.js
   # ---------------------------------------------------------------
   admin-web:
