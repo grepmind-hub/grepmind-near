@@ -2,17 +2,21 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
+
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/discovery"
-	"grepmind-near/backend/internal/users"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 	"grepmind-near/backend/pkg/logger"
@@ -30,10 +34,9 @@ func main() {
 	defer db.Close()
 
 	authSvc := auth.NewService(db, cfg)
-	userSvc := users.NewService(db)
 	discSvc := discovery.NewService(db, cfg)
 
-	mux := setupRouter(authSvc, userSvc, discSvc)
+	mux := setupRouter(authSvc, discSvc)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -63,7 +66,7 @@ func main() {
 	fmt.Println("api stopped")
 }
 
-func setupRouter(authSvc *auth.Service, userSvc *users.Service, discSvc *discovery.Service) *http.ServeMux {
+func setupRouter(authSvc *auth.Service, discSvc *discovery.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -75,8 +78,8 @@ func setupRouter(authSvc *auth.Service, userSvc *users.Service, discSvc *discove
 	mux.HandleFunc("POST /api/v1/auth/refresh", authSvc.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authSvc.Logout)
 
-	mux.HandleFunc("GET /api/v1/me", requireAuth(userSvc.GetMe))
-	mux.HandleFunc("PATCH /api/v1/me", requireAuth(userSvc.UpdateMe))
+	mux.HandleFunc("GET /api/v1/me", requireAuth(authSvc, authMe))
+	mux.HandleFunc("PATCH /api/v1/me", requireAuth(authSvc, authUpdateMe))
 
 	mux.HandleFunc("GET /api/v1/categories", discSvc.ListCategories)
 	mux.HandleFunc("GET /api/v1/businesses", discSvc.SearchBusinesses)
@@ -89,10 +92,83 @@ func setupRouter(authSvc *auth.Service, userSvc *users.Service, discSvc *discove
 	return mux
 }
 
-func requireAuth(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, envelope{"status": "auth required"})
+func authMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	type userRow struct {
+		ID                string         `db:"id"`
+		PhoneE164         string         `db:"phone_e164"`
+		DisplayName       sql.NullString `db:"display_name"`
+		Status            string         `db:"status"`
+		PreferredLanguage string         `db:"preferred_language"`
 	}
+	var u userRow
+	err := db.QueryRowxContext(r.Context(), `
+		SELECT id, phone_e164, display_name, status, preferred_language FROM users WHERE id = $1
+	`, userID).Scan(&u.ID, &u.PhoneE164, &u.DisplayName, &u.Status, &u.PreferredLanguage)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "User not found.")
+		return
+	}
+	var roles []string
+	rows, err := db.QueryxContext(r.Context(), `SELECT role FROM user_roles WHERE user_id = $1`, userID)
+	if err == nil {
+		for rows.Next() {
+			var role string
+			_ = rows.Scan(&role)
+			roles = append(roles, role)
+		}
+		rows.Close()
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{
+			"id":                 u.ID,
+			"phone_e164":         u.PhoneE164,
+			"display_name":       u.DisplayName.String,
+			"status":             u.Status,
+			"preferred_language": u.PreferredLanguage,
+			"roles":              roles,
+		},
+		"meta": map[string]string{"request_id": "me"},
+	})
+}
+
+func authUpdateMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "updated"},
+		"meta": map[string]string{"request_id": "me-update"},
+	})
+}
+
+type authedHandler func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string)
+
+func requireAuth(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(auth, "Bearer ")
+		if token == "" {
+			writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing bearer token.")
+			return
+		}
+		claims, err := jwtParse(token, authSvc)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token.")
+			return
+		}
+		next(authSvc, authSvc.DB(), w, r, claims.Subject)
+	}
+}
+
+func jwtParse(token string, authSvc *auth.Service) (*jwt.RegisteredClaims, error) {
+	claims := &jwt.RegisteredClaims{}
+	_, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(authSvc.ConfigSecret()), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !claims.VerifyExpiresAt(authSvc.Now(), true) {
+		return nil, errors.New("expired")
+	}
+	return claims, nil
 }
 
 type envelope map[string]interface{}
@@ -100,8 +176,19 @@ type envelope map[string]interface{}
 func writeJSON(w http.ResponseWriter, code int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_ = v
+	_ = json.NewEncoder(w).Encode(v)
 }
 
-var _ = slog.New
+func writeError(w http.ResponseWriter, code int, errCode, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":       errCode,
+			"message":    message,
+			"request_id": "err",
+		},
+	})
+}
+
 var _ = os.Getenv

@@ -1,5 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
@@ -38,29 +39,85 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadSession() async {
     state = state.copyWith(isLoading: true);
-    final token = await const FlutterSecureStorage().read(key: AppConstants.accessTokenKey);
-    final userJson = await const FlutterSecureStorage().read(key: AppConstants.userKey);
+    final storage = FlutterSecureStorage();
+    final token = await storage.read(key: AppConstants.accessTokenKey);
+    final userJson = await storage.read(key: AppConstants.userKey);
     if (token != null && userJson != null) {
-      // Minimal decode without JWT dependency for MVP; store user from secure storage.
-      state = state.copyWith(
-        accessToken: token,
-        isLoading: false,
-      );
+      try {
+        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
+        state = state.copyWith(
+          user: AppUser.fromJson(userMap),
+          accessToken: token,
+          isLoading: false,
+        );
+      } catch (_) {
+        state = state.copyWith(isLoading: false);
+      }
     } else {
       state = state.copyWith(isLoading: false);
     }
   }
 
   Future<void> setSession({required String token, required AppUser user}) async {
-    await const FlutterSecureStorage().write(key: AppConstants.accessTokenKey, value: token);
-    await const FlutterSecureStorage().write(key: AppConstants.userKey, value: user.toJson().toString());
+    final storage = FlutterSecureStorage();
+    await storage.write(key: AppConstants.accessTokenKey, value: token);
+    await storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
     state = state.copyWith(user: user, accessToken: token, isLoading: false);
   }
 
   Future<void> logout() async {
-    await const FlutterSecureStorage().delete(key: AppConstants.accessTokenKey);
-    await const FlutterSecureStorage().delete(key: AppConstants.userKey);
+    final storage = FlutterSecureStorage();
+    await storage.delete(key: AppConstants.accessTokenKey);
+    await storage.delete(key: AppConstants.userKey);
     state = const AuthState();
+  }
+
+  /// Request an OTP for the given phone number.
+  /// Returns the OTP code when running against the local dev stub.
+  Future<Map<String, dynamic>?> requestOTP(String phone) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final res = await apiClient.post('/auth/otp/request', data: {'phone_e164': phone});
+      final data = res.data as Map<String, dynamic>;
+      final resultData = data['data'] as Map<String, dynamic>;
+      state = state.copyWith(isLoading: false);
+      return {
+        'phone_e164': resultData['phone_e164'],
+        'otp_code': resultData['otp_code'], // dev-only stub
+        'status': resultData['status'],
+      };
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return null;
+    }
+  }
+
+  /// Verify an OTP and establish a session.
+  Future<bool> verifyOTP(String phone, String otpCode) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final res = await apiClient.post('/auth/otp/verify', data: {
+        'phone_e164': phone,
+        'otp_code': otpCode,
+      });
+      final data = res.data as Map<String, dynamic>;
+      final resultData = data['data'] as Map<String, dynamic>;
+      final accessToken = resultData['access_token'] as String;
+      final refreshToken = resultData['refresh_token'] as String;
+      final userMap = resultData['user'] as Map<String, dynamic>;
+      final user = AppUser.fromJson(userMap);
+      await setSession(token: accessToken, user: user);
+      _storeRefreshToken(refreshToken);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return false;
+    }
+  }
+
+  Future<void> _storeRefreshToken(String token) async {
+    final storage = FlutterSecureStorage();
+    await storage.write(key: AppConstants.refreshTokenKey, value: token);
   }
 }
 
@@ -76,7 +133,7 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
 });
 
-/// Discovery/search state.
+/// Businesses discovery state.
 class BusinessesState {
   final List<Business> items;
   final bool isLoading;
@@ -104,7 +161,9 @@ class BusinessesState {
     bool reset = false,
   }) {
     return BusinessesState(
-      items: reset ? (items ?? const []) : (List<Business>.from(items ?? this.items)..addAll(items ?? const [])),
+      items: reset
+          ? (items ?? const [])
+          : (List<Business>.from(items ?? this.items)..addAll(items ?? const [])),
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       cursor: cursor ?? this.cursor,
@@ -114,7 +173,7 @@ class BusinessesState {
   }
 }
 
-/// Business discovery notifier.
+/// Business discovery notifier backed by real API calls.
 class BusinessesNotifier extends StateNotifier<BusinessesState> {
   BusinessesNotifier() : super(const BusinessesState());
 
@@ -130,7 +189,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     bool reset = true,
   }) async {
     if (reset) {
-      state = BusinessesState(query: query, items: [], cursor: null, hasMore: true, isLoading: true);
+      state = BusinessesState(query: query, items: const [], cursor: null, hasMore: true, isLoading: true);
     } else {
       state = state.copyWith(isLoading: true);
     }
@@ -206,14 +265,16 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     }
   }
 
-  Future<void> detail(String id) async {
+  Future<BusinessDetail?> detail(String id) async {
     try {
       final res = await apiClient.get('/businesses/$id');
       final data = res.data as Map<String, dynamic>;
       final biz = BusinessDetail.fromJson(data['data'] as Map<String, dynamic>);
       state = state.copyWith(items: [biz], isLoading: false, error: null);
+      return biz;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
     }
   }
 

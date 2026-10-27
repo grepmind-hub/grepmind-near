@@ -1,40 +1,76 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
-/// Phone-number onboarding screen.
-class OnboardingScreen extends StatefulWidget {
+/// Phone-number onboarding screen with real OTP flow.
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _sending = false;
+  bool _otpSent = false;
+  String? _otpCode; // dev-only: shown for local testing
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   Future<void> _sendOTP() async {
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
+    if (phone.isEmpty || !phone.startsWith('+')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your phone number')),
+        const SnackBar(content: Text('Enter a valid E.164 phone number (e.g. +919876543210)')),
       );
       return;
     }
     setState(() => _sending = true);
-    await Future.delayed(const Duration(seconds: 1));
+    final result = await ref.read(authProvider.notifier).requestOTP(phone);
     setState(() => _sending = false);
-    if (mounted) {
+    if (result != null && mounted) {
+      setState(() {
+        _otpSent = true;
+        _otpCode = result['otp_code'] as String?; // dev-only
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP sent to $phone (stub)')),
+        SnackBar(content: Text('OTP sent to $phone${_otpCode != null ? ' (code: $_otpCode)' : ''}')),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send OTP. Is the API running?')),
+      );
+    }
+  }
+
+  Future<void> _verifyOTP() async {
+    final phone = _phoneController.text.trim();
+    final code = _otpController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter the OTP code')),
+      );
+      return;
+    }
+    setState(() => _sending = true);
+    final success = await ref.read(authProvider.notifier).verifyOTP(phone, code);
+    setState(() => _sending = false);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signed in successfully')),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid OTP code. Try again.')),
       );
     }
   }
@@ -64,7 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Welcome to Grepmind Near',
+                    !_otpSent ? 'Welcome to Grepmind Near' : 'Verify your phone',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w700,
@@ -73,7 +109,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Enter your phone number to sign in. We\'ll send a one-time code.',
+                    !_otpSent
+                        ? 'Enter your phone number to sign in. We\'ll send a one-time code.'
+                        : 'Enter the 6-digit code sent to ${_phoneController.text.trim()}',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppTheme.secondaryText,
@@ -81,29 +119,62 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                   ),
                   const SizedBox(height: 28),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(15),
-                    ],
-                    decoration: const InputDecoration(
-                      labelText: 'Phone number',
-                      hintText: '+91 98765 43210',
-                      prefixText: '+91 ',
+                  if (!_otpSent) ...[
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone number',
+                        hintText: '+91 98765 43210',
+                        prefixText: '+91 ',
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _sending ? null : _sendOTP,
-                      child: _sending
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Send OTP'),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _sending ? null : _sendOTP,
+                        child: _sending
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Send OTP'),
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    TextField(
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'OTP code',
+                        hintText: '123456',
+                        counterText: '',
+                      ),
+                    ),
+                    if (_otpCode != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Dev code: $_otpCode',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText, fontStyle: FontStyle.italic),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _sending ? null : _verifyOTP,
+                        child: _sending
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Verify'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _sending ? null : () => setState(() => _otpSent = false),
+                      child: const Text('Use a different number'),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: null,
