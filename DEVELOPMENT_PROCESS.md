@@ -20,6 +20,37 @@ This document is the single source of truth for how Grepmind Near is developed. 
 
 ---
 
+## 1.1 UI/UX specification (reference images + design tokens)
+
+Reference UI screens live in `ref-image/`:
+- Onboarding and location.png
+- Explore home.png
+- Search and results.png
+- Nearby map.png
+- Business profile.png
+- Service request.png
+- Saved businesses.png
+- Merchant workspace.png
+- Admin web portal.png
+- Color palette.png
+- Reusable components.png
+- sample-ui-design.jpeg
+
+The full UI/UX specification (color palette, typography, spacing, component inventory, screen-by-screen spec, Flutter navigation contract, Go API architecture, and OpenCode implementation sequence) is incorporated into this process. Agents must:
+
+- Follow the documented design tokens exactly:
+  - Primary: `#2457D6`, Secondary: `#0F766E`, Background: `#F7F8FA`, Surface: `#FFFFFF`
+  - Main text: `#172033`, Secondary text: `#667085`, Border: `#E4E7EC`
+  - Success: `#15803D`, Error: `#B42318`
+- Use Inter typography with Odia/Hindi fallback (Noto Sans Oriya, Noto Sans Devanagari).
+- Base spacing unit: 4px. Screen side padding: 20px. Card radius: 16px. Input radius: 12px. Button height: 48–52dp.
+- Use one consistent outline icon family (Lucide/Flutter icons). Do not mix outline, filled, 3D, and emoji icons in primary navigation.
+- Reuse existing design-system components rather than styling every screen independently.
+- Every API-driven screen must define: loading, loaded-with-results, loaded-no-results, recoverable-error, auth-required states.
+- Never fabricate availability, verification, inventory, ratings, or offers.
+
+---
+
 ## 2. Repository layout (source of truth)
 
 ```text
