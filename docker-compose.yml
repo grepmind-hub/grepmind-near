@@ -41,7 +41,7 @@ services:
   # Object storage: MinIO (S3-compatible)
   # ---------------------------------------------------------------
   minio:
-    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    image: elestio/minio:latest
     container_name: grepmind_minio
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
@@ -167,26 +167,6 @@ services:
       NEXT_PUBLIC_APP_NAME: Grepmind Near Admin
     ports:
       - "3000:3000"
-    networks:
-      - grepmind
-    restart: unless-stopped
-
-  # ---------------------------------------------------------------
-  # Merchant web dashboard: Next.js
-  # ---------------------------------------------------------------
-  merchant-web:
-    build:
-      context: ./apps/merchant-web
-      dockerfile: Dockerfile
-    container_name: grepmind_merchant_web
-    depends_on:
-      api:
-        condition: service_healthy
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
-      NEXT_PUBLIC_APP_NAME: Grepmind Near Merchant
-    ports:
-      - "3001:3001"
     networks:
       - grepmind
     restart: unless-stopped
