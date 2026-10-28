@@ -8,7 +8,13 @@ import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 class ServiceRequestScreen extends ConsumerStatefulWidget {
   final String businessId;
   final String businessName;
-  const ServiceRequestScreen({super.key, required this.businessId, required this.businessName});
+  final String? initialServiceId;
+  const ServiceRequestScreen({
+    super.key,
+    required this.businessId,
+    required this.businessName,
+    this.initialServiceId,
+  });
 
   @override
   ConsumerState<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
@@ -23,6 +29,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedServiceId = widget.initialServiceId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(businessDetailProvider.notifier).load(widget.businessId);
     });

@@ -601,3 +601,57 @@ class ServiceRequest extends Equatable {
         requestedFor, status, createdAt, updatedAt,
       ];
 }
+
+/// Availability slot for booking.
+class AvailabilitySlot extends Equatable {
+  final String id;
+  final String businessId;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final int capacity;
+  final int bookedCount;
+  final String status;
+
+  const AvailabilitySlot({
+    required this.id,
+    required this.businessId,
+    required this.startsAt,
+    required this.endsAt,
+    this.capacity = 1,
+    this.bookedCount = 0,
+    this.status = 'open',
+  });
+
+  factory AvailabilitySlot.fromJson(Map<String, dynamic> json) {
+    return AvailabilitySlot(
+      id: json['id'] as String,
+      businessId: json['business_id'] as String? ?? '',
+      startsAt: DateTime.tryParse(json['starts_at'] as String) ?? DateTime.now(),
+      endsAt: DateTime.tryParse(json['ends_at'] as String) ?? DateTime.now(),
+      capacity: json['capacity'] as int? ?? 1,
+      bookedCount: json['booked_count'] as int? ?? 0,
+      status: json['status'] as String? ?? 'open',
+    );
+  }
+
+  bool get isAvailable => status == 'open' && bookedCount < capacity;
+
+  String get period {
+    final hour = startsAt.hour;
+    if (hour < 12) return 'morning';
+    if (hour < 16) return 'afternoon';
+    return 'evening';
+  }
+
+  String get timeFormatted {
+    final h = startsAt.hour;
+    final m = startsAt.minute.toString().padLeft(2, '0');
+    final ampm = h >= 12 ? 'PM' : 'AM';
+    final hour12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    return '${hour12.toString().padLeft(2, '0')}:$m $ampm';
+  }
+
+  @override
+  List<Object?> get props => [id, businessId, startsAt, endsAt, capacity, bookedCount, status];
+}
+

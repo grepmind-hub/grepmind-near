@@ -343,10 +343,10 @@ If a task is ambiguous, conflicts with PRTS, or requires an architecture change,
 | Screen 12 | Product Details | Completed & Verified |
 | Screen 13 | Service Professional Profile | Completed & Verified |
 | Screen 14 | Service Request Submission | Completed & Verified |
-| Screen 15 | Appointment Slot Scheduler | **NEXT IMPLEMENTATION** |
+| Screen 15 | Appointment Slot Scheduler | Parked (Backlog) |
 | Screen 16 | Saved / Bookmarked Businesses | Completed |
 | Screen 17 | Customer Profile & Settings | Completed |
-| Screen 18 | Service Request Status Tracker | Queued |
+| Screen 18 | Service Request Status Tracker | **ACTIVE TASK** |
 | Screen 19 | Merchant Registration / Claim | Queued |
 | Screen 20 | Merchant Workspace Dashboard | Completed |
 | Screen 21 | Merchant Catalog Management | Queued |

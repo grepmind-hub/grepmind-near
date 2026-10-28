@@ -547,8 +547,34 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                       onPressed: () => _openWhatsApp(biz.whatsappE164 ?? biz.phoneE164 ?? '+919876543220'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Primary Action CTA: Request Service
+                  const SizedBox(width: 10),
+                  // Custom Request button
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_note_rounded, color: AppTheme.secondaryText, size: 24),
+                      tooltip: 'Custom Request',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ServiceRequestScreen(
+                              businessId: biz.id,
+                              businessName: biz.name,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Primary Action CTA: Book / Schedule Slot
                   Expanded(
                     child: SizedBox(
                       height: 48,
@@ -559,12 +585,14 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         onPressed: () {
+                          final selectedSvc = _services.where((s) => s.id == _selectedServiceId).firstOrNull;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => ServiceRequestScreen(
                                 businessId: biz.id,
                                 businessName: biz.name,
+                                initialServiceId: selectedSvc?.id,
                               ),
                             ),
                           );
@@ -575,7 +603,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                             Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
                             SizedBox(width: 8),
                             Text(
-                              'Request Service',
+                              'Book Appointment',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
