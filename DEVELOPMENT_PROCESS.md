@@ -347,7 +347,22 @@ If a task is ambiguous, conflicts with PRTS, or requires an architecture change,
 | Screen 16 | Saved / Bookmarked Businesses | Completed |
 | Screen 17 | Customer Profile & Settings | Completed |
 | Screen 18 | Service Request Status Tracker | Completed & Verified |
-| Screen 19 | Merchant Registration / Claim | **ACTIVE / QUEUED** |
+| Screen 19 | Merchant Registration / Claim | Completed & Verified |
 | Screen 20 | Merchant Workspace Dashboard | Completed |
-| Screen 21 | Merchant Catalog Management | Queued |
+| Screen 21 | Merchant Catalog Management | **ACTIVE / QUEUED** |
 | Screen 22 | Merchant Hours & Coverage Setup| Queued |
+
+- **Screen 19 (Merchant Registration / Claim)**:
+  - File: `apps/mobile/lib/core/screens/merchant_registration_screen.dart`.
+  - Tests: `apps/mobile/test/merchant_registration_test.dart` (3/3 passed).
+  - Features:
+    - Mode Segmented Control (`Register New` wizard vs `Claim Existing` directory listing).
+    - 4-Step Stepper Progress Bar (`Type & Sector` -> `Basic Info` -> `Location & Store` -> `Operations`).
+    - Step 1: Enterprise Classification (Retail Shop, Skilled Trade Pro, Food & Dining, Salon & Wellness) and Primary Trade Category picker.
+    - Step 2: Enterprise & Ownership details (Trade Name, Owner Name, Contact Phone with Verified badge, Support Email, Tagline, Tax / GSTIN with "Local artisan / No GST" toggle).
+    - Step 3: Location & Media (Street Address, Locality, City, PIN Code, GPS Geolocation locking card, Storefront Signage Photo preview).
+    - Step 4: Operations & Review (Operating Mode: Walk-in, On-site Visits, Both; Service Radius slider 1-20 km; Operating Schedule presets; Application Summary).
+    - Search & Claim workflow with search bar, unverified badges, and OTP verification modal bottom sheet.
+    - Application submission with generated ID (`#MR-XXXX` / `#CLM-XXXX`) and direct navigation to `MerchantWorkspaceScreen`.
+  - Target device verification: Tested on `Pixel_8` (`emulator-5556`) across all steps and modes.
+

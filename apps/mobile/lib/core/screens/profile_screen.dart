@@ -5,6 +5,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerWidget {
@@ -216,6 +217,15 @@ class ProfileScreen extends ConsumerWidget {
             subtitle: 'Manage your business, orders & requests',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
+            ),
+          ),
+          const Divider(),
+          _buildAccountOption(
+            icon: Icons.add_business_outlined,
+            title: 'Register / Claim Business',
+            subtitle: 'List your shop or professional trade on Grepmind',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
             ),
           ),
           const Divider(),
