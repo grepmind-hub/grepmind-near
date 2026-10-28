@@ -11,22 +11,27 @@ class AuthState {
   final String? accessToken;
   final bool isLoading;
   final bool isAuthenticated;
+  final String? activeRole; // 'customer', 'merchant', or 'admin'
 
   const AuthState({
     this.user,
     this.accessToken,
     this.isLoading = false,
+    this.activeRole,
   }) : isAuthenticated = user != null;
 
   AuthState copyWith({
     AppUser? user,
     String? accessToken,
     bool? isLoading,
+    String? activeRole,
+    bool clearActiveRole = false,
   }) {
     return AuthState(
       user: user ?? this.user,
       accessToken: accessToken ?? this.accessToken,
       isLoading: isLoading ?? this.isLoading,
+      activeRole: clearActiveRole ? null : (activeRole ?? this.activeRole),
     );
   }
 }
@@ -42,12 +47,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final storage = const FlutterSecureStorage();
     final token = await storage.read(key: AppConstants.accessTokenKey);
     final userJson = await storage.read(key: AppConstants.userKey);
+    final savedRole = await storage.read(key: AppConstants.activeRoleKey);
     if (token != null && userJson != null) {
       try {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
         state = state.copyWith(
           user: AppUser.fromJson(userMap),
           accessToken: token,
+          activeRole: savedRole,
           isLoading: false,
         );
       } catch (_) {
@@ -58,17 +65,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> setSession({required String token, required AppUser user}) async {
+  Future<void> setActiveRole(String role) async {
+    final storage = const FlutterSecureStorage();
+    await storage.write(key: AppConstants.activeRoleKey, value: role);
+    state = state.copyWith(activeRole: role);
+  }
+
+  Future<void> clearActiveRole() async {
+    final storage = const FlutterSecureStorage();
+    await storage.delete(key: AppConstants.activeRoleKey);
+    state = state.copyWith(clearActiveRole: true);
+  }
+
+  Future<void> setSession({required String token, required AppUser user, String? activeRole}) async {
     final storage = const FlutterSecureStorage();
     await storage.write(key: AppConstants.accessTokenKey, value: token);
     await storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
-    state = state.copyWith(user: user, accessToken: token, isLoading: false);
+    if (activeRole != null) {
+      await storage.write(key: AppConstants.activeRoleKey, value: activeRole);
+    }
+    state = state.copyWith(user: user, accessToken: token, activeRole: activeRole, isLoading: false);
   }
 
   Future<void> logout() async {
     final storage = const FlutterSecureStorage();
     await storage.delete(key: AppConstants.accessTokenKey);
     await storage.delete(key: AppConstants.userKey);
+    await storage.delete(key: AppConstants.activeRoleKey);
     state = const AuthState();
   }
 

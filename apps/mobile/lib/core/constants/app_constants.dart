@@ -44,4 +44,5 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user';
   static const String selectedLocationKey = 'selected_location';
+  static const String activeRoleKey = 'active_role';
 }

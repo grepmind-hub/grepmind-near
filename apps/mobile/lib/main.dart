@@ -8,6 +8,8 @@ import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
 import 'package:grepmind_mobile/core/screens/splash_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
+import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,7 +34,11 @@ class GrepmindNearApp extends ConsumerWidget {
       home: authState.isLoading
           ? const SplashScreen()
           : authState.isAuthenticated
-              ? const MainNavigator()
+              ? (authState.activeRole == null
+                  ? const RoleSelectionScreen()
+                  : authState.activeRole == 'admin'
+                      ? const AdminPortalScreen()
+                      : const MainNavigator())
               : const OnboardingScreen(),
     );
   }
@@ -51,19 +57,50 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isMerchant = authState.user?.roles.contains('merchant') == true ||
-        authState.user?.roles.contains('professional') == true;
+    final activeRole = authState.activeRole ?? 'customer';
 
-    final screens = [
+    if (activeRole == 'merchant') {
+      // Merchant Experience: dedicated workspace & profile
+      final merchantScreens = [
+        const MerchantWorkspaceScreen(),
+        const ProfileScreen(),
+      ];
+      final maxIndex = merchantScreens.length - 1;
+      if (_selectedIndex > maxIndex) {
+        _selectedIndex = maxIndex;
+      }
+
+      return Scaffold(
+        body: IndexedStack(index: _selectedIndex, children: merchantScreens),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (i) => setState(() => _selectedIndex = i),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.storefront_outlined),
+              activeIcon: Icon(Icons.storefront),
+              label: 'Workspace',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Account',
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Customer Experience: Explore, Nearby, Saved, Profile
+    final customerScreens = [
       const ExploreScreen(),
       const NearbyMapScreen(),
       const SavedScreen(),
       const ProfileScreen(),
-      if (isMerchant) const MerchantWorkspaceScreen(),
     ];
 
     // Clamp selectedIndex to valid range
-    final maxIndex = screens.length - 1;
+    final maxIndex = customerScreens.length - 1;
     if (_selectedIndex > maxIndex) {
       _selectedIndex = maxIndex;
     }
@@ -73,16 +110,10 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
       const BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Nearby'),
       const BottomNavigationBarItem(icon: Icon(Icons.favorite_outline), activeIcon: Icon(Icons.favorite), label: 'Saved'),
       const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-      if (isMerchant)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.store_outlined),
-          activeIcon: Icon(Icons.store),
-          label: 'Merchant',
-        ),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: screens),
+      body: IndexedStack(index: _selectedIndex, children: customerScreens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),

@@ -87,7 +87,7 @@ services:
       DB_NAME: ${DB_NAME:-grepmind_near}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_SECRET: ${JWT_SECRET:-replace-with-strong-secret-min-32-chars}
-      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-72h}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-720h}
       OTP_TTL: ${OTP_TTL:-10m}
       OTP_RESEND_COOLDOWN: ${OTP_RESEND_COOLDOWN:-60s}

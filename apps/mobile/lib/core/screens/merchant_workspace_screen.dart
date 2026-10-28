@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
@@ -67,7 +68,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return Center(child: Text(state.error!));
+      return _buildErrorState(state.error!, () => ref.read(merchantProvider.notifier).loadRequests());
     }
 
     final pendingCount = state.items.where((r) => r.status == 'requested').length;
@@ -207,7 +208,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return Center(child: Text(state.error!));
+      return _buildErrorState(state.error!, () => ref.read(merchantProvider.notifier).loadRequests());
     }
 
     return RefreshIndicator(
@@ -251,7 +252,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return Center(child: Text(state.error!));
+      return _buildErrorState(state.error!, () => ref.read(merchantProfileProvider('').notifier).load());
     }
 
     final profile = state.profile ?? {};
@@ -625,6 +626,96 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error, VoidCallback onRetry) {
+    final isAuthError = error.contains('401') || error.toLowerCase().contains('unauthorized') || error.contains('INVALID_TOKEN');
+    final isNotFound = error.contains('404') || error.contains('NOT_FOUND') || error.contains('Business profile not found') || error.contains('FORBIDDEN') || error.contains('Merchant role required');
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: isAuthError ? AppTheme.warningContainer : (isNotFound ? AppTheme.primaryContainer : Colors.red.shade50),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isAuthError ? Icons.lock_clock_outlined : (isNotFound ? Icons.storefront_outlined : Icons.error_outline),
+                size: 36,
+                color: isAuthError ? AppTheme.warning : (isNotFound ? AppTheme.primary : AppTheme.error),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isAuthError
+                  ? 'Session Expired'
+                  : (isNotFound ? 'Business Profile Required' : 'Unable to Load Workspace'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isAuthError
+                  ? 'Your login session has expired. Please sign in again with your registered phone number.'
+                  : (isNotFound
+                      ? 'You have not registered or claimed a business listing yet. Register your business to start receiving customer service requests and managing catalog.'
+                      : 'We encountered an error while loading your merchant profile. Please check your network and try again.'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: AppTheme.secondaryText, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            if (isNotFound)
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
+                  );
+                },
+                icon: const Icon(Icons.add_business_outlined, size: 20),
+                label: const Text('Register Business'),
+              )
+            else if (isAuthError)
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  ref.read(authProvider.notifier).logout();
+                },
+                icon: const Icon(Icons.login_outlined, size: 20),
+                label: const Text('Sign In Again'),
+              )
+            else
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 20),
+                label: const Text('Try Again'),
+              ),
+          ],
+        ),
       ),
     );
   }

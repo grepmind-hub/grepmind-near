@@ -6,6 +6,8 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
+import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
+import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerWidget {
@@ -61,9 +63,9 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             _buildProfileHeader(authState.user!),
             const SizedBox(height: 24),
-            _buildProfileInfo(authState.user!),
+            _buildProfileInfo(authState.user!, authState.activeRole ?? 'customer'),
             const SizedBox(height: 24),
-            _buildAccountSection(context),
+            _buildAccountSection(context, authState.activeRole ?? 'customer'),
             const SizedBox(height: 24),
             _buildActions(context, ref),
           ],
@@ -109,7 +111,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileInfo(AppUser user) {
+  Widget _buildProfileInfo(AppUser user, String activeRole) {
     return PremiumCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -119,12 +121,14 @@ class ProfileScreen extends ConsumerWidget {
           const Divider(),
           _buildInfoRow('Phone', user.phoneE164),
           const Divider(),
+          _buildInfoRow('Active Mode', activeRole.toUpperCase()),
+          const Divider(),
           _buildInfoRow('Status', _formatStatus(user.status)),
           const Divider(),
           _buildInfoRow('Language', user.preferredLanguage),
           if (user.roles.isNotEmpty) ...[
             const Divider(),
-            _buildInfoRow('Roles', user.roles.join(', ')),
+            _buildInfoRow('Assigned Roles', user.roles.join(', ')),
           ],
         ],
       ),
@@ -182,14 +186,17 @@ class ProfileScreen extends ConsumerWidget {
     return 'User -$last4';
   }
 
-  Widget _buildAccountSection(BuildContext context) {
+  Widget _buildAccountSection(BuildContext context, String activeRole) {
+    final isMerchantRole = activeRole == 'merchant';
+    final isAdminRole = activeRole == 'admin';
+
     return PremiumCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Account',
+            'Account & Portal',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -197,6 +204,55 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Portal / Role Switcher Tile
+          _buildAccountOption(
+            icon: Icons.swap_horiz_rounded,
+            title: 'Switch Portal / Experience',
+            subtitle: 'Current mode: ${activeRole.toUpperCase()} (Customer, Merchant, Admin)',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const RoleSelectionScreen(isSwitching: true)),
+            ),
+          ),
+          const Divider(),
+
+          // Merchant Workspace - ONLY visible in Merchant mode
+          if (isMerchantRole) ...[
+            _buildAccountOption(
+              icon: Icons.storefront_outlined,
+              title: 'Merchant Workspace',
+              subtitle: 'Manage your storefront, requests & catalog',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
+              ),
+            ),
+            const Divider(),
+          ],
+
+          // Admin Portal - ONLY visible in Admin mode
+          if (isAdminRole) ...[
+            _buildAccountOption(
+              icon: Icons.admin_panel_settings_outlined,
+              title: 'Admin Moderation Portal',
+              subtitle: 'Review listings, claims & platform audit logs',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdminPortalScreen()),
+              ),
+            ),
+            const Divider(),
+          ],
+
+          // Register or Claim Business (available to Customer & Merchant)
+          _buildAccountOption(
+            icon: Icons.add_business_outlined,
+            title: 'Register / Claim Business',
+            subtitle: 'List your shop or professional trade on Grepmind',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
+            ),
+          ),
+          const Divider(),
+
           _buildAccountOption(
             icon: Icons.security,
             title: 'Change Password',
@@ -209,24 +265,6 @@ class ProfileScreen extends ConsumerWidget {
             title: 'Notification Settings',
             subtitle: 'Manage push notifications',
             onTap: () => _showComingSoonDialog(context, 'Notification settings'),
-          ),
-          const Divider(),
-          _buildAccountOption(
-            icon: Icons.storefront_outlined,
-            title: 'Merchant Workspace',
-            subtitle: 'Manage your business, orders & requests',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
-            ),
-          ),
-          const Divider(),
-          _buildAccountOption(
-            icon: Icons.add_business_outlined,
-            title: 'Register / Claim Business',
-            subtitle: 'List your shop or professional trade on Grepmind',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
-            ),
           ),
           const Divider(),
           _buildAccountOption(
