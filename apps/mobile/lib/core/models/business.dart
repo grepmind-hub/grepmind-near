@@ -25,6 +25,7 @@ class Business extends Equatable {
   final int? reviewCount;
   final double? latitude;
   final double? longitude;
+  final String? description;
 
   const Business({
     required this.id,
@@ -49,6 +50,7 @@ class Business extends Equatable {
     this.reviewCount,
     this.latitude,
     this.longitude,
+    this.description,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -75,6 +77,7 @@ class Business extends Equatable {
       reviewCount: json['review_count'] as int?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      description: json['description'] as String?,
     );
   }
 
@@ -102,6 +105,7 @@ class Business extends Equatable {
       'review_count': reviewCount,
       'latitude': latitude,
       'longitude': longitude,
+      'description': description,
     };
   }
 
@@ -125,13 +129,12 @@ class Business extends Equatable {
         id, name, slug, categorySlug, categoryName, categoryIcon, addressText,
         locality, city, postalCode, distanceM, status, verificationStatus,
         phoneE164, whatsappE164, isOpenNow, acceptsRequests, coverPhotoUrl,
-        rating, reviewCount, latitude, longitude,
+        rating, reviewCount, latitude, longitude, description,
       ];
 }
 
 /// Full business detail.
 class BusinessDetail extends Business {
-  final String? description;
   final List<BusinessHour> businessHours;
   final List<Product> products;
   final List<Offer> offers;
@@ -165,7 +168,7 @@ class BusinessDetail extends Business {
     super.reviewCount,
     super.latitude,
     super.longitude,
-    this.description,
+    super.description,
     this.businessHours = const [],
     this.products = const [],
     this.offers = const [],
@@ -228,7 +231,7 @@ class BusinessDetail extends Business {
 
   @override
   List<Object?> get props => super.props..addAll([
-        description, latitude, longitude, businessHours, products, offers,
+        businessHours, products, offers,
         services, media, serviceRadiusM, experienceYears, serviceDescription,
         nextAvailableAppointment,
       ]);

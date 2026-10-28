@@ -51,6 +51,38 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   }
 
   Widget _buildError(String error) {
+    final isAuthError = error.contains('401') || error.toLowerCase().contains('unauthorized');
+    if (isAuthError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.favorite_outline, size: 64, color: AppTheme.hintText),
+              const SizedBox(height: 16),
+              const Text(
+                'Save your favorite places',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sign in to sync your saved businesses and services across devices.',
+                style: TextStyle(color: AppTheme.secondaryText),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () => ref.read(favoritesProvider.notifier).load(),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -59,7 +91,16 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
             const SizedBox(height: 16),
-            Text(error, style: const TextStyle(color: AppTheme.error), textAlign: TextAlign.center),
+            const Text(
+              'Unable to load saved places',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Please check your internet connection and try again.',
+              style: TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => ref.read(favoritesProvider.notifier).load(),

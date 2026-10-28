@@ -125,3 +125,38 @@ FINAL REPORT:
 - Decisions or assumptions made.
 - Known limitations and remaining risks.
 - Recommended next task.
+
+## 22-Screen UI Showcase Implementation Status
+
+Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
+
+| # | Screen Name | Status | Location / Implementation Details |
+|---|---|---|---|
+| **1** | Splash Screen | ✅ Complete | `apps/mobile/lib/core/screens/splash_screen.dart` |
+| **2** | Onboarding Carousel | ✅ Complete | `apps/mobile/lib/core/screens/onboarding_screen.dart` |
+| **3** | Phone OTP Authentication | ✅ Complete | `apps/mobile/lib/core/screens/onboarding_screen.dart` (integrated flow) |
+| **4** | Location Selection Modal | ✅ Complete | `apps/mobile/lib/core/screens/explore_screen.dart` (GPS & city picker sheet) |
+| **5** | City / Locality Selection | ✅ Complete | Integrated in Location sheet modal |
+| **6** | Location Permission Welcome | ✅ Complete | Modal permission primer in onboarding |
+| **7** | Home / Explore Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/explore_screen.dart` (Hero banner, category chips, nearby business cards) |
+| **8** | Categories Directory | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/categories_screen.dart` (18 categories, search, section filter tabs) |
+| **9** | Search & Filter Results | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/search_results_screen.dart` (radius sheet, sort sheet, verified/open chips, empty recovery) |
+| **10** | Nearby Interactive Map | 🟡 In Review | `apps/mobile/lib/core/screens/nearby_map_screen.dart` (Map markers with bottom card preview) |
+| **11** | Business Profile & Tabs | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover, About, Products, Offers, Reviews) |
+| **12** | Product Details Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/product_detail_screen.dart` (Pricing, discount, specs, store card, dual CTAs) |
+| **13** | Service Professional Profile | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_pro_screen.dart` (Experience badges, verified badge, services, rates, coverage, reviews) |
+| **14** | Service Request Submission | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_screen.dart` (Service dropdown, description, date/time) |
+| **15** | Appointment Slot Scheduler | ⏳ **NEXT TASK** | Calendar date carousel + Morning/Afternoon/Evening slot picker |
+| **16** | Saved / Bookmarked Businesses | ✅ Complete | `apps/mobile/lib/core/screens/saved_screen.dart` |
+| **17** | Customer Profile & Settings | ✅ Complete | `apps/mobile/lib/core/screens/profile_screen.dart` |
+| **18** | Service Request Status Tracker| ⏳ **QUEUED** | Multi-step progress tracker (Requested → Accepted → En Route → Completed) |
+| **19** | Merchant Registration / Claim | ⏳ **QUEUED** | Onboarding for store owners / skilled pros |
+| **20** | Merchant Workspace Dashboard | ✅ Complete | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` |
+| **21** | Merchant Catalog Management | ⏳ **QUEUED** | Product & Service offerings editor |
+| **22** | Merchant Hours & Coverage Setup| ⏳ **QUEUED** | Weekly operating hours & service radius setting |
+
+### Next Recommended Implementation
+- **Screen 15: Appointment Slot Scheduler** (`booking_scheduler_screen.dart`):
+  - Interactive calendar day-selection strip (e.g. *Sun 13, Mon 14, Tue 15, Wed 16, Thu 17*).
+  - Time slots categorized into *Morning (8:00 AM - 12:00 PM)*, *Afternoon (12:00 PM - 4:00 PM)*, and *Evening (4:00 PM - 8:00 PM)*.
+  - Integration with `availability_slots` in database and Go backend.

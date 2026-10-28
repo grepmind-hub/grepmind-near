@@ -454,6 +454,57 @@ final businessesProvider = StateNotifierProvider<BusinessesNotifier, BusinessesS
   return BusinessesNotifier();
 });
 
+/// Categories state.
+class CategoriesState {
+  final List<Category> items;
+  final bool isLoading;
+  final String? error;
+
+  const CategoriesState({
+    this.items = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  CategoriesState copyWith({
+    List<Category>? items,
+    bool? isLoading,
+    String? error,
+  }) {
+    return CategoriesState(
+      items: items ?? this.items,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+    );
+  }
+}
+
+/// Categories notifier.
+class CategoriesNotifier extends StateNotifier<CategoriesState> {
+  CategoriesNotifier() : super(const CategoriesState()) {
+    load();
+  }
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final res = await apiClient.get('/categories');
+      final data = res.data as Map<String, dynamic>;
+      final items = (data['data'] as List<dynamic>?)
+              ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
+      state = state.copyWith(items: items, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+}
+
+final categoriesProvider = StateNotifierProvider<CategoriesNotifier, CategoriesState>((ref) {
+  return CategoriesNotifier();
+});
+
 // ---------------------------------------------------------------
 // Merchant Workspace Provider
 // ---------------------------------------------------------------

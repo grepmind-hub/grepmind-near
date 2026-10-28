@@ -27,12 +27,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _sendOTP() async {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty || !phone.startsWith('+')) {
+    String phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid E.164 phone number (e.g. +919876543210)')),
+        const SnackBar(content: Text('Please enter your phone number')),
       );
       return;
+    }
+    if (!phone.startsWith('+')) {
+      phone = '+91$phone';
     }
     debugPrint('🔵 _sendOTP: starting for $phone');
     setState(() => _sending = true);
@@ -61,7 +64,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _verifyOTP() async {
-    final phone = _phoneController.text.trim();
+    String phone = _phoneController.text.trim();
+    if (!phone.startsWith('+')) {
+      phone = '+91$phone';
+    }
     final code = _otpController.text.trim();
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

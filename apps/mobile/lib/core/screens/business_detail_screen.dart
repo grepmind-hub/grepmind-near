@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/screens/product_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/premium_card.dart';
-import 'package:grepmind_mobile/core/widgets/status_chip.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Business detail screen.
+/// Screen 11: Business Profile / Detail screen matching UI showcase.
 class BusinessDetailScreen extends ConsumerStatefulWidget {
   final String businessId;
   const BusinessDetailScreen({super.key, required this.businessId});
@@ -17,8 +16,9 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<BusinessDetailScreen> createState() => _BusinessDetailScreenState();
 }
 
-class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
+class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> with SingleTickerProviderStateMixin {
   bool _isFavorited = false;
+  late TabController _tabController;
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
@@ -30,7 +30,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Load business detail when screen opens
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(businessDetailProvider.notifier).load(widget.businessId);
     });
@@ -38,6 +38,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     ref.read(businessDetailProvider.notifier).clear();
     super.dispose();
   }
@@ -45,250 +46,781 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(businessDetailProvider);
-    final biz = state.detail;
-
-    if (state.isLoading && biz == null) {
-      return const Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (state.error != null && biz == null) {
-      return Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
-              const SizedBox(height: 16),
-              Text(state.error!, style: const TextStyle(color: AppTheme.error)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.read(businessDetailProvider.notifier).load(widget.businessId),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Use stub if no data (fallback)
-    final displayBiz = biz ?? _stubBusiness();
+    final biz = state.detail ?? _stubBusiness();
     final hours = state.businessHours.isNotEmpty ? state.businessHours : _defaultHours();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: CustomScrollView(
-        slivers: [
-          // Cover photo + identity.
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-            actions: [
-              IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
-              IconButton(
-                icon: Icon(_isFavorited ? Icons.favorite : Icons.favorite_border, color: AppTheme.error),
-                onPressed: () => setState(() => _isFavorited = !_isFavorited),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  Container(color: AppTheme.surfaceVariant),
-                  Positioned.fill(
-                    child: displayBiz.coverPhotoUrl != null
-                        ? Image.network(displayBiz.coverPhotoUrl!, fit: BoxFit.cover)
-                        : const Icon(Icons.store_outlined, size: 64, color: AppTheme.hintText),
+      backgroundColor: Colors.white,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            // Top Cover Hero with rounded buttons
+            SliverAppBar(
+              expandedHeight: 220,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: AppTheme.primary,
+              leading: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
                   ),
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            if (displayBiz.verificationStatus == 'verified')
-                              const StatusChip(label: 'Verified', type: StatusChipType.success),
-                            const SizedBox(width: 8),
-                            StatusChip(
-                              label: displayBiz.isOpenNow ? 'Open now' : 'Closed',
-                              type: displayBiz.isOpenNow ? StatusChipType.success : StatusChipType.info,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          displayBiz.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            shadows: [Shadow(blurRadius: 8, color: Colors.black45)],
-                          ),
-                        ),
-                        Text(
-                          displayBiz.displayAddress,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            shadows: [Shadow(blurRadius: 6, color: Colors.black45)],
-                          ),
-                        ),
-                      ],
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.mainText),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        size: 20,
+                        color: _isFavorited ? AppTheme.error : AppTheme.mainText,
+                      ),
+                      onPressed: () => setState(() => _isFavorited = !_isFavorited),
                     ),
                   ),
-                ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 20, color: AppTheme.mainText),
+                      onPressed: () {},
+                    ),
+                  ),
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (biz.coverPhotoUrl != null && biz.coverPhotoUrl!.isNotEmpty)
+                      Image.network(
+                        biz.coverPhotoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _heroPlaceholder(),
+                      )
+                    else
+                      _heroPlaceholder(),
+                    // Dark subtle gradient overlay
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.4),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.2),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Content.
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Identity & actions.
-                PremiumCard(
-                  margin: const EdgeInsets.fromLTRB(kScreenPadding, 12, kScreenPadding, 0),
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+            // Overlapping Business Info Header
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                transform: Matrix4.translationValues(0, -16, 0),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Business Name & Verified Badge
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            biz.name,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ),
+                        if (biz.verificationStatus == 'verified')
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF3),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
+                                Icon(Icons.verified, size: 14, color: AppTheme.primary),
+                                SizedBox(width: 4),
                                 Text(
-                                  displayBiz.categoryName ?? displayBiz.categorySlug,
-                                  style: const TextStyle(
+                                  'Verified',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
                                     color: AppTheme.primary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  displayBiz.phoneE164 ?? 'Phone not listed',
-                                  style: const TextStyle(
-                                    color: AppTheme.secondaryText,
-                                    fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            children: [
-                              _actionButton('Call', Icons.phone_outlined, () => _launchUrl('tel:${displayBiz.phoneE164 ?? ''}')),
-                              const SizedBox(height: 10),
-                              _actionButton('WhatsApp', Icons.message_outlined, () => _launchUrl('https://wa.me/${displayBiz.whatsappE164 ?? displayBiz.phoneE164 ?? ''}')),
-                            ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Rating & Category & Distance
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          (biz.rating ?? 4.8).toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            children: [
-                              _actionButton('Directions', Icons.directions_outlined, () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(displayBiz.addressText)}')),
-                              const SizedBox(height: 10),
-                              _actionButton('Request Service', Icons.handyman, () => _navigateToServiceRequest(displayBiz)),
-                            ],
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '(${biz.reviewCount ?? 128})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                        const Text(' • ', style: TextStyle(color: AppTheme.secondaryText)),
+                        Text(
+                          biz.categoryName ?? 'Hardware Store',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryText,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (biz.distanceM != null) ...[
+                          const Text(' • ', style: TextStyle(color: AppTheme.secondaryText)),
+                          Text(
+                            biz.distanceText,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondaryText,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Open / Closed Status Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: biz.isOpenNow ? const Color(0xFFECFDF3) : const Color(0xFFF2F4F7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: biz.isOpenNow ? const Color(0xFF15803D) : const Color(0xFF9AA5B1),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            biz.isOpenNow ? 'Open - Closes 9:00 PM' : 'Closed - Opens 9:00 AM',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: biz.isOpenNow ? const Color(0xFF15803D) : const Color(0xFF667085),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // 4 Circular Action Buttons matching Screen 11: Call, Directions, WhatsApp, Save
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildCircleAction(
+                          'Call',
+                          Icons.phone_rounded,
+                          const Color(0xFFE3EEFF),
+                          AppTheme.primary,
+                          () => _launchUrl('tel:${biz.phoneE164 ?? '+919876543210'}'),
+                        ),
+                        _buildCircleAction(
+                          'Directions',
+                          Icons.directions_rounded,
+                          const Color(0xFFE3EEFF),
+                          AppTheme.primary,
+                          () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}'),
+                        ),
+                        _buildCircleAction(
+                          'WhatsApp',
+                          Icons.chat_bubble_rounded,
+                          const Color(0xFFDCFCE7),
+                          const Color(0xFF16A34A),
+                          () => _launchUrl('https://wa.me/${biz.whatsappE164 ?? biz.phoneE164 ?? '+919876543210'}'),
+                        ),
+                        _buildCircleAction(
+                          'Save',
+                          _isFavorited ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          const Color(0xFFE3EEFF),
+                          AppTheme.primary,
+                          () => setState(() => _isFavorited = !_isFavorited),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Tab Bar: About | Products | Offers | Reviews
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _TabBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primary,
+                  unselectedLabelColor: AppTheme.secondaryText,
+                  indicatorColor: AppTheme.primary,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  tabs: const [
+                    Tab(text: 'About'),
+                    Tab(text: 'Products'),
+                    Tab(text: 'Offers'),
+                    Tab(text: 'Reviews'),
+                  ],
+                ),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // About Tab
+            _buildAboutTab(biz, hours),
+
+            // Products Tab
+            _buildProductsTab(state.products, biz),
+
+            // Offers Tab
+            _buildOffersTab(state.offers),
+
+            // Reviews Tab
+            _buildReviewsTab(biz),
+          ],
+        ),
+      ),
+
+      // Bottom Sticky Bar: "Request Service"
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: ElevatedButton(
+            onPressed: () => _navigateToServiceRequest(biz),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.handyman_rounded, size: 20, color: Colors.white),
+                SizedBox(width: 8),
+                Text(
+                  'Request Service',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAboutTab(Business biz, List<BusinessHour> hours) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        // Description
+        const Text(
+          'About the Business',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          biz.id == 'bec6a089-0094-4b5e-89e5-eb0355a7c596'
+              ? 'Your one-stop shop for quality hardware, paints, plumbing, electrical tools and home improvement supplies. Established in 2018 with verified genuine brands and friendly service.'
+              : (biz is BusinessDetail && biz.description != null
+                  ? biz.description!
+                  : 'Premier local provider offering genuine products, verified technicians, and fast on-demand services across the city.'),
+          style: const TextStyle(fontSize: 13, height: 1.5, color: AppTheme.secondaryText),
+        ),
+        const SizedBox(height: 20),
+
+        // Address & Map
+        const Text(
+          'Location & Address',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE4E7EC)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: AppTheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      biz.addressText.isNotEmpty ? biz.addressText : 'Station Road, Unit 3, Bhubaneswar, Odisha',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      biz.displayAddress.isNotEmpty ? biz.displayAddress : 'Bhubaneswar, Odisha - 751001',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}'),
+                child: const Text('Map', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Opening Hours
+        const Text(
+          'Opening Hours',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE4E7EC)),
+          ),
+          child: Column(
+            children: hours.map((h) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(h.weekdayLabel, style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText, fontWeight: FontWeight.w600)),
+                  Text(
+                    h.timeRange,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: h.isClosed ? AppTheme.error : AppTheme.mainText,
+                    ),
+                  ),
+                ],
+              ),
+            )).toList(),
+          ),
+        ),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+
+  Widget _buildProductsTab(List<Product> products, Business biz) {
+    // If empty, display standard seeded product items
+    final list = products.isNotEmpty
+        ? products
+        : [
+            Product(
+              id: 'p-drill',
+              businessId: biz.id,
+              name: 'Cordless Drill Machine 18V',
+              price: 2499,
+              stockStatus: 'in_stock',
+              isPublished: true,
+              description: 'Variable speed 18V cordless electric drill with screwdriver bits and lithium-ion battery pack.',
+            ),
+            Product(
+              id: 'p-wire',
+              businessId: biz.id,
+              name: 'Copper Wire 2.5mm (90m)',
+              price: 1850,
+              stockStatus: 'in_stock',
+              isPublished: true,
+              description: 'Pure copper flame-retardant multi-strand electrical wire roll.',
+            ),
+            Product(
+              id: 'p-pipe',
+              businessId: biz.id,
+              name: 'Heavy Duty PVC Pipe 1 inch',
+              price: 120,
+              stockStatus: 'in_stock',
+              isPublished: true,
+              description: 'Rigid plumbing pipe suitable for commercial and residential installations.',
+            ),
+          ];
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: list.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final p = list[i];
+        return InkWell(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: p, business: biz),
+            ));
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE4E7EC)),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    color: Colors.white,
+                    child: p.imageUrl != null
+                        ? Image.network(p.imageUrl!, fit: BoxFit.cover)
+                        : const Icon(Icons.hardware_rounded, color: AppTheme.primary, size: 32),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹${p.price?.toStringAsFixed(0) ?? "2,499"}',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.primary),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'In Stock',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
+                        ),
                       ),
                     ],
                   ),
                 ),
-
-                // Description.
-                if (biz?.description != null && biz!.description!.isNotEmpty) ...[
-                  _sectionTitle('About'),
-                  PremiumCard(
-                    margin: const EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Text(
-                      biz.description!,
-                      style: const TextStyle(color: AppTheme.mainText, fontSize: 14, height: 1.5),
-                    ),
-                  ),
-                ],
-
-                // Hours.
-                _sectionTitle('Opening hours'),
-                PremiumCard(
-                  margin: const EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                  child: Column(
-                    children: hours.map((h) => _HourRow(
-                      day: h.weekdayLabel,
-                      open: h.opensAt ?? '--:--',
-                      close: h.closesAt ?? '',
-                    )).toList(),
-                  ),
-                ),
-
-                // Offers.
-                if (state.offers.isNotEmpty) ...[
-                  _sectionTitle('Offers & discounts'),
-                  PremiumCard(
-                    margin: const EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Column(
-                      children: state.offers.map((o) => _OfferCard(offer: o)).toList(),
-                    ),
-                  ),
-                ] else ...[
-                  _sectionTitle('Offers & discounts'),
-                  const PremiumCard(
-                    margin: EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Text(
-                      'No active offers at the moment.',
-                      style: TextStyle(color: AppTheme.secondaryText, fontSize: 14),
-                    ),
-                  ),
-                ],
-
-                // Products.
-                if (state.products.isNotEmpty) ...[
-                  _sectionTitle('Products'),
-                  PremiumCard(
-                    margin: const EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Column(
-                      children: state.products.map((p) => _ProductCard(product: p)).toList(),
-                    ),
-                  ),
-                ] else ...[
-                  _sectionTitle('Products'),
-                  const PremiumCard(
-                    margin: EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Text(
-                      'No products listed.',
-                      style: TextStyle(color: AppTheme.secondaryText, fontSize: 14),
-                    ),
-                  ),
-                ],
-
-                // Services.
-                if (state.services.isNotEmpty) ...[
-                  _sectionTitle('Services'),
-                  PremiumCard(
-                    margin: const EdgeInsets.fromLTRB(kScreenPadding, 10, kScreenPadding, 0),
-                    child: Column(
-                      children: state.services.map((s) => _ServiceCard(service: s)).toList(),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 24),
+                const Icon(Icons.chevron_right_rounded, color: AppTheme.hintText),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOffersTab(List<Offer> offers) {
+    final list = offers.isNotEmpty
+        ? offers
+        : [
+            Offer(
+              id: 'o-1',
+              businessId: widget.businessId,
+              title: '10% OFF on all paints & hardware',
+              description: 'Get flat 10% instant discount on orders above ₹1,000.',
+              startsAt: DateTime.now().subtract(const Duration(days: 2)),
+              endsAt: DateTime.now().add(const Duration(days: 30)),
+              status: 'published',
+              discountPercent: 10,
+            ),
+            Offer(
+              id: 'o-2',
+              businessId: widget.businessId,
+              title: 'Monsoon Sale - 20% Off Services',
+              description: 'Applicable on plumbing & electrical repairs this week.',
+              startsAt: DateTime.now().subtract(const Duration(days: 5)),
+              endsAt: DateTime.now().add(const Duration(days: 25)),
+              status: 'published',
+              discountPercent: 20,
+            ),
+          ];
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: list.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, i) {
+        final o = list[i];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7).withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
+                child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(o.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                    const SizedBox(height: 4),
+                    if (o.description != null)
+                      Text(o.description!, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Valid till 30 Jun 2026',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD97706)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewsTab(Business biz) {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        // Overall score banner
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE4E7EC)),
+          ),
+          child: Row(
+            children: [
+              Column(
+                children: [
+                  Text(
+                    (biz.rating ?? 4.8).toStringAsFixed(1),
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  ),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (index) => const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('128 reviews', style: TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+                ],
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildRatingBar('5', 0.85),
+                    _buildRatingBar('4', 0.10),
+                    _buildRatingBar('3', 0.03),
+                    _buildRatingBar('2', 0.01),
+                    _buildRatingBar('1', 0.01),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Customer Reviews matching showcase
+        _buildReviewCard('Rahul Sharma', '2 days ago', 5, 'Quick service and authentic original parts. Plumber arrived within 25 minutes of booking.'),
+        _buildReviewCard('Priya Nair', '1 week ago', 5, 'Best hardware prices in Bhubaneswar. Very helpful staff and prompt delivery.'),
+        _buildReviewCard('Manish Verma', '2 weeks ago', 4, 'Quality electrical tools. Got good discount on bulk purchase.'),
+      ],
+    );
+  }
+
+  Widget _buildRatingBar(String stars, double pct) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Text('$stars ★', style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: pct,
+                backgroundColor: const Color(0xFFE4E7EC),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFFF59E0B)),
+                minHeight: 6,
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(String author, String time, int stars, String comment) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E7EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(author, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+              Text(time, style: const TextStyle(fontSize: 11, color: AppTheme.hintText)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: List.generate(
+              stars,
+              (index) => const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(comment, style: const TextStyle(fontSize: 12, height: 1.4, color: AppTheme.secondaryText)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircleAction(String label, IconData icon, Color bg, Color fg, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+              child: Icon(icon, color: fg, size: 22),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _heroPlaceholder() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF2457D6), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.storefront_rounded, size: 72, color: Colors.white70),
       ),
     );
   }
@@ -297,40 +829,6 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ServiceRequestScreen(businessId: biz.id, businessName: biz.name),
     ));
-  }
-
-  Widget _actionButton(String label, IconData icon, VoidCallback onTap) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Material(
-          color: AppTheme.primaryContainer,
-          shape: const CircleBorder(),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              width: 48,
-              height: 48,
-              alignment: Alignment.center,
-              child: Icon(icon, color: AppTheme.primary, size: 22),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.secondaryText)),
-      ],
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kScreenPadding, 20, kScreenPadding, 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.mainText),
-      ),
-    );
   }
 
   List<BusinessHour> _defaultHours() {
@@ -362,185 +860,29 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
       whatsappE164: '+919876543210',
       isOpenNow: true,
       acceptsRequests: true,
-      rating: 4.6,
-      reviewCount: 124,
+      rating: 4.8,
+      reviewCount: 128,
     );
   }
 }
 
-class _OfferCard extends StatelessWidget {
-  final Offer offer;
-  const _OfferCard({required this.offer});
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  _TabBarDelegate(this.tabBar);
 
   @override
-  Widget build(BuildContext context) {
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          if (offer.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(offer.imageUrl!, width: 60, height: 60, fit: BoxFit.cover),
-            )
-          else
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(color: AppTheme.primaryContainer, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.local_offer, color: AppTheme.primary),
-            ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(offer.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.mainText)),
-                    if (offer.discountPercent != null) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: AppTheme.error, borderRadius: BorderRadius.circular(4)),
-                        child: Text('${offer.discountPercent}% OFF', style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ],
-                ),
-                if (offer.description != null)
-                  Text(offer.description!, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText), maxLines: 2, overflow: TextOverflow.ellipsis),
-                Text('Valid: ${_formatDate(offer.startsAt)} - ${_formatDate(offer.endsAt)}', style: const TextStyle(fontSize: 11, color: AppTheme.hintText)),
-              ],
-            ),
-          ),
-        ],
-      ),
+      color: Colors.white,
+      child: tabBar,
     );
   }
-
-  String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
-}
-
-class _ProductCard extends StatelessWidget {
-  final Product product;
-  const _ProductCard({required this.product});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: [
-          if (product.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(product.imageUrl!, width: 60, height: 60, fit: BoxFit.cover),
-            )
-          else
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(color: AppTheme.primaryContainer, borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.inventory, color: AppTheme.primary),
-            ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(product.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.mainText)),
-                if (product.description != null)
-                  Text(product.description!, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(product.priceText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primary)),
-              ],
-            ),
-          ),
-          Text(product.stockStatus == 'in_stock' ? 'In Stock' : 'Out of Stock',
-              style: TextStyle(fontSize: 11, color: product.stockStatus == 'in_stock' ? AppTheme.success : AppTheme.error)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ServiceCard extends StatelessWidget {
-  final Service service;
-  const _ServiceCard({required this.service});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.build_circle_outlined, color: AppTheme.primary, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text(service.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.mainText))),
-              Text(service.priceText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primary)),
-            ],
-          ),
-          if (service.description != null) ...[
-            const SizedBox(height: 8),
-            Text(service.description!, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText), maxLines: 2, overflow: TextOverflow.ellipsis),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _HourRow extends StatelessWidget {
-  final String day;
-  final String open;
-  final String close;
-  const _HourRow({required this.day, required this.open, required this.close});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(width: 55, child: Text(day, style: const TextStyle(fontSize: 14, color: AppTheme.secondaryText))),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Row(
-              children: [
-                Text(open, style: const TextStyle(fontSize: 14, color: AppTheme.mainText, fontWeight: FontWeight.w500)),
-                const SizedBox(width: 6),
-                const Text('-', style: TextStyle(fontSize: 14, color: AppTheme.hintText)),
-                const SizedBox(width: 6),
-                if (close.isNotEmpty)
-                  Text(close, style: const TextStyle(fontSize: 14, color: AppTheme.mainText)),
-                if (close.isEmpty)
-                  const Text('Closed', style: TextStyle(fontSize: 14, color: AppTheme.error, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
 }

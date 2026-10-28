@@ -20,6 +20,14 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   DateTime? _requestedFor;
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(businessDetailProvider.notifier).load(widget.businessId);
+    });
+  }
+
   Future<void> _submit() async {
     if (_descController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -88,17 +88,6 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
         onTap: (i) => setState(() => _selectedIndex = i),
         items: navItems,
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Select a business first to request a service')),
-                );
-              },
-              icon: const Icon(Icons.handyman),
-              label: const Text('Request service'),
-            )
-          : null,
     );
   }
 }

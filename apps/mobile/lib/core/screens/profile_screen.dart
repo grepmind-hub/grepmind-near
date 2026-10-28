@@ -4,6 +4,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerWidget {
@@ -207,6 +208,15 @@ class ProfileScreen extends ConsumerWidget {
             title: 'Notification Settings',
             subtitle: 'Manage push notifications',
             onTap: () => _showComingSoonDialog(context, 'Notification settings'),
+          ),
+          const Divider(),
+          _buildAccountOption(
+            icon: Icons.storefront_outlined,
+            title: 'Merchant Workspace',
+            subtitle: 'Manage your business, orders & requests',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
+            ),
           ),
           const Divider(),
           _buildAccountOption(

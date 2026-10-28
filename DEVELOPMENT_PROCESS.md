@@ -299,3 +299,55 @@ PRs require review and passing CI before merging to `develop`/`main`.
 ## 12. Escalation
 
 If a task is ambiguous, conflicts with PRTS, or requires an architecture change, pause and ask the lead developer. Do not improvise shared contracts.
+
+---
+
+## 13. UI Showcase Implementation Log & 22-Screen Status
+
+### Recent Slice Completed (October 2026)
+- **18 Expanded Categories**:
+  - Seeded in PostgreSQL `categories` table: `grocery`, `hardware`, `medical`, `restaurant`, `salon`, `plumber`, `electrician`, `carpenter`, `tailor`, `general`, `fashion`, `electronics`, `home_kitchen`, `health_wellness`, `sports_fitness`, `automotive`, `books_stationery`, `cleaning`.
+  - Added `categoriesProvider` in `app_provider.dart` with auto-load from `/api/v1/categories`.
+  - Created horizontal scrollable category bubble bar in `explore_screen.dart` with quick navigation to `CategoriesScreen`.
+- **Screen 8 (Categories Directory)**:
+  - File: `apps/mobile/lib/core/screens/categories_screen.dart`.
+  - Features: Real-time search, category classification tabs (`All`, `Shops & Retail`, `Home Services`, `Health & Beauty`, `Lifestyle & Tech`), colored squircle icons, descriptions, item count badge.
+- **Screen 9 (Search & Filter Results)**:
+  - File: `apps/mobile/lib/core/screens/search_results_screen.dart`.
+  - Features: Search input, map toggle, horizontal filter pill bar (Radius modal sheet, Sort modal sheet, Verified toggle, Open Now toggle, Active category pill with clear icon), empty state with recovery CTA, list of businesses.
+- **Screen 13 (Service Professional Profile)**:
+  - File: `apps/mobile/lib/core/screens/service_pro_screen.dart`.
+  - Features: Hero gradient banner, floating card with verified pro avatar, experience stats row (`8+ Years Exp`, `150+ Jobs`, `100% Vetted`), bio badges, live services list with price ranges, coverage radius, working hours, customer reviews snippet, sticky bottom bar (`Call`, `WhatsApp`, `Request Service`).
+- **Screen 12 (Product Details)**:
+  - File: `apps/mobile/lib/core/screens/product_detail_screen.dart`.
+  - Features: Hero image, discount chip, specifications, seller card, dual sticky actions (`Call Store`, `Inquire / Buy`).
+- **Quality Gates Executed**:
+  - `flutter analyze`: **0 issues found** across all screens.
+  - `flutter build apk --debug`: Success (155s).
+  - Target device verification: Verified on `Pixel_8` (`emulator-5556`) with zero layout overflows or clipping.
+
+### 22-Screen Inventory & Sequence
+| Index | Screen Name | State |
+|---|---|---|
+| Screen 1 | Splash Screen | Completed |
+| Screen 2 | Onboarding Carousel | Completed |
+| Screen 3 | Phone OTP Login | Completed |
+| Screen 4 | Location Selection Modal | Completed |
+| Screen 5 | City / Locality Picker | Completed |
+| Screen 6 | Location Permission Welcome | Completed |
+| Screen 7 | Home / Explore Screen | Completed & Verified |
+| Screen 8 | Categories Directory | Completed & Verified |
+| Screen 9 | Search & Filter Results | Completed & Verified |
+| Screen 10 | Nearby Interactive Map | Completed |
+| Screen 11 | Business Profile & Tabs | Completed & Verified |
+| Screen 12 | Product Details | Completed & Verified |
+| Screen 13 | Service Professional Profile | Completed & Verified |
+| Screen 14 | Service Request Submission | Completed & Verified |
+| Screen 15 | Appointment Slot Scheduler | **NEXT IMPLEMENTATION** |
+| Screen 16 | Saved / Bookmarked Businesses | Completed |
+| Screen 17 | Customer Profile & Settings | Completed |
+| Screen 18 | Service Request Status Tracker | Queued |
+| Screen 19 | Merchant Registration / Claim | Queued |
+| Screen 20 | Merchant Workspace Dashboard | Completed |
+| Screen 21 | Merchant Catalog Management | Queued |
+| Screen 22 | Merchant Hours & Coverage Setup| Queued |

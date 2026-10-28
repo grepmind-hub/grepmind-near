@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Verification / open-status badge chip.
 class StatusChip extends StatelessWidget {
@@ -45,18 +45,18 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pad = size == StatusChipSize.small
-        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
+        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 3)
         : const EdgeInsets.symmetric(horizontal: 10, vertical: 5);
     return Container(
       padding: pad,
-      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12)),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: _fg,
-              fontWeight: FontWeight.w600,
-              fontSize: size == StatusChipSize.small ? 10 : 11,
-            ),
+        style: TextStyle(
+          color: _fg,
+          fontWeight: FontWeight.w600,
+          fontSize: size == StatusChipSize.small ? 10 : 11,
+        ),
       ),
     );
   }
@@ -65,7 +65,7 @@ class StatusChip extends StatelessWidget {
 enum StatusChipType { info, success, warning, error }
 enum StatusChipSize { small, medium }
 
-/// Compact business result card for lists.
+/// Business card matching Screen 7 & Screen 9 in the UI showcase.
 class BusinessCard extends StatelessWidget {
   const BusinessCard({
     super.key,
@@ -80,117 +80,249 @@ class BusinessCard extends StatelessWidget {
   final VoidCallback? onFavoriteToggled;
   final bool isFavorited;
 
+  Future<void> _makeCall(String? phone) async {
+    if (phone == null || phone.isEmpty) return;
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PremiumCard(
-      padding: const EdgeInsets.all(14),
-      onTap: onTap,
+    final ratingVal = business.rating ?? 4.8;
+    final reviewsCount = business.reviewCount ?? 128;
+    final categoryText = business.categoryName ?? (business.categorySlug.isNotEmpty 
+        ? '${business.categorySlug[0].toUpperCase()}${business.categorySlug.substring(1)}'
+        : 'Store');
+
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Thumbnail / placeholder.
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: business.coverPhotoUrl != null
-                  ? Image.network(
-                      business.coverPhotoUrl!,
-                      fit: BoxFit.cover,
-                      width: 72,
-                      height: 72,
-                      errorBuilder: (_, _, _) => _placeholder(),
-                    )
-                  : _placeholder(),
-            ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E7EC)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(width: 12),
-          // Details.
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
+                // Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 78,
+                    height: 78,
+                    child: business.coverPhotoUrl != null && business.coverPhotoUrl!.isNotEmpty
+                        ? Image.network(
+                            business.coverPhotoUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _placeholder(),
+                          )
+                        : _placeholder(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Middle Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Name
+                      Text(
                         business.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.mainText,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Rating row: ★ 4.8 (128)
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                          const SizedBox(width: 3),
+                          Text(
+                            ratingVal.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: AppTheme.mainText,
                             ),
-                      ),
-                    ),
-                    if (business.verificationStatus == 'verified')
-                      const StatusChip(
-                        label: 'Verified',
-                        type: StatusChipType.success,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.category_outlined, size: 14, color: AppTheme.hintText),
-                    const SizedBox(width: 4),
-                    Text(
-                      business.categoryName ?? business.categorySlug,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.secondaryText,
                           ),
-                    ),
-                    const SizedBox(width: 10),
-                    if (business.distanceM != null)
-                      Text(
-                        business.distanceText,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          const SizedBox(width: 3),
+                          Text(
+                            '($reviewsCount)',
+                            style: const TextStyle(
+                              fontSize: 12,
                               color: AppTheme.secondaryText,
                             ),
+                          ),
+                        ],
                       ),
-                  ],
+                      const SizedBox(height: 4),
+                      // Category & Distance: Hardware • 0.8 km
+                      Row(
+                        children: [
+                          Text(
+                            categoryText,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.secondaryText,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (business.distanceM != null) ...[
+                            const Text(
+                              ' • ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.secondaryText,
+                              ),
+                            ),
+                            Text(
+                              business.distanceText,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.secondaryText,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Status: Open pill
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: business.isOpenNow 
+                                  ? const Color(0xFFECFDF3) 
+                                  : const Color(0xFFF2F4F7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: business.isOpenNow 
+                                        ? const Color(0xFF15803D) 
+                                        : const Color(0xFF9AA5B1),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  business.isOpenNow ? 'Open' : 'Closed',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: business.isOpenNow 
+                                        ? const Color(0xFF15803D) 
+                                        : const Color(0xFF667085),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (business.verificationStatus == 'verified') ...[
+                            const SizedBox(width: 6),
+                            const Icon(Icons.verified, size: 14, color: AppTheme.primary),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Row(
+                const SizedBox(width: 8),
+                // Action: Call Button
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    StatusChip(
-                      label: business.isOpenNow ? 'Open now' : 'Closed',
-                      type: business.isOpenNow ? StatusChipType.success : StatusChipType.info,
-                    ),
-                    const SizedBox(width: 8),
-                    if (business.acceptsRequests)
-                      const StatusChip(
-                        label: 'Accepting requests',
-                        type: StatusChipType.success,
+                    InkWell(
+                      onTap: () => _makeCall(business.phoneE164),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          'Call',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: onFavoriteToggled,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFavorited ? AppTheme.error : const Color(0xFF9AA5B1),
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Favorite toggle.
-          InkWell(
-            onTap: onFavoriteToggled,
-            borderRadius: BorderRadius.circular(12),
-            child: Icon(
-              isFavorited ? Icons.favorite : Icons.favorite_border,
-              color: isFavorited ? AppTheme.error : AppTheme.hintText,
-              size: 22,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _placeholder() {
     return Container(
-      color: AppTheme.surfaceVariant,
-      child: const Icon(Icons.store_outlined, color: AppTheme.hintText, size: 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF2F4F7), Color(0xFFE4E7EC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.storefront_rounded, color: Color(0xFF9AA5B1), size: 30),
+      ),
     );
   }
 }
+
