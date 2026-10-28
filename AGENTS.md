@@ -149,15 +149,14 @@ Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
 | **15** | Appointment Slot Scheduler | ⏸️ **BACKLOG** | `apps/mobile/lib/core/screens/booking_scheduler_screen.dart` (Parked for rendering polish) |
 | **16** | Saved / Bookmarked Businesses | ✅ Complete | `apps/mobile/lib/core/screens/saved_screen.dart` |
 | **17** | Customer Profile & Settings | ✅ Complete | `apps/mobile/lib/core/screens/profile_screen.dart` |
-| **18** | Service Request Status Tracker| ⏳ **ACTIVE TASK** | Multi-step progress tracker (Requested → Accepted → En Route → Completed) |
+| **18** | Service Request Status Tracker| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_status_screen.dart` (Live timeline, pro contact card, receipt summary, cancel modal) |
 | **19** | Merchant Registration / Claim | ⏳ **QUEUED** | Onboarding for store owners / skilled pros |
 | **20** | Merchant Workspace Dashboard | ✅ Complete | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` |
 | **21** | Merchant Catalog Management | ⏳ **QUEUED** | Product & Service offerings editor |
 | **22** | Merchant Hours & Coverage Setup| ⏳ **QUEUED** | Weekly operating hours & service radius setting |
 
 ### Next Recommended Implementation
-- **Screen 18: Service Request Status Tracker** (`service_request_status_screen.dart`):
-  - Multi-step live status progression tracker (`Requested` → `Accepted` → `En Route` → `In Progress` → `Completed`).
-  - Assigned service professional card with verified badge, direct phone call, WhatsApp chat, and ETA.
-  - Job details receipt breakdown (Service type, appointment slot, address, indicative estimate).
-  - Live cancel request / help support actions with bottom sheet modal.
+- **Screen 19: Merchant Registration / Claim** (`merchant_registration_screen.dart`):
+  - Onboarding workflow for business owners & independent service pros to claim or list their enterprise.
+  - Multi-step registration: Business category selection, Trade name & GST/PAN details, Storefront photo upload, GPS location pinning, and Owner contact verification.
+  - Integration with backend merchant onboarding API and transition to `MerchantWorkspaceScreen`.

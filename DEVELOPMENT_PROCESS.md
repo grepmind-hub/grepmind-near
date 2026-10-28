@@ -346,8 +346,8 @@ If a task is ambiguous, conflicts with PRTS, or requires an architecture change,
 | Screen 15 | Appointment Slot Scheduler | Parked (Backlog) |
 | Screen 16 | Saved / Bookmarked Businesses | Completed |
 | Screen 17 | Customer Profile & Settings | Completed |
-| Screen 18 | Service Request Status Tracker | **ACTIVE TASK** |
-| Screen 19 | Merchant Registration / Claim | Queued |
+| Screen 18 | Service Request Status Tracker | Completed & Verified |
+| Screen 19 | Merchant Registration / Claim | **ACTIVE / QUEUED** |
 | Screen 20 | Merchant Workspace Dashboard | Completed |
 | Screen 21 | Merchant Catalog Management | Queued |
 | Screen 22 | Merchant Hours & Coverage Setup| Queued |

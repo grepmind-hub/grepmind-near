@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 
 /// Service request submission screen.
 class ServiceRequestScreen extends ConsumerStatefulWidget {
@@ -48,10 +49,21 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
       // For now, use mock success
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Service request submitted successfully')),
+        final businessDetailState = ref.read(businessDetailProvider);
+        final biz = businessDetailState.detail;
+        final selectedSvc = businessDetailState.services.where((s) => s.id == _selectedServiceId).firstOrNull;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ServiceRequestStatusScreen(
+              business: biz,
+              businessName: widget.businessName,
+              serviceName: selectedSvc?.name ?? _descController.text.trim(),
+              appointmentTime: _requestedFor,
+              initialStatus: 'requested',
+            ),
+          ),
         );
-        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -81,10 +93,11 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
       appBar: AppBar(
         title: Text('Request from ${widget.businessName}'),
       ),
-      body: PremiumCard(
-        margin: const EdgeInsets.all(kScreenPadding),
-        padding: const EdgeInsets.all(22),
-        child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(kScreenPadding),
+        child: PremiumCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -160,6 +173,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
