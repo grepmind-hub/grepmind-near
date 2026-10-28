@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 )
@@ -40,6 +41,8 @@ type Business struct {
 	Locality           string   `json:"locality,omitempty"`
 	City               string   `json:"city,omitempty"`
 	PostalCode         string   `json:"postal_code,omitempty"`
+	Latitude           *float64 `json:"latitude,omitempty"`
+	Longitude          *float64 `json:"longitude,omitempty"`
 	DistanceM          *float64 `json:"distance_m,omitempty"`
 	Status             string   `json:"status"`
 	VerificationStatus string   `json:"verification_status"`
@@ -252,7 +255,9 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.postal_code, b.status, b.verification_status,
-		       b.phone_e164, b.whatsapp_e164`
+		       b.phone_e164, b.whatsapp_e164,
+		       ST_Y(b.location::geometry) AS latitude,
+		       ST_X(b.location::geometry) AS longitude`
 	if hasLoc {
 		query += fmt.Sprintf(`, ST_Distance(b.location, ST_SetSRID(ST_MakePoint($%d, $%d)::geography, 4326)) AS distance_m`,
 			argIdx, argIdx+1)
@@ -287,10 +292,10 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var b Business
 		var slug, locality, city, postal, phone, whatsapp sql.NullString
-		var dist sql.NullFloat64
+		var dist, lat, lng sql.NullFloat64
 		err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &postal, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &dist)
+			&phone, &whatsapp, &lat, &lng, &dist)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
@@ -313,6 +318,12 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		if whatsapp.Valid {
 			b.WhatsappE164 = whatsapp.String
 		}
+		if lat.Valid {
+			b.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			b.Longitude = &lng.Float64
+		}
 		if dist.Valid {
 			b.DistanceM = &dist.Float64
 		}
@@ -334,16 +345,19 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	var b BusinessDetail
 		var slug, locality, city, postal, phone, whatsapp sql.NullString
 		var desc sql.NullString
+		var lat, lng sql.NullFloat64
 		err := s.db.QueryRowxContext(r.Context(), `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.postal_code, b.description,
-		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164
+		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164,
+		       ST_Y(b.location::geometry) AS latitude,
+		       ST_X(b.location::geometry) AS longitude
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		WHERE b.id = $1
 	`, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 		&b.AddressText, &locality, &city, &postal, &desc,
-		&b.Status, &b.VerificationStatus, &phone, &whatsapp)
+		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "Business not found.")
@@ -372,6 +386,12 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	}
 	if whatsapp.Valid {
 		b.WhatsappE164 = whatsapp.String
+	}
+	if lat.Valid {
+		b.Latitude = &lat.Float64
+	}
+	if lng.Valid {
+		b.Longitude = &lng.Float64
 	}
 
 	writeJSON(w, http.StatusOK, envelope{
@@ -535,6 +555,8 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.status, b.verification_status, b.phone_e164,
 		       b.whatsapp_e164,
+		       ST_Y(b.location::geometry) AS latitude,
+		       ST_X(b.location::geometry) AS longitude,
 		       ST_Distance(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326)) AS distance_m
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
@@ -553,10 +575,10 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var b Business
 		var slug, locality, city, phone, whatsapp sql.NullString
-		var dist sql.NullFloat64
+		var dist, latitude, longitude sql.NullFloat64
 		if err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &dist); err != nil {
+			&phone, &whatsapp, &latitude, &longitude, &dist); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
 		}
@@ -575,6 +597,12 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		if whatsapp.Valid {
 			b.WhatsappE164 = whatsapp.String
 		}
+		if latitude.Valid {
+			b.Latitude = &latitude.Float64
+		}
+		if longitude.Valid {
+			b.Longitude = &longitude.Float64
+		}
 		if dist.Valid {
 			b.DistanceM = &dist.Float64
 		}
@@ -589,6 +617,138 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 			"count":      len(results),
 		},
 	})
+}
+
+// ---------- Favorites ----------
+
+func (s *Service) ListFavorites(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	limit := 20
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= 50 {
+			limit = n
+		}
+	}
+	where := "f.user_id = $1 AND b.status = 'approved'"
+	args := []interface{}{userID}
+	argIdx := 2
+
+	query := `
+		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
+		       b.locality, b.city, b.postal_code, b.status, b.verification_status,
+		       b.phone_e164, b.whatsapp_e164,
+		       ST_Y(b.location::geometry) AS latitude,
+		       ST_X(b.location::geometry) AS longitude,
+		       f.created_at as favorited_at
+		FROM favorites f
+		JOIN businesses b ON b.id = f.business_id
+		LEFT JOIN categories c ON c.slug = b.category_slug
+		WHERE ` + where + `
+		ORDER BY f.created_at DESC
+		LIMIT $` + strconv.Itoa(argIdx)
+	args = append(args, limit)
+
+	rows, err := s.db.QueryxContext(r.Context(), query, args...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load favorites.")
+		return
+	}
+	defer rows.Close()
+
+	var results []Business
+	for rows.Next() {
+		var b Business
+		var slug, locality, city, postal, phone, whatsapp sql.NullString
+		var lat, lng sql.NullFloat64
+		var favoritedAt sql.NullTime
+		err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
+			&b.AddressText, &locality, &city, &postal, &b.Status, &b.VerificationStatus,
+			&phone, &whatsapp, &lat, &lng, &favoritedAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
+			return
+		}
+		if slug.Valid {
+			b.Slug = slug.String
+		}
+		if locality.Valid {
+			b.Locality = locality.String
+		}
+		if city.Valid {
+			b.City = city.String
+		}
+		if postal.Valid {
+			b.PostalCode = postal.String
+		}
+		if phone.Valid {
+			b.PhoneE164 = phone.String
+		}
+		if whatsapp.Valid {
+			b.WhatsappE164 = whatsapp.String
+		}
+		if lat.Valid {
+			b.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			b.Longitude = &lng.Float64
+		}
+		results = append(results, b)
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": results,
+		"meta": map[string]interface{}{
+			"request_id": "favorites",
+			"limit":      limit,
+			"count":      len(results),
+		},
+	})
+}
+
+func (s *Service) ToggleFavorite(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Business ID required.")
+		return
+	}
+
+	// Check if already favorited
+	var exists bool
+	err := s.db.QueryRowContext(r.Context(), `
+		SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND business_id = $2)
+	`, userID, id).Scan(&exists)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to check favorite.")
+		return
+	}
+
+	if exists {
+		// Remove favorite
+		_, err = s.db.ExecContext(r.Context(), `
+			DELETE FROM favorites WHERE user_id = $1 AND business_id = $2
+		`, userID, id)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to remove favorite.")
+			return
+		}
+		writeJSON(w, http.StatusOK, envelope{
+			"data": map[string]bool{"favorited": false},
+			"meta": map[string]string{"request_id": "favorite-toggle"},
+		})
+	} else {
+		// Add favorite
+		_, err = s.db.ExecContext(r.Context(), `
+			INSERT INTO favorites (user_id, business_id) VALUES ($1, $2)
+			ON CONFLICT (user_id, business_id) DO NOTHING
+		`, userID, id)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to add favorite.")
+			return
+		}
+		writeJSON(w, http.StatusOK, envelope{
+			"data": map[string]bool{"favorited": true},
+			"meta": map[string]string{"request_id": "favorite-toggle"},
+		})
+	}
 }
 
 func (s *Service) cfgNow() time.Time {

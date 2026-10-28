@@ -24,9 +24,6 @@ class BannerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = PremiumCard(
-      padding: const EdgeInsets.all(16),
-      radius: kCardRadius,
-      color: AppTheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,

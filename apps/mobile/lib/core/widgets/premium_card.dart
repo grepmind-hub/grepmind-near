@@ -77,8 +77,6 @@ class PremiumSection extends StatelessWidget {
     return PremiumCard(
       padding: padding,
       radius: radius,
-      borderColor: AppTheme.border,
-      color: AppTheme.surface,
       child: child,
     );
   }

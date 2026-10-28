@@ -23,6 +23,8 @@ class Business extends Equatable {
   final String? coverPhotoUrl;
   final double? rating;
   final int? reviewCount;
+  final double? latitude;
+  final double? longitude;
 
   const Business({
     required this.id,
@@ -45,6 +47,8 @@ class Business extends Equatable {
     this.coverPhotoUrl,
     this.rating,
     this.reviewCount,
+    this.latitude,
+    this.longitude,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -69,6 +73,8 @@ class Business extends Equatable {
       coverPhotoUrl: json['cover_photo_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble(),
       reviewCount: json['review_count'] as int?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -94,6 +100,8 @@ class Business extends Equatable {
       'cover_photo_url': coverPhotoUrl,
       'rating': rating,
       'review_count': reviewCount,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -117,15 +125,13 @@ class Business extends Equatable {
         id, name, slug, categorySlug, categoryName, categoryIcon, addressText,
         locality, city, postalCode, distanceM, status, verificationStatus,
         phoneE164, whatsappE164, isOpenNow, acceptsRequests, coverPhotoUrl,
-        rating, reviewCount,
+        rating, reviewCount, latitude, longitude,
       ];
 }
 
 /// Full business detail.
 class BusinessDetail extends Business {
   final String? description;
-  final double? latitude;
-  final double? longitude;
   final List<BusinessHour> businessHours;
   final List<Product> products;
   final List<Offer> offers;
@@ -157,9 +163,9 @@ class BusinessDetail extends Business {
     super.coverPhotoUrl,
     super.rating,
     super.reviewCount,
+    super.latitude,
+    super.longitude,
     this.description,
-    this.latitude,
-    this.longitude,
     this.businessHours = const [],
     this.products = const [],
     this.offers = const [],
@@ -372,7 +378,7 @@ class Offer extends Equatable {
 
   String get discountText {
     if (discountPercent == null) return '';
-    return '${discountPercent}% off';
+    return '$discountPercent% off';
   }
 
   @override

@@ -81,12 +81,10 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.light(
         primary: primary,
-        onPrimary: onPrimary,
         primaryContainer: primaryContainer,
         secondary: secondary,
         onSecondary: onSecondary,
         secondaryContainer: secondaryContainer,
-        surface: surface,
         onSurface: onSurface,
         surfaceContainerHighest: surfaceVariant,
         outline: border,

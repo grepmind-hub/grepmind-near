@@ -65,6 +65,9 @@ dependencies:
   # Location
   geolocator: ^11.1.0
 
+  # Maps
+  google_maps_flutter: ^2.7.0
+
   # Icons (Material design symbols)
   google_fonts: ^6.2.1
 

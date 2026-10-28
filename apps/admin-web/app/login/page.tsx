@@ -7,7 +7,7 @@ import { Mail, Lock, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { api } from '@/lib/api'
+import { api, setAuthToken } from '@/lib/api'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -21,9 +21,11 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      // MVP stub: authenticate against /api/v1/auth/otp/verify is OTP-based.
-      // For admin portal we accept credentials and set a session token.
-      await api.post('/admin/session', { email, password })
+      const res = await api.post('/admin/session', { email, password })
+      const token = res.data?.data?.access_token
+      if (token) {
+        setAuthToken(token)
+      }
       setLoading(false)
       router.push('/dashboard')
     } catch (err: any) {

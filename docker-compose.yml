@@ -101,8 +101,9 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       S3_USE_SSL: ${S3_USE_SSL:-false}
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-grepmind-near-dev}
-      RATE_LIMIT_AUTH: ${RATE_LIMIT_AUTH:-5/min}
-      RATE_LIMIT_API: ${RATE_LIMIT_API:-100/min}
+      RATE_LIMIT_AUTH: ${RATE_LIMIT_AUTH:-1000/min}
+      RATE_LIMIT_API: ${RATE_LIMIT_API:-5000/min}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://api.near.grepmind.com,http://172.18.160.150:80}
     ports:
       - "8080:8080"
     healthcheck:

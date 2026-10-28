@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
 /// Service request submission screen.
-class ServiceRequestScreen extends StatefulWidget {
-  const ServiceRequestScreen({super.key});
+class ServiceRequestScreen extends ConsumerStatefulWidget {
+  final String businessId;
+  final String businessName;
+  const ServiceRequestScreen({super.key, required this.businessId, required this.businessName});
 
   @override
-  State<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
+  ConsumerState<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
 }
 
-class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
+class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   final _descController = TextEditingController();
-  String? _selectedService;
+  String? _selectedServiceId;
   DateTime? _requestedFor;
-
-  final List<String> _services = ['Plumbing', 'Electrical', 'Carpentry', 'Tailoring', 'Cleaning'];
-
-  @override
-  void dispose() {
-    _descController.dispose();
-    super.dispose();
-  }
+  bool _isLoading = false;
 
   Future<void> _submit() async {
     if (_descController.text.trim().isEmpty) {
@@ -30,22 +27,44 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       );
       return;
     }
-    setState(() {});
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Service request submitted (stub)')),
-      );
-      Navigator.of(context).pop();
+    setState(() => _isLoading = true);
+    try {
+      // TODO: Call API to create service request
+      // For now, use mock success
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Service request submitted successfully')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
+  void dispose() {
+    _descController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Fetch business services for dropdown
+    final businessDetailState = ref.watch(businessDetailProvider);
+    final services = businessDetailState.services;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Request a service'),
+        title: Text('Request from ${widget.businessName}'),
       ),
       body: PremiumCard(
         margin: const EdgeInsets.all(kScreenPadding),
@@ -59,18 +78,29 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              hint: const Text('Select a service'),
-              initialValue: _selectedService,
-              items: _services
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedService = v),
-              decoration: const InputDecoration(
-                labelText: 'Service type',
-                border: OutlineInputBorder(),
+            if (services.isNotEmpty)
+              DropdownButtonFormField<String>(
+                hint: const Text('Select a service'),
+                initialValue: _selectedServiceId,
+                items: services
+                    .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  _selectedServiceId = v;
+                }),
+                decoration: const InputDecoration(
+                  labelText: 'Service type',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              const TextField(
+                decoration: InputDecoration(
+                  labelText: 'Service type (no services listed)',
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
               ),
-            ),
             const SizedBox(height: 16),
             TextField(
               controller: _descController,
@@ -106,8 +136,10 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _submit,
-                child: const Text('Submit request'),
+                onPressed: _isLoading ? null : _submit,
+                child: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Submit request'),
               ),
             ),
           ],

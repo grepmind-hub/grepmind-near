@@ -34,22 +34,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       );
       return;
     }
+    debugPrint('🔵 _sendOTP: starting for $phone');
     setState(() => _sending = true);
     final result = await ref.read(authProvider.notifier).requestOTP(phone);
-    setState(() => _sending = false);
-    if (result != null && mounted) {
-      setState(() {
+    debugPrint('🔵 _sendOTP: result = $result, mounted = $mounted');
+    if (!mounted) {
+      debugPrint('🔴 _sendOTP: not mounted, returning');
+      return;
+    }
+    setState(() {
+      debugPrint('🔵 _sendOTP: setState called, result != null = ${result != null}');
+      _sending = false;
+      if (result != null) {
         _otpSent = true;
         _otpCode = result['otp_code'] as String?; // dev-only
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP sent to $phone${_otpCode != null ? ' (code: $_otpCode)' : ''}')),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send OTP. Is the API running?')),
-      );
-    }
+        debugPrint('🔵 _sendOTP: _otpSent = $_otpSent, _otpCode = $_otpCode');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OTP sent to $phone${_otpCode != null ? ' (code: $_otpCode)' : ''}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send OTP. Is the API running?')),
+        );
+      }
+    });
   }
 
   Future<void> _verifyOTP() async {
@@ -63,6 +71,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     setState(() => _sending = true);
     final success = await ref.read(authProvider.notifier).verifyOTP(phone, code);
+    if (!mounted) return;
     setState(() => _sending = false);
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,9 +185,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  TextButton(
+                  const TextButton(
                     onPressed: null,
-                    child: const Text('Need help?', style: TextStyle(color: AppTheme.secondaryText)),
+                    child: Text('Need help?', style: TextStyle(color: AppTheme.secondaryText)),
                   ),
                 ],
               ),

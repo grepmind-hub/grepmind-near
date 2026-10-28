@@ -5,10 +5,14 @@ class AppConstants {
   static const String appName = 'Grepmind Near';
   static const String appVersion = '1.0.0';
 
-  // API base URL. Android emulator on Windows reaches WSL2 Docker API via WSL2 IP.
-  // To use DNS "api.near.grepmind.com" instead, add `172.18.160.150 api.near.grepmind.com`
-  // to the emulator's /etc/hosts (requires rooted emulator) or your local hosts file.
-  static const String apiBaseUrl = 'http://172.18.160.150:80';
+  // API base URL. Configure via --dart-define=API_BASE_URL=http://...
+  // Defaults to WSL2 Docker IP (works from Android emulator on Windows).
+  // For DNS "api.near.grepmind.com": add to emulator /etc/hosts (root required)
+  // or use Windows port proxy + hosts file.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://172.18.160.150:80',
+  );
   static const String apiVersion = '/api/v1';
 
   // Request timeout (seconds).

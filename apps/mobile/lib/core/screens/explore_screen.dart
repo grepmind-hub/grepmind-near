@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -21,6 +22,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchController = TextEditingController();
   String _selectedCategory = 'all';
   bool _isSearching = false;
+  bool _isOpenNow = false;
+  bool _isAvailableNow = false;
+  String _sortBy = 'relevance';
+  int _radius = 5000; // meters
 
   final List<Map<String, dynamic>> _categories = const [
     {'label': 'All', 'icon': Icons.grid_view, 'slug': 'all'},
@@ -46,8 +51,35 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   void _search() {
     final q = _searchController.text.trim();
     if (q.isEmpty) return;
-    ref.read(businessesProvider.notifier).search(query: q, lat: 20.46, lng: 85.88);
+    ref.read(businessesProvider.notifier).search(
+      query: q,
+      lat: 20.46,
+      lng: 85.88,
+      radiusM: _radius,
+      categorySlug: _selectedCategory == 'all' ? null : _selectedCategory,
+      openNow: _isOpenNow,
+      availableNow: _isAvailableNow,
+      sort: _sortBy,
+    );
     FocusScope.of(context).unfocus();
+  }
+
+  void _onFiltersChanged() {
+    final q = _searchController.text.trim();
+    if (q.isEmpty) {
+      ref.read(businessesProvider.notifier).search(
+        query: '',
+        lat: 20.46,
+        lng: 85.88,
+        radiusM: _radius,
+        categorySlug: _selectedCategory == 'all' ? null : _selectedCategory,
+        openNow: _isOpenNow,
+        availableNow: _isAvailableNow,
+        sort: _sortBy,
+      );
+    } else {
+      _search();
+    }
   }
 
   @override
@@ -103,8 +135,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: PremiumCard(
                 padding: EdgeInsets.zero,
                 radius: 12,
-                borderColor: AppTheme.border,
-                color: AppTheme.surface,
                 child: TextField(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
@@ -120,12 +150,44 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _isSearching = false);
+                              _onFiltersChanged();
                             },
                           ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Filters row.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Radius filter
+                  _buildFilterChip(
+                    Icons.radio_button_unchecked_outlined,
+                    'Radius: ${_radius / 1000}km',
+                    () => _showRadiusDialog(),
+                  ),
+                  // Open now filter
+                  _buildFilterChip(
+                    _isOpenNow ? Icons.access_time_outlined : Icons.access_time_outlined,
+                    'Open now',
+                    () => setState(() => _isOpenNow = !_isOpenNow),
+                  ),
+                  // Available now filter
+                  _buildFilterChip(
+                    _isAvailableNow ? Icons.event_available_outlined : Icons.event_available_outlined,
+                    'Available now',
+                    () => setState(() => _isAvailableNow = !_isAvailableNow),
+                  ),
+                  // Sort dropdown
+                  _buildSortDropdown(),
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -138,7 +200,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
                   itemBuilder: (_, i) {
                     final cat = _categories[i];
                     final selected = _selectedCategory == cat['slug'];
@@ -148,12 +210,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       isSelected: selected,
                       onTap: () {
                         setState(() => _selectedCategory = cat['slug'] as String);
-                        ref.read(businessesProvider.notifier).search(
-                              query: '',
-                              lat: 20.46,
-                              lng: 85.88,
-                              categorySlug: cat['slug'] == 'all' ? null : cat['slug'] as String,
-                            );
+                        _onFiltersChanged();
                       },
                     );
                   },
@@ -168,29 +225,26 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: BannerCard(
                 title: 'Monsoon Home Care Sale',
                 subtitle: 'Up to 20% off on plumbing & electrical services this week',
-                imageUrl: null,
                 height: 120,
                 onTap: () {},
               ),
             ),
             const SizedBox(height: 20),
 
-            // Section header: Nearby shops & services.
+            // Section header: Search results.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Nearby shops & services',
+                    _isSearching
+                        ? 'Search results for "${_searchController.text}"' 
+                        : 'Nearby shops & services',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppTheme.mainText,
                         ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text('View all', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -205,12 +259,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ? _buildEmpty(state.error!)
                       : RefreshIndicator(
                           onRefresh: () async {
-                            ref.read(businessesProvider.notifier).search(query: '', lat: 20.46, lng: 85.88);
+                            _onFiltersChanged();
                           },
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
                             itemCount: state.items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (_, i) {
                               final b = state.items[i];
                               return BusinessCard(
@@ -218,7 +272,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 onTap: () => Navigator.of(context).push(
                                   MaterialPageRoute(builder: (_) => BusinessDetailScreen(businessId: b.id)),
                                 ),
-                                isFavorited: false,
                               );
                             },
                           ),
@@ -226,6 +279,109 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppTheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.mainText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.sort, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 6),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _sortBy,
+              underline: Container(),
+              icon: const Icon(Icons.chevron_right, size: 16, color: AppTheme.hintText),
+              items: const [
+                DropdownMenuItem(value: 'relevance', child: Text('Relevance')),
+                DropdownMenuItem(value: 'distance', child: Text('Distance')),
+                DropdownMenuItem(value: 'rating', child: Text('Rating')),
+                DropdownMenuItem(value: 'name', child: Text('Name')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _sortBy = value);
+                  _onFiltersChanged();
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRadiusDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Search Radius'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildRadiusOption(1000, '1 km'),
+            _buildRadiusOption(2500, '2.5 km'),
+            _buildRadiusOption(5000, '5 km'),
+            _buildRadiusOption(10000, '10 km'),
+            _buildRadiusOption(20000, '20 km'),
+            _buildRadiusOption(50000, '50 km'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadiusOption(int meters, String label) {
+    return ListTile(
+      title: Text(label),
+      trailing: Radio<int>(
+        value: meters,
+        groupValue: _radius,
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _radius = value);
+            _onFiltersChanged();
+          }
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -263,9 +419,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Text(
             'No results found',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
-                ),
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mainText,
+            ),
           ),
           const SizedBox(height: 6),
           Text(

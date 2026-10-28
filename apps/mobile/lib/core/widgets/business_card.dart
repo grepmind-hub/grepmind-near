@@ -101,7 +101,7 @@ class BusinessCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       width: 72,
                       height: 72,
-                      errorBuilder: (_, __, ___) => _placeholder(),
+                      errorBuilder: (_, _, _) => _placeholder(),
                     )
                   : _placeholder(),
             ),
@@ -129,7 +129,6 @@ class BusinessCard extends StatelessWidget {
                       const StatusChip(
                         label: 'Verified',
                         type: StatusChipType.success,
-                        size: StatusChipSize.small,
                       ),
                   ],
                 ),
@@ -160,14 +159,12 @@ class BusinessCard extends StatelessWidget {
                     StatusChip(
                       label: business.isOpenNow ? 'Open now' : 'Closed',
                       type: business.isOpenNow ? StatusChipType.success : StatusChipType.info,
-                      size: StatusChipSize.small,
                     ),
                     const SizedBox(width: 8),
                     if (business.acceptsRequests)
                       const StatusChip(
                         label: 'Accepting requests',
                         type: StatusChipType.success,
-                        size: StatusChipSize.small,
                       ),
                   ],
                 ),
