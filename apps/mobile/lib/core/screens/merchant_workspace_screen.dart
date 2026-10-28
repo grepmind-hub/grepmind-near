@@ -277,7 +277,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  profile['name'] ?? 'My Business',
+                  _extractString(profile['name']).isEmpty ? 'My Business' : _extractString(profile['name']),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -286,7 +286,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  profile['category_slug'] ?? 'Business',
+                  _extractString(profile['category_slug']).isEmpty ? 'Business' : _extractString(profile['category_slug']),
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppTheme.secondaryText,
@@ -304,17 +304,17 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _profileRow('Business Name', profile['name'] ?? ''),
+                _profileRow('Business Name', _extractString(profile['name'])),
                 const Divider(),
-                _profileRow('Description', profile['description'] ?? ''),
+                _profileRow('Description', _extractString(profile['description'])),
                 const Divider(),
-                _profileRow('Address', '${profile['address_text'] ?? ''}, ${profile['city'] ?? ''}'),
+                _profileRow('Address', '${_extractString(profile['address_text'])}, ${_extractString(profile['city'])}'),
                 const Divider(),
-                _profileRow('Phone', profile['phone_e164'] ?? ''),
+                _profileRow('Phone', _extractString(profile['phone_e164'])),
                 const Divider(),
-                _profileRow('Status', profile['status'] ?? ''),
+                _profileRow('Status', _extractString(profile['status'])),
                 const Divider(),
-                _profileRow('Verification', profile['verification_status'] ?? ''),
+                _profileRow('Verification', _extractString(profile['verification_status'])),
               ],
             ),
           ),
@@ -592,7 +592,20 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
     );
   }
 
-  Widget _profileRow(String label, String value) {
+  String _extractString(dynamic val) {
+    if (val == null) return '';
+    if (val is String) return val;
+    if (val is Map) {
+      if (val.containsKey('String') && val['String'] != null) {
+        return val['String'].toString();
+      }
+      return val.values.isNotEmpty ? val.values.first?.toString() ?? '' : '';
+    }
+    return val.toString();
+  }
+
+  Widget _profileRow(String label, dynamic value) {
+    final displayValue = _extractString(value);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -607,7 +620,7 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           ),
           Expanded(
             child: Text(
-              value,
+              displayValue,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.mainText),
             ),
           ),

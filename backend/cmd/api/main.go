@@ -254,6 +254,22 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 		hRows.Close()
 	}
 
+	statusStr := ""
+	if bizStatus.Valid {
+		statusStr = bizStatus.String
+	}
+	verifyStr := ""
+	if bizVerify.Valid {
+		verifyStr = bizVerify.String
+	}
+	var latVal, lngVal interface{}
+	if lat.Valid {
+		latVal = lat.Float64
+	}
+	if lng.Valid {
+		lngVal = lng.Float64
+	}
+
 	writeJSON(w, http.StatusOK, envelope{
 		"data": map[string]interface{}{
 			"id":                  bizID,
@@ -263,10 +279,10 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 			"address_text":        bizAddr,
 			"city":                bizCity,
 			"phone_e164":          bizPhone,
-			"status":              bizStatus,
-			"verification_status": bizVerify,
-			"latitude":            lat,
-			"longitude":           lng,
+			"status":              statusStr,
+			"verification_status": verifyStr,
+			"latitude":            latVal,
+			"longitude":           lngVal,
 			"business_hours":      hours,
 		},
 		"meta": map[string]string{"request_id": "merchant-profile"},
