@@ -162,10 +162,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 12),
 
             // Filters row.
-            Padding(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Radius filter
                   _buildFilterChip(
@@ -173,18 +173,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     'Radius: ${_radius / 1000}km',
                     () => _showRadiusDialog(),
                   ),
+                  const SizedBox(width: 8),
                   // Open now filter
                   _buildFilterChip(
                     _isOpenNow ? Icons.access_time_outlined : Icons.access_time_outlined,
                     'Open now',
                     () => setState(() => _isOpenNow = !_isOpenNow),
                   ),
+                  const SizedBox(width: 8),
                   // Available now filter
                   _buildFilterChip(
                     _isAvailableNow ? Icons.event_available_outlined : Icons.event_available_outlined,
                     'Available now',
                     () => setState(() => _isAvailableNow = !_isAvailableNow),
                   ),
+                  const SizedBox(width: 8),
                   // Sort dropdown
                   _buildSortDropdown(),
                 ],

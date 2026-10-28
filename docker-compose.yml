@@ -181,7 +181,7 @@ services:
       api:
         condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api/v1
       NEXT_PUBLIC_APP_NAME: Grepmind Near Admin
     ports:
       - "3000:3000"

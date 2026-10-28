@@ -1,18 +1,21 @@
 package main
 
 import (
-	"log/slog"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"grepmind-near/backend/pkg/config"
-	"grepmind-near/backend/pkg/database"
 	"grepmind-near/backend/pkg/logger"
 )
 
 func main() {
-	_ = slog.New
-	_ = config.Load
-	_ = database.Open
-	_ = logger.Init
-	_ = time.Second
+	logger.Init("info")
+	logger.Log.Info().Msg("grepmind-near worker service started")
+
+	// Block until termination signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	logger.Log.Info().Msg("grepmind-near worker service shutting down gracefully")
 }
