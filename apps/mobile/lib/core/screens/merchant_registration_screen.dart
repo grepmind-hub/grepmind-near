@@ -344,13 +344,9 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
             child: _buildModeSegmentedControl(),
           ),
           Expanded(
-            child: IndexedStack(
-              index: _mode,
-              children: [
-                _buildRegisterWizard(),
-                _buildClaimListingView(),
-              ],
-            ),
+            child: _mode == 0
+                ? _buildRegisterWizard()
+                : _buildClaimListingView(),
           ),
         ],
       ),
@@ -642,56 +638,82 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
   }) {
     final isSelected = _enterpriseType == typeId;
 
-    return PremiumCard(
-      padding: const EdgeInsets.all(14),
-      borderColor: isSelected ? color : AppTheme.border,
-      color: isSelected ? color.withValues(alpha: 0.04) : Colors.white,
-      onTap: () => setState(() => _enterpriseType = typeId),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+    return Material(
+      color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        key: ValueKey('enterprise_type_$typeId'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          setState(() {
+            _enterpriseType = typeId;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? color : AppTheme.border,
+              width: isSelected ? 2.0 : 1.0,
             ),
-            child: Icon(icon, color: color, size: 24),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? color : AppTheme.mainText,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? color : AppTheme.mainText,
+                          ),
                         ),
                       ),
-                    ),
-                    if (isSelected)
-                      Icon(Icons.check_circle, color: color, size: 20),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText, height: 1.3),
-                ),
-              ],
+                      if (isSelected)
+                        Icon(Icons.check_circle, color: color, size: 20),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText, height: 1.3),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Step 2: Basic & Tax Info
   Widget _buildStepBasicInfo() {
@@ -1238,6 +1260,8 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
     final isSelected = _operatingMode == modeId;
     return Expanded(
       child: GestureDetector(
+        key: ValueKey('mode_pill_$modeId'),
+        behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _operatingMode = modeId),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -1270,36 +1294,46 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
 
   Widget _buildHoursRadio(String val, String title, String subtitle) {
     final isSelected = _hoursPreset == val;
-    return PremiumCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      borderColor: isSelected ? AppTheme.primary : AppTheme.border,
-      color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+    return GestureDetector(
+      key: ValueKey('hours_radio_$val'),
+      behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _hoursPreset = val),
-      child: Row(
-        children: [
-          Icon(
-            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: isSelected ? AppTheme.primary : AppTheme.hintText,
-            size: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : AppTheme.border,
+            width: isSelected ? 2.0 : 1.0,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? AppTheme.primary : AppTheme.mainText,
-                  ),
-                ),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
-              ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: isSelected ? AppTheme.primary : AppTheme.hintText,
+              size: 20,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? AppTheme.primary : AppTheme.mainText,
+                    ),
+                  ),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -104,4 +104,41 @@ void main() {
 
     expect(find.text('Select Enterprise Classification'), findsOneWidget);
   });
+
+  testWidgets('Selecting business models (Enterprise Classifications) updates selection cleanly', (tester) async {
+    await tester.pumpWidget(createTestWidget(initialMode: 0));
+    await tester.pumpAndSettle();
+
+    // Default selection is Retail Shop & Showroom
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+    // Tap Skilled Trade & Professional
+    final proFinder = find.byKey(const ValueKey('enterprise_type_service_pro'));
+    await tester.ensureVisible(proFinder);
+    await tester.tap(proFinder);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+    // Tap Food, Dining & Cafe
+    final foodFinder = find.byKey(const ValueKey('enterprise_type_food'));
+    await tester.ensureVisible(foodFinder);
+    await tester.tap(foodFinder);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+    // Tap Salon, Spa & Wellness
+    final wellnessFinder = find.byKey(const ValueKey('enterprise_type_wellness'));
+    await tester.ensureVisible(wellnessFinder);
+    await tester.tap(wellnessFinder);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+    // Tap Retail Shop & Showroom again
+    final retailFinder = find.byKey(const ValueKey('enterprise_type_retail'));
+    await tester.ensureVisible(retailFinder);
+    await tester.tap(retailFinder);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+  });
 }
+
