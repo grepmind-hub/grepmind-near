@@ -257,7 +257,8 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		       b.locality, b.city, b.postal_code, b.status, b.verification_status,
 		       b.phone_e164, b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
-		       ST_X(b.location::geometry) AS longitude`
+		       ST_X(b.location::geometry) AS longitude,
+		       b.cover_photo_url`
 	if hasLoc {
 		query += fmt.Sprintf(`, ST_Distance(b.location, ST_SetSRID(ST_MakePoint($%d, $%d)::geography, 4326)) AS distance_m`,
 			argIdx, argIdx+1)
@@ -291,14 +292,17 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 	var results []Business
 	for rows.Next() {
 		var b Business
-		var slug, locality, city, postal, phone, whatsapp sql.NullString
+		var slug, locality, city, postal, phone, whatsapp, cover sql.NullString
 		var dist, lat, lng sql.NullFloat64
 		err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &postal, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &lat, &lng, &dist)
+			&phone, &whatsapp, &lat, &lng, &cover, &dist)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
+		}
+		if cover.Valid {
+			b.CoverPhotoURL = cover.String
 		}
 		if slug.Valid {
 			b.Slug = slug.String
@@ -343,7 +347,7 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var b BusinessDetail
-		var slug, locality, city, postal, phone, whatsapp sql.NullString
+		var slug, locality, city, postal, phone, whatsapp, cover sql.NullString
 		var desc sql.NullString
 		var lat, lng sql.NullFloat64
 		err := s.db.QueryRowxContext(r.Context(), `
@@ -351,13 +355,14 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 		       b.locality, b.city, b.postal_code, b.description,
 		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
-		       ST_X(b.location::geometry) AS longitude
+		       ST_X(b.location::geometry) AS longitude,
+		       b.cover_photo_url
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		WHERE b.id = $1
 	`, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 		&b.AddressText, &locality, &city, &postal, &desc,
-		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng)
+		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "Business not found.")
@@ -365,6 +370,9 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load business.")
 		}
 		return
+	}
+	if cover.Valid {
+		b.CoverPhotoURL = cover.String
 	}
 	if slug.Valid {
 		b.Slug = slug.String
@@ -557,6 +565,7 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		       b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
+		       b.cover_photo_url,
 		       ST_Distance(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326)) AS distance_m
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
@@ -574,13 +583,16 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 	var results []Business
 	for rows.Next() {
 		var b Business
-		var slug, locality, city, phone, whatsapp sql.NullString
+		var slug, locality, city, phone, whatsapp, cover sql.NullString
 		var dist, latitude, longitude sql.NullFloat64
 		if err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &latitude, &longitude, &dist); err != nil {
+			&phone, &whatsapp, &latitude, &longitude, &cover, &dist); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
+		}
+		if cover.Valid {
+			b.CoverPhotoURL = cover.String
 		}
 		if slug.Valid {
 			b.Slug = slug.String
