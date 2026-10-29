@@ -307,11 +307,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           ],
                         ),
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: filteredCategories.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
+                    : SafeArea(
+                        top: false,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                          itemCount: filteredCategories.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
                           final category = filteredCategories[index];
                           final icon = getCategoryIcon(category.slug);
                           final color = getCategoryColor(category.slug);
@@ -405,6 +407,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                           );
                         },
                       ),
+                    ),
           ),
         ],
       ),

@@ -496,6 +496,9 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                   ]),
                 ),
               ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 100),
+              ),
             ],
           ),
 
@@ -505,7 +508,6 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -517,7 +519,11 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                   ),
                 ],
               ),
-              child: Row(
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Row(
                 children: [
                   // Call button
                   Container(
@@ -602,12 +608,16 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           children: [
                             Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
                             SizedBox(width: 8),
-                            Text(
-                              'Book Appointment',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                            Flexible(
+                              child: Text(
+                                'Book Appointment',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -619,6 +629,8 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
               ),
             ),
           ),
+        ),
+      ),
         ],
       ),
     );

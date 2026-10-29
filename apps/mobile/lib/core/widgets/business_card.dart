@@ -181,12 +181,16 @@ class BusinessCard extends StatelessWidget {
                       // Category & Distance: Hardware • 0.8 km
                       Row(
                         children: [
-                          Text(
-                            categoryText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.secondaryText,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              categoryText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.secondaryText,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                           if (business.distanceM != null) ...[

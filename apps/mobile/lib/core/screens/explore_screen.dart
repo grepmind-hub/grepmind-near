@@ -169,27 +169,33 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               padding: const EdgeInsets.fromLTRB(kScreenPadding, 12, kScreenPadding, 8),
               child: Row(
                 children: [
-                  InkWell(
-                    onTap: _showLocationModal,
-                    borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 22),
-                          SizedBox(width: 6),
-                          Text(
-                            'Bhubaneswar, Odisha',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.mainText,
+                  Expanded(
+                    child: InkWell(
+                      onTap: _showLocationModal,
+                      borderRadius: BorderRadius.circular(12),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 22),
+                            SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'Bhubaneswar, Odisha',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.mainText,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.secondaryText, size: 20),
-                        ],
+                            SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.secondaryText, size: 20),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -458,28 +464,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               onRefresh: () async {
                                 _onFiltersChanged();
                               },
-                              child: ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(kScreenPadding, 0, kScreenPadding, 24),
-                                itemCount: state.items.length,
-                                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                                itemBuilder: (_, i) {
-                                  final b = state.items[i];
-                                  return BusinessCard(
-                                    business: b,
-                                    onTap: () {
-                                      final serviceCategories = ['electrician', 'plumber', 'carpenter', 'tailor'];
-                                      if (serviceCategories.contains(b.categorySlug) || b.acceptsRequests) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (_) => ServiceProScreen(business: b)),
-                                        );
-                                      } else {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (_) => BusinessDetailScreen(businessId: b.id)),
-                                        );
-                                      }
-                                    },
-                                  );
-                                },
+                              child: SafeArea(
+                                top: false,
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(kScreenPadding, 0, kScreenPadding, 32),
+                                  itemCount: state.items.length,
+                                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                                  itemBuilder: (_, i) {
+                                    final b = state.items[i];
+                                    return BusinessCard(
+                                      business: b,
+                                      onTap: () {
+                                        final serviceCategories = ['electrician', 'plumber', 'carpenter', 'tailor'];
+                                        if (serviceCategories.contains(b.categorySlug) || b.acceptsRequests) {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => ServiceProScreen(business: b)),
+                                          );
+                                        } else {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => BusinessDetailScreen(businessId: b.id)),
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
                               ),
                             ),
             ),

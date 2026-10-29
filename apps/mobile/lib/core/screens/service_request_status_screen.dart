@@ -1046,7 +1046,6 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
 
   Widget _buildBottomActionBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
@@ -1058,51 +1057,61 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           ),
         ],
       ),
-      child: Row(
-        children: [
-          if (_currentStatus != 'completed' && _currentStatus != 'cancelled') ...[
-            // Cancel Request Action Button
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFDC2626),
-                    side: const BorderSide(color: Color(0xFFFECACA)),
-                    backgroundColor: const Color(0xFFFEF2F2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            children: [
+              if (_currentStatus != 'completed' && _currentStatus != 'cancelled') ...[
+                // Cancel Request Action Button
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        backgroundColor: const Color(0xFFFEF2F2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: _showCancelConfirmationModal,
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ),
                   ),
-                  onPressed: _showCancelConfirmationModal,
-                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
+                const SizedBox(width: 12),
+              ],
 
-          // Primary Navigation or Done Button
-          Expanded(
-            flex: 2,
-            child: SizedBox(
-              height: 48,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              // Primary Navigation or Done Button
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.home_outlined, color: Colors.white, size: 18),
+                    label: Flexible(
+                      child: Text(
+                        _currentStatus == 'completed' ? 'Back to Home' : 'Back to Explore',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                  ),
                 ),
-                icon: const Icon(Icons.home_outlined, color: Colors.white, size: 18),
-                label: Text(
-                  _currentStatus == 'completed' ? 'Back to Home' : 'Back to Explore',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
-                ),
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

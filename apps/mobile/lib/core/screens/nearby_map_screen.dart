@@ -367,10 +367,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           // Floating Bottom Business Preview Card
           if (_selectedBusiness != null)
             Positioned(
-              bottom: 16,
+              bottom: 12,
               left: 16,
               right: 16,
-              child: _buildBottomBusinessCard(_selectedBusiness!),
+              child: SafeArea(
+                top: false,
+                child: _buildBottomBusinessCard(_selectedBusiness!),
+              ),
             ),
 
           // Loading overlay
@@ -599,9 +602,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       children: [
                         Icon(Icons.directions_rounded, size: 18, color: AppTheme.mainText),
                         SizedBox(width: 6),
-                        Text(
-                          'Directions',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                        Flexible(
+                          child: Text(
+                            'Directions',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -627,9 +634,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       children: [
                         Icon(Icons.person_pin_circle_rounded, size: 18, color: Colors.white),
                         SizedBox(width: 6),
-                        Text(
-                          'View Profile',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                        Flexible(
+                          child: Text(
+                            'View Profile',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

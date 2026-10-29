@@ -485,18 +485,21 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     : RefreshIndicator(
                         onRefresh: () async => _executeSearch(),
                         color: AppTheme.primary,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          itemCount: items.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final biz = items[index];
-                            return BusinessCard(
-                              business: biz,
-                              onTap: () => _onBusinessTapped(biz),
-                              onFavoriteToggled: () => favNotifier.toggle(biz.id),
-                            );
-                          },
+                        child: SafeArea(
+                          top: false,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final biz = items[index];
+                              return BusinessCard(
+                                business: biz,
+                                onTap: () => _onBusinessTapped(biz),
+                                onFavoriteToggled: () => favNotifier.toggle(biz.id),
+                              );
+                            },
+                          ),
                         ),
                       ),
           ),

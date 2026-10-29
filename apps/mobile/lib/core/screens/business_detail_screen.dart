@@ -392,7 +392,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
 
   Widget _buildAboutTab(Business biz, List<BusinessHour> hours) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       children: [
         // Description
         const Text(
@@ -530,7 +530,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           ];
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       itemCount: list.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -629,7 +629,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           ];
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       itemCount: list.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
@@ -675,7 +675,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
 
   Widget _buildReviewsTab(Business biz) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       children: [
         // Overall score banner
         Container(

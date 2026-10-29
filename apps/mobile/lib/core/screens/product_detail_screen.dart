@@ -261,7 +261,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             color: AppTheme.secondaryText,
                           ),
                         ),
-                        const SizedBox(height: 60),
+                        const SizedBox(height: 96),
                       ],
                     ),
                   ),
@@ -299,12 +299,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           Icon(Icons.call_rounded, size: 18, color: AppTheme.primary),
                           SizedBox(width: 8),
-                          Text(
-                            'Call Store',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primary,
+                          Flexible(
+                            child: Text(
+                              'Call Store',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -333,12 +337,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           Icon(Icons.bolt_rounded, size: 18, color: Colors.white),
                           SizedBox(width: 6),
-                          Text(
-                            'Inquire / Buy',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                          Flexible(
+                            child: Text(
+                              'Inquire / Buy',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
