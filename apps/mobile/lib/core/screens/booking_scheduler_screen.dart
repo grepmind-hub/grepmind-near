@@ -316,13 +316,6 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     final monthFormat = DateFormat('MMMM yyyy');
     final formattedMonth = monthFormat.format(_selectedDate);
 
-    final headerWidget = _buildProProfileHeader();
-    final scopeWidget = _buildServiceScopeSection();
-    final dateWidget = _buildDateSelectionStrip(formattedMonth);
-    final slotsWidget = _buildTimeSlotsSection();
-    final notesWidget = _buildNotesAndLocationCard();
-    final bottomBarWidget = _buildStickyBottomBar();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -357,31 +350,21 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           ),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                children: [
-                  headerWidget,
-                  const SizedBox(height: 16),
-                  scopeWidget,
-                  const SizedBox(height: 18),
-                  dateWidget,
-                  const SizedBox(height: 20),
-                  slotsWidget,
-                  const SizedBox(height: 20),
-                  notesWidget,
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-            bottomBarWidget,
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        children: [
+          _buildProProfileHeader(),
+          const SizedBox(height: 16),
+          _buildServiceScopeSection(),
+          const SizedBox(height: 18),
+          _buildDateSelectionStrip(formattedMonth),
+          const SizedBox(height: 20),
+          _buildTimeSlotsSection(),
+          const SizedBox(height: 20),
+          _buildNotesAndLocationCard(),
+        ],
       ),
+      bottomNavigationBar: _buildStickyBottomBar(),
     );
   }
 
@@ -451,6 +434,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           // Pro Details
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -567,6 +551,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -587,9 +572,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             )
           else
             // Scope Chips Carousel
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+            SizedBox(
+              height: 68,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
                 children: List.generate(_scopeOptions.length, (index) {
                   final scope = _scopeOptions[index];
                   final isSelected = _selectedScopeIndex == index;
@@ -598,8 +585,9 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                     child: GestureDetector(
                       onTap: () => setState(() => _selectedScopeIndex = index),
                       child: Container(
-                        width: 142,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        width: 144,
+                        height: 64,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
@@ -609,6 +597,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                           ),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -653,6 +642,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                 }),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -716,9 +706,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           const SizedBox(height: 14),
 
           // Date horizontal carousel
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          SizedBox(
+            height: 76,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
               children: List.generate(_calendarDays.length, (index) {
                 final date = _calendarDays[index];
                 final isSelected = date.year == _selectedDate.year &&
@@ -741,7 +733,8 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: 56,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      height: 72,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
                         color: isSelected ? AppTheme.primary : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(14),
@@ -760,6 +753,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                             : null,
                       ),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
@@ -798,10 +792,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               }),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildTimeSlotsSection() {
     return Container(
@@ -1044,6 +1039,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                 SizedBox(width: 10),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -1101,7 +1097,6 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     final formattedDay = dayFormat.format(_selectedDate);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(
@@ -1115,7 +1110,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           ),
         ],
       ),
-      child: Row(
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
         children: [
           // Price & Slot Details
           Expanded(
@@ -1155,6 +1154,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
+                minimumSize: const Size(120, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
@@ -1184,6 +1184,8 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }

@@ -94,7 +94,7 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
     // Customer Experience: Explore, Nearby, Saved, Profile
     final customerScreens = [
       const ExploreScreen(),
-      const NearbyMapScreen(),
+      _selectedIndex == 1 ? const NearbyMapScreen() : const SizedBox.shrink(),
       const SavedScreen(),
       const ProfileScreen(),
     ];

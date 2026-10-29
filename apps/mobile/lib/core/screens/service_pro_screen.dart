@@ -4,6 +4,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
+import 'package:grepmind_mobile/core/screens/booking_scheduler_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen 13: Service Professional Profile
@@ -589,10 +590,9 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ServiceRequestScreen(
-                                businessId: biz.id,
-                                businessName: biz.name,
-                                initialServiceId: selectedSvc?.id,
+                              builder: (_) => BookingSchedulerScreen(
+                                business: biz,
+                                selectedService: selectedSvc,
                               ),
                             ),
                           );

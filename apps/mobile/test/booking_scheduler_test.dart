@@ -43,7 +43,7 @@ void main() {
     expect(find.text('Available Time Slots'), findsOneWidget);
     expect(find.text('Morning'), findsOneWidget);
     expect(find.text('Afternoon'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('Job Details & Address'), findsOneWidget);
     expect(find.text('Book Ramesh'), findsOneWidget);
