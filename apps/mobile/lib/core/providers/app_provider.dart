@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:equatable/equatable.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
@@ -703,3 +704,464 @@ class MerchantProfileNotifier extends StateNotifier<MerchantProfileState> {
     }
   }
 }
+
+/// Merchant catalog state.
+class MerchantCatalogState {
+  final List<Product> products;
+  final List<Service> services;
+  final bool isLoading;
+  final String? error;
+  final String searchQuery;
+  final String selectedProductFilter;
+  final String selectedServiceFilter;
+
+  const MerchantCatalogState({
+    this.products = const [],
+    this.services = const [],
+    this.isLoading = false,
+    this.error,
+    this.searchQuery = '',
+    this.selectedProductFilter = 'all',
+    this.selectedServiceFilter = 'all',
+  });
+
+  MerchantCatalogState copyWith({
+    List<Product>? products,
+    List<Service>? services,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+    String? searchQuery,
+    String? selectedProductFilter,
+    String? selectedServiceFilter,
+  }) {
+    return MerchantCatalogState(
+      products: products ?? this.products,
+      services: services ?? this.services,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+      searchQuery: searchQuery ?? this.searchQuery,
+      selectedProductFilter: selectedProductFilter ?? this.selectedProductFilter,
+      selectedServiceFilter: selectedServiceFilter ?? this.selectedServiceFilter,
+    );
+  }
+
+  List<Product> get filteredProducts {
+    return products.where((p) {
+      if (searchQuery.isNotEmpty) {
+        final q = searchQuery.toLowerCase();
+        final matches = p.name.toLowerCase().contains(q) ||
+            (p.description?.toLowerCase().contains(q) ?? false);
+        if (!matches) return false;
+      }
+      switch (selectedProductFilter) {
+        case 'in_stock':
+          return p.stockStatus == 'in_stock';
+        case 'limited':
+          return p.stockStatus == 'limited';
+        case 'out_of_stock':
+          return p.stockStatus == 'out_of_stock';
+        case 'published':
+          return p.isPublished;
+        case 'draft':
+          return !p.isPublished;
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
+  List<Service> get filteredServices {
+    return services.where((s) {
+      if (searchQuery.isNotEmpty) {
+        final q = searchQuery.toLowerCase();
+        final matches = s.name.toLowerCase().contains(q) ||
+            (s.description?.toLowerCase().contains(q) ?? false);
+        if (!matches) return false;
+      }
+      switch (selectedServiceFilter) {
+        case 'active':
+          return s.isActive;
+        case 'inactive':
+          return !s.isActive;
+        default:
+          return true;
+      }
+    }).toList();
+  }
+}
+
+class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
+  MerchantCatalogNotifier() : super(const MerchantCatalogState());
+
+  void setSearchQuery(String q) {
+    state = state.copyWith(searchQuery: q);
+  }
+
+  void setProductFilter(String filter) {
+    state = state.copyWith(selectedProductFilter: filter);
+  }
+
+  void setServiceFilter(String filter) {
+    state = state.copyWith(selectedServiceFilter: filter);
+  }
+
+  Future<void> loadCatalog() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final prodsRes = await apiClient.get('/merchant/products');
+      final srvsRes = await apiClient.get('/merchant/services');
+
+      final prodsData = prodsRes.data as Map<String, dynamic>;
+      final srvsData = srvsRes.data as Map<String, dynamic>;
+
+      final prodsList = (prodsData['data'] as List<dynamic>?)
+              ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+      final srvsList = (srvsData['data'] as List<dynamic>?)
+              ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      state = state.copyWith(
+        products: prodsList,
+        services: srvsList,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<bool> createProduct({
+    required String name,
+    String? description,
+    double? price,
+    String stockStatus = 'in_stock',
+    bool isPublished = true,
+    String? imageUrl,
+  }) async {
+    try {
+      await apiClient.post('/merchant/products', data: {
+        'name': name,
+        'description': description,
+        'price': price,
+        'stock_status': stockStatus,
+        'is_published': isPublished,
+        'image_url': imageUrl,
+      });
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> updateProduct(String id, Map<String, dynamic> updates) async {
+    try {
+      await apiClient.patch('/merchant/products/$id', data: updates);
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteProduct(String id) async {
+    try {
+      await apiClient.delete('/merchant/products/$id');
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> createService({
+    required String name,
+    String? description,
+    double? priceMin,
+    double? priceMax,
+    bool isActive = true,
+  }) async {
+    try {
+      await apiClient.post('/merchant/services', data: {
+        'name': name,
+        'description': description,
+        'indicative_price_min': priceMin,
+        'indicative_price_max': priceMax,
+        'is_active': isActive,
+      });
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> updateService(String id, Map<String, dynamic> updates) async {
+    try {
+      await apiClient.patch('/merchant/services/$id', data: updates);
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteService(String id) async {
+    try {
+      await apiClient.delete('/merchant/services/$id');
+      await loadCatalog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+final merchantCatalogProvider =
+    StateNotifierProvider<MerchantCatalogNotifier, MerchantCatalogState>((ref) {
+  return MerchantCatalogNotifier();
+});
+
+/// Merchant operating hours and coverage state
+class MerchantHoursCoverageState extends Equatable {
+  final bool isLoading;
+  final bool isSaving;
+  final String? error;
+  final String? successMessage;
+  final List<BusinessHour> hours;
+  final int serviceRadiusM;
+  final bool acceptsRequests;
+  final String businessName;
+  final String locality;
+  final String city;
+  final double latitude;
+  final double longitude;
+
+  const MerchantHoursCoverageState({
+    this.isLoading = false,
+    this.isSaving = false,
+    this.error,
+    this.successMessage,
+    this.hours = const [],
+    this.serviceRadiusM = 5000,
+    this.acceptsRequests = true,
+    this.businessName = '',
+    this.locality = '',
+    this.city = '',
+    this.latitude = 12.9352,
+    this.longitude = 77.6245,
+  });
+
+  MerchantHoursCoverageState copyWith({
+    bool? isLoading,
+    bool? isSaving,
+    String? error,
+    String? successMessage,
+    List<BusinessHour>? hours,
+    int? serviceRadiusM,
+    bool? acceptsRequests,
+    String? businessName,
+    String? locality,
+    String? city,
+    double? latitude,
+    double? longitude,
+  }) {
+    return MerchantHoursCoverageState(
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      error: error,
+      successMessage: successMessage,
+      hours: hours ?? this.hours,
+      serviceRadiusM: serviceRadiusM ?? this.serviceRadiusM,
+      acceptsRequests: acceptsRequests ?? this.acceptsRequests,
+      businessName: businessName ?? this.businessName,
+      locality: locality ?? this.locality,
+      city: city ?? this.city,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        isLoading,
+        isSaving,
+        error,
+        successMessage,
+        hours,
+        serviceRadiusM,
+        acceptsRequests,
+        businessName,
+        locality,
+        city,
+        latitude,
+        longitude,
+      ];
+}
+
+class MerchantHoursCoverageNotifier
+    extends StateNotifier<MerchantHoursCoverageState> {
+  MerchantHoursCoverageNotifier()
+      : super(MerchantHoursCoverageState(hours: defaultSevenDays())) {
+    load();
+  }
+
+  static List<BusinessHour> defaultSevenDays() {
+    return [
+      const BusinessHour(weekday: 1, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
+      const BusinessHour(weekday: 2, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
+      const BusinessHour(weekday: 3, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
+      const BusinessHour(weekday: 4, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
+      const BusinessHour(weekday: 5, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
+      const BusinessHour(weekday: 6, opensAt: '10:00:00', closesAt: '18:00:00', isClosed: false),
+      const BusinessHour(weekday: 0, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: true),
+    ];
+  }
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      // 1. Load Hours
+      try {
+        final hoursRes = await apiClient.get('/merchant/operating-hours');
+        final hoursData = hoursRes.data as Map<String, dynamic>;
+        final rawHours = (hoursData['data'] as List<dynamic>?) ?? [];
+        if (rawHours.isNotEmpty) {
+          final hoursList = rawHours
+              .map((e) => BusinessHour.fromJson(e as Map<String, dynamic>))
+              .toList();
+          hoursList.sort((a, b) {
+            final orderA = a.weekday == 0 ? 7 : a.weekday;
+            final orderB = b.weekday == 0 ? 7 : b.weekday;
+            return orderA.compareTo(orderB);
+          });
+          state = state.copyWith(hours: hoursList);
+        }
+      } catch (_) {
+        if (state.hours.isEmpty) {
+          state = state.copyWith(hours: defaultSevenDays());
+        }
+      }
+
+      // 2. Load Coverage
+      try {
+        final covRes = await apiClient.get('/merchant/coverage');
+        final covData = (covRes.data as Map<String, dynamic>)['data'] as Map<String, dynamic>? ?? {};
+        state = state.copyWith(
+          serviceRadiusM: (covData['service_radius_m'] as num?)?.toInt() ?? 5000,
+          acceptsRequests: covData['accepts_requests'] as bool? ?? true,
+          businessName: covData['business_name'] as String? ?? 'My Business',
+          locality: covData['locality'] as String? ?? 'Koramangala',
+          city: covData['city'] as String? ?? 'Bengaluru',
+          latitude: (covData['latitude'] as num?)?.toDouble() ?? 12.9352,
+          longitude: (covData['longitude'] as num?)?.toDouble() ?? 77.6245,
+        );
+      } catch (_) {}
+
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  void updateDayHour(int weekday, {bool? isClosed, String? opensAt, String? closesAt}) {
+    final updated = state.hours.map((h) {
+      if (h.weekday == weekday) {
+        return BusinessHour(
+          weekday: h.weekday,
+          opensAt: opensAt ?? h.opensAt,
+          closesAt: closesAt ?? h.closesAt,
+          isClosed: isClosed ?? h.isClosed,
+        );
+      }
+      return h;
+    }).toList();
+    state = state.copyWith(hours: updated);
+  }
+
+  void copyDayToWeekdays(int sourceWeekday) {
+    final source = state.hours.firstWhere((h) => h.weekday == sourceWeekday, orElse: () => state.hours.first);
+    final updated = state.hours.map((h) {
+      if (h.weekday >= 1 && h.weekday <= 5) {
+        return BusinessHour(
+          weekday: h.weekday,
+          opensAt: source.opensAt,
+          closesAt: source.closesAt,
+          isClosed: source.isClosed,
+        );
+      }
+      return h;
+    }).toList();
+    state = state.copyWith(hours: updated, successMessage: 'Copied Mon-Fri hours!');
+  }
+
+  void setAllDaysOpen(bool isOpen) {
+    final updated = state.hours.map((h) {
+      return BusinessHour(
+        weekday: h.weekday,
+        opensAt: h.opensAt ?? '09:00:00',
+        closesAt: h.closesAt ?? '20:00:00',
+        isClosed: !isOpen,
+      );
+    }).toList();
+    state = state.copyWith(hours: updated);
+  }
+
+  void setServiceRadius(int meters) {
+    state = state.copyWith(serviceRadiusM: meters);
+  }
+
+  void toggleAcceptsRequests(bool accepts) {
+    state = state.copyWith(acceptsRequests: accepts);
+  }
+
+  Future<bool> saveOperatingHours() async {
+    state = state.copyWith(isSaving: true, error: null);
+    try {
+      final payload = {
+        'hours': state.hours.map((h) => {
+          'weekday': h.weekday,
+          'opens_at': h.opensAt,
+          'closes_at': h.closesAt,
+          'is_closed': h.isClosed,
+        }).toList(),
+      };
+      await apiClient.put('/merchant/operating-hours', data: payload);
+      state = state.copyWith(isSaving: false, successMessage: 'Operating hours saved successfully');
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, error: 'Failed to save hours: $e');
+      return false;
+    }
+  }
+
+  Future<bool> saveCoverage() async {
+    state = state.copyWith(isSaving: true, error: null);
+    try {
+      final payload = {
+        'service_radius_m': state.serviceRadiusM,
+        'accepts_requests': state.acceptsRequests,
+      };
+      await apiClient.put('/merchant/coverage', data: payload);
+      state = state.copyWith(isSaving: false, successMessage: 'Service coverage updated successfully');
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, error: 'Failed to save coverage: $e');
+      return false;
+    }
+  }
+
+  void clearMessages() {
+    state = state.copyWith(error: null, successMessage: null);
+  }
+}
+
+final merchantHoursCoverageProvider = StateNotifierProvider<
+    MerchantHoursCoverageNotifier, MerchantHoursCoverageState>((ref) {
+  return MerchantHoursCoverageNotifier();
+});
+

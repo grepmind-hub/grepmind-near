@@ -151,12 +151,10 @@ Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
 | **17** | Customer Profile & Settings | ✅ Complete | `apps/mobile/lib/core/screens/profile_screen.dart` |
 | **18** | Service Request Status Tracker| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_status_screen.dart` (Live timeline, pro contact card, receipt summary, cancel modal) |
 | **19** | Merchant Registration / Claim | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_registration_screen.dart` (4-step onboarding wizard, category picker, tax/artisan toggle, GPS locking, claim existing listing & OTP modal sheet) |
-| **20** | Merchant Workspace Dashboard | ✅ Complete | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` |
-| **21** | Merchant Catalog Management | ⏳ **QUEUED** | Product & Service offerings editor |
-| **22** | Merchant Hours & Coverage Setup| ⏳ **QUEUED** | Weekly operating hours & service radius setting |
+| **20** | Merchant Workspace Dashboard | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` (Dashboard, stats, request management, quick actions) |
+| **21** | Merchant Catalog Management | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_catalog_screen.dart` (Products/Services tabs, stock status chips, search & filter, add/edit modals) |
+| **22** | Merchant Hours & Coverage Setup| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_hours_coverage_screen.dart` (7-day schedule, time pickers, radius slider, localities tags, on-demand toggle) |
 
-### Next Recommended Implementation
-- **Screen 21: Merchant Catalog Management** (`merchant_catalog_screen.dart`):
-  - Management screen for shop owners & service pros to manage inventory, catalog items, and service offerings.
-  - Category tabs, search & filter items, stock status toggles (In Stock / Low / Out of stock), discount badges, add/edit product modal, and price formatting.
-  - Linked directly from `MerchantWorkspaceScreen` quick action ("Catalog").
+### UI Showcase Milestone
+- **All 22 screens** from the authoritative `Grepmind Near UI_UX App Showcase.png` are implemented and verified end-to-end with the Go REST API backend and Android emulator!
+

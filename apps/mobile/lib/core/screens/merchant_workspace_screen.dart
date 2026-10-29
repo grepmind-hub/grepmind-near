@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
@@ -160,6 +162,62 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                   'Edit Profile',
                   AppTheme.secondary,
                   () => DefaultTabController.of(context).animateTo(2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  Icons.inventory_2_outlined,
+                  'Manage Catalog',
+                  const Color(0xFF0F766E),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MerchantCatalogScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _actionButton(
+                  Icons.add_circle_outline,
+                  '+ Add Item',
+                  const Color(0xFF2457D6),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MerchantCatalogScreen()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  Icons.schedule,
+                  'Hours & Coverage',
+                  const Color(0xFFD97706),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _actionButton(
+                  Icons.radar,
+                  'Service Radius',
+                  const Color(0xFF7C3AED),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+                  ),
                 ),
               ),
             ],
@@ -328,6 +386,24 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             child: ElevatedButton(
               onPressed: () => _showEditProfileDialog(),
               child: const Text('Edit Business Profile'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.schedule),
+              label: const Text('Operating Hours & Service Coverage'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+              ),
             ),
           ),
         ],

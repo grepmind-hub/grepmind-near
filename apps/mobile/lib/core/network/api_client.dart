@@ -62,6 +62,17 @@ class ApiClient {
     return _dio.patch<T>(path, data: data, queryParameters: queryParameters, options: options, cancelToken: cancelToken);
   }
 
+  /// Convenience PUT.
+  Future<Response<T>> put<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) {
+    return _dio.put<T>(path, data: data, queryParameters: queryParameters, options: options, cancelToken: cancelToken);
+  }
+
   /// Convenience DELETE.
   Future<Response<T>> delete<T>(
     String path, {

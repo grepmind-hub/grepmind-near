@@ -100,6 +100,18 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("PATCH /api/v1/merchant/profile", requireAuth(authSvc, merchantUpdateProfile))
 	mux.HandleFunc("GET /api/v1/merchant/requests", requireAuth(authSvc, merchantRequests))
 	mux.HandleFunc("PATCH /api/v1/merchant/requests/{id}/status", requireAuth(authSvc, merchantRequestStatus))
+	mux.HandleFunc("GET /api/v1/merchant/products", requireAuth(authSvc, merchantListProducts))
+	mux.HandleFunc("POST /api/v1/merchant/products", requireAuth(authSvc, merchantCreateProduct))
+	mux.HandleFunc("PATCH /api/v1/merchant/products/{id}", requireAuth(authSvc, merchantUpdateProduct))
+	mux.HandleFunc("DELETE /api/v1/merchant/products/{id}", requireAuth(authSvc, merchantDeleteProduct))
+	mux.HandleFunc("GET /api/v1/merchant/services", requireAuth(authSvc, merchantListServices))
+	mux.HandleFunc("POST /api/v1/merchant/services", requireAuth(authSvc, merchantCreateService))
+	mux.HandleFunc("PATCH /api/v1/merchant/services/{id}", requireAuth(authSvc, merchantUpdateService))
+	mux.HandleFunc("DELETE /api/v1/merchant/services/{id}", requireAuth(authSvc, merchantDeleteService))
+	mux.HandleFunc("GET /api/v1/merchant/operating-hours", requireAuth(authSvc, merchantGetOperatingHours))
+	mux.HandleFunc("PUT /api/v1/merchant/operating-hours", requireAuth(authSvc, merchantUpdateOperatingHours))
+	mux.HandleFunc("GET /api/v1/merchant/coverage", requireAuth(authSvc, merchantGetCoverage))
+	mux.HandleFunc("PUT /api/v1/merchant/coverage", requireAuth(authSvc, merchantUpdateCoverage))
 
 	// Admin operations & moderation (Phase 4)
 	mux.HandleFunc("POST /api/v1/admin/session", modSvc.AdminSession)
@@ -462,6 +474,550 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 			"status": reqBody.Status,
 		},
 		"meta": map[string]string{"request_id": "merchant-request-status"},
+	})
+}
+
+func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	rows, err := db.QueryxContext(r.Context(), `
+		SELECT id, business_id, name, description, price, currency, stock_status, is_published, image_url, updated_at
+		FROM products
+		WHERE business_id = $1
+		ORDER BY updated_at DESC
+	`, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load products.")
+		return
+	}
+	defer rows.Close()
+
+	var products []discovery.Product
+	for rows.Next() {
+		var p discovery.Product
+		var price sql.NullFloat64
+		var desc, image sql.NullString
+		var updated sql.NullTime
+		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
+			&p.StockStatus, &p.IsPublished, &image, &updated); err != nil {
+			continue
+		}
+		if desc.Valid {
+			p.Description = desc.String
+		}
+		if price.Valid {
+			p.Price = &price.Float64
+		}
+		if image.Valid {
+			p.ImageURL = image.String
+		}
+		products = append(products, p)
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": products,
+		"meta": map[string]string{"request_id": "merchant-products"},
+	})
+}
+
+func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	var req struct {
+		Name        string   `json:"name"`
+		Description *string  `json:"description"`
+		Price       *float64 `json:"price"`
+		StockStatus string   `json:"stock_status"`
+		IsPublished bool     `json:"is_published"`
+		ImageURL    *string  `json:"image_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name is required.")
+		return
+	}
+	if req.StockStatus == "" {
+		req.StockStatus = "in_stock"
+	}
+	var newID string
+	err = db.QueryRowxContext(r.Context(), `
+		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+		RETURNING id
+	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.IsPublished, req.ImageURL).Scan(&newID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, envelope{
+		"data": map[string]interface{}{"id": newID, "status": "created"},
+		"meta": map[string]string{"request_id": "merchant-create-product"},
+	})
+}
+
+func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	prodID := r.PathValue("id")
+	var req struct {
+		Name        *string  `json:"name"`
+		Description *string  `json:"description"`
+		Price       *float64 `json:"price"`
+		StockStatus *string  `json:"stock_status"`
+		IsPublished *bool    `json:"is_published"`
+		ImageURL    *string  `json:"image_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+		return
+	}
+	setParts := []string{"updated_at = now()"}
+	args := []interface{}{prodID, bizID}
+	argIdx := 3
+	if req.Name != nil {
+		setParts = append(setParts, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, *req.Name)
+		argIdx++
+	}
+	if req.Description != nil {
+		setParts = append(setParts, fmt.Sprintf("description = $%d", argIdx))
+		args = append(args, *req.Description)
+		argIdx++
+	}
+	if req.Price != nil {
+		setParts = append(setParts, fmt.Sprintf("price = $%d", argIdx))
+		args = append(args, *req.Price)
+		argIdx++
+	}
+	if req.StockStatus != nil {
+		setParts = append(setParts, fmt.Sprintf("stock_status = $%d", argIdx))
+		args = append(args, *req.StockStatus)
+		argIdx++
+	}
+	if req.IsPublished != nil {
+		setParts = append(setParts, fmt.Sprintf("is_published = $%d", argIdx))
+		args = append(args, *req.IsPublished)
+		argIdx++
+	}
+	if req.ImageURL != nil {
+		setParts = append(setParts, fmt.Sprintf("image_url = $%d", argIdx))
+		args = append(args, *req.ImageURL)
+		argIdx++
+	}
+	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $1 AND business_id = $2", strings.Join(setParts, ", "))
+	_, err = db.ExecContext(r.Context(), query, args...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update product.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "updated"},
+		"meta": map[string]string{"request_id": "merchant-update-product"},
+	})
+}
+
+func merchantDeleteProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	prodID := r.PathValue("id")
+	_, err = db.ExecContext(r.Context(), `DELETE FROM products WHERE id = $1 AND business_id = $2`, prodID, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to delete product.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "deleted"},
+		"meta": map[string]string{"request_id": "merchant-delete-product"},
+	})
+}
+
+func merchantListServices(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	rows, err := db.QueryxContext(r.Context(), `
+		SELECT id, business_id, name, description, indicative_price_min, indicative_price_max, currency, is_active
+		FROM services
+		WHERE business_id = $1
+		ORDER BY name ASC
+	`, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load services.")
+		return
+	}
+	defer rows.Close()
+
+	var services []discovery.ServiceOffering
+	for rows.Next() {
+		var srv discovery.ServiceOffering
+		var desc sql.NullString
+		var pmin, pmax sql.NullFloat64
+		if err := rows.Scan(&srv.ID, &srv.BusinessID, &srv.Name, &desc, &pmin, &pmax, &srv.Currency, &srv.IsActive); err != nil {
+			continue
+		}
+		if desc.Valid {
+			srv.Description = desc.String
+		}
+		if pmin.Valid {
+			srv.PriceMin = &pmin.Float64
+		}
+		if pmax.Valid {
+			srv.PriceMax = &pmax.Float64
+		}
+		services = append(services, srv)
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": services,
+		"meta": map[string]string{"request_id": "merchant-services"},
+	})
+}
+
+func merchantCreateService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	var req struct {
+		Name        string   `json:"name"`
+		Description *string  `json:"description"`
+		PriceMin    *float64 `json:"indicative_price_min"`
+		PriceMax    *float64 `json:"indicative_price_max"`
+		IsActive    bool     `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Service name is required.")
+		return
+	}
+	var newID string
+	err = db.QueryRowxContext(r.Context(), `
+		INSERT INTO services (business_id, name, description, indicative_price_min, indicative_price_max, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`, bizID, req.Name, req.Description, req.PriceMin, req.PriceMax, req.IsActive).Scan(&newID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create service: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, envelope{
+		"data": map[string]interface{}{"id": newID, "status": "created"},
+		"meta": map[string]string{"request_id": "merchant-create-service"},
+	})
+}
+
+func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	srvID := r.PathValue("id")
+	var req struct {
+		Name        *string  `json:"name"`
+		Description *string  `json:"description"`
+		PriceMin    *float64 `json:"indicative_price_min"`
+		PriceMax    *float64 `json:"indicative_price_max"`
+		IsActive    *bool    `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+		return
+	}
+	setParts := []string{}
+	args := []interface{}{srvID, bizID}
+	argIdx := 3
+	if req.Name != nil {
+		setParts = append(setParts, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, *req.Name)
+		argIdx++
+	}
+	if req.Description != nil {
+		setParts = append(setParts, fmt.Sprintf("description = $%d", argIdx))
+		args = append(args, *req.Description)
+		argIdx++
+	}
+	if req.PriceMin != nil {
+		setParts = append(setParts, fmt.Sprintf("indicative_price_min = $%d", argIdx))
+		args = append(args, *req.PriceMin)
+		argIdx++
+	}
+	if req.PriceMax != nil {
+		setParts = append(setParts, fmt.Sprintf("indicative_price_max = $%d", argIdx))
+		args = append(args, *req.PriceMax)
+		argIdx++
+	}
+	if req.IsActive != nil {
+		setParts = append(setParts, fmt.Sprintf("is_active = $%d", argIdx))
+		args = append(args, *req.IsActive)
+		argIdx++
+	}
+	if len(setParts) == 0 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No fields to update.")
+		return
+	}
+	query := fmt.Sprintf("UPDATE services SET %s WHERE id = $1 AND business_id = $2", strings.Join(setParts, ", "))
+	_, err = db.ExecContext(r.Context(), query, args...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update service.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "updated"},
+		"meta": map[string]string{"request_id": "merchant-update-service"},
+	})
+}
+
+func merchantDeleteService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	srvID := r.PathValue("id")
+	_, err = db.ExecContext(r.Context(), `DELETE FROM services WHERE id = $1 AND business_id = $2`, srvID, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to delete service.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "deleted"},
+		"meta": map[string]string{"request_id": "merchant-delete-service"},
+	})
+}
+
+func merchantGetOperatingHours(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	rows, err := db.QueryxContext(r.Context(), `
+		SELECT weekday, opens_at, closes_at, is_closed
+		FROM business_hours
+		WHERE business_id = $1
+		ORDER BY weekday ASC
+	`, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load business hours.")
+		return
+	}
+	defer rows.Close()
+
+	type hourItem struct {
+		Weekday  int     `json:"weekday"`
+		OpensAt  *string `json:"opens_at"`
+		ClosesAt *string `json:"closes_at"`
+		IsClosed bool    `json:"is_closed"`
+	}
+	hoursMap := make(map[int]hourItem)
+	for rows.Next() {
+		var h hourItem
+		var op, cl sql.NullString
+		if err := rows.Scan(&h.Weekday, &op, &cl, &h.IsClosed); err == nil {
+			if op.Valid {
+				h.OpensAt = &op.String
+			}
+			if cl.Valid {
+				h.ClosesAt = &cl.String
+			}
+			hoursMap[h.Weekday] = h
+		}
+	}
+	var result []hourItem
+	for i := 0; i <= 6; i++ {
+		if h, ok := hoursMap[i]; ok {
+			result = append(result, h)
+		} else {
+			defOpen := "09:00:00"
+			defClose := "20:00:00"
+			isClosed := (i == 0)
+			result = append(result, hourItem{
+				Weekday:  i,
+				OpensAt:  &defOpen,
+				ClosesAt: &defClose,
+				IsClosed: isClosed,
+			})
+		}
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": result,
+		"meta": map[string]string{"request_id": "merchant-hours"},
+	})
+}
+
+func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	var req struct {
+		Hours []struct {
+			Weekday  int     `json:"weekday"`
+			OpensAt  *string `json:"opens_at"`
+			ClosesAt *string `json:"closes_at"`
+			IsClosed bool    `json:"is_closed"`
+		} `json:"hours"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid hours payload.")
+		return
+	}
+
+	tx, err := db.BeginTxx(r.Context(), nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Database transaction error.")
+		return
+	}
+	defer tx.Rollback()
+
+	for _, h := range req.Hours {
+		if h.Weekday < 0 || h.Weekday > 6 {
+			continue
+		}
+		// If closed, opens_at and closes_at can be null or default
+		var op, cl interface{}
+		if h.OpensAt != nil && *h.OpensAt != "" {
+			op = *h.OpensAt
+		}
+		if h.ClosesAt != nil && *h.ClosesAt != "" {
+			cl = *h.ClosesAt
+		}
+		if !h.IsClosed && (op == nil || cl == nil) {
+			defOp := "09:00:00"
+			defCl := "20:00:00"
+			op = defOp
+			cl = defCl
+		}
+		_, err := tx.ExecContext(r.Context(), `
+			INSERT INTO business_hours (business_id, weekday, opens_at, closes_at, is_closed)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (business_id, weekday)
+			DO UPDATE SET opens_at = EXCLUDED.opens_at, closes_at = EXCLUDED.closes_at, is_closed = EXCLUDED.is_closed
+		`, bizID, h.Weekday, op, cl, h.IsClosed)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save hours: "+err.Error())
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Transaction commit error.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "updated"},
+		"meta": map[string]string{"request_id": "merchant-update-hours"},
+	})
+}
+
+func merchantGetCoverage(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID, name, address, locality, city string
+	var lat, lon sql.NullFloat64
+	err := db.QueryRowxContext(r.Context(), `
+		SELECT id, name, address_text, COALESCE(locality, ''), COALESCE(city, ''),
+		       ST_Y(location::geometry) as latitude, ST_X(location::geometry) as longitude
+		FROM businesses
+		WHERE owner_user_id = $1 AND status != 'deleted'
+		LIMIT 1
+	`, userID).Scan(&bizID, &name, &address, &locality, &city, &lat, &lon)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found: "+err.Error())
+		return
+	}
+
+	var serviceRadiusM int = 5000
+	var acceptsRequests bool = true
+	var expYears sql.NullInt32
+	var desc sql.NullString
+	_ = db.QueryRowxContext(r.Context(), `
+		SELECT service_radius_m, accepts_requests, experience_years, service_description
+		FROM professional_profiles
+		WHERE business_id = $1
+	`, bizID).Scan(&serviceRadiusM, &acceptsRequests, &expYears, &desc)
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{
+			"business_id":         bizID,
+			"business_name":       name,
+			"address_line1":       address,
+			"locality":            locality,
+			"city":                city,
+			"latitude":            lat.Float64,
+			"longitude":           lon.Float64,
+			"service_radius_m":    serviceRadiusM,
+			"accepts_requests":    acceptsRequests,
+			"experience_years":    expYears.Int32,
+			"service_description": desc.String,
+		},
+		"meta": map[string]string{"request_id": "merchant-coverage"},
+	})
+}
+
+func merchantUpdateCoverage(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	var bizID string
+	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	var req struct {
+		ServiceRadiusM     int     `json:"service_radius_m"`
+		AcceptsRequests    bool    `json:"accepts_requests"`
+		ExperienceYears    *int    `json:"experience_years"`
+		ServiceDescription *string `json:"service_description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid coverage payload.")
+		return
+	}
+	if req.ServiceRadiusM < 100 {
+		req.ServiceRadiusM = 100
+	}
+	if req.ServiceRadiusM > 100000 {
+		req.ServiceRadiusM = 100000
+	}
+
+	_, err = db.ExecContext(r.Context(), `
+		INSERT INTO professional_profiles (business_id, service_radius_m, accepts_requests, experience_years, service_description, updated_at)
+		VALUES ($1, $2, $3, $4, $5, now())
+		ON CONFLICT (business_id)
+		DO UPDATE SET
+			service_radius_m = EXCLUDED.service_radius_m,
+			accepts_requests = EXCLUDED.accepts_requests,
+			experience_years = COALESCE(EXCLUDED.experience_years, professional_profiles.experience_years),
+			service_description = COALESCE(EXCLUDED.service_description, professional_profiles.service_description),
+			updated_at = now()
+	`, bizID, req.ServiceRadiusM, req.AcceptsRequests, req.ExperienceYears, req.ServiceDescription)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update coverage: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{"status": "updated"},
+		"meta": map[string]string{"request_id": "merchant-update-coverage"},
 	})
 }
 
