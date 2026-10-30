@@ -14,10 +14,13 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/jmoiron/sqlx"
 
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/discovery"
+	"grepmind-near/backend/internal/media"
 	"grepmind-near/backend/internal/moderation"
+	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 	"grepmind-near/backend/pkg/logger"
@@ -37,15 +40,20 @@ func main() {
 	authSvc := auth.NewService(db, cfg)
 	discSvc := discovery.NewService(db, cfg)
 	modSvc := moderation.NewService(db, cfg)
+	mediaSvc, err := media.NewService(db, cfg)
+	if err != nil {
+		log.Warn().Err(err).Msg("media service initialization warning")
+	}
+	notifHub := notifications.NewHub(db.DB)
 
-	mux := setupRouter(authSvc, discSvc, modSvc)
+	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      mux,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		WriteTimeout: 0, // Disabled for long-lived Server-Sent Events (SSE) streams
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go func() {
@@ -68,12 +76,97 @@ func main() {
 	fmt.Println("api stopped")
 }
 
-func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service) *http.ServeMux {
+func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{"status": "ok"})
 	})
+
+	// Real-Time Events (Server-Sent Events) & In-App Notifications (Option 5)
+	if notifHub != nil {
+		mux.HandleFunc("GET /api/v1/events", notifHub.ServeSSE)
+		mux.HandleFunc("GET /api/v1/notifications", func(w http.ResponseWriter, r *http.Request) {
+			bizID := r.URL.Query().Get("business_id")
+			userID := r.URL.Query().Get("user_id")
+			items, err := notifHub.ListNotifications(r.Context(), bizID, userID, 30)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list notifications: "+err.Error())
+				return
+			}
+			writeJSON(w, http.StatusOK, envelope{
+				"data": items,
+				"meta": map[string]interface{}{"count": len(items)},
+			})
+		})
+		mux.HandleFunc("POST /api/v1/notifications/{id}/read", func(w http.ResponseWriter, r *http.Request) {
+			id := r.PathValue("id")
+			if id == "" {
+				writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Notification ID required")
+				return
+			}
+			if err := notifHub.MarkAsRead(r.Context(), id); err != nil {
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to mark as read")
+				return
+			}
+			writeJSON(w, http.StatusOK, envelope{"data": map[string]string{"id": id, "status": "read"}})
+		})
+		mux.HandleFunc("POST /api/v1/notifications/broadcast-test", func(w http.ResponseWriter, r *http.Request) {
+			var body struct {
+				BusinessID string                 `json:"business_id"`
+				RequestID  string                 `json:"request_id"`
+				Title      string                 `json:"title"`
+				Body       string                 `json:"body"`
+				Type       string                 `json:"type"`
+				Payload    map[string]interface{} `json:"payload"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body.Type == "" {
+				body.Type = "service_request.created"
+			}
+			if body.Title == "" {
+				body.Title = "Test Service Booking"
+			}
+			if body.Body == "" {
+				body.Body = "Test notification broadcast"
+			}
+			notifHub.Publish(r.Context(), notifications.Event{
+				Type:       body.Type,
+				BusinessID: body.BusinessID,
+				RequestID:  body.RequestID,
+				Title:      body.Title,
+				Body:       body.Body,
+				Payload:    body.Payload,
+			})
+			writeJSON(w, http.StatusOK, envelope{"data": map[string]string{"status": "published"}})
+		})
+	}
+
+	// Media Object Storage (Option 4: MinIO Direct Upload)
+	if mediaSvc != nil {
+		mux.HandleFunc("POST /api/v1/media/upload", func(w http.ResponseWriter, r *http.Request) {
+			userID := ""
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				if claims, err := jwtParse(token, authSvc); err == nil {
+					userID = claims.Subject
+				}
+			}
+			mediaSvc.Upload(w, r, userID)
+		})
+		mux.HandleFunc("GET /api/v1/media", func(w http.ResponseWriter, r *http.Request) {
+			userID := ""
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				if claims, err := jwtParse(token, authSvc); err == nil {
+					userID = claims.Subject
+				}
+			}
+			mediaSvc.ListMedia(w, r, userID)
+		})
+	}
 
 	mux.HandleFunc("POST /api/v1/auth/otp/request", authSvc.RequestOTP)
 	mux.HandleFunc("POST /api/v1/auth/otp/verify", authSvc.VerifyOTP)
@@ -95,11 +188,25 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/favorites", requireAuth(authSvc, discSvc.ListFavorites))
 	mux.HandleFunc("POST /api/v1/businesses/{id}/favorite", requireAuth(authSvc, discSvc.ToggleFavorite))
 
+	// Customer service requests & appointment bookings
+	mux.HandleFunc("POST /api/v1/businesses/{id}/requests", handleCreateServiceRequest(authSvc, authSvc.DB(), notifHub))
+	mux.HandleFunc("GET /api/v1/requests/{id}", handleGetServiceRequest(authSvc.DB()))
+	mux.HandleFunc("GET /api/v1/customer/requests", handleListCustomerRequests(authSvc, authSvc.DB()))
+
+	// Analytics & unserved location demand tracking (Market expansion)
+	mux.HandleFunc("POST /api/v1/analytics/unserved-location", handleRecordUnservedLocation(authSvc, authSvc.DB()))
+	mux.HandleFunc("GET /api/v1/admin/unserved-locations", handleListUnservedLocations(authSvc.DB()))
+
 	// Merchant workspace (require auth + merchant role)
 	mux.HandleFunc("GET /api/v1/merchant/profile", requireAuth(authSvc, merchantProfile))
 	mux.HandleFunc("PATCH /api/v1/merchant/profile", requireAuth(authSvc, merchantUpdateProfile))
 	mux.HandleFunc("GET /api/v1/merchant/requests", requireAuth(authSvc, merchantRequests))
-	mux.HandleFunc("PATCH /api/v1/merchant/requests/{id}/status", requireAuth(authSvc, merchantRequestStatus))
+	mux.HandleFunc("PATCH /api/v1/merchant/requests/{id}/status", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		merchantRequestStatus(authSvc, db, w, r, userID, notifHub)
+	}))
+	mux.HandleFunc("PATCH /api/v1/merchant/businesses/{bizId}/requests/{id}/status", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		merchantRequestStatus(authSvc, db, w, r, userID, notifHub)
+	}))
 	mux.HandleFunc("GET /api/v1/merchant/products", requireAuth(authSvc, merchantListProducts))
 	mux.HandleFunc("POST /api/v1/merchant/products", requireAuth(authSvc, merchantCreateProduct))
 	mux.HandleFunc("PATCH /api/v1/merchant/products/{id}", requireAuth(authSvc, merchantUpdateProduct))
@@ -112,6 +219,14 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("PUT /api/v1/merchant/operating-hours", requireAuth(authSvc, merchantUpdateOperatingHours))
 	mux.HandleFunc("GET /api/v1/merchant/coverage", requireAuth(authSvc, merchantGetCoverage))
 	mux.HandleFunc("PUT /api/v1/merchant/coverage", requireAuth(authSvc, merchantUpdateCoverage))
+
+	// Merchant team & staff access management
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{id}/members", requireAuth(authSvc, merchantListMembers))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{id}/members", requireAuth(authSvc, merchantAddMember))
+	mux.HandleFunc("DELETE /api/v1/merchant/businesses/{id}/members/{userId}", requireAuth(authSvc, merchantRevokeMember))
+	mux.HandleFunc("GET /api/v1/merchant/members", requireAuth(authSvc, merchantListCurrentMembers))
+	mux.HandleFunc("POST /api/v1/merchant/members", requireAuth(authSvc, merchantAddCurrentMember))
+	mux.HandleFunc("DELETE /api/v1/merchant/members/{userId}", requireAuth(authSvc, merchantRevokeCurrentMember))
 
 	// Admin operations & moderation (Phase 4)
 	mux.HandleFunc("POST /api/v1/admin/session", modSvc.AdminSession)
@@ -150,6 +265,15 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	}))
 	mux.HandleFunc("GET /api/v1/admin/audit-logs", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.ListAuditLogs(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/admins", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.ListAdmins(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/admins", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.AddAdmin(w, r, uid)
+	}))
+	mux.HandleFunc("DELETE /api/v1/admin/admins/{userId}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.RevokeAdmin(w, r, uid)
 	}))
 
 	return mux
@@ -421,13 +545,32 @@ func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWri
 	})
 }
 
-func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	// Get merchant's business ID
+func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string, notifHub *notifications.Hub) {
+	// Support multi-branch switcher via query param ?business_id=... or path {bizId}
 	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
-		return
+	requestedBiz := r.PathValue("bizId")
+	if requestedBiz == "" {
+		requestedBiz = r.URL.Query().Get("business_id")
+	}
+	if requestedBiz != "" {
+		var ok bool
+		_ = db.QueryRowxContext(r.Context(), `
+			SELECT EXISTS(
+				SELECT 1 FROM businesses WHERE id = $1 AND owner_user_id = $2
+				UNION
+				SELECT 1 FROM business_members WHERE business_id = $1 AND user_id = $2
+			)
+		`, requestedBiz, userID).Scan(&ok)
+		if ok {
+			bizID = requestedBiz
+		}
+	}
+	if bizID == "" {
+		err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+			return
+		}
 	}
 
 	reqID := r.PathValue("id")
@@ -444,14 +587,14 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 
-	if reqBody.Status != "accepted" && reqBody.Status != "declined" && reqBody.Status != "completed" && reqBody.Status != "cancelled" {
-		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid status. Use: accepted, declined, completed, cancelled.")
+	if reqBody.Status != "accepted" && reqBody.Status != "declined" && reqBody.Status != "in_progress" && reqBody.Status != "rescheduled" && reqBody.Status != "completed" && reqBody.Status != "cancelled" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid status. Use: accepted, in_progress, rescheduled, declined, completed, cancelled.")
 		return
 	}
 
 	// Verify request belongs to this business
 	var exists bool
-	err = db.QueryRowxContext(r.Context(), `
+	err := db.QueryRowxContext(r.Context(), `
 		SELECT EXISTS(SELECT 1 FROM service_requests WHERE id = $1 AND business_id = $2)
 	`, reqID, bizID).Scan(&exists)
 	if err != nil || !exists {
@@ -466,6 +609,23 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update request status.")
 		return
+	}
+
+	// Publish real-time status update event to SSE subscribers
+	if notifHub != nil {
+		notifHub.Publish(r.Context(), notifications.Event{
+			Type:       "service_request.status_updated",
+			BusinessID: bizID,
+			RequestID:  reqID,
+			Title:      "Booking Status Updated",
+			Body:       fmt.Sprintf("Service request status changed to %s", reqBody.Status),
+			Payload: map[string]interface{}{
+				"request_id":  reqID,
+				"business_id": bizID,
+				"status":      reqBody.Status,
+				"updated_at":  time.Now().UTC().Format(time.RFC3339),
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusOK, envelope{
@@ -1021,6 +1181,592 @@ func merchantUpdateCoverage(authSvc *auth.Service, db *database.DB, w http.Respo
 	})
 }
 
+// ---------------------------------------------------------------
+// Merchant Team & Staff Multi-User Access Handlers
+// ---------------------------------------------------------------
+
+type memberItem struct {
+	ID          string    `json:"id" db:"id"`
+	BusinessID  string    `json:"business_id" db:"business_id"`
+	UserID      string    `json:"user_id" db:"user_id"`
+	DisplayName string    `json:"display_name" db:"display_name"`
+	PhoneE164   string    `json:"phone_e164" db:"phone_e164"`
+	Role        string    `json:"role" db:"role"`
+	Status      string    `json:"status" db:"status"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+}
+
+func resolveMerchantBusiness(ctx context.Context, db *database.DB, userID string, explicitBizID string) (string, string, error) {
+	if explicitBizID != "" {
+		var role string
+		err := db.QueryRowxContext(ctx, `
+			SELECT role FROM business_members 
+			WHERE business_id = $1 AND user_id = $2 AND status = 'active'
+		`, explicitBizID, userID).Scan(&role)
+		if err == nil {
+			return explicitBizID, role, nil
+		}
+		var ownerID string
+		err = db.QueryRowxContext(ctx, `
+			SELECT owner_user_id FROM businesses WHERE id = $1 AND status != 'deleted'
+		`, explicitBizID).Scan(&ownerID)
+		if err == nil && ownerID == userID {
+			return explicitBizID, "owner", nil
+		}
+		return "", "", errors.New("forbidden: not a member of this business")
+	}
+
+	var bizID, role string
+	err := db.QueryRowxContext(ctx, `
+		SELECT bm.business_id, bm.role
+		FROM business_members bm
+		JOIN businesses b ON bm.business_id = b.id
+		WHERE bm.user_id = $1 AND bm.status = 'active' AND b.status != 'deleted'
+		ORDER BY CASE bm.role WHEN 'owner' THEN 1 WHEN 'manager' THEN 2 ELSE 3 END, bm.created_at ASC
+		LIMIT 1
+	`, userID).Scan(&bizID, &role)
+	if err == nil {
+		return bizID, role, nil
+	}
+
+	err = db.QueryRowxContext(ctx, `
+		SELECT id, 'owner' FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1
+	`, userID).Scan(&bizID, &role)
+	return bizID, role, err
+}
+
+func merchantListMembers(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	bizID := r.PathValue("id")
+	bizID, _, err := resolveMerchantBusiness(r.Context(), db, userID, bizID)
+	if err != nil {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to manage this business.")
+		return
+	}
+
+	rows, err := db.QueryxContext(r.Context(), `
+		SELECT bm.id, bm.business_id, bm.user_id, COALESCE(u.display_name, '') AS display_name,
+		       u.phone_e164, bm.role, bm.status, bm.created_at
+		FROM business_members bm
+		JOIN users u ON bm.user_id = u.id
+		WHERE bm.business_id = $1 AND bm.status != 'revoked'
+		ORDER BY CASE bm.role WHEN 'owner' THEN 1 WHEN 'manager' THEN 2 ELSE 3 END, bm.created_at ASC
+	`, bizID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to query team members: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	var members []memberItem
+	for rows.Next() {
+		var m memberItem
+		if err := rows.StructScan(&m); err == nil {
+			members = append(members, m)
+		}
+	}
+	if members == nil {
+		members = []memberItem{}
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{
+			"business_id": bizID,
+			"members":     members,
+		},
+		"meta": map[string]string{"request_id": "merchant-members-list"},
+	})
+}
+
+func merchantAddMember(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	bizID := r.PathValue("id")
+	bizID, callerRole, err := resolveMerchantBusiness(r.Context(), db, userID, bizID)
+	if err != nil || callerRole != "owner" {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "Only store owners can invite or add team members.")
+		return
+	}
+
+	var req struct {
+		PhoneE164   string `json:"phone_e164"`
+		Role        string `json:"role"`
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid member payload.")
+		return
+	}
+
+	req.PhoneE164 = strings.TrimSpace(req.PhoneE164)
+	if req.PhoneE164 == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Phone number is required.")
+		return
+	}
+	if !strings.HasPrefix(req.PhoneE164, "+") {
+		req.PhoneE164 = "+91" + req.PhoneE164
+	}
+
+	req.Role = strings.ToLower(strings.TrimSpace(req.Role))
+	if req.Role != "manager" && req.Role != "staff" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Role must be 'manager' or 'staff'.")
+		return
+	}
+
+	var targetUserID string
+	err = db.QueryRowxContext(r.Context(), `SELECT id FROM users WHERE phone_e164 = $1`, req.PhoneE164).Scan(&targetUserID)
+	if err != nil {
+		name := req.DisplayName
+		if name == "" {
+			name = "Team Member (" + req.PhoneE164 + ")"
+		}
+		err = db.QueryRowxContext(r.Context(), `
+			INSERT INTO users (phone_e164, display_name, status, preferred_language)
+			VALUES ($1, $2, 'active', 'en')
+			RETURNING id
+		`, req.PhoneE164, name).Scan(&targetUserID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create user account: "+err.Error())
+			return
+		}
+	} else if req.DisplayName != "" {
+		_, _ = db.ExecContext(r.Context(), `
+			UPDATE users SET display_name = $1 WHERE id = $2 AND (display_name IS NULL OR display_name = '')
+		`, req.DisplayName, targetUserID)
+	}
+
+	_, _ = db.ExecContext(r.Context(), `
+		INSERT INTO user_roles (user_id, role) VALUES ($1, 'merchant') ON CONFLICT DO NOTHING
+	`, targetUserID)
+
+	var memberID string
+	err = db.QueryRowxContext(r.Context(), `
+		INSERT INTO business_members (business_id, user_id, role, status, invited_by, updated_at)
+		VALUES ($1, $2, $3, 'active', $4, now())
+		ON CONFLICT (business_id, user_id)
+		DO UPDATE SET role = EXCLUDED.role, status = 'active', updated_at = now()
+		RETURNING id
+	`, bizID, targetUserID, req.Role, userID).Scan(&memberID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to assign membership: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, envelope{
+		"data": map[string]interface{}{
+			"id":           memberID,
+			"business_id":  bizID,
+			"user_id":      targetUserID,
+			"phone_e164":   req.PhoneE164,
+			"display_name": req.DisplayName,
+			"role":         req.Role,
+			"status":       "active",
+		},
+		"meta": map[string]string{"request_id": "merchant-add-member"},
+	})
+}
+
+func merchantRevokeMember(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	bizID := r.PathValue("id")
+	targetUserID := r.PathValue("userId")
+	if targetUserID == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "User ID required.")
+		return
+	}
+
+	bizID, callerRole, err := resolveMerchantBusiness(r.Context(), db, userID, bizID)
+	if err != nil || callerRole != "owner" {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "Only store owners can revoke team members.")
+		return
+	}
+
+	var ownerID string
+	err = db.QueryRowxContext(r.Context(), `SELECT owner_user_id FROM businesses WHERE id = $1`, bizID).Scan(&ownerID)
+	if err == nil && ownerID == targetUserID {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "Cannot revoke the store owner.")
+		return
+	}
+
+	res, err := db.ExecContext(r.Context(), `
+		UPDATE business_members SET status = 'revoked', updated_at = now()
+		WHERE business_id = $1 AND user_id = $2
+	`, bizID, targetUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke member: "+err.Error())
+		return
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Member not found.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]string{
+			"status":  "revoked",
+			"user_id": targetUserID,
+		},
+		"meta": map[string]string{"request_id": "merchant-revoke-member"},
+	})
+}
+
+func merchantListCurrentMembers(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	merchantListMembers(authSvc, db, w, r, userID)
+}
+
+func merchantAddCurrentMember(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	merchantAddMember(authSvc, db, w, r, userID)
+}
+
+func merchantRevokeCurrentMember(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	merchantRevokeMember(authSvc, db, w, r, userID)
+}
+
+// ---------------------------------------------------------------
+// Customer Service Requests & Unserved Demand Handlers
+// ---------------------------------------------------------------
+
+func handleCreateServiceRequest(authSvc *auth.Service, db *database.DB, notifHub *notifications.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bizID := r.PathValue("id")
+		if bizID == "" {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Business ID required.")
+			return
+		}
+
+		// Verify business exists
+		var bizName string
+		var acceptsReq bool
+		err := db.QueryRowxContext(r.Context(), `
+			SELECT b.name, COALESCE(pp.accepts_requests, false)
+			FROM businesses b
+			LEFT JOIN professional_profiles pp ON pp.business_id = b.id
+			WHERE b.id = $1 AND b.status = 'approved'
+		`, bizID).Scan(&bizName, &acceptsReq)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "Business not found or not active.")
+			return
+		}
+
+		var req struct {
+			ServiceID     *string `json:"service_id"`
+			Description   string  `json:"description"`
+			RequestedFor  *string `json:"requested_for"`
+			CustomerName  string  `json:"customer_name"`
+			CustomerPhone string  `json:"customer_phone"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+			return
+		}
+		if strings.TrimSpace(req.Description) == "" {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Description is required.")
+			return
+		}
+
+		// Determine customer user ID:
+		// 1) From Bearer JWT if logged in
+		// 2) From customer_phone if provided
+		// 3) Fallback to demo customer user
+		var customerUserID string
+		authHdr := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(authHdr, "Bearer ")
+		if token != "" {
+			if claims, err := jwtParse(token, authSvc); err == nil {
+				customerUserID = claims.Subject
+			}
+		}
+
+		if customerUserID == "" {
+			phone := strings.TrimSpace(req.CustomerPhone)
+			if phone == "" {
+				phone = "+919999999999" // Default demo customer phone
+			}
+			name := strings.TrimSpace(req.CustomerName)
+			if name == "" {
+				name = "Customer"
+			}
+			// Find or create customer user
+			err = db.QueryRowxContext(r.Context(), `
+				INSERT INTO users (phone_e164, display_name, status, preferred_language)
+				VALUES ($1, $2, 'active', 'en')
+				ON CONFLICT (phone_e164) DO UPDATE SET display_name = COALESCE(users.display_name, EXCLUDED.display_name)
+				RETURNING id
+			`, phone, name).Scan(&customerUserID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve customer: "+err.Error())
+				return
+			}
+			// Ensure role is customer
+			_, _ = db.ExecContext(r.Context(), `
+				INSERT INTO user_roles (user_id, role) VALUES ($1, 'customer') ON CONFLICT DO NOTHING
+			`, customerUserID)
+		}
+
+		// Insert service request
+		var reqID string
+		var createdAt time.Time
+		err = db.QueryRowxContext(r.Context(), `
+			INSERT INTO service_requests (customer_user_id, business_id, service_id, description, requested_for, status, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, 'requested', now(), now())
+			RETURNING id, created_at
+		`, customerUserID, bizID, req.ServiceID, req.Description, req.RequestedFor).Scan(&reqID, &createdAt)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create service request: "+err.Error())
+			return
+		}
+
+		// Look up service name if present
+		var svcName *string
+		if req.ServiceID != nil {
+			var sn string
+			if err := db.QueryRowxContext(r.Context(), `SELECT name FROM services WHERE id = $1`, *req.ServiceID).Scan(&sn); err == nil {
+				svcName = &sn
+			}
+		}
+
+		// Publish real-time booking event to SSE subscribers (Merchant workspace & audio alert)
+		if notifHub != nil {
+			notifHub.Publish(r.Context(), notifications.Event{
+				Type:       "service_request.created",
+				BusinessID: bizID,
+				RequestID:  reqID,
+				UserID:     customerUserID,
+				Title:      "New Service Booking Request",
+				Body:       fmt.Sprintf("New booking requested for %s: %s", bizName, req.Description),
+				Payload: map[string]interface{}{
+					"request_id":    reqID,
+					"business_id":   bizID,
+					"business_name": bizName,
+					"service_id":    req.ServiceID,
+					"service_name":  svcName,
+					"description":   req.Description,
+					"status":        "requested",
+					"requested_for": req.RequestedFor,
+					"created_at":    createdAt.Format(time.RFC3339),
+				},
+			})
+		}
+
+		writeJSON(w, http.StatusCreated, envelope{
+			"data": map[string]interface{}{
+				"id":            reqID,
+				"business_id":   bizID,
+				"business_name": bizName,
+				"service_id":    req.ServiceID,
+				"service_name":  svcName,
+				"description":   req.Description,
+				"requested_for": req.RequestedFor,
+				"status":        "requested",
+				"created_at":    createdAt.Format(time.RFC3339),
+			},
+			"meta": map[string]string{"request_id": "create-service-request"},
+		})
+	}
+}
+
+func handleGetServiceRequest(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqID := r.PathValue("id")
+		if reqID == "" {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Request ID required.")
+			return
+		}
+
+		var id, bizID, bizName, desc, status string
+		var svcID, svcName, requestedFor, phone, customerName *string
+		var createdAt, updatedAt time.Time
+
+		err := db.QueryRowxContext(r.Context(), `
+			SELECT sr.id, sr.business_id, b.name as business_name,
+			       sr.service_id, s.name as service_name,
+			       sr.description, sr.requested_for, sr.status,
+			       u.display_name, u.phone_e164,
+			       sr.created_at, sr.updated_at
+			FROM service_requests sr
+			JOIN businesses b ON b.id = sr.business_id
+			JOIN users u ON u.id = sr.customer_user_id
+			LEFT JOIN services s ON s.id = sr.service_id
+			WHERE sr.id = $1
+		`, reqID).Scan(&id, &bizID, &bizName, &svcID, &svcName, &desc, &requestedFor, &status,
+			&customerName, &phone, &createdAt, &updatedAt)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "Service request not found.")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, envelope{
+			"data": map[string]interface{}{
+				"id":             id,
+				"business_id":    bizID,
+				"business_name":  bizName,
+				"service_id":     svcID,
+				"service_name":   svcName,
+				"description":    desc,
+				"requested_for":  requestedFor,
+				"status":         status,
+				"customer_name":  customerName,
+				"customer_phone": phone,
+				"created_at":     createdAt.Format(time.RFC3339),
+				"updated_at":     updatedAt.Format(time.RFC3339),
+			},
+			"meta": map[string]string{"request_id": "get-service-request"},
+		})
+	}
+}
+
+func handleListCustomerRequests(authSvc *auth.Service, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var customerUserID string
+		authHdr := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(authHdr, "Bearer ")
+		if token != "" {
+			if claims, err := jwtParse(token, authSvc); err == nil {
+				customerUserID = claims.Subject
+			}
+		}
+
+		type reqItem struct {
+			ID           string  `json:"id"`
+			BusinessID   string  `json:"business_id"`
+			BusinessName string  `json:"business_name"`
+			ServiceName  *string `json:"service_name"`
+			Description  string  `json:"description"`
+			RequestedFor *string `json:"requested_for"`
+			Status       string  `json:"status"`
+			CreatedAt    string  `json:"created_at"`
+		}
+
+		var requests []reqItem
+		var rows *sqlx.Rows
+		var err error
+
+		if customerUserID != "" {
+			rows, err = db.QueryxContext(r.Context(), `
+				SELECT sr.id, sr.business_id, b.name as business_name, s.name as service_name,
+				       sr.description, sr.requested_for, sr.status, sr.created_at
+				FROM service_requests sr
+				JOIN businesses b ON b.id = sr.business_id
+				LEFT JOIN services s ON s.id = sr.service_id
+				WHERE sr.customer_user_id = $1
+				ORDER BY sr.created_at DESC
+				LIMIT 50
+			`, customerUserID)
+		} else {
+			// For demo, show recent requests
+			rows, err = db.QueryxContext(r.Context(), `
+				SELECT sr.id, sr.business_id, b.name as business_name, s.name as service_name,
+				       sr.description, sr.requested_for, sr.status, sr.created_at
+				FROM service_requests sr
+				JOIN businesses b ON b.id = sr.business_id
+				LEFT JOIN services s ON s.id = sr.service_id
+				ORDER BY sr.created_at DESC
+				LIMIT 50
+			`)
+		}
+
+		if err == nil && rows != nil {
+			for rows.Next() {
+				var item reqItem
+				var createdAt time.Time
+				_ = rows.Scan(&item.ID, &item.BusinessID, &item.BusinessName, &item.ServiceName,
+					&item.Description, &item.RequestedFor, &item.Status, &createdAt)
+				item.CreatedAt = createdAt.Format(time.RFC3339)
+				requests = append(requests, item)
+			}
+			rows.Close()
+		}
+
+		writeJSON(w, http.StatusOK, envelope{
+			"data": map[string]interface{}{
+				"requests": requests,
+			},
+			"meta": map[string]string{"request_id": "customer-requests"},
+		})
+	}
+}
+
+func handleRecordUnservedLocation(authSvc *auth.Service, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Query             string   `json:"query"`
+			Locality          string   `json:"locality"`
+			City              string   `json:"city"`
+			Latitude          *float64 `json:"latitude"`
+			Longitude         *float64 `json:"longitude"`
+			NotificationPhone string   `json:"notification_phone"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+			return
+		}
+		if strings.TrimSpace(req.City) == "" {
+			req.City = "Odisha"
+		}
+
+		var uid *string
+		authHdr := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(authHdr, "Bearer ")
+		if token != "" {
+			if claims, err := jwtParse(token, authSvc); err == nil {
+				uid = &claims.Subject
+			}
+		}
+
+		var id string
+		err := db.QueryRowxContext(r.Context(), `
+			INSERT INTO unserved_location_demand (user_id, query, locality, city, latitude, longitude, notification_phone, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+			RETURNING id
+		`, uid, req.Query, req.Locality, req.City, req.Latitude, req.Longitude, req.NotificationPhone).Scan(&id)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to record location demand: "+err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, envelope{
+			"data": map[string]interface{}{
+				"id":      id,
+				"status":  "recorded",
+				"message": "We have recorded your location interest. Grepmind Near is expanding here soon!",
+			},
+			"meta": map[string]string{"request_id": "unserved-location-recorded"},
+		})
+	}
+}
+
+func handleListUnservedLocations(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		type CityStat struct {
+			City         string `json:"city"`
+			SearchCount  int    `json:"search_count"`
+			LastSearched string `json:"last_searched"`
+		}
+		var stats []CityStat
+		rows, err := db.QueryxContext(r.Context(), `
+			SELECT city, COUNT(*) as cnt, MAX(created_at) as last_seen
+			FROM unserved_location_demand
+			GROUP BY city
+			ORDER BY cnt DESC
+			LIMIT 20
+		`)
+		if err == nil {
+			for rows.Next() {
+				var cs CityStat
+				var lastSeen time.Time
+				_ = rows.Scan(&cs.City, &cs.SearchCount, &lastSeen)
+				cs.LastSearched = lastSeen.Format(time.RFC3339)
+				stats = append(stats, cs)
+			}
+			rows.Close()
+		}
+
+		writeJSON(w, http.StatusOK, envelope{
+			"data": map[string]interface{}{
+				"demand_by_city": stats,
+			},
+			"meta": map[string]string{"request_id": "admin-unserved-locations"},
+		})
+	}
+}
+
 type authedHandler func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string)
 
 func requireAuth(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
@@ -1033,7 +1779,7 @@ func requireAuth(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 		}
 		claims, err := jwtParse(token, authSvc)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token.")
+			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token: "+err.Error())
 			return
 		}
 		next(authSvc, authSvc.DB(), w, r, claims.Subject)
@@ -1050,7 +1796,7 @@ func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 		}
 		claims, err := jwtParse(token, authSvc)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token.")
+			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Invalid or expired token: "+err.Error())
 			return
 		}
 		var isAdmin bool

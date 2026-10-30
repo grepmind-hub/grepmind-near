@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 
 /// Screen 15: Appointment Slot Scheduler.
 ///
@@ -131,25 +132,27 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               ? 'Appointment booking for ${_currentService!.name}'
               : 'Service appointment for ${_scopeOptions[_selectedScopeIndex]['title']}');
 
-      // Attempt API booking call if backend is available
+      String? createdId;
+      // Live API booking call to Grepmind Near backend
       try {
-        await apiClient.post(
-          '/customer/service-requests',
+        final res = await apiClient.post(
+          '/businesses/$bizId/requests',
           data: {
-            'business_id': bizId,
             'service_id': _currentService?.id,
-            'description': description,
+            'description': '$description [Slot: $_selectedSlotTime]',
             'requested_for': _selectedDate.toIso8601String(),
           },
         );
-      } catch (_) {
-        // Backend optional/fallback in local demo mode
+        final data = res.data as Map<String, dynamic>;
+        createdId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
+      } catch (e) {
+        debugPrint('API booking note: $e');
       }
 
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 400));
 
       if (mounted) {
-        _showSuccessConfirmationSheet();
+        _showSuccessConfirmationSheet(createdId);
       }
     } catch (e) {
       if (mounted) {
@@ -162,10 +165,12 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     }
   }
 
-  void _showSuccessConfirmationSheet() {
+  void _showSuccessConfirmationSheet([String? realReqId]) {
     final dateFormat = DateFormat('EEE, MMM d, yyyy');
     final formattedDate = dateFormat.format(_selectedDate);
-    final bookingId = 'GN-${(1000 + DateTime.now().millisecond * 7).toString().padLeft(4, '0')}';
+    final bookingId = realReqId != null
+        ? '#GN-${realReqId.substring(0, 6).toUpperCase()}'
+        : 'GN-${(1000 + DateTime.now().millisecond * 7).toString().padLeft(4, '0')}';
 
     showModalBottomSheet(
       context: context,
@@ -260,24 +265,57 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             const SizedBox(height: 24),
 
             // Action Buttons
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppTheme.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ServiceRequestStatusScreen(
+                            requestId: realReqId,
+                            business: widget.business,
+                            businessName: widget.businessName,
+                            serviceName: _currentService?.name ?? _scopeOptions[_selectedScopeIndex]['title'] as String,
+                            appointmentTime: _selectedDate,
+                            initialStatus: 'requested',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Track Live Status',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                    ),
+                  ),
                 ),
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                },
-                child: const Text(
-                  'Done & Return to Pro',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: AppTheme.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text(
+                      'Done',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -670,5 +671,127 @@ func (s *Service) ListAuditLogs(w http.ResponseWriter, r *http.Request, adminUse
 	writeJSON(w, http.StatusOK, envelope{
 		"data": list,
 		"meta": map[string]interface{}{"request_id": "admin-audit-logs", "count": len(list)},
+	})
+}
+
+type AdminUser struct {
+	ID          string `json:"id"`
+	PhoneE164   string `json:"phone_e164"`
+	DisplayName string `json:"display_name"`
+	Role        string `json:"role"`
+	CreatedAt   string `json:"created_at"`
+}
+
+// ListAdmins returns all platform administrator users.
+func (s *Service) ListAdmins(w http.ResponseWriter, r *http.Request, adminUserID string) {
+	rows, err := s.db.QueryxContext(r.Context(), `
+		SELECT u.id, u.phone_e164, COALESCE(u.display_name, 'Platform Admin') as display_name,
+		       ur.role, u.created_at
+		FROM users u
+		JOIN user_roles ur ON ur.user_id = u.id
+		WHERE ur.role = 'admin'
+		ORDER BY u.created_at ASC
+	`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load admins.")
+		return
+	}
+	defer rows.Close()
+
+	list := []AdminUser{}
+	for rows.Next() {
+		var a AdminUser
+		var createdAt time.Time
+		if err := rows.Scan(&a.ID, &a.PhoneE164, &a.DisplayName, &a.Role, &createdAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse admin row.")
+			return
+		}
+		a.CreatedAt = createdAt.Format(time.RFC3339)
+		list = append(list, a)
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": list,
+		"meta": map[string]interface{}{"request_id": "admin-list-admins", "count": len(list)},
+	})
+}
+
+// AddAdmin grants admin permissions to a user by mobile number.
+func (s *Service) AddAdmin(w http.ResponseWriter, r *http.Request, adminUserID string) {
+	var req struct {
+		PhoneE164   string `json:"phone_e164"`
+		DisplayName string `json:"display_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PhoneE164 == "" {
+		writeError(w, http.StatusBadRequest, "INVALID_INPUT", "Phone number is required.")
+		return
+	}
+
+	var userID string
+	err := s.db.QueryRowxContext(r.Context(), `
+		INSERT INTO users (phone_e164, display_name, status, preferred_language)
+		VALUES ($1, $2, 'active', 'en')
+		ON CONFLICT (phone_e164) DO UPDATE SET
+			display_name = CASE WHEN EXCLUDED.display_name != '' THEN EXCLUDED.display_name ELSE users.display_name END,
+			updated_at = now()
+		RETURNING id
+	`, req.PhoneE164, req.DisplayName).Scan(&userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create/update user.")
+		return
+	}
+
+	_, err = s.db.ExecContext(r.Context(), `
+		INSERT INTO user_roles (user_id, role)
+		VALUES ($1, 'admin')
+		ON CONFLICT DO NOTHING
+	`, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to grant admin role.")
+		return
+	}
+
+	s.logAudit(r.Context(), adminUserID, "grant_admin", "user", userID, fmt.Sprintf("Granted platform admin role to %s", req.PhoneE164))
+
+	writeJSON(w, http.StatusCreated, envelope{
+		"data": map[string]interface{}{
+			"id":           userID,
+			"phone_e164":   req.PhoneE164,
+			"display_name": req.DisplayName,
+			"role":         "admin",
+		},
+		"meta": map[string]string{"request_id": "admin-add-admin"},
+	})
+}
+
+// RevokeAdmin revokes admin permissions from a user.
+func (s *Service) RevokeAdmin(w http.ResponseWriter, r *http.Request, adminUserID string) {
+	targetUserID := r.PathValue("userId")
+	if targetUserID == "" {
+		writeError(w, http.StatusBadRequest, "INVALID_INPUT", "User ID is required.")
+		return
+	}
+
+	// Protect primary platform superadmin
+	var phone string
+	_ = s.db.QueryRowxContext(r.Context(), "SELECT phone_e164 FROM users WHERE id = $1", targetUserID).Scan(&phone)
+	if phone == "+910000000000" {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "Primary platform superadmin cannot be revoked.")
+		return
+	}
+
+	_, err := s.db.ExecContext(r.Context(), `
+		DELETE FROM user_roles WHERE user_id = $1 AND role = 'admin'
+	`, targetUserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to revoke admin role.")
+		return
+	}
+
+	s.logAudit(r.Context(), adminUserID, "revoke_admin", "user", targetUserID, "Revoked platform admin role")
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{"id": targetUserID, "revoked": true},
+		"meta": map[string]string{"request_id": "admin-revoke-admin"},
 	})
 }

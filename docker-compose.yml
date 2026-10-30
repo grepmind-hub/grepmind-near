@@ -189,6 +189,26 @@ services:
       - grepmind
     restart: unless-stopped
 
+  # ---------------------------------------------------------------
+  # Merchant web portal: Next.js
+  # ---------------------------------------------------------------
+  merchant-web:
+    build:
+      context: ./apps/merchant-web
+      dockerfile: Dockerfile
+    container_name: grepmind_merchant_web
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api/v1
+      NEXT_PUBLIC_APP_NAME: Grepmind Near Merchant
+    ports:
+      - "3001:3001"
+    networks:
+      - grepmind
+    restart: unless-stopped
+
 networks:
   grepmind:
     driver: bridge

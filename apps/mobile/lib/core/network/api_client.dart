@@ -83,6 +83,24 @@ class ApiClient {
   }) {
     return _dio.delete<T>(path, data: data, queryParameters: queryParameters, options: options, cancelToken: cancelToken);
   }
+
+  /// Direct Photo Upload to MinIO (Option 4).
+  Future<Map<String, dynamic>> uploadMedia({
+    required List<int> bytes,
+    required String filename,
+    String purpose = 'general',
+  }) async {
+    final formData = FormData.fromMap({
+      'purpose': purpose,
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final response = await _dio.post(
+      '/media/upload',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    return response.data['data'] as Map<String, dynamic>;
+  }
 }
 
 /// Injects the access token from secure storage on every request.

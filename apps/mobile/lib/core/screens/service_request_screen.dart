@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
@@ -45,9 +46,22 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      // TODO: Call API to create service request
-      // For now, use mock success
-      await Future.delayed(const Duration(seconds: 1));
+      String? reqId;
+      try {
+        final res = await apiClient.post(
+          '/businesses/${widget.businessId}/requests',
+          data: {
+            'service_id': _selectedServiceId,
+            'description': _descController.text.trim(),
+            'requested_for': _requestedFor?.toIso8601String(),
+          },
+        );
+        final data = res.data as Map<String, dynamic>;
+        reqId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
+      } catch (e) {
+        debugPrint('API request fallback: $e');
+      }
+
       if (mounted) {
         final businessDetailState = ref.read(businessDetailProvider);
         final biz = businessDetailState.detail;
@@ -57,6 +71,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
           MaterialPageRoute(
             builder: (_) => ServiceRequestStatusScreen(
               business: biz,
+              requestId: reqId,
               businessName: widget.businessName,
               serviceName: selectedSvc?.name ?? _descController.text.trim(),
               appointmentTime: _requestedFor,

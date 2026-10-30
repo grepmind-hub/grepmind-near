@@ -1,0 +1,119 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight UTC
+
+jobs:
+  # -----------------------------------------------------------
+  # SAST - Static Application Security Testing
+  # -----------------------------------------------------------
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'HIGH,CRITICAL'
+          fail-on: 'critical'
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          fail-on: 'critical,high'
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-sast-report
+          path: trivy-results.sarif
+
+  # -----------------------------------------------------------
+  # DAST - Dynamic Application Security Testing (OWASP ZAP)
+  # -----------------------------------------------------------
+  dast:
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: grepmind_test
+          POSTGRES_PASSWORD: grepmind_test
+          POSTGRES_DB: grepmind_near_test
+        ports: ["5432:5432"]
+      minio:
+        image: elestio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports: ["9000:9000"]
+      api:
+        build:
+          context: ./backend
+          dockerfile: Dockerfile
+        environment:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: grepmind_test
+          DB_PASSWORD: grepmind_test
+          DB_NAME: grepmind_near_test
+          DATABASE_URL: postgres://grepmind_test:grepmind_test@postgres:5432/grepmind_near_test?sslmode=disable
+          JWT_SECRET: test-secret-key-min-32-chars-long
+          OTP_PROVIDER: stub
+          S3_ENDPOINT: http://minio:9000
+          S3_BUCKET: grepmind-near-test
+        ports: ["8080:8080"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.6.0
+        with:
+          target: 'http://localhost:8080'
+          cmd_options: '-a'
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-scan-report
+          path: zap-report.html
+
+  # -----------------------------------------------------------
+  # Dependency Scanning
+  # -----------------------------------------------------------
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy dependency scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          skip-dirs: 'node_modules,.git'
+          fail-on: 'critical'
+
+      - name: Upload dependency scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-dependency-report
+          path: trivy-results.sarif

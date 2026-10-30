@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 
 /// Screen 18: Service Request Status Tracker
 /// Authoritative reference: Grepmind Near UI/UX Showcase Screen 18 & ref-image/Service request.png
@@ -36,17 +38,59 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
   late final String _bookingId;
   late final DateTime _scheduledTime;
 
+  Timer? _statusPollTimer;
+
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.initialStatus ?? widget.request?.status ?? 'requested';
-    _bookingId = widget.requestId ??
-        (widget.request?.id != null
+    _bookingId = widget.requestId != null && widget.requestId!.length >= 4
+        ? '#GN-${widget.requestId!.substring(0, 4).toUpperCase()}'
+        : (widget.request?.id != null
             ? '#GN-${widget.request!.id.substring(0, 4).toUpperCase()}'
             : '#GN-4921');
     _scheduledTime = widget.appointmentTime ??
         widget.request?.requestedFor ??
         DateTime.now().add(const Duration(hours: 2));
+
+    _fetchLiveStatus();
+    _startLiveTracking();
+  }
+
+  void _startLiveTracking() {
+    _statusPollTimer?.cancel();
+    _statusPollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      _fetchLiveStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _statusPollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchLiveStatus() async {
+    if (widget.requestId == null || widget.requestId!.isEmpty) return;
+    try {
+      final res = await apiClient.get('/requests/${widget.requestId}');
+      final data = res.data as Map<String, dynamic>;
+      final reqData = data['data'] as Map<String, dynamic>?;
+      if (reqData != null && reqData['status'] != null) {
+        if (mounted) {
+          final newStatus = reqData['status'] as String;
+          if (_currentStatus != newStatus) {
+            setState(() {
+              _currentStatus = newStatus;
+            });
+          }
+          if (newStatus == 'completed' || newStatus == 'cancelled' || newStatus == 'declined') {
+            _statusPollTimer?.cancel();
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   String get _providerName {

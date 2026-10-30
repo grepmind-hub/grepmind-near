@@ -8,6 +8,7 @@ import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
+import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerWidget {
@@ -204,6 +205,17 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Customer Orders & Bookings (Food Delivery, Tables, Stays)
+          _buildAccountOption(
+            icon: Icons.receipt_long_rounded,
+            title: 'My Orders & Bookings',
+            subtitle: 'Track active food deliveries, table reservations & stays',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+            ),
+          ),
+          const Divider(),
 
           // Portal / Role Switcher Tile
           _buildAccountOption(

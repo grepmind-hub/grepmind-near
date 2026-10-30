@@ -53,6 +53,13 @@ type Business struct {
 	CoverPhotoURL      string   `json:"cover_photo_url,omitempty"`
 	Rating             *float64 `json:"rating,omitempty"`
 	ReviewCount        *int     `json:"review_count,omitempty"`
+	DeliveryEnabled     bool     `json:"delivery_enabled"`
+	DeliveryTimeMins    int      `json:"delivery_time_mins"`
+	DeliveryFee         float64  `json:"delivery_fee"`
+	MinOrderAmount      float64  `json:"min_order_amount"`
+	TableBookingEnabled bool     `json:"table_booking_enabled"`
+	RoomBookingEnabled  bool     `json:"room_booking_enabled"`
+	Amenities           []string `json:"amenities,omitempty"`
 }
 
 type BusinessHour struct {
@@ -63,15 +70,18 @@ type BusinessHour struct {
 }
 
 type Product struct {
-	ID          string   `json:"id"`
-	BusinessID  string   `json:"business_id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description,omitempty"`
-	Price       *float64 `json:"price,omitempty"`
-	Currency    string   `json:"currency"`
-	StockStatus string   `json:"stock_status"`
-	IsPublished bool     `json:"is_published"`
-	ImageURL    string   `json:"image_url,omitempty"`
+	ID                 string   `json:"id"`
+	BusinessID         string   `json:"business_id"`
+	Name               string   `json:"name"`
+	Description        string   `json:"description,omitempty"`
+	Price              *float64 `json:"price,omitempty"`
+	Currency           string   `json:"currency"`
+	StockStatus        string   `json:"stock_status"`
+	IsPublished        bool     `json:"is_published"`
+	ImageURL           string   `json:"image_url,omitempty"`
+	DietaryType        string   `json:"dietary_type,omitempty"`
+	FoodCategory       string   `json:"food_category,omitempty"`
+	PreparationTimeMin int      `json:"preparation_time_min,omitempty"`
 }
 
 type Offer struct {
@@ -350,19 +360,29 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 		var slug, locality, city, postal, phone, whatsapp, cover sql.NullString
 		var desc sql.NullString
 		var lat, lng sql.NullFloat64
+		var amenitiesRaw []byte
 		err := s.db.QueryRowxContext(r.Context(), `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.postal_code, b.description,
 		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
-		       b.cover_photo_url
+		       b.cover_photo_url,
+		       COALESCE(b.delivery_enabled, false),
+		       COALESCE(b.delivery_time_mins, 30),
+		       COALESCE(b.delivery_fee, 30.0),
+		       COALESCE(b.min_order_amount, 0.0),
+		       COALESCE(b.table_booking_enabled, false),
+		       COALESCE(b.room_booking_enabled, false),
+		       COALESCE(b.amenities, '[]'::jsonb)
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		WHERE b.id = $1
 	`, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 		&b.AddressText, &locality, &city, &postal, &desc,
-		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover)
+		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover,
+		&b.DeliveryEnabled, &b.DeliveryTimeMins, &b.DeliveryFee, &b.MinOrderAmount,
+		&b.TableBookingEnabled, &b.RoomBookingEnabled, &amenitiesRaw)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "Business not found.")
@@ -370,6 +390,9 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load business.")
 		}
 		return
+	}
+	if len(amenitiesRaw) > 0 {
+		_ = json.Unmarshal(amenitiesRaw, &b.Amenities)
 	}
 	if cover.Valid {
 		b.CoverPhotoURL = cover.String
@@ -411,7 +434,8 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, price, currency, stock_status, is_published, image_url, updated_at
+		SELECT id, business_id, name, description, price, currency, stock_status, is_published, image_url, updated_at,
+		       COALESCE(dietary_type, ''), COALESCE(food_category, ''), COALESCE(preparation_time_min, 20)
 		FROM products
 		WHERE business_id = $1 AND is_published = true
 		ORDER BY updated_at DESC
@@ -428,11 +452,17 @@ func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 		var price sql.NullFloat64
 		var desc, image sql.NullString
 		var updated sql.NullTime
+		var dietary, foodCategory string
+		var prepTime int
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
-			&p.StockStatus, &p.IsPublished, &image, &updated); err != nil {
+			&p.StockStatus, &p.IsPublished, &image, &updated,
+			&dietary, &foodCategory, &prepTime); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read products.")
 			return
 		}
+		p.DietaryType = dietary
+		p.FoodCategory = foodCategory
+		p.PreparationTimeMin = prepTime
 		if desc.Valid {
 			p.Description = desc.String
 		}

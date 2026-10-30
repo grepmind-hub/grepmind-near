@@ -152,6 +152,67 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).isAuthenticated;
 });
 
+/// Location model for multi-city discovery and expansion.
+class AppLocation {
+  final String cityName;
+  final String localityName;
+  final double latitude;
+  final double longitude;
+  final bool isSupported;
+  final int activeBusinessCount;
+
+  const AppLocation({
+    required this.cityName,
+    this.localityName = '',
+    required this.latitude,
+    required this.longitude,
+    this.isSupported = true,
+    this.activeBusinessCount = 0,
+  });
+
+  String get displayName =>
+      localityName.isNotEmpty ? '$localityName, $cityName' : cityName;
+
+  AppLocation copyWith({
+    String? cityName,
+    String? localityName,
+    double? latitude,
+    double? longitude,
+    bool? isSupported,
+    int? activeBusinessCount,
+  }) {
+    return AppLocation(
+      cityName: cityName ?? this.cityName,
+      localityName: localityName ?? this.localityName,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      isSupported: isSupported ?? this.isSupported,
+      activeBusinessCount: activeBusinessCount ?? this.activeBusinessCount,
+    );
+  }
+}
+
+class LocationNotifier extends StateNotifier<AppLocation> {
+  LocationNotifier()
+      : super(const AppLocation(
+          cityName: 'Bhubaneswar',
+          localityName: 'Odisha',
+          latitude: 20.2961,
+          longitude: 85.8245,
+          isSupported: true,
+          activeBusinessCount: 7,
+        ));
+
+  void setLocation(AppLocation loc) {
+    state = loc;
+  }
+}
+
+final appLocationProvider =
+    StateNotifierProvider<LocationNotifier, AppLocation>((ref) {
+  return LocationNotifier();
+});
+
 /// Businesses discovery state.
 class BusinessesState {
   final List<Business> items;

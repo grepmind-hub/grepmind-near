@@ -26,6 +26,13 @@ class Business extends Equatable {
   final double? latitude;
   final double? longitude;
   final String? description;
+  final bool deliveryEnabled;
+  final int deliveryTimeMins;
+  final double deliveryFee;
+  final double minOrderAmount;
+  final bool tableBookingEnabled;
+  final bool roomBookingEnabled;
+  final List<String> amenities;
 
   const Business({
     required this.id,
@@ -51,6 +58,13 @@ class Business extends Equatable {
     this.latitude,
     this.longitude,
     this.description,
+    this.deliveryEnabled = false,
+    this.deliveryTimeMins = 30,
+    this.deliveryFee = 30.0,
+    this.minOrderAmount = 0.0,
+    this.tableBookingEnabled = false,
+    this.roomBookingEnabled = false,
+    this.amenities = const [],
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -78,6 +92,13 @@ class Business extends Equatable {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       description: json['description'] as String?,
+      deliveryEnabled: json['delivery_enabled'] as bool? ?? false,
+      deliveryTimeMins: json['delivery_time_mins'] as int? ?? 30,
+      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 30.0,
+      minOrderAmount: (json['min_order_amount'] as num?)?.toDouble() ?? 0.0,
+      tableBookingEnabled: json['table_booking_enabled'] as bool? ?? false,
+      roomBookingEnabled: json['room_booking_enabled'] as bool? ?? false,
+      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
@@ -106,6 +127,13 @@ class Business extends Equatable {
       'latitude': latitude,
       'longitude': longitude,
       'description': description,
+      'delivery_enabled': deliveryEnabled,
+      'delivery_time_mins': deliveryTimeMins,
+      'delivery_fee': deliveryFee,
+      'min_order_amount': minOrderAmount,
+      'table_booking_enabled': tableBookingEnabled,
+      'room_booking_enabled': roomBookingEnabled,
+      'amenities': amenities,
     };
   }
 
@@ -286,6 +314,9 @@ class Product extends Equatable {
   final bool isPublished;
   final String? imageUrl;
   final DateTime? updatedAt;
+  final String? dietaryType;
+  final String? foodCategory;
+  final int? preparationTimeMin;
 
   const Product({
     required this.id,
@@ -298,6 +329,9 @@ class Product extends Equatable {
     this.isPublished = false,
     this.imageUrl,
     this.updatedAt,
+    this.dietaryType,
+    this.foodCategory,
+    this.preparationTimeMin,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -314,8 +348,15 @@ class Product extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'] as String)
           : null,
+      dietaryType: json['dietary_type'] as String?,
+      foodCategory: json['food_category'] as String?,
+      preparationTimeMin: json['preparation_time_min'] as int?,
     );
   }
+
+  bool get isVeg => dietaryType == 'veg' || dietaryType == 'vegan';
+  bool get isNonVeg => dietaryType == 'non_veg';
+  bool get isEgg => dietaryType == 'egg';
 
   String get priceText {
     if (price == null) return 'Price on request';
@@ -326,7 +367,7 @@ class Product extends Equatable {
   @override
   List<Object?> get props => [
         id, businessId, name, description, price, currency, stockStatus,
-        isPublished, imageUrl, updatedAt,
+        isPublished, imageUrl, updatedAt, dietaryType, foodCategory, preparationTimeMin,
       ];
 }
 

@@ -18,7 +18,8 @@ Thumbs.db
 *.exe
 /test-unit.out
 /vendor/
-go.sum backup
+backend/api
+bin/
 
 # Flutter
 .dart_tool/

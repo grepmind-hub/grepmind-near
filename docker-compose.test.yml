@@ -1,0 +1,80 @@
+# Grepmind Near — Docker Compose for Testing
+# Used by CI/CD pipeline for automated testing
+
+version: "3.8"
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: grepmind_test_postgres
+    environment:
+      POSTGRES_USER: grepmind_test
+      POSTGRES_PASSWORD: grepmind_test
+      POSTGRES_DB: grepmind_near_test
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - grepmind_test
+    restart: unless-stopped
+
+  minio:
+    image: elestio/minio:latest
+    container_name: grepmind_test_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_test_data:/data
+    networks:
+      - grepmind_test
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: grepmind_test_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: grepmind_test
+      DB_PASSWORD: grepmind_test
+      DB_NAME: grepmind_near_test
+      DATABASE_URL: postgres://grepmind_test:grepmind_test@postgres:5432/grepmind_near_test?sslmode=disable
+      JWT_SECRET: test-secret-key-min-32-chars-long
+      OTP_PROVIDER: stub
+      OTP_TTL: 10m
+      OTP_PROVIDER: stub
+      OTP_FROM: Grepmind Near
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: grepmind-near-test
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_USE_SSL: "false"
+      FCM_PROJECT_ID: grepmind-near-test
+    ports:
+      - "8080:8080"
+    networks:
+      - grepmind_test
+    restart: unless-stopped
+
+networks:
+  grepmind_test:
+    driver: bridge
+
+volumes:
+  postgres_test_data:
+  minio_test_data:

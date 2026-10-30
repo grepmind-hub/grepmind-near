@@ -28,10 +28,235 @@ tags:
     description: Customer service requests and favourites
   - name: admin
     description: Administrator moderation and operations
+  - name: media
+    description: Direct media uploads and MinIO S3 object storage
+  - name: notifications
+    description: Real-time SSE event streaming and persistent notification management
   - name: health
     description: Health checks
 
 paths:
+  /media/upload:
+    post:
+      summary: Upload an image asset to MinIO S3 object storage
+      tags: [media]
+      description: |
+        Accepts multipart/form-data with image payload (JPEG, PNG, WebP) up to 10MB.
+        Returns the asset URL served through Nginx proxy and MinIO metadata.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image file to upload
+                purpose:
+                  type: string
+                  enum: [storefront, product, service, kyc, avatar, general]
+                  default: general
+                  description: Organizational bucket prefix
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      purpose:
+                        type: string
+                      object_key:
+                        type: string
+                      url:
+                        type: string
+                        example: "/media/storefront/20261029_abc123.jpg"
+                      public_url:
+                        type: string
+                        example: "http://localhost/media/storefront/20261029_abc123.jpg"
+                      content_type:
+                        type: string
+                        example: "image/jpeg"
+                      size_bytes:
+                        type: integer
+                      original_name:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid file format or payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /media:
+    get:
+      summary: List uploaded media assets
+      tags: [media]
+      parameters:
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of media uploads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /events:
+    get:
+      summary: Stream real-time booking updates and platform events (Server-Sent Events)
+      tags: [notifications]
+      description: |
+        Establishes an HTTP long-lived text/event-stream connection.
+        Subscribers receive real-time push events for service booking creation,
+        status transitions, and merchant/customer alerts. Heartbeat pings sent every 15s.
+      parameters:
+        - name: business_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter events strictly for this business
+        - name: request_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter events for a single booking tracking lifecycle
+      responses:
+        '200':
+          description: Active event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "event: service_request.created\ndata: {\"event\":\"service_request.created\",\"title\":\"New Booking Request!\"}\n\n"
+
+  /notifications:
+    get:
+      summary: Fetch persistent notifications list
+      tags: [notifications]
+      parameters:
+        - name: business_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of persistent notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        title:
+                          type: string
+                        body:
+                          type: string
+                        event_type:
+                          type: string
+                        is_read:
+                          type: boolean
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /notifications/{id}/read:
+    post:
+      summary: Mark a notification as read
+      tags: [notifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: notification marked as read
+
+  /notifications/broadcast-test:
+    post:
+      summary: Trigger synthetic test notification broadcast
+      tags: [notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [business_id, title]
+              properties:
+                business_id:
+                  type: string
+                title:
+                  type: string
+                body:
+                  type: string
+                event_type:
+                  type: string
+      responses:
+        '200':
+          description: Test event dispatched
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
   /healthz:
     get:
       summary: Health check
@@ -559,6 +784,106 @@ paths:
                 $ref: '#/components/schemas/StandardResponse'
         '403':
           description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /merchant/businesses/{id}/members:
+    get:
+      summary: List team members and staff
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: List of team members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      business_id:
+                        type: string
+                        format: uuid
+                      members:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BusinessMember'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '403':
+          description: Not authorized to view team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Invite or add a team member
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBusinessMemberRequest'
+      responses:
+        '201':
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BusinessMember'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Invalid member input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Only store owners can add team members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /merchant/businesses/{id}/members/{userId}:
+    delete:
+      summary: Revoke access for a team member
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Member revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '403':
+          description: Cannot revoke the store owner
           content:
             application/json:
               schema:
@@ -1374,6 +1699,48 @@ components:
           type: object
         meta:
           $ref: '#/components/schemas/Meta'
+
+    BusinessMember:
+      type: object
+      required: [id, business_id, user_id, phone_e164, role, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        phone_e164:
+          type: string
+          example: "+919861000005"
+        role:
+          type: string
+          enum: [owner, manager, staff]
+        status:
+          type: string
+          enum: [active, suspended, revoked]
+        created_at:
+          type: string
+          format: date-time
+
+    AddBusinessMemberRequest:
+      type: object
+      required: [phone_e164, role]
+      properties:
+        phone_e164:
+          type: string
+          example: "+919861000005"
+        role:
+          type: string
+          enum: [manager, staff]
+        display_name:
+          type: string
+          example: "Rakesh Mohapatra"
 
     ErrorResponse:
       type: object

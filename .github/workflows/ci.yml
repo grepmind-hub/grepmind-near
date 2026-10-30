@@ -1,0 +1,201 @@
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  API_BASE_URL: http://localhost:8080
+  S3_ENDPOINT: http://localhost:9000
+  S3_REGION: us-east-1
+  S3_BUCKET: grepmind-near-test
+
+jobs:
+  # -----------------------------------------------------------
+  # Backend Tests (Go)
+  # -----------------------------------------------------------
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: grepmind_test
+          POSTGRES_PASSWORD: grepmind_test
+          POSTGRES_DB: grepmind_near_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U grepmind_test -d grepmind_near_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      minio:
+        image: elestio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports: ["9000:9000"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install dependencies
+        run: cd backend && go mod download
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: grepmind_test
+          DB_PASSWORD: grepmind_test
+          DB_NAME: grepmind_near_test
+          DATABASE_URL: postgres://grepmind_test:grepmind_test@postgres:5432/grepmind_near_test?sslmode=disable
+          JWT_SECRET: test-secret-key-min-32-chars-long
+          OTP_PROVIDER: stub
+          S3_ENDPOINT: http://localhost:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: grepmind-near-test
+        run: go test ./tests/... -v
+
+  # -----------------------------------------------------------
+  # Flutter Mobile Tests
+  # -----------------------------------------------------------
+  flutter-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: grepmind_test
+          POSTGRES_PASSWORD: grepmind_test
+          POSTGRES_DB: grepmind_near_test
+        ports: ["5432:5432"]
+      minio:
+        image: elestio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports: ["9000:9000"]
+      api:
+        build:
+          context: ./backend
+          dockerfile: Dockerfile
+        environment:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: grepmind_test
+          DB_PASSWORD: grepmind_test
+          DB_NAME: grepmind_near_test
+          DATABASE_URL: postgres://grepmind_test:grepmind_test@postgres:5432/grepmind_near_test?sslmode=disable
+          JWT_SECRET: test-secret-key-min-32-chars-long
+          OTP_PROVIDER: stub
+          S3_ENDPOINT: http://minio:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: grepmind-near-test
+        ports: ["8080:8080"]
+      emulator:
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          avd-name: test-emulator
+          headless: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+
+      - name: Get Flutter dependencies
+        run: cd apps/mobile && flutter pub get
+
+      - name: Run Flutter integration tests
+        working-directory: apps/mobile
+        env:
+          API_BASE_URL: http://localhost:8080
+          S3_ENDPOINT: http://localhost:9000
+          OTP_PROVIDER: stub
+        run: flutter test integration_test/ -d emulator
+
+  # ------------------------------------------------------------------
+  # Web Portal Tests (Merchant & Admin)
+  # ------------------------------------------------------------------
+  web-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: grepmind_test
+          POSTGRES_PASSWORD: grepmind_test
+          POSTGRES_DB: grepmind_near_test
+        ports: ["5432:5432"]
+      minio:
+        image: elestio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports: ["9000:9000"]
+      api:
+        build:
+          context: ./backend
+          dockerfile: Dockerfile
+        environment:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: grepmind_test
+          DB_PASSWORD: grepmind_test
+          DB_NAME: grepmind_near_test
+          DATABASE_URL: postgres://grepmind_test:grepmind_test@postgres:5432/grepmind_near_test?sslmode=disable
+          JWT_SECRET: test-secret-key-min-32-chars-long
+          OTP_PROVIDER: stub
+          S3_ENDPOINT: http://minio:9000
+          S3_BUCKET: grepmind-near-test
+        ports: ["8080:8080"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install merchant-web dependencies
+        working-directory: apps/merchant-web
+        run: npm install
+
+      - name: Install admin-web dependencies
+        working-directory: apps/admin-web
+        run: npm install
+
+      - name: Run merchant-web tests
+        working-directory: apps/merchant-web
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        run: npm test
+
+      - name: Run admin-web tests
+        working-directory: apps/admin-web
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        run: npm test

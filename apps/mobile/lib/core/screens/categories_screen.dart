@@ -72,6 +72,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         return Icons.menu_book_rounded;
       case 'cleaning':
         return Icons.cleaning_services_rounded;
+      case 'hotel':
+        return Icons.hotel_rounded;
       default:
         return Icons.category_rounded;
     }
@@ -87,6 +89,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         return const Color(0xFF9333EA);
       case 'restaurant':
         return const Color(0xFFEA580C);
+      case 'hotel':
+        return const Color(0xFF0F766E);
       case 'salon':
         return const Color(0xFFDB2777);
       case 'plumber':

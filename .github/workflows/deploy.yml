@@ -1,0 +1,91 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy-staging:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-admin-web:latest
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-merchant-web:latest
+
+      - name: Tag images for staging
+        run: |
+          docker tag ghcr.io/${{ github.repository_owner }}/grepmind-api:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/grepmind-api:staging
+          docker tag ghcr.io/${{ github.repository_owner }}/grepmind-admin-web:latest ghcr.io/${{ github.repository_owner }}/grepmind-admin-web:staging
+          docker tag ghcr.io/${{ github.repository_owner }}/grepmind-merchant-web:latest ghcr.io/${{ github.repository_owner }}/grepmind-merchant-web:staging
+
+      - name: Deploy to staging
+        run: |
+          docker compose -f docker-compose.staging.yml up -d
+
+      - name: Verify staging deployment
+        run: |
+          sleep 30
+          curl -f http://localhost:8080/healthz || exit 1
+          echo "Staging deployment successful!"
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-api:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-admin-web:${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository_owner }}/grepmind-merchant-web:${{ github.sha }}
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+          # Add production deployment commands here (e.g., kubectl apply)
+
+      - name: Verify production deployment
+        run: |
+          sleep 30
+          curl -f https://api.near.grepmind.com/healthz || exit 1
+          echo "Production deployment successful!"
+
+      - name: Notify deployment complete
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log('Deployment to production complete!');

@@ -343,26 +343,85 @@ If a task is ambiguous, conflicts with PRTS, or requires an architecture change,
 | Screen 12 | Product Details | Completed & Verified |
 | Screen 13 | Service Professional Profile | Completed & Verified |
 | Screen 14 | Service Request Submission | Completed & Verified |
-| Screen 15 | Appointment Slot Scheduler | Parked (Backlog) |
+| Screen 15 | Appointment Slot Scheduler | Completed & Verified |
 | Screen 16 | Saved / Bookmarked Businesses | Completed |
 | Screen 17 | Customer Profile & Settings | Completed |
 | Screen 18 | Service Request Status Tracker | Completed & Verified |
 | Screen 19 | Merchant Registration / Claim | Completed & Verified |
-| Screen 20 | Merchant Workspace Dashboard | Completed |
-| Screen 21 | Merchant Catalog Management | **ACTIVE / QUEUED** |
-| Screen 22 | Merchant Hours & Coverage Setup| Queued |
+| Screen 20 | Merchant Workspace Dashboard | Completed & Verified |
+| Screen 21 | Merchant Catalog Management | Completed & Verified |
+| Screen 22 | Merchant Hours & Coverage Setup| Completed & Verified |
 
-- **Screen 19 (Merchant Registration / Claim)**:
-  - File: `apps/mobile/lib/core/screens/merchant_registration_screen.dart`.
-  - Tests: `apps/mobile/test/merchant_registration_test.dart` (3/3 passed).
-  - Features:
-    - Mode Segmented Control (`Register New` wizard vs `Claim Existing` directory listing).
-    - 4-Step Stepper Progress Bar (`Type & Sector` -> `Basic Info` -> `Location & Store` -> `Operations`).
-    - Step 1: Enterprise Classification (Retail Shop, Skilled Trade Pro, Food & Dining, Salon & Wellness) and Primary Trade Category picker.
-    - Step 2: Enterprise & Ownership details (Trade Name, Owner Name, Contact Phone with Verified badge, Support Email, Tagline, Tax / GSTIN with "Local artisan / No GST" toggle).
-    - Step 3: Location & Media (Street Address, Locality, City, PIN Code, GPS Geolocation locking card, Storefront Signage Photo preview).
-    - Step 4: Operations & Review (Operating Mode: Walk-in, On-site Visits, Both; Service Radius slider 1-20 km; Operating Schedule presets; Application Summary).
-    - Search & Claim workflow with search bar, unverified badges, and OTP verification modal bottom sheet.
-    - Application submission with generated ID (`#MR-XXXX` / `#CLM-XXXX`) and direct navigation to `MerchantWorkspaceScreen`.
-  - Target device verification: Tested on `Pixel_8` (`emulator-5556`) across all steps and modes.
+- **Merchant Desktop Web Portal (`apps/merchant-web`)**:
+  - Reference: `ref-image/Merchant workspace.png`
+  - Technology: Next.js 14, React 18, Tailwind CSS, Lucide icons, Docker standalone.
+  - Multi-business switcher across cities (Bhubaneswar, Cuttack, Jajpur).
+  - Modules: Dashboard Overview, Service Requests Pipeline, Catalog & Inventory, Operating Hours & Radius Coverage, Store Traffic Analytics.
+  - Access: Reverse-proxied via Nginx at `http://localhost/merchant/` and virtual host `merchant.near.grepmind.com`.
+
+- **Merchant Team & Multi-User Access Management**:
+  - Database Migration: `backend/migrations/004_business_members.sql` (`business_members` table with `owner`, `manager`, `staff` roles and backfill of existing store proprietors).
+  - API Endpoints:
+    - `GET /api/v1/merchant/businesses/{id}/members`: Lists active team members ordered by role hierarchy.
+    - `POST /api/v1/merchant/businesses/{id}/members`: Invites/adds a member by mobile number (+91 E.164) and assigns role (`manager` or `staff`).
+    - `DELETE /api/v1/merchant/businesses/{id}/members/{userId}`: Revokes team access immediately while guarding primary store owners from deletion.
+  - Security Rules: Backend-enforced role authorization; passwordless phone OTP login where JWT token encodes assigned business memberships.
+  - Web UI Component: `apps/merchant-web/components/TeamManager.tsx` with hierarchy explainer banner, search, role filters, member cards, and "+ Add Team Member" modal dialog.
+
+- **Option 3: Admin Web Portal (`apps/admin-web`)**:
+  - Reference: `ref-image/Admin web portal.png`
+  - Technology: Next.js 14, React 18, Tailwind CSS, bespoke interactive SVG charts engine, Docker multi-stage build.
+  - Ports: Container exposed on port 3000, mapped to `http://localhost/admin/` and `admin.near.grepmind.com`.
+  - Modules:
+    - Graphical Metrics Hub: Daily Request & Completion Trends (Area Chart), Multi-City Market Comparison (Grouped Bar Chart), Category Share (Donut Chart), Diurnal Peak Booking Histogram, and Unserved Location Demand Radar.
+    - KYC & Listing Verification Queue: Multi-city moderation (Bhubaneswar, Cuttack, Puri) with Trade License, GSTIN, and Artisan credentials inspection modal (`KYCReviewModal.tsx`).
+    - Full Merchant Registry with status and place-wise multi-city filtering (`BusinessesRegistryView.tsx`).
+    - Consumer Reports & Disputes Resolution Center (`ReportsDisputesView.tsx`).
+    - Promotional Discount Banners Moderation (`OffersModerationView.tsx`).
+    - Immutable Compliance Audit Trail synced with PostgreSQL `audit_logs` (`AuditLogsView.tsx`).
+    - Platform Administrators & Access Management (`AdminUsersView.tsx`): Role-based access control with root superadmin safeguards and dynamic admin invite/revoke.
+  - Same-Origin Proxying: Configured relative `/api/v1` routes to eliminate cross-origin blocks through Nginx.
+
+---
+
+- **Option 4: Direct Mobile & Web Photo Upload to MinIO (Completed & Verified)**:
+  - Database: Applied `backend/migrations/006_media_uploads.sql` creating `media_uploads` tracking table with purpose, size, and URLs.
+  - Go Backend: MinIO S3 integration in `backend/internal/media/service.go` using `minio-go/v7@v7.0.66` (compatible with Go 1.22 in Docker).
+  - Provisioning: Automatic `grepmind-near` bucket verification and public read policy (`s3:GetObject`).
+  - Endpoints: `POST /api/v1/media/upload` (multipart with MIME validation, 10MB limit, timestamped UUID keying) and `GET /api/v1/media`.
+  - Nginx Serving: `/media/` proxies to `http://minio:9000/grepmind-near/`.
+  - API Contract: Documented in `api/openapi.yaml` under `media` tag.
+  - Flutter Mobile: Added `uploadMedia` network helper in `ApiClient` (`apps/mobile/lib/core/network/api_client.dart`).
+  - Merchant Web Portal: Added `uploadMediaFile` in `apps/merchant-web/lib/api.ts` and interactive photo dropzone with preview in `CatalogManager.tsx`.
+  - Verification: Verified end-to-end multipart upload (HTTP 201 Created), direct Nginx image retrieval (HTTP 200 OK), and live modal UI rendering in the browser.
+
+- **Option 5: Push Notifications & Real-Time Booking Updates (Completed & Verified)**:
+  - Database: Applied `backend/migrations/007_realtime_events_and_request_stages.sql` updating `service_requests.status` check constraint (`in_progress`, `rescheduled`) and adding `notifications` table with multi-column indexes.
+  - Go Backend: Real-time SSE event hub and streaming gateway in `backend/internal/notifications/hub.go` using standard library `http.ResponseWriter` and `http.Flusher` (zero external dependencies).
+  - Stream & Endpoints:
+    - `GET /api/v1/events?business_id=...&request_id=...`: Server-Sent Events stream with 15s keepalive ping (`text/event-stream`).
+    - `GET /api/v1/notifications`: Paginated persistent notifications.
+    - `POST /api/v1/notifications/{id}/read`: Mark notification as read.
+    - `POST /api/v1/notifications/broadcast-test`: Synthetic test broadcast.
+  - Event Triggers: Integrated event publishing in `handleCreateServiceRequest` (`service_request.created`) and `merchantRequestStatus` (`service_request.status_updated`).
+  - Nginx Reverse Proxy: Configured unbuffered streaming with `proxy_buffering off;`, `proxy_cache off;`, and `proxy_read_timeout 3600s;`.
+  - Merchant Desktop Web Portal (`apps/merchant-web`):
+    - Real-time `EventSource` listener attached to active business scope.
+    - Harmonious dual-tone synthetic chime using Web Audio API (`playBookingChime()`).
+    - Real-time floating booking banner with instant "Inspect Booking" action.
+    - Interactive Notification Bell in `Header.tsx` displaying unread badge count, dropdown list, timestamps, and mark-as-read.
+    - Real-time status transitions synced with Go API.
+  - Mobile App (`apps/mobile`):
+    - Added periodic live status polling in Screen 18 (`service_request_status_screen.dart`) with auto-termination upon reaching terminal states (`completed`, `cancelled`, `declined`).
+  - API Contract: Documented in `api/openapi.yaml` under `notifications` tag.
+
+---
+
+## 3. Next Milestone: Option 6 — Automated End-to-End Integration Testing & Staging CI/CD
+- **Objective**: Implement comprehensive automated testing suite and CI pipeline covering API contracts, multi-tenant RBAC, real-time SSE streaming, and mobile/web client verification.
+- **Components to build**:
+  1. Automated Go API integration test suite (`backend/tests/integration_test.go`).
+  2. Playwright / Cypress smoke test suite for Merchant and Admin web portals.
+  3. Flutter widget & integration driver tests for critical booking workflows.
+  4. Docker Compose CI verification script.
 
