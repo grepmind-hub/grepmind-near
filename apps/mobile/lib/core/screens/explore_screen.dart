@@ -113,7 +113,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       return;
     }
     if (!mounted) return;
-    final customCityCtrl = TextEditingController();
+
 
     showModalBottomSheet(
       context: context,
@@ -146,7 +146,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Choose an active hub or request your town',
+                          'Choose Cuttack or Jajpur',
                           style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
                         ),
                       ],
@@ -172,76 +172,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   count: location['count'] as int,
                 )),
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search_rounded, color: AppTheme.secondaryText, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: customCityCtrl,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter any locality or town in Odisha...',
-                            hintStyle: TextStyle(fontSize: 13, color: AppTheme.hintText),
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (val) {
-                            if (val.trim().isNotEmpty) {
-                              _handleCustomLocationSelect(ctx, val.trim());
-                            }
-                          },
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          if (customCityCtrl.text.trim().isNotEmpty) {
-                            _handleCustomLocationSelect(ctx, customCityCtrl.text.trim());
-                          }
-                        },
-                        child: const Text('Check', style: TextStyle(fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  void _handleCustomLocationSelect(BuildContext ctx, String locationQuery) {
-    Navigator.pop(ctx);
-    ref.read(appLocationProvider.notifier).setLocation(
-      AppLocation(
-        cityName: locationQuery,
-        localityName: 'Odisha',
-        latitude: 20.0,
-        longitude: 85.0,
-        isSupported: false,
-        activeBusinessCount: 0,
-      ),
-    );
-
-    try {
-      apiClient.post(
-        '/analytics/unserved-location',
-        data: {
-          'query': locationQuery,
-          'city': locationQuery,
-          'locality': 'Odisha',
-        },
-      );
-    } catch (_) {}
-
-    _onFiltersChanged();
   }
 
   Widget _buildLocationTile({

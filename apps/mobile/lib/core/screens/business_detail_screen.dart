@@ -830,7 +830,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
           biz.description != null && biz.description!.isNotEmpty
               ? biz.description!
               : (isHotel
-                    ? 'Luxury beachfront resort featuring ocean-view balconies, infinity lagoon pool, and authentic Ayurvedic spa on Puri Marine Drive.'
+                    ? 'Business description not provided.'
                     : (isFood
                           ? 'Authentic Odia cuisine, Mughlai specialties, and tandoor delicacies with clean hygiene standards and speedy home delivery.'
                           : 'Premier local provider offering genuine products, verified technicians, and fast on-demand services across the city.')),
@@ -936,7 +936,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     Text(
                       biz.addressText.isNotEmpty
                           ? biz.addressText
-                          : 'Forest Park, Bhubaneswar, Odisha',
+                          : 'Address not provided',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -947,7 +947,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     Text(
                       biz.displayAddress.isNotEmpty
                           ? biz.displayAddress
-                          : 'Bhubaneswar, Odisha',
+                          : 'City not provided',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppTheme.secondaryText,
@@ -1540,7 +1540,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       builder: (ctx) {
         bool isDelivery = true;
         final addressController = TextEditingController(
-          text: 'Plot 42, Saheed Nagar, Bhubaneswar, 751007',
+          text: '',
         );
         final instructionsController = TextEditingController();
 
@@ -1968,7 +1968,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 id: newOrderId,
                                 businessId: biz.id,
                                 businessName: biz.name,
-                                businessLocality: biz.locality ?? 'Bhubaneswar',
+                                businessLocality: biz.locality ?? biz.city ?? '',
                                 businessPhone: biz.phoneE164,
                                 businessCoverUrl: biz.coverPhotoUrl,
                                 orderType: OrderType.foodDelivery,
@@ -2425,7 +2425,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           id: voucher,
                           businessId: biz.id,
                           businessName: biz.name,
-                          businessLocality: biz.locality ?? 'Bhubaneswar',
+                          businessLocality: biz.locality ?? biz.city ?? '',
                           businessPhone: biz.phoneE164,
                           businessCoverUrl: biz.coverPhotoUrl,
                           orderType: OrderType.tableReservation,
@@ -2783,12 +2783,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         Navigator.pop(ctx);
 
                         final voucher =
-                            '#MAYFAIR-PURI-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
+                            '#STAY-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
                         final hotelOrder = CustomerOrder(
                           id: voucher,
                           businessId: biz.id,
                           businessName: biz.name,
-                          businessLocality: biz.locality ?? 'Puri Marine Drive',
+                          businessLocality: biz.locality ?? biz.city ?? '',
                           businessPhone: biz.phoneE164,
                           businessCoverUrl: biz.coverPhotoUrl,
                           orderType: OrderType.hotelBooking,

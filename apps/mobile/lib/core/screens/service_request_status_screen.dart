@@ -936,7 +936,7 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'Saheed Nagar, Bhubaneswar • 1.8 km',
+                      'Location not provided',
                       style: TextStyle(fontSize: 11, color: AppTheme.secondaryText),
                     ),
                   ],
@@ -1034,7 +1034,7 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           const SizedBox(height: 10),
           _buildReceiptRow('Appointment Slot', formattedDate),
           const SizedBox(height: 10),
-          _buildReceiptRow('Address', 'Plot 42, Saheed Nagar, Bhubaneswar'),
+          _buildReceiptRow('Address', 'Address not provided'),
           const SizedBox(height: 10),
           _buildReceiptRow('Indicative Estimate', '₹299 - ₹599', isHighlight: true),
           const SizedBox(height: 10),

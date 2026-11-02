@@ -24,7 +24,7 @@ void main() {
 
     // Verify title and location subtitle
     expect(find.text('Nearby Map'), findsOneWidget);
-    expect(find.text('Bhubaneswar • Saheed Nagar (5 km radius)'), findsOneWidget);
+    expect(find.text(' (5 km radius)'), findsOneWidget);
 
     // Verify top category chips
     expect(find.text('All'), findsOneWidget);

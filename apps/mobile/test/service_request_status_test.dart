@@ -13,7 +13,7 @@ void main() {
     verificationStatus: 'verified',
     addressText: 'Plot 42, Saheed Nagar',
     locality: 'Saheed Nagar',
-    city: 'Bhubaneswar',
+    city: 'Cuttack',
     phoneE164: '+919876543220',
   );
 

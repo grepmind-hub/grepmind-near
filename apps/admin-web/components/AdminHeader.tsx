@@ -57,7 +57,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       <div className="flex items-center gap-3">
         {/* City Filter Switcher */}
         <div className="flex items-center rounded-lg border border-[#E4E7EC] bg-[#F7F8FA] p-0.5 text-xs font-medium">
-          {['All Cities', 'Bhubaneswar', 'Cuttack', 'Puri'].map((city) => (
+          {['All Cities', 'Cuttack', 'Jajpur'].map((city) => (
             <button
               key={city}
               onClick={() => onSelectCity(city)}

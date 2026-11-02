@@ -200,7 +200,7 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Regional Operations Lead - Cuttack & Puri"
+                  placeholder="e.g., Regional Operations Lead - Cuttack & Jajpur"
                   required
                   className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2 text-xs text-[#172033] focus:outline-none focus:ring-1 focus:ring-[#2457D6]"
                 />
@@ -228,7 +228,7 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
                 <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px] text-[#667085]">
                   <li>Review &amp; approve merchant KYC &amp; licenses</li>
                   <li>Moderate discount offers &amp; consumer complaints</li>
-                  <li>Access platform analytics across Bhubaneswar, Cuttack, Puri</li>
+                  <li>Access platform analytics across Cuttack and Jajpur</li>
                 </ul>
               </div>
 

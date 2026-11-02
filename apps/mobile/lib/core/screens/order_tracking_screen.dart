@@ -691,7 +691,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      order.deliveryAddress ?? 'Plot 42, Saheed Nagar, Bhubaneswar, 751007',
+                      order.deliveryAddress ?? '',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mainText),
                     ),
                   ],

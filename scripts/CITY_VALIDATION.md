@@ -13,7 +13,7 @@ cd /mnt/d/grepmind-near/backend
 APP_ENV=local DB_HOST=127.0.0.1 go run ./cmd/validate-cities --cities Cuttack,Jajpur --allow-local-fixtures
 ```
 
-The local Compose API and PostgreSQL must be running with migration 009 applied. The runner uses the existing Go PostgreSQL driver; no additional dependency is required. Database configuration comes from the backend's DB_* environment variables. API and database must both be the same local stack. The runner rejects non-loopback targets and requires explicit fixture permission.
+The local Compose API and PostgreSQL must be running with migrations 009 and 010 applied. The runner uses the existing Go PostgreSQL driver; no additional dependency is required. Database configuration comes from the backend's DB_* environment variables. API and database must both be the same local stack. The runner rejects non-loopback targets and requires explicit fixture permission.
 
 ## Data-driven coverage
 

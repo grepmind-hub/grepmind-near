@@ -161,20 +161,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </div>
           <div className="mt-2 space-y-1 text-[11px] text-[#667085]">
             <div className="flex justify-between">
-              <span>Bhubaneswar Metro</span>
-              <span className="font-semibold text-emerald-600">Active (7 shops)</span>
+              <span>Cuttack</span>
+              <span>Supported</span>
             </div>
             <div className="flex justify-between">
-              <span>Cuttack Millennium</span>
-              <span className="font-semibold text-emerald-600">Active (3 shops)</span>
+              <span>Jajpur</span>
+              <span>Supported</span>
             </div>
             <div className="flex justify-between">
-              <span>Puri Heritage Hub</span>
-              <span className="font-semibold text-amber-600">Review (2 pending)</span>
+              <span>Counts</span>
+              <span>See live registry</span>
             </div>
             <div className="flex justify-between">
-              <span>Jajpur Town</span>
-              <span className="font-semibold text-emerald-600">Active (1 shop)</span>
             </div>
           </div>
           <a

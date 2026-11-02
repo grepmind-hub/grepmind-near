@@ -59,7 +59,7 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
 
         {/* City Filter Pills */}
         <div className="flex items-center gap-2">
-          {['All', 'Bhubaneswar', 'Cuttack', 'Puri', 'Jajpur'].map((city) => (
+          {['All', 'Cuttack', 'Jajpur'].map((city) => (
             <button
               key={city}
               onClick={() => setCityFilter(city)}

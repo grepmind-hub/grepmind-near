@@ -65,24 +65,20 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Claim Tab is active
-    expect(find.text('Available for Claim in Bhubaneswar'), findsOneWidget);
-    expect(find.text('Maa Tarini Hardware & Sanitary'), findsOneWidget);
-    expect(find.text('Shree Ganesh Electricals & Repair'), findsOneWidget);
+    expect(find.text('Available listings for claim'), findsOneWidget);
+    expect(find.text('No existing listing found'), findsOneWidget);
+    expect(find.text('Maa Tarini Hardware & Sanitary'), findsNothing);
+    expect(find.text('Shree Ganesh Electricals & Repair'), findsNothing);
 
     // Test Search filter
     await tester.enterText(find.byType(TextField).first, 'Ganesh');
     await tester.pumpAndSettle();
 
-    expect(find.text('Shree Ganesh Electricals & Repair'), findsOneWidget);
+    expect(find.text('Shree Ganesh Electricals & Repair'), findsNothing);
     expect(find.text('Maa Tarini Hardware & Sanitary'), findsNothing);
 
-    // Tap Claim Store
-    await tester.tap(find.text('Claim Store'));
-    await tester.pumpAndSettle();
-
-    // Verify modal verification sheet opened
-    expect(find.text('Claim Business Listing'), findsOneWidget);
-    expect(find.text('Verify & Claim'), findsOneWidget);
+    // Removed sample listings cannot expose a fabricated claim action.
+    expect(find.text('Claim Store'), findsNothing);
   });
 
   testWidgets('Switching between Register New and Claim Existing modes works dynamically', (tester) async {
@@ -95,8 +91,8 @@ void main() {
     await tester.tap(find.text('Claim Existing'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Available for Claim in Bhubaneswar'), findsOneWidget);
-    expect(find.text('Maa Tarini Hardware & Sanitary'), findsOneWidget);
+    expect(find.text('Available listings for claim'), findsOneWidget);
+    expect(find.text('Maa Tarini Hardware & Sanitary'), findsNothing);
 
     // Tap Register New
     await tester.tap(find.text('Register New'));

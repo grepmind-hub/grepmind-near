@@ -410,7 +410,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     final pro = widget.business;
     final rating = pro?.rating ?? 4.9;
     final locality = pro?.locality ?? 'Saheed Nagar';
-    final city = pro?.city ?? 'Bhubaneswar';
+    final city = pro?.city ?? '';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1085,7 +1085,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryText, fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        'Plot 42, Saheed Nagar, Bhubaneswar (Home)',
+                        'Enter your service address',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
                       ),
                     ],

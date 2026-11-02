@@ -90,7 +90,7 @@ export const VerificationQueueView: React.FC<VerificationQueueViewProps> = ({
 
         {/* Filter Chips */}
         <div className="flex items-center gap-2">
-          {['All', 'Bhubaneswar', 'Cuttack', 'Puri'].map((city) => (
+          {['All', 'Cuttack', 'Jajpur'].map((city) => (
             <button
               key={city}
               onClick={() => setCityFilter(city)}
@@ -142,7 +142,7 @@ export const VerificationQueueView: React.FC<VerificationQueueViewProps> = ({
                     <span className="text-sm font-bold text-[#172033]">{sub.businessName}</span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        sub.city === 'Puri'
+                        sub.city === 'Jajpur'
                           ? 'bg-amber-100 text-amber-800'
                           : sub.city === 'Cuttack'
                           ? 'bg-teal-100 text-teal-800'

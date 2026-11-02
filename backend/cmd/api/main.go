@@ -480,6 +480,11 @@ func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.Respon
 		argIdx++
 	}
 	if req.City != nil {
+		city := strings.ToLower(strings.TrimSpace(*req.City))
+		if city != "cuttack" && city != "jajpur" {
+			writeError(w, 400, "VALIDATION_ERROR", "Only Cuttack and Jajpur are supported.")
+			return
+		}
 		setParts = append(setParts, fmt.Sprintf("city = $%d", argIdx))
 		args = append(args, *req.City)
 		argIdx++

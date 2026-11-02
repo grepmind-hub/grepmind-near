@@ -28,62 +28,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
   const [errorMessage, setErrorMessage] = useState('');
   const [activeAccountLabel, setActiveAccountLabel] = useState<string>('');
 
-  const DEMO_ACCOUNTS = [
-    {
-      label: 'Shree Hardware Owner (Bhubaneswar)',
-      phone: '+91 98765 43210',
-      role: 'owner' as const,
-      name: 'Srikanta Nayak',
-      desc: 'Primary store proprietor with full admin rights',
-      color: 'border-blue-200 bg-blue-50/70 text-blue-900 hover:bg-blue-100',
-      badge: 'Owner (All Privileges)',
-    },
-    {
-      label: 'Rakesh Mohapatra (Store Manager)',
-      phone: '+91 98610 00005',
-      role: 'manager' as const,
-      name: 'Rakesh Mohapatra',
-      desc: 'Can manage bookings, catalog items, and daily hours',
-      color: 'border-teal-200 bg-teal-50/70 text-teal-900 hover:bg-teal-100',
-      badge: 'Manager Access',
-    },
-    {
-      label: 'Sunil Sahu (Staff / Dispatcher)',
-      phone: '+91 98610 00006',
-      role: 'staff' as const,
-      name: 'Sunil Sahu',
-      desc: 'Can view service pipeline and update dispatch status',
-      color: 'border-amber-200 bg-amber-50/70 text-amber-900 hover:bg-amber-100',
-      badge: 'Staff Access',
-    },
-    {
-      label: 'Mahanadi Electricals (Cuttack)',
-      phone: '+91 98610 00001',
-      role: 'owner' as const,
-      name: 'Mahanadi Lead Proprietor',
-      desc: 'Verifies strict isolation: only Cuttack store displays',
-      color: 'border-purple-200 bg-purple-50/70 text-purple-900 hover:bg-purple-100',
-      badge: 'Cuttack Store Isolation',
-    },
-    {
-      label: 'Biraja Plumbing (Jajpur)',
-      phone: '+91 98610 00003',
-      role: 'owner' as const,
-      name: 'Biraja Plumbing Lead',
-      desc: 'Verifies strict isolation: only Jajpur store displays',
-      color: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 hover:bg-emerald-100',
-      badge: 'Jajpur Store Isolation',
-    },
-    {
-      label: 'New Merchant (First-Time Store Setup)',
-      phone: '+91 98610 00099',
-      role: 'owner' as const,
-      name: 'New Store Proprietor',
-      desc: 'Tests first-time merchant onboarding & store registration',
-      color: 'border-indigo-200 bg-indigo-50/70 text-indigo-900 hover:bg-indigo-100',
-      badge: 'Direct Web Onboarding',
-    },
-  ];
+  const DEMO_ACCOUNTS: {label:string;phone:string;role:'owner'|'manager'|'staff';name:string;desc:string;color:string;badge:string}[] = [];
 
   const handleSelectDemo = (account: typeof DEMO_ACCOUNTS[0]) => {
     setPhone(account.phone);
@@ -91,7 +36,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
     setErrorMessage('');
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.trim();
     if (cleanPhone.length < 10) {
@@ -102,11 +47,13 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
     setIsLoading(true);
     setErrorMessage('');
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/v1/auth/otp/request', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone_e164:cleanPhone.replace(/\s+/g,'')}) });
+      if (!response.ok) throw new Error('Unable to request a verification code.');
       setStep('otp');
-      setOtpDigits(['7', '7', '1', '1', '7', '7']); // Pre-fill stub OTP for seamless verification
-    }, 400);
+      setOtpDigits(['', '', '', '', '', '']);
+    } catch (_) { setErrorMessage('Unable to request a verification code.'); }
+    finally {setIsLoading(false);}
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -124,7 +71,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
     }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredCode = otpDigits.join('');
     if (enteredCode.length !== 6) {
@@ -135,27 +82,22 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
     setIsLoading(true);
     setErrorMessage('');
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       const cleanPhone = phone.replace(/\s+/g, '');
-
-      // Identify account
-      const matchedDemo = DEMO_ACCOUNTS.find(
-        (acc) => acc.phone.replace(/\s+/g, '') === cleanPhone
-      );
-
-      const isNewUser = cleanPhone.includes('99');
-
+      const response=await fetch('/api/v1/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_e164:cleanPhone,otp_code:enteredCode})});
+      if(!response.ok) throw new Error('Verification failed');
+      const {data}=await response.json();
+      localStorage.setItem('grepmind_merchant_token',data.access_token);
       const session: MerchantSession = {
-        userId: `usr-${Date.now()}`,
-        name: matchedDemo ? matchedDemo.name : 'Merchant Proprietor',
+        userId: data.user.id,
+        name: data.user.display_name || 'Merchant',
         phone: cleanPhone,
-        role: matchedDemo ? matchedDemo.role : 'owner',
-        token: `jwt-token-${Date.now()}`,
+        role: 'staff', // Backend ownership checks determine privileges.
+        token: data.access_token,
       };
-
-      onLoginSuccess(session, isNewUser);
-    }, 500);
+      onLoginSuccess(session);
+    } catch (_) {setErrorMessage('Invalid or expired verification code.');}
+    finally {setIsLoading(false);}
   };
 
   return (
@@ -327,14 +269,14 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
                 <div className="rounded-xl bg-blue-50/70 border border-blue-200/60 p-3 text-xs text-blue-900 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                    <span>Development stub code: <strong>771177</strong></span>
+                    <span>Enter the verification code you received.</span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setOtpDigits(['7', '7', '1', '1', '7', '7'])}
+                    onClick={() => setOtpDigits(['', '', '', '', '', ''])}
                     className="font-bold text-primary hover:underline text-[11px]"
                   >
-                    Auto-Fill
+                    Clear
                   </button>
                 </div>
 

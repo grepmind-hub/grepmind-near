@@ -22,7 +22,7 @@ void main() {
     verificationStatus: 'verified',
     addressText: 'Plot 42, Saheed Nagar',
     locality: 'Saheed Nagar',
-    city: 'Bhubaneswar',
+    city: 'Cuttack',
   );
 
   testWidgets('BookingSchedulerScreen renders all sections cleanly', (WidgetTester tester) async {

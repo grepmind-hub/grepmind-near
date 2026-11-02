@@ -449,7 +449,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           _buildInfoRow(
                             Icons.location_on_outlined,
                             'Service Area',
-                            'Within 10 km of ${biz.locality ?? biz.city ?? 'Bhubaneswar'}',
+                            'Within 10 km of ${biz.locality ?? biz.city ?? ''}',
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(

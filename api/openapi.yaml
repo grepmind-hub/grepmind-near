@@ -5,6 +5,7 @@ info:
   description: |
     Local discovery platform API for customers, merchants, professionals,
     and administrators. Base path: /api/v1
+    Active business coverage is restricted to Cuttack and Jajpur.
   contact:
     name: Grepmind Near
     email: support@grepmind.local

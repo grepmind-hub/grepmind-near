@@ -349,6 +349,7 @@ export default function MerchantWorkspacePage() {
   }
 
   // Filter scoped data strictly for current business
+  if (!currentBusiness) return <main className="p-8"><h1 className="text-xl font-bold">No storefront loaded</h1><p>Your account has no loaded storefront. Use the mobile workspace while web account synchronization is completed.</p><button onClick={handleLogout}>Sign out</button></main>;
   const currentRequests = requests.filter((r) => r.businessId === currentBusiness.id);
   const currentProducts = products.filter((p) => p.businessId === currentBusiness.id);
   const currentServices = services.filter((s) => s.businessId === currentBusiness.id);

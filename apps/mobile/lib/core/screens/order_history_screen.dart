@@ -67,7 +67,7 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${order.businessLocality ?? "Bhubaneswar"} • ${order.id}',
+                                '${order.businessLocality ?? ""} • ${order.id}',
                                 style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
                               ),
                             ],
@@ -83,7 +83,7 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${order.businessLocality ?? "Bhubaneswar"} • ${order.id}',
+                      '${order.businessLocality ?? ""} • ${order.id}',
                       style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
                     ),
                   ],

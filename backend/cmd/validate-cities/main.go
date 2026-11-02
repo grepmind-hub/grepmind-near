@@ -242,6 +242,9 @@ func (r *runner) check(city string, lat, lng float64, cat category, customer str
 	if !merchantRole {
 		return errors.New("merchant login did not return merchant role")
 	}
+	if err = r.api("PATCH", "/merchant/profile", merchant, map[string]string{"city": r.ledger.Run}, 400, nil); err != nil {
+		return err
+	}
 	var created struct {
 		ID string `json:"id"`
 	}

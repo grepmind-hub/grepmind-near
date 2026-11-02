@@ -1119,7 +1119,7 @@ class MerchantHoursCoverageNotifier
           acceptsRequests: covData['accepts_requests'] as bool? ?? true,
           businessName: covData['business_name'] as String? ?? 'My Business',
           locality: covData['locality'] as String? ?? 'Koramangala',
-          city: covData['city'] as String? ?? 'Bengaluru',
+          city: covData['city'] as String? ?? '',
           latitude: (covData['latitude'] as num?)?.toDouble() ?? 12.9352,
           longitude: (covData['longitude'] as num?)?.toDouble() ?? 77.6245,
         );

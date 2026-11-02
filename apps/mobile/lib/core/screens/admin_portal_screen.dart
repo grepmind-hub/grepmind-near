@@ -17,78 +17,11 @@ class AdminPortalScreen extends ConsumerStatefulWidget {
 class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Map<String, dynamic>> _pendingBusinesses = [
-    {
-      'id': 'b-101',
-      'name': 'Kalinga Electrical Works',
-      'category': 'Electrician & Trade',
-      'locality': 'Saheed Nagar, Bhubaneswar',
-      'phone': '+91 98610 11223',
-      'date': '2 hours ago',
-      'status': 'pending',
-    },
-    {
-      'id': 'b-102',
-      'name': 'Utkal Spice Corner & Bakery',
-      'category': 'Food & Cafe',
-      'locality': 'Chandrasekharpur, Bhubaneswar',
-      'phone': '+91 94370 55667',
-      'date': '5 hours ago',
-      'status': 'pending',
-    },
-    {
-      'id': 'b-103',
-      'name': 'Temple City Unisex Salon',
-      'category': 'Salon & Wellness',
-      'locality': 'Jayadev Vihar, Bhubaneswar',
-      'phone': '+91 97780 99881',
-      'date': '1 day ago',
-      'status': 'pending',
-    },
-  ];
+  final List<Map<String, dynamic>> _pendingBusinesses = [];
 
-  final List<Map<String, dynamic>> _pendingClaims = [
-    {
-      'id': 'clm-301',
-      'business': 'Shree Hardware & Electricals',
-      'claimedBy': 'Rajesh Mohanty (+91 98765 43210)',
-      'document': 'Trade License #OD-BBSR-2024-88',
-      'method': 'Verified via OTP (7492)',
-      'status': 'ready_to_verify',
-    },
-    {
-      'id': 'clm-302',
-      'business': 'City Medical Store',
-      'claimedBy': 'Dr. Alok Nayak (+91 98765 43212)',
-      'document': 'Drug License #OD-DL-44912',
-      'method': 'Pending Document Review',
-      'status': 'under_review',
-    },
-  ];
+  final List<Map<String, dynamic>> _pendingClaims = [];
 
-  final List<Map<String, dynamic>> _auditLogs = [
-    {
-      'action': 'BUSINESS_CLAIM_VERIFIED',
-      'actor': 'Platform Admin (+91 00000 00000)',
-      'target': 'Shree Hardware & Electricals',
-      'time': '10 mins ago',
-      'type': 'verification',
-    },
-    {
-      'action': 'ENTERPRISE_REGISTERED',
-      'actor': 'Merchant (+91 98765 43210)',
-      'target': 'Application #MR-4891',
-      'time': '25 mins ago',
-      'type': 'registration',
-    },
-    {
-      'action': 'OTP_SESSION_ISSUED',
-      'actor': 'User (+91 98765 43210)',
-      'target': 'JWT Session Granted',
-      'time': '42 mins ago',
-      'type': 'auth',
-    },
-  ];
+  final List<Map<String, dynamic>> _auditLogs = [];
 
   @override
   void initState() {

@@ -223,7 +223,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     Text(
                                       biz?.displayAddress.isNotEmpty == true
                                           ? biz!.displayAddress
-                                          : 'Bhubaneswar, Odisha • 0.8 km',
+                                          : 'Location not provided',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: AppTheme.secondaryText,

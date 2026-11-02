@@ -25,17 +25,17 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
   final _formKey = GlobalKey<FormState>();
 
   // Text Controllers
-  final _businessNameController = TextEditingController(text: 'Maa Tarini Hardware & Tools');
-  final _ownerNameController = TextEditingController(text: 'Srikant Mohanty');
-  final _phoneController = TextEditingController(text: '+91 98765 43210');
-  final _emailController = TextEditingController(text: 'contact@tarinihardware.com');
-  final _taxIdController = TextEditingController(text: '21AAAAA0000A1Z5');
-  final _taglineController = TextEditingController(text: 'Leading supplier of sanitary fittings, power tools, and electrical items.');
+  final _businessNameController = TextEditingController();
+  final _ownerNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _taxIdController = TextEditingController();
+  final _taglineController = TextEditingController();
 
-  final _addressController = TextEditingController(text: 'Plot 42, Saheed Nagar Main Road');
-  final _localityController = TextEditingController(text: 'Saheed Nagar');
-  final _cityController = TextEditingController(text: 'Bhubaneswar');
-  final _pinController = TextEditingController(text: '751007');
+  final _addressController = TextEditingController();
+  final _localityController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _pinController = TextEditingController();
 
   final _searchClaimController = TextEditingController();
 
@@ -54,44 +54,7 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
   String _generatedAppId = '#MR-8921';
 
   // Claim Search State
-  final List<Map<String, dynamic>> _allClaimable = [
-    {
-      'id': 'clm-001',
-      'name': 'Maa Tarini Hardware & Sanitary',
-      'category': 'Hardware & Tools',
-      'locality': 'Saheed Nagar, Bhubaneswar',
-      'phone_hint': '+91 98*** **210',
-      'unverified': true,
-      'visits': 142,
-    },
-    {
-      'id': 'clm-002',
-      'name': 'Shree Ganesh Electricals & Repair',
-      'category': 'Electrician & Repairs',
-      'locality': 'Nayapalli, Bhubaneswar',
-      'phone_hint': '+91 94*** **882',
-      'unverified': true,
-      'visits': 89,
-    },
-    {
-      'id': 'clm-003',
-      'name': 'Kalinga Fresh Organic Groceries',
-      'category': 'Grocery & Daily Needs',
-      'locality': 'Patia, Bhubaneswar',
-      'phone_hint': '+91 99*** **104',
-      'unverified': true,
-      'visits': 230,
-    },
-    {
-      'id': 'clm-004',
-      'name': 'Royal Cuts & Men Salon',
-      'category': 'Salon & Grooming',
-      'locality': 'Jaydev Vihar, Bhubaneswar',
-      'phone_hint': '+91 70*** **951',
-      'unverified': true,
-      'visits': 67,
-    },
-  ];
+  final List<Map<String, dynamic>> _allClaimable = [];
 
   late List<Map<String, dynamic>> _filteredClaimable;
 
@@ -151,19 +114,11 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
   }
 
   Future<void> _submitRegistration() async {
-    setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() {
-        _isSubmitting = false;
-        _isSuccess = true;
-        _generatedAppId = '#MR-${(1000 + DateTime.now().millisecond % 9000)}';
-      });
-    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration submission is unavailable until business verification is connected.')));
   }
 
   void _showClaimConfirmationSheet(Map<String, dynamic> business) {
-    final otpController = TextEditingController(text: '7492');
+    final otpController = TextEditingController();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -928,9 +883,10 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
             Expanded(
               child: TextFormField(
                 controller: _cityController,
+                validator: (value) => const ['cuttack', 'jajpur'].contains(value?.trim().toLowerCase()) ? null : 'Choose Cuttack or Jajpur',
                 decoration: InputDecoration(
                   labelText: 'City *',
-                  hintText: 'Bhubaneswar',
+                  hintText: 'Cuttack or Jajpur',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.white,
@@ -984,7 +940,7 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
                         ),
                         Text(
-                          '20.2961° N, 85.8245° E (Bhubaneswar, Odisha)',
+                          'Select a supported city and provide your business location',
                           style: TextStyle(fontSize: 12, color: Color(0xFF166534)),
                         ),
                       ],
@@ -1455,7 +1411,7 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Available for Claim in Bhubaneswar',
+                'Available listings for claim',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText),
               ),
               Text(
@@ -1638,7 +1594,7 @@ class _MerchantRegistrationScreenState extends ConsumerState<MerchantRegistratio
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Your enterprise is now visible to customers in Bhubaneswar. Set up products & services in your workspace to accept orders.',
+                        'Your enterprise details are ready for review. Set up products & services in your workspace to accept orders.',
                         style: TextStyle(fontSize: 12, color: Color(0xFF15803D), height: 1.3),
                       ),
                     ),

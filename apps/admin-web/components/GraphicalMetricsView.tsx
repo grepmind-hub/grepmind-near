@@ -42,6 +42,8 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
   const [cityMetricType, setCityMetricType] = useState<'requests' | 'gmv'>('requests');
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
+  if (DAILY_TRENDS.length === 0) return <section className="rounded-2xl border bg-white p-8"><h2 className="text-lg font-semibold">Analytics unavailable</h2><p>Live analytics are not connected yet. No sample metrics are displayed.</p></section>;
+
   // Filter trends based on selected range
   const daysSlice = selectedRange === '7d' ? 7 : selectedRange === '14d' ? 14 : DAILY_TRENDS.length;
   const filteredTrends = DAILY_TRENDS.slice(-daysSlice);
@@ -78,7 +80,7 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
             <span className="text-sm font-semibold text-[#667085]">Lakhs</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-[#667085]">
-            <span>Across BBSR, Cuttack, Puri</span>
+            <span>Across Cuttack and Jajpur</span>
             <span className="font-semibold text-emerald-600">30-day run rate</span>
           </div>
         </div>
@@ -103,7 +105,7 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
             <span className="text-xs font-medium text-emerald-600">Active &amp; Verified</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-[#667085]">
-            <span>Puri expansion: 2 in review</span>
+            <span>Review pending applications</span>
             <span
               onClick={() => onNavigateTab('verification')}
               className="cursor-pointer font-semibold text-[#2457D6] hover:underline"
@@ -171,7 +173,7 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
               </span>
             </div>
             <p className="text-xs text-[#667085] mt-0.5">
-              Tracking customer search-to-completion pipeline across Bhubaneswar, Cuttack, and Puri
+              Tracking customer search-to-completion pipeline across Cuttack and Jajpur
             </p>
           </div>
 
@@ -333,7 +335,7 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
             <div>
               <h3 className="text-base font-bold text-[#172033]">Regional Activity &amp; Market Distribution</h3>
               <p className="text-xs text-[#667085]">
-                Direct comparison between Bhubaneswar, Cuttack, Puri, and Jajpur
+                Direct comparison between Cuttack and Jajpur
               </p>
             </div>
 
@@ -400,13 +402,9 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
                   <div className="mt-2.5 h-3 w-full rounded-full bg-[#EAECF0] overflow-hidden flex">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${
-                        cityData.city === 'Bhubaneswar'
+                        cityData.city === 'Cuttack'
                           ? 'bg-[#2457D6]'
-                          : cityData.city === 'Cuttack'
-                          ? 'bg-[#0F766E]'
-                          : cityData.city === 'Puri'
-                          ? 'bg-amber-500'
-                          : 'bg-indigo-500'
+                          : 'bg-[#0F766E]'
                       }`}
                       style={{ width: `${fillPct}%` }}
                     />
@@ -590,7 +588,7 @@ export const GraphicalMetricsView: React.FC<GraphicalMetricsViewProps> = ({
           </div>
 
           <div className="mt-4 rounded-xl bg-amber-100/60 p-3 text-xs text-amber-900">
-            <span className="font-bold">Expansion Advisory:</span> Puri Sea Beach &amp; VIP Road have the highest unserved inquiries. Approving the 2 pending Puri applications will satisfy 78% of these requests.
+            <span className="font-bold">Expansion Advisory:</span> Review live demand data before making coverage decisions.
           </div>
         </div>
       </div>

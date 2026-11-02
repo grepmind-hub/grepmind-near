@@ -19,7 +19,7 @@ export const NewStoreOnboardingModal: React.FC<NewStoreOnboardingModalProps> = (
   const [category, setCategory] = useState('Hardware & Electrical');
   const [categorySlug, setCategorySlug] = useState('hardware');
   const [locality, setLocality] = useState('Nayapalli');
-  const [city, setCity] = useState('Bhubaneswar');
+  const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [radiusKm, setRadiusKm] = useState(10);
   const [error, setError] = useState('');
@@ -134,7 +134,7 @@ export const NewStoreOnboardingModal: React.FC<NewStoreOnboardingModalProps> = (
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full rounded-xl border border-borderMuted bg-background px-3 py-2.5 text-xs text-slateText-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="Bhubaneswar">Bhubaneswar</option>
+                <option value="">Select city</option>
                 <option value="Cuttack">Cuttack</option>
                 <option value="Jajpur">Jajpur</option>
               </select>
@@ -178,7 +178,7 @@ export const NewStoreOnboardingModal: React.FC<NewStoreOnboardingModalProps> = (
             <input
               type="text"
               required
-              placeholder="e.g. Plot 45, Near IRC Village, Bhubaneswar, Odisha"
+              placeholder="Enter the business street address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2.5 text-xs text-slateText-main placeholder:text-slateText-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"

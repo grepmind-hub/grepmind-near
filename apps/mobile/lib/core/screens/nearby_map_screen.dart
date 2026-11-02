@@ -96,9 +96,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   }
 
   void _useDefaultLocation() {
-    // Default: Bhubaneswar centre (Saheed Nagar)
-    const defLat = 20.2961;
-    const defLng = 85.8245;
+    final location = ref.read(appLocationProvider);
+    final defLat = location.latitude;
+    final defLng = location.longitude;
     _updateMapPosition(defLat, defLng);
     _loadNearbyBusinesses(defLat, defLng);
   }
@@ -286,7 +286,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -299,7 +299,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               ),
             ),
             Text(
-              'Bhubaneswar • Saheed Nagar (5 km radius)',
+              '${ref.watch(appLocationProvider).displayName} (5 km radius)',
               style: TextStyle(
                 fontSize: 11,
                 color: AppTheme.secondaryText,
