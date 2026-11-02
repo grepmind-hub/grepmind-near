@@ -56,7 +56,6 @@ services:
       JWT_SECRET: test-secret-key-min-32-chars-long
       OTP_PROVIDER: stub
       OTP_TTL: 10m
-      OTP_PROVIDER: stub
       OTP_FROM: Grepmind Near
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1

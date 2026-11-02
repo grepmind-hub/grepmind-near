@@ -31,21 +31,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final String _sortBy = 'relevance';
   final int _radius = 5000; // meters
 
-  final List<Map<String, dynamic>> _categories = const [
-    {'label': 'All', 'icon': Icons.apps_rounded, 'slug': 'all', 'bg': Color(0xFFEEF2FF), 'fg': Color(0xFF4F46E5)},
-    {'label': 'Shops', 'icon': Icons.storefront_rounded, 'slug': 'general', 'bg': Color(0xFFFEE2E2), 'fg': Color(0xFFEF4444)},
-    {'label': 'Services', 'icon': Icons.handyman_rounded, 'slug': 'electrician', 'bg': Color(0xFFDBEAFE), 'fg': Color(0xFF2563EB)},
-    {'label': 'Electronics', 'icon': Icons.devices_rounded, 'slug': 'electronics', 'bg': Color(0xFFCCFBF1), 'fg': Color(0xFF0F766E)},
-    {'label': 'Fashion', 'icon': Icons.checkroom_rounded, 'slug': 'fashion', 'bg': Color(0xFFFFEDD5), 'fg': Color(0xFFEA580C)},
-    {'label': 'Groceries', 'icon': Icons.local_grocery_store_rounded, 'slug': 'grocery', 'bg': Color(0xFFDCFCE7), 'fg': Color(0xFF16A34A)},
-    {'label': 'Medical', 'icon': Icons.local_pharmacy_rounded, 'slug': 'medical', 'bg': Color(0xFFF3E8FF), 'fg': Color(0xFF9333EA)},
-    {'label': 'Hardware', 'icon': Icons.build_rounded, 'slug': 'hardware', 'bg': Color(0xFFFEF3C7), 'fg': Color(0xFFD97706)},
-    {'label': 'Home', 'icon': Icons.kitchen_rounded, 'slug': 'home_kitchen', 'bg': Color(0xFFE0F2FE), 'fg': Color(0xFF0284C7)},
-    {'label': 'Beauty', 'icon': Icons.spa_rounded, 'slug': 'health_wellness', 'bg': Color(0xFFFCE7F3), 'fg': Color(0xFFDB2777)},
-    {'label': 'Auto Care', 'icon': Icons.directions_car_rounded, 'slug': 'automotive', 'bg': Color(0xFFF1F5F9), 'fg': Color(0xFF475569)},
-    {'label': 'More →', 'icon': Icons.grid_view_rounded, 'slug': 'more', 'bg': Color(0xFFEDE9FE), 'fg': Color(0xFF7C3AED)},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -435,6 +420,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryState = ref.watch(categoriesProvider);
+    final categoryItems = categoryState.items.take(10).toList(growable: false);
     final state = ref.watch(businessesProvider);
     final appLocation = ref.watch(appLocationProvider);
 
@@ -621,25 +608,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-                itemCount: _categories.length,
+                itemCount: categoryState.isLoading ? 6 : categoryItems.length + 2,
                 separatorBuilder: (_, _) => const SizedBox(width: 4),
                 itemBuilder: (_, i) {
-                  final cat = _categories[i];
-                  final isSel = _selectedCategory == cat['slug'];
+                  if (categoryState.isLoading) {
+                    return const SizedBox(width: 68, child: SkeletonLoader(height: 68, radius: 34));
+                  }
+                  final isAll = i == 0;
+                  final isMore = i == categoryItems.length + 1;
+                  final category = isAll || isMore ? null : categoryItems[i - 1];
+                  final slug = isAll ? 'all' : (isMore ? 'more' : category!.slug);
+                  final isSel = _selectedCategory == slug;
                   return CategoryCircleItem(
-                    label: cat['label'] as String,
-                    icon: cat['icon'] as IconData,
-                    backgroundColor: cat['bg'] as Color?,
-                    iconColor: cat['fg'] as Color?,
+                    label: isAll ? 'All' : (isMore ? 'More' : category!.name),
+                    icon: isAll ? Icons.apps_rounded : (isMore ? Icons.grid_view_rounded : CategoriesScreen.getCategoryIcon(category!.slug)),
+                    backgroundColor: isAll ? const Color(0xFFEEF2FF) : (isMore ? const Color(0xFFEDE9FE) : CategoriesScreen.getCategoryColor(category!.slug).withOpacity(0.13)),
+                    iconColor: isAll ? const Color(0xFF4F46E5) : (isMore ? const Color(0xFF7C3AED) : CategoriesScreen.getCategoryColor(category!.slug)),
                     isSelected: isSel,
                     onTap: () {
-                      if (cat['slug'] == 'more') {
+                      if (isMore) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const CategoriesScreen()),
                         );
                       } else {
-                        setState(() => _selectedCategory = cat['slug'] as String);
+                        setState(() => _selectedCategory = slug);
                         _onFiltersChanged();
                       }
                     },

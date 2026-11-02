@@ -85,11 +85,24 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 
 	// Real-Time Events (Server-Sent Events) & In-App Notifications (Option 5)
 	if notifHub != nil {
-		mux.HandleFunc("GET /api/v1/events", notifHub.ServeSSE)
-		mux.HandleFunc("GET /api/v1/notifications", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("GET /api/v1/events", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+			if !authorizeEventSubscription(r.Context(), db, r, userID) {
+				writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this event stream.")
+				return
+			}
+			notifHub.ServeSSE(w, r)
+		}))
+		mux.HandleFunc("GET /api/v1/notifications", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			bizID := r.URL.Query().Get("business_id")
-			userID := r.URL.Query().Get("user_id")
-			items, err := notifHub.ListNotifications(r.Context(), bizID, userID, 30)
+			requestedUserID := r.URL.Query().Get("user_id")
+			if !authorizeNotificationScope(r.Context(), db, userID, bizID, requestedUserID) {
+				writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to these notifications.")
+				return
+			}
+			if bizID == "" && requestedUserID == "" {
+				requestedUserID = userID
+			}
+			items, err := notifHub.ListNotifications(r.Context(), bizID, requestedUserID, 30)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list notifications: "+err.Error())
 				return
@@ -98,20 +111,30 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 				"data": items,
 				"meta": map[string]interface{}{"count": len(items)},
 			})
-		})
-		mux.HandleFunc("POST /api/v1/notifications/{id}/read", func(w http.ResponseWriter, r *http.Request) {
+		}))
+		mux.HandleFunc("POST /api/v1/notifications/{id}/read", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			id := r.PathValue("id")
 			if id == "" {
 				writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Notification ID required")
 				return
 			}
-			if err := notifHub.MarkAsRead(r.Context(), id); err != nil {
+			result, err := db.ExecContext(r.Context(), `
+				UPDATE notifications n SET is_read = true
+				WHERE n.id = $1 AND (n.user_id = $2 OR EXISTS (
+					SELECT 1 FROM business_members bm WHERE bm.business_id = n.business_id AND bm.user_id = $2 AND bm.status = 'active'
+				))
+			`, id, userID)
+			if err != nil {
 				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to mark as read")
 				return
 			}
+			if count, _ := result.RowsAffected(); count == 0 {
+				writeError(w, http.StatusNotFound, "NOT_FOUND", "Notification not found")
+				return
+			}
 			writeJSON(w, http.StatusOK, envelope{"data": map[string]string{"id": id, "status": "read"}})
-		})
-		mux.HandleFunc("POST /api/v1/notifications/broadcast-test", func(w http.ResponseWriter, r *http.Request) {
+		}))
+		mux.HandleFunc("POST /api/v1/notifications/broadcast-test", requireAdmin(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			var body struct {
 				BusinessID string                 `json:"business_id"`
 				RequestID  string                 `json:"request_id"`
@@ -139,33 +162,17 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 				Payload:    body.Payload,
 			})
 			writeJSON(w, http.StatusOK, envelope{"data": map[string]string{"status": "published"}})
-		})
+		}))
 	}
 
 	// Media Object Storage (Option 4: MinIO Direct Upload)
 	if mediaSvc != nil {
-		mux.HandleFunc("POST /api/v1/media/upload", func(w http.ResponseWriter, r *http.Request) {
-			userID := ""
-			authHeader := r.Header.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimPrefix(authHeader, "Bearer ")
-				if claims, err := jwtParse(token, authSvc); err == nil {
-					userID = claims.Subject
-				}
-			}
+		mux.HandleFunc("POST /api/v1/media/upload", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			mediaSvc.Upload(w, r, userID)
-		})
-		mux.HandleFunc("GET /api/v1/media", func(w http.ResponseWriter, r *http.Request) {
-			userID := ""
-			authHeader := r.Header.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimPrefix(authHeader, "Bearer ")
-				if claims, err := jwtParse(token, authSvc); err == nil {
-					userID = claims.Subject
-				}
-			}
+		}))
+		mux.HandleFunc("GET /api/v1/media", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			mediaSvc.ListMedia(w, r, userID)
-		})
+		}))
 	}
 
 	mux.HandleFunc("POST /api/v1/auth/otp/request", authSvc.RequestOTP)
@@ -189,13 +196,15 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("POST /api/v1/businesses/{id}/favorite", requireAuth(authSvc, discSvc.ToggleFavorite))
 
 	// Customer service requests & appointment bookings
-	mux.HandleFunc("POST /api/v1/businesses/{id}/requests", handleCreateServiceRequest(authSvc, authSvc.DB(), notifHub))
-	mux.HandleFunc("GET /api/v1/requests/{id}", handleGetServiceRequest(authSvc.DB()))
+	mux.HandleFunc("POST /api/v1/businesses/{id}/requests", requireAuth(authSvc, handleCreateServiceRequest(notifHub)))
+	mux.HandleFunc("GET /api/v1/requests/{id}", requireAuth(authSvc, handleGetServiceRequest))
 	mux.HandleFunc("GET /api/v1/customer/requests", handleListCustomerRequests(authSvc, authSvc.DB()))
 
 	// Analytics & unserved location demand tracking (Market expansion)
 	mux.HandleFunc("POST /api/v1/analytics/unserved-location", handleRecordUnservedLocation(authSvc, authSvc.DB()))
-	mux.HandleFunc("GET /api/v1/admin/unserved-locations", handleListUnservedLocations(authSvc.DB()))
+	mux.HandleFunc("GET /api/v1/admin/unserved-locations", requireAdmin(authSvc, func(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
+		handleListUnservedLocations(db)(w, r)
+	}))
 
 	// Merchant workspace (require auth + merchant role)
 	mux.HandleFunc("GET /api/v1/merchant/profile", requireAuth(authSvc, merchantProfile))
@@ -505,15 +514,15 @@ func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWri
 
 	// Get service requests for this business
 	type reqItem struct {
-		ID             string     `json:"id"`
-		CustomerName   string     `json:"customer_name"`
-		CustomerPhone  string     `json:"customer_phone"`
-		ServiceName    *string    `json:"service_name"`
-		Description    string     `json:"description"`
-		RequestedFor   *string    `json:"requested_for"`
-		Status         string     `json:"status"`
-		CreatedAt      string     `json:"created_at"`
-		UpdatedAt      string     `json:"updated_at"`
+		ID            string  `json:"id"`
+		CustomerName  string  `json:"customer_name"`
+		CustomerPhone string  `json:"customer_phone"`
+		ServiceName   *string `json:"service_name"`
+		Description   string  `json:"description"`
+		RequestedFor  *string `json:"requested_for"`
+		Status        string  `json:"status"`
+		CreatedAt     string  `json:"created_at"`
+		UpdatedAt     string  `json:"updated_at"`
 	}
 	var requests []reqItem
 	rRows, err := db.QueryxContext(r.Context(), `
@@ -1423,8 +1432,8 @@ func merchantRevokeCurrentMember(authSvc *auth.Service, db *database.DB, w http.
 // Customer Service Requests & Unserved Demand Handlers
 // ---------------------------------------------------------------
 
-func handleCreateServiceRequest(authSvc *auth.Service, db *database.DB, notifHub *notifications.Hub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
+	return func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, customerUserID string) {
 		bizID := r.PathValue("id")
 		if bizID == "" {
 			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Business ID required.")
@@ -1461,44 +1470,8 @@ func handleCreateServiceRequest(authSvc *auth.Service, db *database.DB, notifHub
 			return
 		}
 
-		// Determine customer user ID:
-		// 1) From Bearer JWT if logged in
-		// 2) From customer_phone if provided
-		// 3) Fallback to demo customer user
-		var customerUserID string
-		authHdr := r.Header.Get("Authorization")
-		token := strings.TrimPrefix(authHdr, "Bearer ")
-		if token != "" {
-			if claims, err := jwtParse(token, authSvc); err == nil {
-				customerUserID = claims.Subject
-			}
-		}
-
-		if customerUserID == "" {
-			phone := strings.TrimSpace(req.CustomerPhone)
-			if phone == "" {
-				phone = "+919999999999" // Default demo customer phone
-			}
-			name := strings.TrimSpace(req.CustomerName)
-			if name == "" {
-				name = "Customer"
-			}
-			// Find or create customer user
-			err = db.QueryRowxContext(r.Context(), `
-				INSERT INTO users (phone_e164, display_name, status, preferred_language)
-				VALUES ($1, $2, 'active', 'en')
-				ON CONFLICT (phone_e164) DO UPDATE SET display_name = COALESCE(users.display_name, EXCLUDED.display_name)
-				RETURNING id
-			`, phone, name).Scan(&customerUserID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve customer: "+err.Error())
-				return
-			}
-			// Ensure role is customer
-			_, _ = db.ExecContext(r.Context(), `
-				INSERT INTO user_roles (user_id, role) VALUES ($1, 'customer') ON CONFLICT DO NOTHING
-			`, customerUserID)
-		}
+		// Customer identity comes exclusively from the verified bearer token.
+		// Do not accept a caller-supplied phone number or create accounts from a booking request.
 
 		// Insert service request
 		var reqID string
@@ -1562,23 +1535,23 @@ func handleCreateServiceRequest(authSvc *auth.Service, db *database.DB, notifHub
 	}
 }
 
-func handleGetServiceRequest(db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		reqID := r.PathValue("id")
-		if reqID == "" {
-			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Request ID required.")
-			return
-		}
+func handleGetServiceRequest(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	reqID := r.PathValue("id")
+	if reqID == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Request ID required.")
+		return
+	}
 
-		var id, bizID, bizName, desc, status string
-		var svcID, svcName, requestedFor, phone, customerName *string
-		var createdAt, updatedAt time.Time
+	var id, bizID, bizName, desc, status string
+	var svcID, svcName, requestedFor, phone, customerName *string
+	var createdAt, updatedAt time.Time
 
-		err := db.QueryRowxContext(r.Context(), `
+	var customerUserID string
+	err := db.QueryRowxContext(r.Context(), `
 			SELECT sr.id, sr.business_id, b.name as business_name,
 			       sr.service_id, s.name as service_name,
 			       sr.description, sr.requested_for, sr.status,
-			       u.display_name, u.phone_e164,
+			       u.display_name, u.phone_e164, sr.customer_user_id,
 			       sr.created_at, sr.updated_at
 			FROM service_requests sr
 			JOIN businesses b ON b.id = sr.business_id
@@ -1586,30 +1559,33 @@ func handleGetServiceRequest(db *database.DB) http.HandlerFunc {
 			LEFT JOIN services s ON s.id = sr.service_id
 			WHERE sr.id = $1
 		`, reqID).Scan(&id, &bizID, &bizName, &svcID, &svcName, &desc, &requestedFor, &status,
-			&customerName, &phone, &createdAt, &updatedAt)
-		if err != nil {
-			writeError(w, http.StatusNotFound, "NOT_FOUND", "Service request not found.")
-			return
-		}
-
-		writeJSON(w, http.StatusOK, envelope{
-			"data": map[string]interface{}{
-				"id":             id,
-				"business_id":    bizID,
-				"business_name":  bizName,
-				"service_id":     svcID,
-				"service_name":   svcName,
-				"description":    desc,
-				"requested_for":  requestedFor,
-				"status":         status,
-				"customer_name":  customerName,
-				"customer_phone": phone,
-				"created_at":     createdAt.Format(time.RFC3339),
-				"updated_at":     updatedAt.Format(time.RFC3339),
-			},
-			"meta": map[string]string{"request_id": "get-service-request"},
-		})
+		&customerName, &phone, &customerUserID, &createdAt, &updatedAt)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Service request not found.")
+		return
 	}
+	if customerUserID != userID && !hasBusinessMembership(r.Context(), db, userID, bizID) {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this service request.")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{
+			"id":             id,
+			"business_id":    bizID,
+			"business_name":  bizName,
+			"service_id":     svcID,
+			"service_name":   svcName,
+			"description":    desc,
+			"requested_for":  requestedFor,
+			"status":         status,
+			"customer_name":  customerName,
+			"customer_phone": phone,
+			"created_at":     createdAt.Format(time.RFC3339),
+			"updated_at":     updatedAt.Format(time.RFC3339),
+		},
+		"meta": map[string]string{"request_id": "get-service-request"},
+	})
 }
 
 func handleListCustomerRequests(authSvc *auth.Service, db *database.DB) http.HandlerFunc {
@@ -1768,6 +1744,49 @@ func handleListUnservedLocations(db *database.DB) http.HandlerFunc {
 }
 
 type authedHandler func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string)
+
+func hasBusinessMembership(ctx context.Context, db *database.DB, userID, businessID string) bool {
+	var allowed bool
+	_ = db.QueryRowxContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM business_members
+			WHERE business_id = $1 AND user_id = $2 AND status = 'active'
+			UNION
+			SELECT 1 FROM businesses WHERE id = $1 AND owner_user_id = $2 AND status != 'deleted'
+		)
+	`, businessID, userID).Scan(&allowed)
+	return allowed
+}
+
+func authorizeNotificationScope(ctx context.Context, db *database.DB, userID, businessID, requestedUserID string) bool {
+	if businessID == "" && requestedUserID == "" {
+		return true
+	}
+	if requestedUserID != "" && requestedUserID != userID {
+		return false
+	}
+	return businessID == "" || hasBusinessMembership(ctx, db, userID, businessID)
+}
+
+func authorizeEventSubscription(ctx context.Context, db *database.DB, r *http.Request, userID string) bool {
+	businessID := r.URL.Query().Get("business_id")
+	requestID := r.URL.Query().Get("request_id")
+	requestedUserID := r.URL.Query().Get("user_id")
+	if requestedUserID != "" && requestedUserID != userID {
+		return false
+	}
+	if businessID != "" && !hasBusinessMembership(ctx, db, userID, businessID) {
+		return false
+	}
+	if requestID != "" {
+		var customerID, requestBusinessID string
+		err := db.QueryRowxContext(ctx, `SELECT customer_user_id, business_id FROM service_requests WHERE id = $1`, requestID).Scan(&customerID, &requestBusinessID)
+		if err != nil || (customerID != userID && !hasBusinessMembership(ctx, db, userID, requestBusinessID)) {
+			return false
+		}
+	}
+	return businessID != "" || requestID != "" || requestedUserID != ""
+}
 
 func requireAuth(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
