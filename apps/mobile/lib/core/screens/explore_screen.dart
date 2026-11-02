@@ -646,10 +646,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
               child: BannerCard(
-                badgeText: 'New Arrivals',
-                title: 'Monsoon Home Care Sale',
-                subtitle: 'Up to 20% off on plumbing & electrical services this week',
-                onTap: () {},
+                badgeText: 'Discover nearby',
+                title: 'Find your local essentials',
+                subtitle: 'Browse shops and services in your area',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
               ),
             ),
             const SizedBox(height: 18),
@@ -701,7 +701,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: state.isLoading && state.items.isEmpty
                   ? _buildSkeletonList()
                   : state.error != null && state.items.isEmpty
-                      ? _buildEmpty(state.error!)
+                      ? _buildEmpty('Unable to load nearby businesses. Please check your connection and try again.')
                       : state.items.isEmpty
                           ? _buildUnservedOrEmptyState(appLocation)
                           : RefreshIndicator(

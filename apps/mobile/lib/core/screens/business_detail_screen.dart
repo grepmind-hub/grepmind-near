@@ -16,10 +16,12 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
   const BusinessDetailScreen({super.key, required this.businessId});
 
   @override
-  ConsumerState<BusinessDetailScreen> createState() => _BusinessDetailScreenState();
+  ConsumerState<BusinessDetailScreen> createState() =>
+      _BusinessDetailScreenState();
 }
 
-class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> with SingleTickerProviderStateMixin {
+class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
+    with SingleTickerProviderStateMixin {
   bool _isFavorited = false;
   late TabController _tabController;
 
@@ -93,9 +95,31 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(businessDetailProvider);
-    final biz = state.detail ?? _stubBusiness();
-    final hours = state.businessHours.isNotEmpty ? state.businessHours : _defaultHours();
-    final products = state.products.isNotEmpty ? state.products : _defaultProducts(biz);
+    final biz = state.detail;
+    if (biz == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Business')),
+        body: Center(
+          child: state.isLoading
+              ? const CircularProgressIndicator()
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Business details are unavailable.'),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => ref
+                          .read(businessDetailProvider.notifier)
+                          .load(widget.businessId),
+                      child: const Text('Try again'),
+                    ),
+                  ],
+                ),
+        ),
+      );
+    }
+    final hours = state.businessHours;
+    final products = state.products;
     final isFood = _isFoodBusiness(biz);
     final isHotel = _isHotelBusiness(biz);
 
@@ -118,7 +142,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.mainText),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 18,
+                      color: AppTheme.mainText,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -133,11 +161,16 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     ),
                     child: IconButton(
                       icon: Icon(
-                        _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        _isFavorited
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
                         size: 20,
-                        color: _isFavorited ? AppTheme.error : AppTheme.mainText,
+                        color: _isFavorited
+                            ? AppTheme.error
+                            : AppTheme.mainText,
                       ),
-                      onPressed: () => setState(() => _isFavorited = !_isFavorited),
+                      onPressed: () =>
+                          setState(() => _isFavorited = !_isFavorited),
                     ),
                   ),
                 ),
@@ -149,7 +182,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.share_outlined, size: 20, color: AppTheme.mainText),
+                      icon: const Icon(
+                        Icons.share_outlined,
+                        size: 20,
+                        color: AppTheme.mainText,
+                      ),
                       onPressed: () {},
                     ),
                   ),
@@ -159,7 +196,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (biz.coverPhotoUrl != null && biz.coverPhotoUrl!.isNotEmpty)
+                    if (biz.coverPhotoUrl != null &&
+                        biz.coverPhotoUrl!.isNotEmpty)
                       Image.network(
                         biz.coverPhotoUrl!,
                         fit: BoxFit.cover,
@@ -214,7 +252,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         ),
                         if (biz.verificationStatus == 'verified')
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFECFDF3),
                               borderRadius: BorderRadius.circular(10),
@@ -222,7 +263,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.verified, size: 14, color: AppTheme.primary),
+                                Icon(
+                                  Icons.verified,
+                                  size: 14,
+                                  color: AppTheme.primary,
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Verified',
@@ -242,7 +287,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     // Rating & Category & Distance
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 18,
+                          color: Color(0xFFF59E0B),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           (biz.rating ?? 4.8).toStringAsFixed(1),
@@ -260,9 +309,17 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                             color: AppTheme.secondaryText,
                           ),
                         ),
-                        const Text(' • ', style: TextStyle(color: AppTheme.secondaryText)),
+                        const Text(
+                          ' • ',
+                          style: TextStyle(color: AppTheme.secondaryText),
+                        ),
                         Text(
-                          biz.categoryName ?? (isHotel ? 'Hotels & Stays' : (isFood ? 'Restaurant & Food' : 'Local Business')),
+                          biz.categoryName ??
+                              (isHotel
+                                  ? 'Hotels & Stays'
+                                  : (isFood
+                                        ? 'Restaurant & Food'
+                                        : 'Local Business')),
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.secondaryText,
@@ -270,7 +327,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           ),
                         ),
                         if (biz.distanceM != null) ...[
-                          const Text(' • ', style: TextStyle(color: AppTheme.secondaryText)),
+                          const Text(
+                            ' • ',
+                            style: TextStyle(color: AppTheme.secondaryText),
+                          ),
                           Text(
                             biz.distanceText,
                             style: const TextStyle(
@@ -290,7 +350,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       runSpacing: 6,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFECFDF3),
                             borderRadius: BorderRadius.circular(8),
@@ -298,7 +361,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.circle, size: 8, color: Color(0xFF15803D)),
+                              Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: Color(0xFF15803D),
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Open Now • Closes 10:30 PM',
@@ -313,16 +380,25 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         ),
                         if (isFood)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.delivery_dining_rounded, size: 14, color: AppTheme.primary),
+                                const Icon(
+                                  Icons.delivery_dining_rounded,
+                                  size: 14,
+                                  color: AppTheme.primary,
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   '🛵 ${biz.deliveryTimeMins > 0 ? biz.deliveryTimeMins : 35} mins • Min ₹${biz.minOrderAmount > 0 ? biz.minOrderAmount.toInt() : 149}',
@@ -337,16 +413,25 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           ),
                         if (isHotel)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0FDF4),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFBBF7D0)),
+                              border: Border.all(
+                                color: const Color(0xFFBBF7D0),
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.hotel_rounded, size: 14, color: Color(0xFF0F766E)),
+                                Icon(
+                                  Icons.hotel_rounded,
+                                  size: 14,
+                                  color: Color(0xFF0F766E),
+                                ),
                                 SizedBox(width: 5),
                                 Text(
                                   'Check-in 12:00 PM • 24/7 Front Desk',
@@ -372,25 +457,33 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           Icons.phone_rounded,
                           const Color(0xFFE3EEFF),
                           AppTheme.primary,
-                          () => _launchUrl('tel:${biz.phoneE164 ?? '+919861000008'}'),
+                          () => _launchUrl(
+                            'tel:${biz.phoneE164 ?? '+919861000008'}',
+                          ),
                         ),
                         _buildCircleAction(
                           'Directions',
                           Icons.directions_rounded,
                           const Color(0xFFE3EEFF),
                           AppTheme.primary,
-                          () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}'),
+                          () => _launchUrl(
+                            'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}',
+                          ),
                         ),
                         _buildCircleAction(
                           'WhatsApp',
                           Icons.chat_bubble_rounded,
                           const Color(0xFFDCFCE7),
                           const Color(0xFF16A34A),
-                          () => _launchUrl('https://wa.me/${biz.whatsappE164 ?? biz.phoneE164 ?? '+919861000008'}'),
+                          () => _launchUrl(
+                            'https://wa.me/${biz.whatsappE164 ?? biz.phoneE164 ?? '+919861000008'}',
+                          ),
                         ),
                         _buildCircleAction(
                           'Save',
-                          _isFavorited ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                          _isFavorited
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
                           const Color(0xFFE3EEFF),
                           AppTheme.primary,
                           () => setState(() => _isFavorited = !_isFavorited),
@@ -412,11 +505,21 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   unselectedLabelColor: AppTheme.secondaryText,
                   indicatorColor: AppTheme.primary,
                   indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                  unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                   tabs: [
                     const Tab(text: 'About'),
-                    Tab(text: isFood ? 'Menu & Food' : (isHotel ? 'Rooms & Stays' : 'Products')),
+                    Tab(
+                      text: isFood
+                          ? 'Menu & Food'
+                          : (isHotel ? 'Rooms & Stays' : 'Products'),
+                    ),
                     const Tab(text: 'Offers'),
                     const Tab(text: 'Reviews'),
                   ],
@@ -441,7 +544,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
     );
   }
 
-  Widget _buildBottomBar(Business biz, List<Product> products, bool isFood, bool isHotel) {
+  Widget _buildBottomBar(
+    Business biz,
+    List<Product> products,
+    bool isFood,
+    bool isHotel,
+  ) {
     if (_cart.isNotEmpty) {
       final total = _getCartTotal(products);
       return Container(
@@ -463,7 +571,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               backgroundColor: const Color(0xFF15803D),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -471,20 +581,31 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '$_cartItemCount items',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Text(
                       '₹${total.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -492,10 +613,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   children: [
                     Text(
                       'View Cart & Order',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                     SizedBox(width: 6),
-                    Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
                   ],
                 ),
               ],
@@ -525,12 +654,28 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _openTableReservationSheet(biz),
-                      icon: const Icon(Icons.table_restaurant_rounded, size: 18, color: Color(0xFF0F766E)),
-                      label: const Text('Reserve Table', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F766E))),
+                      icon: const Icon(
+                        Icons.table_restaurant_rounded,
+                        size: 18,
+                        color: Color(0xFF0F766E),
+                      ),
+                      label: const Text(
+                        'Reserve Table',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+                        side: const BorderSide(
+                          color: Color(0xFF0F766E),
+                          width: 1.5,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -540,113 +685,187 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       onPressed: () {
                         _tabController.animateTo(1);
                       },
-                      icon: const Icon(Icons.delivery_dining_rounded, size: 20, color: Colors.white),
-                      label: const Text('Order Delivery', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                      icon: const Icon(
+                        Icons.delivery_dining_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Order Delivery',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
                 ],
               )
             : (isHotel
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _launchUrl('tel:${biz.phoneE164 ?? '+919861000008'}'),
-                          icon: const Icon(Icons.phone_in_talk_rounded, size: 18, color: AppTheme.primary),
-                          label: const Text('Call Desk', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primary)),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppTheme.primary, width: 1.5),
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _openHotelRoomBookingSheet(biz),
-                          icon: const Icon(Icons.calendar_month_rounded, size: 19, color: Colors.white),
-                          label: const Text('Book Stay / Room', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : ElevatedButton(
-                    onPressed: () => _navigateToServiceRequest(biz),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  ? Row(
                       children: [
-                        Icon(Icons.handyman_rounded, size: 20, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Request Service / Book Pro',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _launchUrl(
+                              'tel:${biz.phoneE164 ?? '+919861000008'}',
+                            ),
+                            icon: const Icon(
+                              Icons.phone_in_talk_rounded,
+                              size: 18,
+                              color: AppTheme.primary,
+                            ),
+                            label: const Text(
+                              'Call Desk',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                color: AppTheme.primary,
+                                width: 1.5,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _openHotelRoomBookingSheet(biz),
+                            icon: const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 19,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Book Stay / Room',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                  )),
+                    )
+                  : ElevatedButton(
+                      onPressed: () => _navigateToServiceRequest(biz),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.handyman_rounded,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Request Service / Book Pro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
       ),
     );
   }
 
-  Widget _buildAboutTab(Business biz, List<BusinessHour> hours, bool isFood, bool isHotel) {
+  Widget _buildAboutTab(
+    Business biz,
+    List<BusinessHour> hours,
+    bool isFood,
+    bool isHotel,
+  ) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
       children: [
         // About Section
         const Text(
           'About the Business',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.mainText,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           biz.description != null && biz.description!.isNotEmpty
               ? biz.description!
               : (isHotel
-                  ? 'Luxury beachfront resort featuring ocean-view balconies, infinity lagoon pool, and authentic Ayurvedic spa on Puri Marine Drive.'
-                  : (isFood
-                      ? 'Authentic Odia cuisine, Mughlai specialties, and tandoor delicacies with clean hygiene standards and speedy home delivery.'
-                      : 'Premier local provider offering genuine products, verified technicians, and fast on-demand services across the city.')),
-          style: const TextStyle(fontSize: 13, height: 1.5, color: AppTheme.secondaryText),
+                    ? 'Luxury beachfront resort featuring ocean-view balconies, infinity lagoon pool, and authentic Ayurvedic spa on Puri Marine Drive.'
+                    : (isFood
+                          ? 'Authentic Odia cuisine, Mughlai specialties, and tandoor delicacies with clean hygiene standards and speedy home delivery.'
+                          : 'Premier local provider offering genuine products, verified technicians, and fast on-demand services across the city.')),
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.5,
+            color: AppTheme.secondaryText,
+          ),
         ),
         const SizedBox(height: 20),
 
         // Amenities & Highlights
         if (biz.amenities.isNotEmpty || isFood || isHotel) ...[
           Text(
-            isHotel ? 'Resort Amenities & Features' : (isFood ? 'Dining & Kitchen Highlights' : 'Features & Facilities'),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+            isHotel
+                ? 'Resort Amenities & Features'
+                : (isFood
+                      ? 'Dining & Kitchen Highlights'
+                      : 'Features & Facilities'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.mainText,
+            ),
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: (biz.amenities.isNotEmpty ? biz.amenities : _defaultAmenities(isFood, isHotel)).map((amenity) {
+            children: biz.amenities.map((amenity) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(10),
@@ -655,11 +874,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 14,
+                      color: Color(0xFF16A34A),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       amenity,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF15803D)),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF15803D),
+                      ),
                     ),
                   ],
                 ),
@@ -672,7 +899,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
         // Address & Map
         const Text(
           'Location & Address',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.mainText,
+          ),
         ),
         const SizedBox(height: 10),
         Container(
@@ -687,8 +918,15 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(color: AppTheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 22),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: AppTheme.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -696,20 +934,36 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      biz.addressText.isNotEmpty ? biz.addressText : 'Forest Park, Bhubaneswar, Odisha',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                      biz.addressText.isNotEmpty
+                          ? biz.addressText
+                          : 'Forest Park, Bhubaneswar, Odisha',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.mainText,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      biz.displayAddress.isNotEmpty ? biz.displayAddress : 'Bhubaneswar, Odisha',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+                      biz.displayAddress.isNotEmpty
+                          ? biz.displayAddress
+                          : 'Bhubaneswar, Odisha',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => _launchUrl('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}'),
-                child: const Text('Map', style: TextStyle(fontWeight: FontWeight.w700)),
+                onPressed: () => _launchUrl(
+                  'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}',
+                ),
+                child: const Text(
+                  'Map',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
@@ -719,7 +973,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
         // Opening Hours
         const Text(
           'Operating Schedule',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.mainText,
+          ),
         ),
         const SizedBox(height: 10),
         Container(
@@ -729,15 +987,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE4E7EC)),
           ),
-          child: Column(
-            children: hours.map((h) => _buildHourRow(h)).toList(),
-          ),
+          child: Column(children: hours.map((h) => _buildHourRow(h)).toList()),
         ),
       ],
     );
   }
 
-  Widget _buildProductsOrMenuTab(List<Product> products, Business biz, bool isFood, bool isHotel) {
+  Widget _buildProductsOrMenuTab(
+    List<Product> products,
+    Business biz,
+    bool isFood,
+    bool isHotel,
+  ) {
     if (isHotel) {
       return ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
@@ -753,13 +1014,16 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
     // Food Menu View with Course Filter Pills & Dietary Toggle
     final categories = <String>['All'];
     for (final p in products) {
-      if (p.foodCategory != null && p.foodCategory!.isNotEmpty && !categories.contains(p.foodCategory)) {
+      if (p.foodCategory != null &&
+          p.foodCategory!.isNotEmpty &&
+          !categories.contains(p.foodCategory)) {
         categories.add(p.foodCategory!);
       }
     }
 
     final filtered = products.where((p) {
-      if (_selectedFoodCategory != 'All' && p.foodCategory != _selectedFoodCategory) {
+      if (_selectedFoodCategory != 'All' &&
+          p.foodCategory != _selectedFoodCategory) {
         return false;
       }
       if (_vegOnly && !p.isVeg) {
@@ -789,20 +1053,35 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFF16A34A),
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: const Center(
-                        child: CircleAvatar(radius: 3, backgroundColor: Color(0xFF16A34A)),
+                        child: CircleAvatar(
+                          radius: 3,
+                          backgroundColor: Color(0xFF16A34A),
+                        ),
                       ),
                     ),
-                    label: const Text('Veg Only', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    label: const Text(
+                      'Veg Only',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     selected: _vegOnly,
                     onSelected: (val) => setState(() => _vegOnly = val),
                     backgroundColor: const Color(0xFFF8F9FA),
                     selectedColor: const Color(0xFFDCFCE7),
                     checkmarkColor: const Color(0xFF16A34A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFE4E7EC))),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(color: Color(0xFFE4E7EC)),
+                    ),
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -814,16 +1093,26 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       label: Text(cat),
                       selected: isSelected,
                       onSelected: (selected) {
-                        if (selected) setState(() => _selectedFoodCategory = cat);
+                        if (selected)
+                          setState(() => _selectedFoodCategory = cat);
                       },
                       labelStyle: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         color: isSelected ? Colors.white : AppTheme.mainText,
                       ),
                       backgroundColor: const Color(0xFFF8F9FA),
                       selectedColor: AppTheme.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? AppTheme.primary : const Color(0xFFE4E7EC))),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : const Color(0xFFE4E7EC),
+                        ),
+                      ),
                     ),
                   );
                 }),
@@ -839,11 +1128,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.restaurant_menu_rounded, size: 48, color: AppTheme.hintText),
+                      const Icon(
+                        Icons.restaurant_menu_rounded,
+                        size: 48,
+                        color: AppTheme.hintText,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'No items found in $_selectedFoodCategory',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.secondaryText),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.secondaryText,
+                        ),
                       ),
                     ],
                   ),
@@ -851,7 +1148,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const Divider(height: 24, color: Color(0xFFF2F4F7)),
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 24, color: Color(0xFFF2F4F7)),
                   itemBuilder: (context, i) {
                     final item = filtered[i];
                     return _buildFoodItemRow(biz, item);
@@ -880,7 +1178,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     height: 16,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: p.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        color: p.isVeg
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFDC2626),
                         width: 1.5,
                       ),
                       borderRadius: BorderRadius.circular(3),
@@ -891,7 +1191,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         height: 6,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: p.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                          color: p.isVeg
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFFDC2626),
                         ),
                       ),
                     ),
@@ -900,23 +1202,45 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   if (p.foodCategory != null && p.foodCategory!.isNotEmpty)
                     Text(
                       p.foodCategory!,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
-                  if (p.preparationTimeMin != null && p.preparationTimeMin! > 0) ...[
-                    const Text(' • ', style: TextStyle(color: AppTheme.hintText)),
-                    Text('⏱️ ${p.preparationTimeMin}m', style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+                  if (p.preparationTimeMin != null &&
+                      p.preparationTimeMin! > 0) ...[
+                    const Text(
+                      ' • ',
+                      style: TextStyle(color: AppTheme.hintText),
+                    ),
+                    Text(
+                      '⏱️ ${p.preparationTimeMin}m',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
                   ],
                 ],
               ),
               const SizedBox(height: 6),
               Text(
                 p.name,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 p.priceText,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.mainText,
+                ),
               ),
               if (p.description != null && p.description!.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -924,7 +1248,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                   p.description!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, height: 1.4, color: AppTheme.secondaryText),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: AppTheme.secondaryText,
+                  ),
                 ),
               ],
             ],
@@ -946,7 +1274,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               child: Center(
                 child: Icon(
                   p.isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
-                  color: p.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                  color: p.isVeg
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFDC2626),
                   size: 32,
                 ),
               ),
@@ -960,13 +1290,22 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: OutlinedButton(
                       onPressed: () => _addToCart(p.id),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF16A34A), width: 1.5),
+                        side: const BorderSide(
+                          color: Color(0xFF16A34A),
+                          width: 1.5,
+                        ),
                         padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text(
                         '+ ADD',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF16A34A),
+                        ),
                       ),
                     ),
                   )
@@ -983,19 +1322,37 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         InkWell(
                           onTap: () => _removeFromCart(p.id),
                           child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                            child: Icon(Icons.remove, size: 16, color: Colors.white),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            child: Icon(
+                              Icons.remove,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         Text(
                           '$qty',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                         InkWell(
                           onTap: () => _addToCart(p.id),
                           child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                            child: Icon(Icons.add, size: 16, color: Colors.white),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
@@ -1041,26 +1398,50 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.king_bed_rounded, size: 14, color: Colors.white),
+                      Icon(
+                        Icons.king_bed_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                       SizedBox(width: 4),
-                      Text('King Deluxe Stay', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                      Text(
+                        'King Deluxe Stay',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('Complimentary Breakfast', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0F766E))),
+                  child: const Text(
+                    'Complimentary Breakfast',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F766E),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1072,13 +1453,21 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               children: [
                 Text(
                   room.name,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mainText,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 if (room.description != null)
                   Text(
                     room.description!,
-                    style: const TextStyle(fontSize: 12, height: 1.4, color: AppTheme.secondaryText),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: AppTheme.secondaryText,
+                    ),
                   ),
                 const SizedBox(height: 14),
                 // Price & Reserve CTA
@@ -1090,23 +1479,46 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       children: [
                         Text(
                           '₹${room.price?.toStringAsFixed(0) ?? "4,800"}',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.primary,
+                          ),
                         ),
                         const Text(
                           '/ night + taxes',
-                          style: TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.secondaryText,
+                          ),
                         ),
                       ],
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _openHotelRoomBookingSheet(biz, room),
-                      icon: const Icon(Icons.bookmark_add_rounded, size: 16, color: Colors.white),
-                      label: const Text('Reserve Room', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                      icon: const Icon(
+                        Icons.bookmark_add_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Reserve Room',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 11,
+                        ),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ],
@@ -1127,14 +1539,20 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         bool isDelivery = true;
-        final addressController = TextEditingController(text: 'Plot 42, Saheed Nagar, Bhubaneswar, 751007');
+        final addressController = TextEditingController(
+          text: 'Plot 42, Saheed Nagar, Bhubaneswar, 751007',
+        );
         final instructionsController = TextEditingController();
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final cartItems = products.where((p) => (_cart[p.id] ?? 0) > 0).toList();
+            final cartItems = products
+                .where((p) => (_cart[p.id] ?? 0) > 0)
+                .toList();
             final itemTotal = _getCartTotal(products);
-            final deliveryFee = isDelivery ? (itemTotal >= 500 ? 0.0 : 30.0) : 0.0;
+            final deliveryFee = isDelivery
+                ? (itemTotal >= 500 ? 0.0 : 30.0)
+                : 0.0;
             final taxes = 18.0;
             final grandTotal = itemTotal + deliveryFee + taxes;
 
@@ -1153,7 +1571,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: Container(
                       width: 44,
                       height: 5,
-                      decoration: BoxDecoration(color: const Color(0xFFE4E7EC), borderRadius: BorderRadius.circular(10)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE4E7EC),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1162,7 +1583,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     children: [
                       Text(
                         'Order from ${biz.name}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.mainText,
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -1188,10 +1613,20 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isDelivery ? Colors.white : Colors.transparent,
+                                color: isDelivery
+                                    ? Colors.white
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: isDelivery
-                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
                                     : null,
                               ),
                               child: Center(
@@ -1199,8 +1634,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                   '🛵 Home Delivery (35m)',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: isDelivery ? FontWeight.w800 : FontWeight.w500,
-                                    color: isDelivery ? AppTheme.primary : AppTheme.secondaryText,
+                                    fontWeight: isDelivery
+                                        ? FontWeight.w800
+                                        : FontWeight.w500,
+                                    color: isDelivery
+                                        ? AppTheme.primary
+                                        : AppTheme.secondaryText,
                                   ),
                                 ),
                               ),
@@ -1209,15 +1648,26 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         ),
                         Expanded(
                           child: InkWell(
-                            onTap: () => setSheetState(() => isDelivery = false),
+                            onTap: () =>
+                                setSheetState(() => isDelivery = false),
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: !isDelivery ? Colors.white : Colors.transparent,
+                                color: !isDelivery
+                                    ? Colors.white
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: !isDelivery
-                                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
                                     : null,
                               ),
                               child: Center(
@@ -1225,8 +1675,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                   '🥡 Takeaway Pickup',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    fontWeight: !isDelivery ? FontWeight.w800 : FontWeight.w500,
-                                    color: !isDelivery ? AppTheme.primary : AppTheme.secondaryText,
+                                    fontWeight: !isDelivery
+                                        ? FontWeight.w800
+                                        : FontWeight.w500,
+                                    color: !isDelivery
+                                        ? AppTheme.primary
+                                        : AppTheme.secondaryText,
                                   ),
                                 ),
                               ),
@@ -1243,7 +1697,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: ListView(
                       children: [
                         // Items List
-                        const Text('Items Ordered', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Items Ordered',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         ...cartItems.map((item) {
                           final qty = _cart[item.id] ?? 0;
@@ -1254,18 +1715,26 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                 Icon(
                                   item.isVeg ? Icons.circle : Icons.circle,
                                   size: 10,
-                                  color: item.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                  color: item.isVeg
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFFDC2626),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     item.name,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.mainText,
+                                    ),
                                   ),
                                 ),
                                 Container(
                                   height: 28,
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF2F4F7),
                                     borderRadius: BorderRadius.circular(6),
@@ -1278,11 +1747,22 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                           setSheetState(() {});
                                           setState(() {});
                                         },
-                                        child: const Icon(Icons.remove, size: 14),
+                                        child: const Icon(
+                                          Icons.remove,
+                                          size: 14,
+                                        ),
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        child: Text('$qty', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                        child: Text(
+                                          '$qty',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                       ),
                                       InkWell(
                                         onTap: () {
@@ -1298,7 +1778,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                 const SizedBox(width: 14),
                                 Text(
                                   '₹${((item.price ?? 0) * qty).toStringAsFixed(0)}',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.mainText,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1311,8 +1795,24 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Delivery Address', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
-                              TextButton(onPressed: () {}, child: const Text('Change', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+                              const Text(
+                                'Delivery Address',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.mainText,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {},
+                                child: const Text(
+                                  'Change',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                           Container(
@@ -1320,16 +1820,25 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F9FA),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFE4E7EC)),
+                              border: Border.all(
+                                color: const Color(0xFFE4E7EC),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.home_rounded, color: AppTheme.primary, size: 20),
+                                const Icon(
+                                  Icons.home_rounded,
+                                  color: AppTheme.primary,
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     addressController.text,
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.mainText),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.mainText,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1339,15 +1848,33 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         ],
 
                         // Cooking / Delivery Notes
-                        const Text('Special Instructions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Special Instructions',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         TextField(
                           controller: instructionsController,
                           decoration: InputDecoration(
                             hintText: 'e.g. Leave with guard, make it less spicy, extra tissues',
-                            hintStyle: const TextStyle(fontSize: 12, color: AppTheme.hintText),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE4E7EC))),
+                            hintStyle: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.hintText,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE4E7EC),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -1363,17 +1890,50 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Bill Summary', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                              const Text(
+                                'Bill Summary',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.mainText,
+                                ),
+                              ),
                               const SizedBox(height: 10),
-                              _buildBillRow('Item Total', '₹${itemTotal.toStringAsFixed(0)}'),
-                              _buildBillRow('Delivery Fee', deliveryFee == 0 ? 'FREE' : '₹${deliveryFee.toStringAsFixed(0)}'),
-                              _buildBillRow('Taxes & Restaurant Packaging', '₹${taxes.toStringAsFixed(0)}'),
+                              _buildBillRow(
+                                'Item Total',
+                                '₹${itemTotal.toStringAsFixed(0)}',
+                              ),
+                              _buildBillRow(
+                                'Delivery Fee',
+                                deliveryFee == 0
+                                    ? 'FREE'
+                                    : '₹${deliveryFee.toStringAsFixed(0)}',
+                              ),
+                              _buildBillRow(
+                                'Taxes & Restaurant Packaging',
+                                '₹${taxes.toStringAsFixed(0)}',
+                              ),
                               const Divider(height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('To Pay', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.mainText)),
-                                  Text('₹${grandTotal.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                                  const Text(
+                                    'To Pay',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.mainText,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${grandTotal.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -1391,31 +1951,35 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           : () async {
                               Navigator.pop(ctx);
 
-                              final newOrderId = 'GN-FD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-                                final orderItems = cartItems.map((p) {
-                                  return CustomerOrderItem(
-                                    id: p.id,
-                                    name: p.name,
-                                    price: p.price ?? 0.0,
-                                    quantity: _cart[p.id] ?? 1,
-                                    isVeg: p.isVeg,
-                                    course: p.foodCategory,
-                                  );
-                                }).toList();
+                              final newOrderId =
+                                  'GN-FD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+                              final orderItems = cartItems.map((p) {
+                                return CustomerOrderItem(
+                                  id: p.id,
+                                  name: p.name,
+                                  price: p.price ?? 0.0,
+                                  quantity: _cart[p.id] ?? 1,
+                                  isVeg: p.isVeg,
+                                  course: p.foodCategory,
+                                );
+                              }).toList();
 
-                                final newOrder = CustomerOrder(
-                                  id: newOrderId,
-                                  businessId: biz.id,
-                                  businessName: biz.name,
-                                  businessLocality: biz.locality ?? 'Bhubaneswar',
-                                  businessPhone: biz.phoneE164,
-                                  businessCoverUrl: biz.coverPhotoUrl,
+                              final newOrder = CustomerOrder(
+                                id: newOrderId,
+                                businessId: biz.id,
+                                businessName: biz.name,
+                                businessLocality: biz.locality ?? 'Bhubaneswar',
+                                businessPhone: biz.phoneE164,
+                                businessCoverUrl: biz.coverPhotoUrl,
                                 orderType: OrderType.foodDelivery,
                                 status: OrderStatus.preparing,
                                 createdAt: DateTime.now(),
                                 isDelivery: isDelivery,
                                 deliveryAddress: addressController.text,
-                                specialInstructions: instructionsController.text.isNotEmpty ? instructionsController.text : null,
+                                specialInstructions:
+                                    instructionsController.text.isNotEmpty
+                                    ? instructionsController.text
+                                    : null,
                                 items: orderItems,
                                 itemTotal: itemTotal,
                                 deliveryFee: deliveryFee,
@@ -1428,16 +1992,23 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                                 riderRating: 4.9,
                               );
 
-                              ref.read(customerOrdersProvider.notifier).addOrder(newOrder);
+                              ref
+                                  .read(customerOrdersProvider.notifier)
+                                  .addOrder(newOrder);
 
                               // Broadcast synthetic event to Go SSE hub
                               try {
-                                await apiClient.post('/notifications/broadcast-test', data: {
-                                  'business_id': biz.id,
-                                  'title': 'New Food Delivery Order (${isDelivery ? "Home Delivery" : "Takeaway"})',
-                                  'body': 'Customer Debabrata Sahu ordered $_cartItemCount items (₹${grandTotal.toStringAsFixed(0)}).',
-                                  'event_type': 'service_request.created',
-                                });
+                                await apiClient.post(
+                                  '/notifications/broadcast-test',
+                                  data: {
+                                    'business_id': biz.id,
+                                    'title':
+                                        'New Food Delivery Order (${isDelivery ? "Home Delivery" : "Takeaway"})',
+                                    'body':
+                                        'Customer Debabrata Sahu ordered $_cartItemCount items (₹${grandTotal.toStringAsFixed(0)}).',
+                                    'event_type': 'service_request.created',
+                                  },
+                                );
                               } catch (_) {}
 
                               setState(() => _cart.clear());
@@ -1446,16 +2017,26 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF15803D),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Place Order • ₹${grandTotal.toStringAsFixed(0)}',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -1475,48 +2056,93 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                child: const Icon(Icons.restaurant_rounded, color: Color(0xFF15803D), size: 36),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.restaurant_rounded,
+                  color: Color(0xFF15803D),
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Order Confirmed!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.mainText,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Kitchen is preparing your food at ${biz.name}.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.secondaryText,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Order ID', style: TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
-                        Text(order.id,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Order ID',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                        Text(
+                          order.id,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Estimated Time', style: TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
-                        Text(order.isDelivery ? '30–35 mins' : '15–20 mins (Pickup)',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+                        const Text(
+                          'Estimated Time',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                        Text(
+                          order.isDelivery
+                              ? '30–35 mins'
+                              : '15–20 mins (Pickup)',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1535,12 +2161,24 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       ),
                     );
                   },
-                  icon: const Icon(Icons.navigation_rounded, size: 18, color: Colors.white),
-                  label: const Text('Done & Track Order', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                  icon: const Icon(
+                    Icons.navigation_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Done & Track Order',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -1579,7 +2217,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: Container(
                       width: 44,
                       height: 5,
-                      decoration: BoxDecoration(color: const Color(0xFFE4E7EC), borderRadius: BorderRadius.circular(10)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE4E7EC),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1589,11 +2230,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       Expanded(
                         child: Text(
                           'Reserve a Table • ${biz.name}',
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.mainText,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
+                      ),
                     ],
                   ),
                   const Divider(height: 16),
@@ -1601,7 +2249,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: ListView(
                       children: [
                         // Number of Guests
-                        const Text('Number of Guests', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Number of Guests',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -1611,13 +2266,20 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
-                                  label: Text('$count ${count == 1 ? "Guest" : "Guests"}'),
+                                  label: Text(
+                                    '$count ${count == 1 ? "Guest" : "Guests"}',
+                                  ),
                                   selected: isSel,
-                                  onSelected: (val) => setSheetState(() => guests = count),
+                                  onSelected: (val) =>
+                                      setSheetState(() => guests = count),
                                   selectedColor: const Color(0xFF0F766E),
                                   labelStyle: TextStyle(
-                                    color: isSel ? Colors.white : AppTheme.mainText,
-                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppTheme.mainText,
+                                    fontWeight: isSel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                   ),
                                 ),
                               );
@@ -1627,77 +2289,125 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         const SizedBox(height: 16),
 
                         // Dining Date
-                        const Text('Dining Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Dining Date',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children: ['Today', 'Tomorrow', 'Fri, 30 Oct', 'Sat, 31 Oct'].map((d) {
-                              final isSel = selectedDate == d;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ChoiceChip(
-                                  label: Text(d),
-                                  selected: isSel,
-                                  onSelected: (val) => setSheetState(() => selectedDate = d),
-                                  selectedColor: const Color(0xFF0F766E),
-                                  labelStyle: TextStyle(
-                                    color: isSel ? Colors.white : AppTheme.mainText,
-                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                            children:
+                                [
+                                  'Today',
+                                  'Tomorrow',
+                                  'Fri, 30 Oct',
+                                  'Sat, 31 Oct',
+                                ].map((d) {
+                                  final isSel = selectedDate == d;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ChoiceChip(
+                                      label: Text(d),
+                                      selected: isSel,
+                                      onSelected: (val) =>
+                                          setSheetState(() => selectedDate = d),
+                                      selectedColor: const Color(0xFF0F766E),
+                                      labelStyle: TextStyle(
+                                        color: isSel
+                                            ? Colors.white
+                                            : AppTheme.mainText,
+                                        fontWeight: isSel
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                           ),
                         ),
                         const SizedBox(height: 16),
 
                         // Time Slot
-                        const Text('Dining Time Slot', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Dining Time Slot',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: [
-                            '12:30 PM (Lunch)',
-                            '01:15 PM (Lunch)',
-                            '07:30 PM (Dinner)',
-                            '08:15 PM (Dinner)',
-                            '09:00 PM (Dinner)',
-                          ].map((slot) {
-                            final isSel = selectedSlot == slot;
-                            return ChoiceChip(
-                              label: Text(slot),
-                              selected: isSel,
-                              onSelected: (val) => setSheetState(() => selectedSlot = slot),
-                              selectedColor: const Color(0xFF0F766E),
-                              labelStyle: TextStyle(
-                                color: isSel ? Colors.white : AppTheme.mainText,
-                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                              ),
-                            );
-                          }).toList(),
+                          children:
+                              [
+                                '12:30 PM (Lunch)',
+                                '01:15 PM (Lunch)',
+                                '07:30 PM (Dinner)',
+                                '08:15 PM (Dinner)',
+                                '09:00 PM (Dinner)',
+                              ].map((slot) {
+                                final isSel = selectedSlot == slot;
+                                return ChoiceChip(
+                                  label: Text(slot),
+                                  selected: isSel,
+                                  onSelected: (val) =>
+                                      setSheetState(() => selectedSlot = slot),
+                                  selectedColor: const Color(0xFF0F766E),
+                                  labelStyle: TextStyle(
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppTheme.mainText,
+                                    fontWeight: isSel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                );
+                              }).toList(),
                         ),
                         const SizedBox(height: 16),
 
                         // Seating Area
-                        const Text('Seating Preference', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Seating Preference',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
-                          children: ['Indoor AC Lounge', 'Rooftop Terrace', 'Family Garden Cabin'].map((area) {
-                            final isSel = seatingArea == area;
-                            return ChoiceChip(
-                              label: Text(area),
-                              selected: isSel,
-                              onSelected: (val) => setSheetState(() => seatingArea = area),
-                              selectedColor: const Color(0xFF0F766E),
-                              labelStyle: TextStyle(
-                                color: isSel ? Colors.white : AppTheme.mainText,
-                                fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                              ),
-                            );
-                          }).toList(),
+                          children:
+                              [
+                                'Indoor AC Lounge',
+                                'Rooftop Terrace',
+                                'Family Garden Cabin',
+                              ].map((area) {
+                                final isSel = seatingArea == area;
+                                return ChoiceChip(
+                                  label: Text(area),
+                                  selected: isSel,
+                                  onSelected: (val) =>
+                                      setSheetState(() => seatingArea = area),
+                                  selectedColor: const Color(0xFF0F766E),
+                                  labelStyle: TextStyle(
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppTheme.mainText,
+                                    fontWeight: isSel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                );
+                              }).toList(),
                         ),
                       ],
                     ),
@@ -1709,7 +2419,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       onPressed: () {
                         Navigator.pop(ctx);
 
-                        final voucher = '#TB-GN-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
+                        final voucher =
+                            '#TB-GN-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
                         final tableOrder = CustomerOrder(
                           id: voucher,
                           businessId: biz.id,
@@ -1727,32 +2438,65 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           seatingArea: seatingArea,
                           voucherCode: voucher,
                         );
-                        ref.read(customerOrdersProvider.notifier).addOrder(tableOrder);
+                        ref
+                            .read(customerOrdersProvider.notifier)
+                            .addOrder(tableOrder);
 
                         showDialog(
                           context: context,
                           builder: (c) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.table_restaurant_rounded, size: 54, color: Color(0xFF0F766E)),
+                                const Icon(
+                                  Icons.table_restaurant_rounded,
+                                  size: 54,
+                                  color: Color(0xFF0F766E),
+                                ),
                                 const SizedBox(height: 12),
-                                const Text('Table Reserved!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                                const Text(
+                                  'Table Reserved!',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                                 const SizedBox(height: 6),
-                                Text('$guests Guests • $selectedDate at $selectedSlot\n$seatingArea',
-                                    textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText)),
+                                Text(
+                                  '$guests Guests • $selectedDate at $selectedSlot\n$seatingArea',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.secondaryText,
+                                  ),
+                                ),
                                 const SizedBox(height: 14),
                                 Container(
                                   padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(8)),
-                                  child: Text('Booking Reference: $voucher', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF2F4F7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Booking Reference: $voucher',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () => Navigator.pop(c),
-                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F766E)),
-                                  child: const Text('Awesome, Done!', style: TextStyle(color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0F766E),
+                                  ),
+                                  child: const Text(
+                                    'Awesome, Done!',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1762,11 +2506,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F766E),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: const Center(
-                        child: Text('Confirm Table Reservation (Zero Fee)',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                        child: Text(
+                          'Confirm Table Reservation (Zero Fee)',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1788,7 +2540,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
       builder: (ctx) {
         int nights = 2;
         int guests = 2;
-        String roomName = preselectedRoom?.name ?? 'Deluxe Sea-Facing King Room';
+        String roomName =
+            preselectedRoom?.name ?? 'Deluxe Sea-Facing King Room';
         double pricePerNight = preselectedRoom?.price ?? 4800.0;
 
         return StatefulBuilder(
@@ -1811,7 +2564,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                     child: Container(
                       width: 44,
                       height: 5,
-                      decoration: BoxDecoration(color: const Color(0xFFE4E7EC), borderRadius: BorderRadius.circular(10)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE4E7EC),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1821,11 +2577,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       Expanded(
                         child: Text(
                           'Book Stay • ${biz.name}',
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.mainText,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
+                      ),
                     ],
                   ),
                   const Divider(height: 16),
@@ -1842,14 +2605,31 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.hotel_class_rounded, color: AppTheme.primary, size: 28),
+                              const Icon(
+                                Icons.hotel_class_rounded,
+                                color: AppTheme.primary,
+                                size: 28,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(roomName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText)),
-                                    const Text('Complimentary Breakfast & Ocean View', style: TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
+                                    Text(
+                                      roomName,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.mainText,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'Complimentary Breakfast & Ocean View',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.secondaryText,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1859,7 +2639,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         const SizedBox(height: 16),
 
                         // Stay Duration
-                        const Text('Duration of Stay', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Duration of Stay',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -1869,13 +2656,20 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
-                                  label: Text('$n ${n == 1 ? "Night" : "Nights"}'),
+                                  label: Text(
+                                    '$n ${n == 1 ? "Night" : "Nights"}',
+                                  ),
                                   selected: isSel,
-                                  onSelected: (val) => setSheetState(() => nights = n),
+                                  onSelected: (val) =>
+                                      setSheetState(() => nights = n),
                                   selectedColor: AppTheme.primary,
                                   labelStyle: TextStyle(
-                                    color: isSel ? Colors.white : AppTheme.mainText,
-                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppTheme.mainText,
+                                    fontWeight: isSel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                   ),
                                 ),
                               );
@@ -1885,7 +2679,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                         const SizedBox(height: 16),
 
                         // Guests
-                        const Text('Guests', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                        const Text(
+                          'Guests',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -1895,13 +2696,20 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
-                                  label: Text('$g ${g == 1 ? "Adult" : "Adults"}'),
+                                  label: Text(
+                                    '$g ${g == 1 ? "Adult" : "Adults"}',
+                                  ),
                                   selected: isSel,
-                                  onSelected: (val) => setSheetState(() => guests = g),
+                                  onSelected: (val) =>
+                                      setSheetState(() => guests = g),
                                   selectedColor: AppTheme.primary,
                                   labelStyle: TextStyle(
-                                    color: isSel ? Colors.white : AppTheme.mainText,
-                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppTheme.mainText,
+                                    fontWeight: isSel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                   ),
                                 ),
                               );
@@ -1921,16 +2729,44 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Stay Price Summary', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                              const Text(
+                                'Stay Price Summary',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.mainText,
+                                ),
+                              ),
                               const SizedBox(height: 8),
-                              _buildBillRow('₹${pricePerNight.toStringAsFixed(0)} x $nights Nights', '₹${total.toStringAsFixed(0)}'),
-                              _buildBillRow('GST & Tourism Cess (12%)', '₹${tax.toStringAsFixed(0)}'),
+                              _buildBillRow(
+                                '₹${pricePerNight.toStringAsFixed(0)} x $nights Nights',
+                                '₹${total.toStringAsFixed(0)}',
+                              ),
+                              _buildBillRow(
+                                'GST & Tourism Cess (12%)',
+                                '₹${tax.toStringAsFixed(0)}',
+                              ),
                               const Divider(height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Total Reservation Amount', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText)),
-                                  Text('₹${finalTotal.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                                  const Text(
+                                    'Total Reservation Amount',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.mainText,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${finalTotal.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -1946,7 +2782,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       onPressed: () {
                         Navigator.pop(ctx);
 
-                        final voucher = '#MAYFAIR-PURI-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
+                        final voucher =
+                            '#MAYFAIR-PURI-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
                         final hotelOrder = CustomerOrder(
                           id: voucher,
                           businessId: biz.id,
@@ -1963,32 +2800,66 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                           hotelGuests: guests,
                           voucherCode: voucher,
                         );
-                        ref.read(customerOrdersProvider.notifier).addOrder(hotelOrder);
+                        ref
+                            .read(customerOrdersProvider.notifier)
+                            .addOrder(hotelOrder);
 
                         showDialog(
                           context: context,
                           builder: (c) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.beach_access_rounded, size: 54, color: AppTheme.primary),
+                                const Icon(
+                                  Icons.beach_access_rounded,
+                                  size: 54,
+                                  color: AppTheme.primary,
+                                ),
                                 const SizedBox(height: 12),
-                                const Text('Stay Confirmed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                                const Text(
+                                  'Stay Confirmed!',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                                 const SizedBox(height: 6),
-                                Text('$roomName\n$nights Nights • $guests Guests\nPay upon check-in at hotel desk.',
-                                    textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText)),
+                                Text(
+                                  '$roomName\n$nights Nights • $guests Guests\nPay upon check-in at hotel desk.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.secondaryText,
+                                  ),
+                                ),
                                 const SizedBox(height: 14),
                                 Container(
                                   padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(8)),
-                                  child: Text('Voucher: $voucher', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary)),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Voucher: $voucher',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () => Navigator.pop(c),
-                                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                                  child: const Text('View Booking Receipt', style: TextStyle(color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primary,
+                                  ),
+                                  child: const Text(
+                                    'View Booking Receipt',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1998,11 +2869,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: Center(
-                        child: Text('Confirm Room Voucher • ₹${finalTotal.toStringAsFixed(0)} (Pay at Hotel)',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                        child: Text(
+                          'Confirm Room Voucher • ₹${finalTotal.toStringAsFixed(0)} (Pay at Hotel)',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -2021,8 +2900,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mainText,
+            ),
+          ),
         ],
       ),
     );
@@ -2036,7 +2925,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
               id: 'o-1',
               businessId: widget.businessId,
               title: '15% OFF on Food Orders above ₹500',
-              description: 'Use code NEARFEAST at checkout for instant 15% discount.',
+              description:
+                  'Use code NEARFEAST at checkout for instant 15% discount.',
               startsAt: DateTime.now().subtract(const Duration(days: 2)),
               endsAt: DateTime.now().add(const Duration(days: 30)),
               status: 'published',
@@ -2065,27 +2955,56 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           decoration: BoxDecoration(
             color: const Color(0xFFFEF3C7).withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+            border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+            ),
           ),
           child: Row(
             children: [
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
-                child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 24),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF59E0B),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_offer_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(o.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                    Text(
+                      o.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mainText,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     if (o.description != null)
-                      Text(o.description!, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
+                      Text(
+                        o.description!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryText,
+                        ),
+                      ),
                     const SizedBox(height: 6),
-                    const Text('Valid till 30 Jun 2026', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD97706))),
+                    const Text(
+                      'Valid till 30 Jun 2026',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD97706),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2113,16 +3032,30 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
                 children: [
                   Text(
                     (biz.rating ?? 4.8).toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.mainText,
+                    ),
                   ),
                   Row(
                     children: List.generate(
                       5,
-                      (index) => const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                      (index) => const Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: Color(0xFFF59E0B),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('${biz.reviewCount ?? 128} reviews', style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+                  Text(
+                    '${biz.reviewCount ?? 128} reviews',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(width: 24),
@@ -2141,9 +3074,24 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           ),
         ),
         const SizedBox(height: 20),
-        _buildReviewCard('Debabrata Sahu', '2 days ago', 5, 'The Biryani and Paneer Butter Masala are fantastic! Hot food arrived in 25 minutes.'),
-        _buildReviewCard('Ananya Patnaik', '1 week ago', 5, 'Superb hospitality and clean ocean view rooms. The staff went above and beyond.'),
-        _buildReviewCard('Rajesh Mohanty', '2 weeks ago', 4, 'Very good food and prompt service. Authentic Odia Chhena Poda dessert was rich and tasty.'),
+        _buildReviewCard(
+          'Debabrata Sahu',
+          '2 days ago',
+          5,
+          'The Biryani and Paneer Butter Masala are fantastic! Hot food arrived in 25 minutes.',
+        ),
+        _buildReviewCard(
+          'Ananya Patnaik',
+          '1 week ago',
+          5,
+          'Superb hospitality and clean ocean view rooms. The staff went above and beyond.',
+        ),
+        _buildReviewCard(
+          'Rajesh Mohanty',
+          '2 weeks ago',
+          4,
+          'Very good food and prompt service. Authentic Odia Chhena Poda dessert was rich and tasty.',
+        ),
       ],
     );
   }
@@ -2153,7 +3101,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text('$stars ★', style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+          Text(
+            '$stars ★',
+            style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: ClipRRect(
@@ -2171,7 +3122,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
     );
   }
 
-  Widget _buildReviewCard(String author, String time, int stars, String comment) {
+  Widget _buildReviewCard(
+    String author,
+    String time,
+    int stars,
+    String comment,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -2186,25 +3142,52 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(author, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText)),
-              Text(time, style: const TextStyle(fontSize: 11, color: AppTheme.hintText)),
+              Text(
+                author,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
+              ),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 11, color: AppTheme.hintText),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: List.generate(
               stars,
-              (index) => const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+              (index) => const Icon(
+                Icons.star_rounded,
+                size: 14,
+                color: Color(0xFFF59E0B),
+              ),
             ),
           ),
           const SizedBox(height: 6),
-          Text(comment, style: const TextStyle(fontSize: 12, height: 1.4, color: AppTheme.secondaryText)),
+          Text(
+            comment,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AppTheme.secondaryText,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCircleAction(String label, IconData icon, Color bg, Color fg, VoidCallback onTap) {
+  Widget _buildCircleAction(
+    String label,
+    IconData icon,
+    Color bg,
+    Color fg,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -2222,7 +3205,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
             const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.mainText,
+              ),
             ),
           ],
         ),
@@ -2231,16 +3218,29 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
   }
 
   Widget _buildHourRow(BusinessHour h) {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
     final name = days[h.weekday % 7];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
           Text(
-            h.isClosed ? 'Closed' : '${h.opensAt ?? "9:00 AM"} - ${h.closesAt ?? "10:00 PM"}',
+            name,
+            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+          ),
+          Text(
+            h.isClosed
+                ? 'Closed'
+                : '${h.opensAt ?? "9:00 AM"} - ${h.closesAt ?? "10:00 PM"}',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -2261,15 +3261,17 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
           colors: isHotel
               ? [const Color(0xFF0F766E), const Color(0xFF134E4A)]
               : (isFood
-                  ? [const Color(0xFFEA580C), const Color(0xFFC2410C)]
-                  : [const Color(0xFF2457D6), const Color(0xFF1D4ED8)]),
+                    ? [const Color(0xFFEA580C), const Color(0xFFC2410C)]
+                    : [const Color(0xFF2457D6), const Color(0xFF1D4ED8)]),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
       child: Center(
         child: Icon(
-          isHotel ? Icons.hotel_rounded : (isFood ? Icons.restaurant_rounded : Icons.storefront_rounded),
+          isHotel
+              ? Icons.hotel_rounded
+              : (isFood ? Icons.restaurant_rounded : Icons.storefront_rounded),
           size: 72,
           color: Colors.white70,
         ),
@@ -2278,183 +3280,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> wit
   }
 
   void _navigateToServiceRequest(Business biz) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ServiceRequestScreen(businessId: biz.id, businessName: biz.name),
-    ));
-  }
-
-  List<String> _defaultAmenities(bool isFood, bool isHotel) {
-    if (isHotel) {
-      return [
-        'Free High-Speed Wi-Fi',
-        'Infinity Swimming Pool',
-        'Complimentary Buffet Breakfast',
-        'Central Air Conditioning',
-        'Private Ocean Balcony',
-        'Free Valet Parking',
-        '24/7 Room Service',
-      ];
-    }
-    if (isFood) {
-      return [
-        'Air Conditioned Family Dining',
-        'Home Delivery in 35 mins',
-        'Live Tandoor Counter',
-        'Pure Drinking Water RO',
-        'High Chairs Available',
-        'Free Customer Parking',
-      ];
-    }
-    return ['Verified Genuine Products', 'Professional Technicians', 'Quick Warranty Support'];
-  }
-
-  List<BusinessHour> _defaultHours() {
-    return [
-      const BusinessHour(weekday: 1, opensAt: '9:00 AM', closesAt: '10:00 PM'),
-      const BusinessHour(weekday: 2, opensAt: '9:00 AM', closesAt: '10:00 PM'),
-      const BusinessHour(weekday: 3, opensAt: '9:00 AM', closesAt: '10:00 PM'),
-      const BusinessHour(weekday: 4, opensAt: '9:00 AM', closesAt: '10:00 PM'),
-      const BusinessHour(weekday: 5, opensAt: '9:00 AM', closesAt: '10:00 PM'),
-      const BusinessHour(weekday: 6, opensAt: '9:00 AM', closesAt: '11:00 PM'),
-      const BusinessHour(weekday: 0, opensAt: '10:00 AM', closesAt: '11:00 PM'),
-    ];
-  }
-
-  List<Product> _defaultProducts(Business biz) {
-    if (_isFoodBusiness(biz)) {
-      return [
-        Product(
-          id: 'p-biryani',
-          businessId: biz.id,
-          name: 'Mughlai Chicken Dum Biryani',
-          price: 290,
-          dietaryType: 'non_veg',
-          foodCategory: 'Main Course',
-          preparationTimeMin: 25,
-          description: 'Aromatic basmati rice layered with chicken, saffron, and royal spices. Served with raita and salan.',
-        ),
-        Product(
-          id: 'p-paneer',
-          businessId: biz.id,
-          name: 'Paneer Butter Masala',
-          price: 240,
-          dietaryType: 'veg',
-          foodCategory: 'Main Course',
-          preparationTimeMin: 20,
-          description: 'Cottage cheese cubes simmered in velvety tomato-cashew butter reduction.',
-        ),
-        Product(
-          id: 'p-tikka',
-          businessId: biz.id,
-          name: 'Murgh Malai Tikka (6 Pcs)',
-          price: 310,
-          dietaryType: 'non_veg',
-          foodCategory: 'Starters',
-          preparationTimeMin: 20,
-          description: 'Boneless chicken morsels steeped in cheese and cream, grilled in clay tandoor.',
-        ),
-        Product(
-          id: 'p-babycorn',
-          businessId: biz.id,
-          name: 'Crispy Chilli Babycorn',
-          price: 180,
-          dietaryType: 'veg',
-          foodCategory: 'Starters',
-          preparationTimeMin: 15,
-          description: 'Golden fried babycorn tossed in wok with bell peppers and tangy oriental sauces.',
-        ),
-        Product(
-          id: 'p-naan',
-          businessId: biz.id,
-          name: 'Butter Garlic Naan',
-          price: 55,
-          dietaryType: 'veg',
-          foodCategory: 'Breads & Rice',
-          preparationTimeMin: 10,
-          description: 'Clay-oven baked artisan flatbread glazed with melted garlic butter.',
-        ),
-        Product(
-          id: 'p-chhena',
-          businessId: biz.id,
-          name: 'Authentic Odia Chhena Poda',
-          price: 130,
-          dietaryType: 'veg',
-          foodCategory: 'Desserts',
-          preparationTimeMin: 5,
-          description: 'Iconic caramelized baked cottage cheese dessert infused with cardamom.',
-        ),
-      ];
-    }
-
-    if (_isHotelBusiness(biz)) {
-      return [
-        Product(
-          id: 'p-ocean-deluxe',
-          businessId: biz.id,
-          name: 'Deluxe Sea-Facing King Room',
-          price: 4800,
-          foodCategory: 'Rooms',
-          description: '380 sq ft room with private balcony overlooking the Bay of Bengal, king bed, and hot breakfast buffet.',
-        ),
-        Product(
-          id: 'p-lagoon-suite',
-          businessId: biz.id,
-          name: 'Executive Lagoon View Suite',
-          price: 7900,
-          foodCategory: 'Rooms',
-          description: '680 sq ft luxury suite with separate parlor, jacuzzi bath, lagoon view, and cocktail lounge access.',
-        ),
-        Product(
-          id: 'p-heritage-villa',
-          businessId: biz.id,
-          name: 'Royal Heritage Beach Villa',
-          price: 12500,
-          foodCategory: 'Rooms',
-          description: '1,200 sq ft standalone beach villa with private plunge pool, butler service, and direct beach access.',
-        ),
-      ];
-    }
-
-    return [
-      Product(
-        id: 'p-drill',
-        businessId: biz.id,
-        name: 'Cordless Drill Machine 18V',
-        price: 2499,
-        description: 'Variable speed cordless drill with battery pack.',
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ServiceRequestScreen(businessId: biz.id, businessName: biz.name),
       ),
-      Product(
-        id: 'p-wire',
-        businessId: biz.id,
-        name: 'Copper Wire 2.5mm (90m)',
-        price: 1850,
-        description: 'Pure copper flame-retardant multi-strand electrical wire roll.',
-      ),
-    ];
-  }
-
-  Business _stubBusiness() {
-    return Business(
-      id: widget.businessId,
-      name: 'Spice Garden Restaurant',
-      categorySlug: 'restaurant',
-      categoryName: 'Restaurant & Food',
-      categoryIcon: 'restaurant',
-      addressText: 'Forest Park, Bhubaneswar, Odisha',
-      locality: 'Forest Park',
-      city: 'Bhubaneswar',
-      postalCode: '751009',
-      status: 'approved',
-      verificationStatus: 'verified',
-      phoneE164: '+919876543213',
-      whatsappE164: '+919876543213',
-      isOpenNow: true,
-      deliveryEnabled: true,
-      deliveryTimeMins: 35,
-      minOrderAmount: 149.0,
-      tableBookingEnabled: true,
-      rating: 4.8,
-      reviewCount: 142,
     );
   }
 }
@@ -2469,11 +3299,12 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.white, child: tabBar);
   }
 
   @override

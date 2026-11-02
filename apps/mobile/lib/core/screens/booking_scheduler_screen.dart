@@ -125,7 +125,8 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     setState(() => _isSubmitting = true);
 
     try {
-      final bizId = widget.business?.id ?? widget.businessId ?? '77777777-7777-7777-7777-777777777777';
+      final bizId = widget.business?.id ?? widget.businessId;
+      if (bizId == null || bizId.isEmpty) throw StateError('Business required');
       final description = _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : (_currentService != null
@@ -145,9 +146,8 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
         );
         final data = res.data as Map<String, dynamic>;
         createdId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
-      } catch (e) {
-        debugPrint('API booking note: $e');
-      }
+      } catch (_) { rethrow; }
+      if (createdId == null || createdId.isEmpty) throw StateError('Booking was not persisted');
 
       await Future.delayed(const Duration(milliseconds: 400));
 
@@ -157,7 +157,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Booking error: $e')),
+          const SnackBar(content: Text('Unable to book. Check your connection and sign in, then try again.')),
         );
       }
     } finally {

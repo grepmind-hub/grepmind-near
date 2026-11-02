@@ -9,6 +9,10 @@ import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 /// Displays the full directory of categories with search and category filtering,
 /// matching the Grepmind Near UI/UX Showcase Screen 8.
 class CategoriesScreen extends ConsumerStatefulWidget {
+  static IconData getCategoryIcon(String? slug) =>
+      _CategoriesScreenState.getCategoryIcon(slug);
+  static Color getCategoryColor(String? slug) =>
+      _CategoriesScreenState.getCategoryColor(slug);
   const CategoriesScreen({super.key});
 
   @override
@@ -128,16 +132,34 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     if (section == 'All') return true;
     final slug = cat.slug;
     if (section == 'Shops & Retail') {
-      return ['grocery', 'general', 'fashion', 'books_stationery', 'restaurant'].contains(slug);
+      return [
+        'grocery',
+        'general',
+        'fashion',
+        'books_stationery',
+        'restaurant',
+      ].contains(slug);
     }
     if (section == 'Home Services') {
-      return ['electrician', 'plumber', 'carpenter', 'hardware', 'cleaning', 'home_kitchen'].contains(slug);
+      return [
+        'electrician',
+        'plumber',
+        'carpenter',
+        'hardware',
+        'cleaning',
+        'home_kitchen',
+      ].contains(slug);
     }
     if (section == 'Health & Beauty') {
       return ['medical', 'salon', 'health_wellness'].contains(slug);
     }
     if (section == 'Lifestyle & Tech') {
-      return ['electronics', 'sports_fitness', 'automotive', 'tailor'].contains(slug);
+      return [
+        'electronics',
+        'sports_fitness',
+        'automotive',
+        'tailor',
+      ].contains(slug);
     }
     return true;
   }
@@ -149,9 +171,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     // Filter categories by query and section
     final filteredCategories = allCategories.where((cat) {
-      final matchesQuery = _searchQuery.isEmpty ||
+      final matchesQuery =
+          _searchQuery.isEmpty ||
           cat.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (cat.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+          (cat.description?.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ) ??
+              false);
       final matchesSec = _matchesSection(cat, _selectedSection);
       return matchesQuery && matchesSec;
     }).toList();
@@ -215,11 +241,22 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
                   hintText: 'Search categories or services...',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 22),
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: Color(0xFF94A3B8),
+                    size: 22,
+                  ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8), size: 18),
+                          icon: const Icon(
+                            Icons.clear_rounded,
+                            color: Color(0xFF94A3B8),
+                            size: 18,
+                          ),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
@@ -251,19 +288,28 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     onTap: () => setState(() => _selectedSection = sec),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primary : const Color(0xFFF1F5F9),
+                        color: isSelected
+                            ? AppTheme.primary
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
+                          color: isSelected
+                              ? AppTheme.primary
+                              : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Text(
                         sec,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: isSelected ? Colors.white : AppTheme.mainText,
                         ),
                       ),
@@ -279,139 +325,154 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           // Categories directory list
           Expanded(
             child: catState.isLoading && allCategories.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  )
                 : filteredCategories.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF1F5F9),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.category_outlined, color: Color(0xFF94A3B8), size: 32),
-                            ),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'No categories found',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.mainText,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Try adjusting your search query',
-                              style: TextStyle(color: AppTheme.secondaryText, fontSize: 13),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.category_outlined,
+                            color: Color(0xFF94A3B8),
+                            size: 32,
+                          ),
                         ),
-                      )
-                    : SafeArea(
-                        top: false,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                          itemCount: filteredCategories.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                          final category = filteredCategories[index];
-                          final icon = getCategoryIcon(category.slug);
-                          final color = getCategoryColor(category.slug);
+                        const SizedBox(height: 14),
+                        const Text(
+                          'No categories found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Try adjusting your search query',
+                          style: TextStyle(
+                            color: AppTheme.secondaryText,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : SafeArea(
+                    top: false,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                      itemCount: filteredCategories.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final category = filteredCategories[index];
+                        final icon = getCategoryIcon(category.slug);
+                        final color = getCategoryColor(category.slug);
 
-                          return InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SearchResultsScreen(
-                                    initialCategory: category.slug,
-                                    categoryName: category.name,
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SearchResultsScreen(
+                                  initialCategory: category.slug,
+                                  categoryName: category.name,
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE4E7EC),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(icon, color: color, size: 26),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        category.name,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.mainText,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      if (category.description != null &&
+                                          category.description!.isNotEmpty) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          category.description!,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.secondaryText,
+                                            height: 1.25,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFE4E7EC)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: color.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Icon(icon, color: color, size: 26),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          category.name,
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppTheme.mainText,
-                                            letterSpacing: -0.2,
-                                          ),
-                                        ),
-                                        if (category.description != null && category.description!.isNotEmpty) ...[
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            category.description!,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppTheme.secondaryText,
-                                              height: 1.25,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ],
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF8FAFC),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: const Icon(
-                                      Icons.chevron_right_rounded,
-                                      color: Color(0xFF64748B),
-                                      size: 20,
-                                    ),
+                                  child: const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Color(0xFF64748B),
+                                    size: 20,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
+                  ),
           ),
         ],
       ),

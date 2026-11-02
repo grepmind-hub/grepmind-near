@@ -12,6 +12,11 @@ export interface UploadedMedia {
   original_name: string;
 }
 
+function authHeaders(): Record<string, string> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('grepmind_merchant_token') : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export interface RealtimeNotification {
   id: string;
   user_id?: string;
@@ -39,6 +44,7 @@ export async function uploadMediaFile(
   // Use same-origin /api/v1 to route through Nginx without CORS blocks
   const res = await fetch('/api/v1/media/upload', {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
 
@@ -90,7 +96,7 @@ export async function fetchNotifications(businessId?: string): Promise<RealtimeN
   const url = businessId
     ? `/api/v1/notifications?business_id=${businessId}`
     : `/api/v1/notifications`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) return [];
   const json = await res.json();
   return (json.data || []) as RealtimeNotification[];
@@ -100,7 +106,8 @@ export async function fetchNotifications(businessId?: string): Promise<RealtimeN
  * Mark notification as read.
  */
 export async function markNotificationAsRead(id: string): Promise<void> {
-  await fetch(`/api/v1/notifications/${id}/read`, { method: 'POST' });
+  const res = await fetch(`/api/v1/notifications/${id}/read`, { method: 'POST', headers: authHeaders() });
+  if (!res.ok) throw new Error('Unable to mark notification as read');
 }
 
 /**
@@ -149,34 +156,37 @@ export function subscribeToEvents(
   if (typeof window === 'undefined') return () => {};
 
   const url = `/api/v1/events?business_id=${encodeURIComponent(businessId)}`;
-  const eventSource = new EventSource(url);
-
-  eventSource.addEventListener('service_request.created', (e: MessageEvent) => {
+  const controller = new AbortController();
+  let reconnect: ReturnType<typeof setTimeout> | undefined;
+  const connect = async () => {
     try {
-      const data = JSON.parse(e.data);
-      onEvent({ type: 'service_request.created', ...data });
-    } catch (_) {}
-  });
-
-  eventSource.addEventListener('service_request.status_updated', (e: MessageEvent) => {
-    try {
-      const data = JSON.parse(e.data);
-      onEvent({ type: 'service_request.status_updated', ...data });
-    } catch (_) {}
-  });
-
-  eventSource.addEventListener('notification.created', (e: MessageEvent) => {
-    try {
-      const data = JSON.parse(e.data);
-      onEvent({ type: 'notification.created', ...data });
-    } catch (_) {}
-  });
-
-  eventSource.onerror = () => {
-    // Auto-reconnect handled natively by EventSource
+      const response = await fetch(url, { headers: authHeaders(), signal: controller.signal });
+      if (response.status === 401 || response.status === 403) return;
+      if (!response.ok || !response.body) throw new Error('Event stream unavailable');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (!controller.signal.aborted) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+        let end: number;
+        while ((end = buffer.indexOf('\n\n')) >= 0) {
+          const frame = buffer.slice(0, end);
+          buffer = buffer.slice(end + 2);
+          const data = frame.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
+          if (data) {
+            try {
+              const event = JSON.parse(data);
+              if (event.type) onEvent(event);
+            } catch (_) { /* Ignore malformed frames. */ }
+          }
+        }
+        if (buffer.length > 1024 * 1024) throw new Error('Event frame too large');
+      }
+    } catch (_) { /* Retry transient network failures. */ }
+    if (!controller.signal.aborted) reconnect = setTimeout(connect, 3000);
   };
-
-  return () => {
-    eventSource.close();
-  };
+  void connect();
+  return () => { controller.abort(); if (reconnect) clearTimeout(reconnect); };
 }

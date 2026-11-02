@@ -45,7 +45,7 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     super.initState();
     _currentStatus = widget.initialStatus ?? widget.request?.status ?? 'requested';
     _bookingId = widget.requestId != null && widget.requestId!.length >= 4
-        ? '#GN-${widget.requestId!.substring(0, 4).toUpperCase()}'
+        ? (widget.requestId!.startsWith('#GN-') ? widget.requestId! : '#GN-${widget.requestId!.substring(0, 4).toUpperCase()}')
         : (widget.request?.id != null
             ? '#GN-${widget.request!.id.substring(0, 4).toUpperCase()}'
             : '#GN-4921');
@@ -1139,13 +1139,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     icon: const Icon(Icons.home_outlined, color: Colors.white, size: 18),
-                    label: Flexible(
-                      child: Text(
+                    label: Text(
                         _currentStatus == 'completed' ? 'Back to Home' : 'Back to Explore',
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
                     ),
                     onPressed: () {
                       Navigator.of(context).popUntil((route) => route.isFirst);

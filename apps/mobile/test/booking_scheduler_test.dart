@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/screens/booking_scheduler_screen.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 
 void main() {
+  setUpAll(() {
+    apiClient.init();
+    apiClient.dio.interceptors.clear();
+    apiClient.dio.interceptors.add(InterceptorsWrapper(onRequest: (request, handler) {
+      handler.resolve(Response(requestOptions: request, statusCode: 201, data: {'data': {'id': '12345678-1234-1234-1234-123456789012'}}));
+    }));
+  });
   const dummyBiz = Business(
     id: '77777777-7777-7777-7777-777777777777',
     name: 'Ramesh Kumar - Electrical Services',
@@ -85,6 +94,6 @@ void main() {
     // Verify confirmation modal bottom sheet
     expect(find.text('Booking Requested!'), findsOneWidget);
     expect(find.text('Ramesh Kumar - Electrical Services'), findsAtLeastNWidgets(1));
-    expect(find.text('Done & Return to Pro'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
   });
 }

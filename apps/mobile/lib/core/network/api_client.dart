@@ -26,8 +26,7 @@ class ApiClient {
         },
       ),
     )
-      ..interceptors.add(AuthInterceptor(_storage))
-      ..interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+      ..interceptors.add(AuthInterceptor(_storage));
   }
 
   /// Convenience GET.

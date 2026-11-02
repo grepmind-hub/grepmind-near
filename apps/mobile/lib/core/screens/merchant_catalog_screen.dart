@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:grepmind_mobile/core/screens/merchant_categories_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -55,6 +56,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         foregroundColor: AppTheme.mainText,
         elevation: 0,
         actions: [
+          IconButton(tooltip: 'Manage categories', icon: const Icon(Icons.category_outlined),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MerchantCategoriesScreen()))),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh Catalog',

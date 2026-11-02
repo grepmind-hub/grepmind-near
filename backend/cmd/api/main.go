@@ -207,6 +207,10 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	}))
 
 	// Merchant workspace (require auth + merchant role)
+	mux.HandleFunc("GET /api/v1/merchant/catalog-categories", requireAuth(authSvc, merchantCatalogCategories))
+	mux.HandleFunc("POST /api/v1/merchant/catalog-categories", requireAuth(authSvc, merchantCatalogCategories))
+	mux.HandleFunc("PATCH /api/v1/merchant/catalog-categories/{id}", requireAuth(authSvc, merchantCatalogCategories))
+	mux.HandleFunc("DELETE /api/v1/merchant/catalog-categories/{id}", requireAuth(authSvc, merchantCatalogCategories))
 	mux.HandleFunc("GET /api/v1/merchant/profile", requireAuth(authSvc, merchantProfile))
 	mux.HandleFunc("PATCH /api/v1/merchant/profile", requireAuth(authSvc, merchantUpdateProfile))
 	mux.HandleFunc("GET /api/v1/merchant/requests", requireAuth(authSvc, merchantRequests))

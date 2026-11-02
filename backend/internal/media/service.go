@@ -90,7 +90,9 @@ func NewService(db *database.DB, cfg *config.Config) (*Service, error) {
 	}
 
 	// Ensure bucket exists in background / startup
-	go svc.ensureBucket()
+	if cfg.IsLocal() {
+		go svc.ensureBucket()
+	}
 
 	return svc, nil
 }
@@ -158,15 +160,9 @@ func (s *Service) Upload(w http.ResponseWriter, r *http.Request, userID string) 
 	// Match extension and validate MIME
 	ext, ok := allowedMIMEs[detectedMIME]
 	if !ok {
-		// Fallback check against header Content-Type
-		headerMIME := header.Header.Get("Content-Type")
-		ext, ok = allowedMIMEs[headerMIME]
-		if !ok {
-			writeError(w, http.StatusBadRequest, "UNSUPPORTED_MEDIA_TYPE",
-				"Unsupported image format. Allowed formats: JPEG, PNG, WebP.")
-			return
-		}
-		detectedMIME = headerMIME
+		writeError(w, http.StatusBadRequest, "UNSUPPORTED_MEDIA_TYPE",
+			"Unsupported image format. Allowed formats: JPEG, PNG, WebP.")
+		return
 	}
 
 	// Purpose routing (storefront, product, kyc, avatar, general)
@@ -240,17 +236,18 @@ func (s *Service) ListMedia(w http.ResponseWriter, r *http.Request, userID strin
 		rows, err = s.db.QueryContext(r.Context(), `
 			SELECT id, user_id, purpose, bucket, object_key, public_url, content_type, size_bytes, original_name, created_at
 			FROM media_uploads
-			WHERE purpose = $1
+			WHERE purpose = $1 AND user_id = $2
 			ORDER BY created_at DESC
 			LIMIT 50
-		`, purpose)
+		`, purpose, userID)
 	} else {
 		rows, err = s.db.QueryContext(r.Context(), `
 			SELECT id, user_id, purpose, bucket, object_key, public_url, content_type, size_bytes, original_name, created_at
 			FROM media_uploads
+			WHERE user_id = $1
 			ORDER BY created_at DESC
 			LIMIT 50
-		`)
+		`, userID)
 	}
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {

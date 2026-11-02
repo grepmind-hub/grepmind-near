@@ -36,6 +36,80 @@ tags:
     description: Health checks
 
 paths:
+  /merchant/catalog-categories:
+    get:
+      tags: [merchant]
+      summary: List categories owned by the current merchant business
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: query
+          name: business_id
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Category list in data, each containing id and name
+        '401': {description: Authentication required}
+        '403': {description: Business membership required}
+    post:
+      tags: [merchant]
+      summary: Create a merchant catalog category (owner or manager)
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: query
+          name: business_id
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 80}
+      responses:
+        '201': {description: Created category in data with id and name}
+        '400': {description: Invalid category}
+        '401': {description: Authentication required}
+        '403': {description: Owner or manager required}
+        '409': {description: Duplicate category}
+  /merchant/catalog-categories/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: {type: string, format: uuid}
+      - in: query
+        name: business_id
+        schema: {type: string, format: uuid}
+    patch:
+      tags: [merchant]
+      summary: Rename an owned catalog category
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 80}
+      responses:
+        '200': {description: Updated category in data with id and name}
+        '400': {description: Invalid category}
+        '401': {description: Authentication required}
+        '403': {description: Owner or manager required}
+        '409': {description: Category conflict}
+    delete:
+      tags: [merchant]
+      summary: Delete an owned catalog category without deleting catalog items
+      security: [{bearerAuth: []}]
+      responses:
+        '204': {description: Category deleted}
+        '401': {description: Authentication required}
+        '403': {description: Owner or manager required}
+        '404': {description: Category not found}
   /media/upload:
     post:
       summary: Upload an image asset to MinIO S3 object storage

@@ -26,6 +26,11 @@ type refreshBody struct {
 }
 
 func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
+	// No production SMS adapter exists yet. Fail closed rather than exposing an OTP.
+	if !s.cfg.IsLocal() {
+		writeError(w, http.StatusServiceUnavailable, "OTP_UNAVAILABLE", "Phone verification is currently unavailable.")
+		return
+	}
 	var body otpRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Unable to parse request body.")
