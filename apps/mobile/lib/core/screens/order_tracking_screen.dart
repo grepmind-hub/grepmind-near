@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,50 +8,17 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
 
-  const OrderTrackingScreen({
-    super.key,
-    required this.orderId,
-  });
+  const OrderTrackingScreen({super.key, required this.orderId});
 
   @override
-  ConsumerState<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+  ConsumerState<OrderTrackingScreen> createState() =>
+      _OrderTrackingScreenState();
 }
 
-class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  Timer? _countdownTimer;
-  int _remainingSeconds = 24 * 60; // 24 mins initial
-
+class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && _remainingSeconds > 0) {
-        setState(() {
-          _remainingSeconds--;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
-
-  String get _formattedEta {
-    final mins = _remainingSeconds ~/ 60;
-    final secs = _remainingSeconds % 60;
-    if (mins <= 0 && secs <= 0) return 'Arriving now';
-    return '$mins min${mins > 1 ? "s" : ""} ${secs.toString().padLeft(2, "0")}s';
   }
 
   Future<void> _makeCall(String phone) async {
@@ -65,6 +31,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
   @override
   Widget build(BuildContext context) {
     final orders = ref.watch(customerOrdersProvider);
+    if (orders.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('Order details are unavailable.')),
+      );
+    }
     final order = orders.firstWhere(
       (o) => o.id == widget.orderId,
       orElse: () => orders.first,
@@ -116,7 +87,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline_rounded, color: AppTheme.secondaryText),
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: AppTheme.secondaryText,
+            ),
             tooltip: 'Support & Help',
             onPressed: () => _showSupportDialog(context),
           ),
@@ -126,7 +100,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Live Radar & Simulated Route Map Canvas
+            // Location is shown only when the backend supplies tracking data.
             _buildLiveRouteMap(order),
 
             // 2. ETA & Delivery Progress Stepper
@@ -155,83 +129,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
   // --- 1. Interactive Route Map Canvas ---
   Widget _buildLiveRouteMap(CustomerOrder order) {
     return Container(
-      height: 220,
-      width: double.infinity,
-      color: const Color(0xFFE2E8F0),
-      child: Stack(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Row(
         children: [
-          AnimatedBuilder(
-            animation: _animController,
-            builder: (context, child) {
-              return CustomPaint(
-                painter: _DeliveryMapPainter(
-                  pulseValue: _animController.value,
-                  orderStatus: order.status,
-                ),
-                size: Size.infinite,
-              );
-            },
-          ),
-
-          // Restaurant Pin
-          Positioned(
-            left: 40,
-            top: 40,
-            child: _buildLocationPin(
-              title: order.businessName,
-              subtitle: 'Restaurant Kitchen',
-              icon: Icons.restaurant_rounded,
-              color: const Color(0xFFE11D48),
-            ),
-          ),
-
-          // Customer Home Pin
-          Positioned(
-            right: 40,
-            bottom: 35,
-            child: _buildLocationPin(
-              title: 'Your Location',
-              subtitle: 'Saheed Nagar, Plot 42',
-              icon: Icons.home_rounded,
-              color: AppTheme.primary,
-            ),
-          ),
-
-          // Live Simulation Control Pill (For demonstration testing)
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: InkWell(
-                onTap: () => _cycleOrderStatus(order),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.fast_forward_rounded, size: 14, color: AppTheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Advance Stage: ${_getNextStatusLabel(order.status)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          Icon(Icons.location_off_outlined, color: AppTheme.primary),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Live courier location is not available for this order.',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -355,18 +266,25 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  isDelivered ? 'Enjoy your meal!' : _formattedEta,
+                  isDelivered
+                      ? 'Delivered'
+                      : (order.etaMinutes > 0
+                            ? '${order.etaMinutes} min estimate'
+                            : 'ETA not available'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: isDelivered ? const Color(0xFF16A34A) : AppTheme.mainText,
+                    color: isDelivered
+                        ? const Color(0xFF16A34A)
+                        : AppTheme.mainText,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   order.isDelivery
-                      ? 'Delivering to Saheed Nagar, Plot 42'
-                      : 'Self pickup at restaurant counter',
+                      ? (order.deliveryAddress ??
+                            'Delivery address unavailable')
+                      : 'Self pickup at business counter',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppTheme.secondaryText,
@@ -387,8 +305,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
     final steps = [
       {'title': 'Order Placed', 'desc': 'Kitchen received your order'},
       {'title': 'Preparing Food', 'desc': 'Chef is cooking authentic dishes'},
-      {'title': 'Rider Picked Up', 'desc': '${order.riderName ?? "Courier"} picked up hot order'},
-      {'title': 'Out for Delivery', 'desc': 'Rider is on the way to your door'},
+      {'title': 'Picked Up', 'desc': 'Pickup status reported by the merchant'},
+      {'title': 'Out for Delivery', 'desc': 'Delivery is in progress'},
       {'title': 'Delivered', 'desc': 'Package safely delivered'},
     ];
 
@@ -467,10 +385,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                 decoration: BoxDecoration(
                   color: isCompleted || isActive ? circleColor : Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: circleColor,
-                    width: 2,
-                  ),
+                  border: Border.all(color: circleColor, width: 2),
                 ),
                 child: Center(
                   child: Icon(
@@ -484,7 +399,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: isCompleted ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+                    color: isCompleted
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFE2E8F0),
                     margin: const EdgeInsets.symmetric(vertical: 4),
                   ),
                 ),
@@ -501,8 +418,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     title,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: isActive || isCompleted ? FontWeight.w800 : FontWeight.w600,
-                      color: isActive ? AppTheme.primary : (isCompleted ? AppTheme.mainText : AppTheme.hintText),
+                      fontWeight: isActive || isCompleted
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: isActive
+                          ? AppTheme.primary
+                          : (isCompleted
+                                ? AppTheme.mainText
+                                : AppTheme.hintText),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -510,7 +433,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isActive ? AppTheme.mainText : AppTheme.secondaryText,
+                      color: isActive
+                          ? AppTheme.mainText
+                          : AppTheme.secondaryText,
                     ),
                   ),
                 ],
@@ -560,7 +485,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Icon(Icons.two_wheeler_rounded, color: AppTheme.primary, size: 26),
+                  child: Icon(
+                    Icons.two_wheeler_rounded,
+                    color: AppTheme.primary,
+                    size: 26,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -570,17 +499,23 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                   children: [
                     Row(
                       children: [
-                        Text(
-                          order.riderName ?? 'Bikram Mohanty',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.mainText,
+                        Expanded(
+                          child: Text(
+                            order.riderName!,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
@@ -588,10 +523,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, size: 12, color: Color(0xFFD97706)),
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 12,
+                                color: Color(0xFFD97706),
+                              ),
                               const SizedBox(width: 2),
                               Text(
-                                '${order.riderRating ?? 4.9}',
+                                order.riderRating?.toString() ?? 'Not rated',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
@@ -605,7 +544,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      order.riderVehicle ?? 'TVS Raider • OD 02 AB 4921',
+                      order.riderVehicle ?? 'Vehicle details unavailable',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.secondaryText,
@@ -622,9 +561,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     color: Color(0xFFEFF6FF),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.phone_rounded, color: AppTheme.primary, size: 18),
+                  child: const Icon(
+                    Icons.phone_rounded,
+                    color: AppTheme.primary,
+                    size: 18,
+                  ),
                 ),
-                onPressed: () => _makeCall(order.riderPhone ?? '+919437108922'),
+                onPressed: order.riderPhone == null
+                    ? null
+                    : () => _makeCall(order.riderPhone!),
               ),
               IconButton(
                 icon: Container(
@@ -633,11 +578,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     color: Color(0xFFDCFCE7),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.chat_bubble_rounded, color: Color(0xFF16A34A), size: 18),
+                  child: const Icon(
+                    Icons.chat_bubble_rounded,
+                    color: Color(0xFF16A34A),
+                    size: 18,
+                  ),
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Opening chat with ${order.riderName ?? "rider"}...')),
+                    SnackBar(
+                      content: Text(
+                        'Opening chat with ${order.riderName ?? "rider"}...',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -679,7 +632,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 20),
+              const Icon(
+                Icons.location_on_rounded,
+                color: AppTheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -687,24 +644,37 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                   children: [
                     const Text(
                       'Delivery Address',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.secondaryText),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       order.deliveryAddress ?? '',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.mainText,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          if (order.specialInstructions != null && order.specialInstructions!.isNotEmpty) ...[
+          if (order.specialInstructions != null &&
+              order.specialInstructions!.isNotEmpty) ...[
             const Divider(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.note_alt_outlined, color: Color(0xFFD97706), size: 20),
+                const Icon(
+                  Icons.note_alt_outlined,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -712,12 +682,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     children: [
                       const Text(
                         'Cooking & Delivery Instructions',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.secondaryText),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.secondaryText,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         order.specialInstructions!,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.mainText),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.mainText,
+                        ),
                       ),
                     ],
                   ),
@@ -754,11 +731,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
             children: [
               const Text(
                 'Order Summary',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.mainText,
+                ),
               ),
               Text(
                 '${order.items.length} items',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.secondaryText),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.secondaryText,
+                ),
               ),
             ],
           ),
@@ -773,7 +758,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                     height: 14,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: item.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        color: item.isVeg
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFDC2626),
                         width: 1.5,
                       ),
                       borderRadius: BorderRadius.circular(3),
@@ -783,7 +770,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: item.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                          color: item.isVeg
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFFDC2626),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -792,49 +781,89 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
                   const SizedBox(width: 8),
                   Text(
                     '${item.quantity}x',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       item.name,
-                      style: const TextStyle(fontSize: 13, color: AppTheme.mainText),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.mainText,
+                      ),
                     ),
                   ),
                   Text(
                     '₹${item.subtotal.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
                   ),
                 ],
               ),
             );
           }),
           const Divider(height: 20),
-          _buildReceiptRow('Item Total', '₹${order.itemTotal.toStringAsFixed(0)}'),
-          _buildReceiptRow('Delivery Fee', order.deliveryFee == 0 ? 'FREE' : '₹${order.deliveryFee.toStringAsFixed(0)}'),
-          _buildReceiptRow('Taxes & Packaging', '₹${order.tax.toStringAsFixed(0)}'),
+          _buildReceiptRow(
+            'Item Total',
+            '₹${order.itemTotal.toStringAsFixed(0)}',
+          ),
+          _buildReceiptRow(
+            'Delivery Fee',
+            order.deliveryFee == 0
+                ? 'FREE'
+                : '₹${order.deliveryFee.toStringAsFixed(0)}',
+          ),
+          _buildReceiptRow(
+            'Taxes & Packaging',
+            '₹${order.tax.toStringAsFixed(0)}',
+          ),
           const Divider(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Grand Total',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.mainText,
+                ),
               ),
               Text(
                 '₹${order.grandTotal.toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.primary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           const Row(
             children: [
-              Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
+              Icon(
+                Icons.check_circle_rounded,
+                size: 14,
+                color: Color(0xFF16A34A),
+              ),
               SizedBox(width: 6),
-              Text(
-                'Paid via UPI / Netbanking (Online)',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF16A34A)),
+              Expanded(
+                child: Text(
+                  'Payment status is not recorded by this service.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF16A34A),
+                  ),
+                ),
               ),
             ],
           ),
@@ -849,8 +878,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.mainText,
+            ),
+          ),
         ],
       ),
     );
@@ -875,103 +914,94 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen>
     }
   }
 
-  String _getNextStatusLabel(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.placed:
-        return 'Start Kitchen Prep';
-      case OrderStatus.preparing:
-        return 'Rider Pick Up';
-      case OrderStatus.outForDelivery:
-        return 'Delivered';
-      case OrderStatus.delivered:
-        return 'Reset to Prep';
-      default:
-        return 'Next';
-    }
-  }
-
-  void _cycleOrderStatus(CustomerOrder order) {
-    OrderStatus next;
-    switch (order.status) {
-      case OrderStatus.placed:
-        next = OrderStatus.preparing;
-        break;
-      case OrderStatus.preparing:
-        next = OrderStatus.outForDelivery;
-        break;
-      case OrderStatus.outForDelivery:
-        next = OrderStatus.delivered;
-        break;
-      case OrderStatus.delivered:
-        next = OrderStatus.preparing;
-        break;
-      default:
-        next = OrderStatus.preparing;
-    }
-
-    ref.read(customerOrdersProvider.notifier).updateOrderStatus(order.id, next);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Order status updated: ${next.name.toUpperCase()}'),
-        duration: const Duration(milliseconds: 1200),
-      ),
-    );
-  }
-
   void _showSupportDialog(BuildContext context) {
+    CustomerOrder? order;
+    for (final item in ref.read(customerOrdersProvider)) {
+      if (item.id == widget.orderId) {
+        order = item;
+        break;
+      }
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Help & Order Support', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Help & Order Support',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Need assistance with order #${"GN-FD-07580"}?'),
+            Text(
+              'Need assistance with order ${order?.voucherCode ?? widget.orderId}?',
+            ),
             const SizedBox(height: 14),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.phone_in_talk_rounded, color: AppTheme.primary),
-              title: const Text('Call Customer Support', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-              subtitle: const Text('Toll Free: 1800-2026-NEAR'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _makeCall('+9118002026');
-              },
+              leading: const Icon(
+                Icons.phone_in_talk_rounded,
+                color: AppTheme.primary,
+              ),
+              title: const Text(
+                'Call Customer Support',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text('Support contact is not configured.'),
+              onTap: null,
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.cancel_outlined, color: Color(0xFFDC2626)),
-              title: const Text('Cancel Order', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFDC2626))),
+              leading: const Icon(
+                Icons.cancel_outlined,
+                color: Color(0xFFDC2626),
+              ),
+              title: const Text(
+                'Cancel Order',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
               subtitle: const Text('Only permitted during early preparation'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                ref.read(customerOrdersProvider.notifier).cancelOrder(widget.orderId);
+                final cancelled = await ref
+                    .read(customerOrdersProvider.notifier)
+                    .cancelOrder(widget.orderId);
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Order has been cancelled.')),
+                  SnackBar(
+                    content: Text(
+                      cancelled
+                          ? 'Order has been cancelled.'
+                          : 'This order could not be cancelled.',
+                    ),
+                  ),
                 );
               },
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Dismiss')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Dismiss'),
+          ),
         ],
       ),
     );
   }
 }
 
-// Custom Painter for Dynamic Delivery Map Simulation
+// Retained map renderer for future backend-supplied courier coordinates.
 class _DeliveryMapPainter extends CustomPainter {
   final double pulseValue;
   final OrderStatus orderStatus;
 
-  _DeliveryMapPainter({
-    required this.pulseValue,
-    required this.orderStatus,
-  });
+  _DeliveryMapPainter({required this.pulseValue, required this.orderStatus});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -991,10 +1021,18 @@ class _DeliveryMapPainter extends CustomPainter {
 
     // Draw horizontal and vertical city streets
     final roadPaths = [
-      Path()..moveTo(0, size.height * 0.3)..lineTo(size.width, size.height * 0.3),
-      Path()..moveTo(0, size.height * 0.75)..lineTo(size.width, size.height * 0.75),
-      Path()..moveTo(size.width * 0.25, 0)..lineTo(size.width * 0.25, size.height),
-      Path()..moveTo(size.width * 0.7, 0)..lineTo(size.width * 0.7, size.height),
+      Path()
+        ..moveTo(0, size.height * 0.3)
+        ..lineTo(size.width, size.height * 0.3),
+      Path()
+        ..moveTo(0, size.height * 0.75)
+        ..lineTo(size.width, size.height * 0.75),
+      Path()
+        ..moveTo(size.width * 0.25, 0)
+        ..lineTo(size.width * 0.25, size.height),
+      Path()
+        ..moveTo(size.width * 0.7, 0)
+        ..lineTo(size.width * 0.7, size.height),
     ];
 
     for (final p in roadPaths) {
@@ -1041,7 +1079,8 @@ class _DeliveryMapPainter extends CustomPainter {
 
     // Rider Pulse
     final pulsePaint = Paint()
-      ..color = const Color(0xFF2457D6).withValues(alpha: (1.0 - pulseValue) * 0.5)
+      ..color = const Color(0xFF2457D6)
+          .withValues(alpha: (1.0 - pulseValue) * 0.5)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(riderPos, 14 + (pulseValue * 12), pulsePaint);
 

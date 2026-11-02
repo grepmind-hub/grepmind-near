@@ -119,6 +119,7 @@ type BusinessDetail struct {
 	ServiceRadiusM     *int              `json:"service_radius_m,omitempty"`
 	ExperienceYears    *int              `json:"experience_years,omitempty"`
 	ServiceDescription string            `json:"service_description,omitempty"`
+	CompletedJobs      int               `json:"completed_jobs"`
 }
 
 type envelope map[string]interface{}
@@ -439,6 +440,44 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	}
 	if lng.Valid {
 		b.Longitude = &lng.Float64
+	}
+	var radius, experience sql.NullInt64
+	var serviceDescription sql.NullString
+	var acceptsRequests sql.NullBool
+	if err := s.db.QueryRowContext(r.Context(), `SELECT service_radius_m,experience_years,service_description,accepts_requests FROM professional_profiles WHERE business_id=$1`, id).
+		Scan(&radius, &experience, &serviceDescription, &acceptsRequests); err == nil {
+		if radius.Valid {
+			value := int(radius.Int64)
+			b.ServiceRadiusM = &value
+		}
+		if experience.Valid {
+			value := int(experience.Int64)
+			b.ExperienceYears = &value
+		}
+		if serviceDescription.Valid {
+			b.ServiceDescription = serviceDescription.String
+		}
+		if acceptsRequests.Valid {
+			b.AcceptsRequests = acceptsRequests.Bool
+		}
+	}
+	_ = s.db.QueryRowContext(r.Context(), `SELECT count(*) FROM service_requests WHERE business_id=$1 AND status='completed'`, id).Scan(&b.CompletedJobs)
+	hourRows, hourErr := s.db.QueryxContext(r.Context(), `SELECT weekday,opens_at,closes_at,is_closed FROM business_hours WHERE business_id=$1 ORDER BY weekday`, id)
+	if hourErr == nil {
+		defer hourRows.Close()
+		for hourRows.Next() {
+			var h BusinessHour
+			var open, close sql.NullString
+			if hourRows.Scan(&h.Weekday, &open, &close, &h.IsClosed) == nil {
+				if open.Valid {
+					h.OpensAt = &open.String
+				}
+				if close.Valid {
+					h.ClosesAt = &close.String
+				}
+				b.BusinessHours = append(b.BusinessHours, h)
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, envelope{

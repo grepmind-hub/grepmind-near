@@ -10,9 +10,21 @@ void main() {
   setUpAll(() {
     apiClient.init();
     apiClient.dio.interceptors.clear();
-    apiClient.dio.interceptors.add(InterceptorsWrapper(onRequest: (request, handler) {
-      handler.resolve(Response(requestOptions: request, statusCode: 201, data: {'data': {'id': '12345678-1234-1234-1234-123456789012'}}));
-    }));
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (request, handler) {
+          handler.resolve(
+            Response(
+              requestOptions: request,
+              statusCode: 201,
+              data: {
+                'data': {'id': '12345678-1234-1234-1234-123456789012'},
+              },
+            ),
+          );
+        },
+      ),
+    );
   });
   const dummyBiz = Business(
     id: '77777777-7777-7777-7777-777777777777',
@@ -25,7 +37,9 @@ void main() {
     city: 'Cuttack',
   );
 
-  testWidgets('BookingSchedulerScreen renders all sections cleanly', (WidgetTester tester) async {
+  testWidgets('BookingSchedulerScreen renders all sections cleanly', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.resetPhysicalSize);
@@ -33,11 +47,7 @@ void main() {
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(
-          home: BookingSchedulerScreen(
-            business: dummyBiz,
-          ),
-        ),
+        child: MaterialApp(home: BookingSchedulerScreen(business: dummyBiz)),
       ),
     );
 
@@ -46,7 +56,7 @@ void main() {
     // Verify header and sections
     expect(find.text('Schedule Ramesh'), findsOneWidget);
     expect(find.text('Ramesh Kumar - Electrical Services'), findsOneWidget);
-    expect(find.text('₹299/hr'), findsOneWidget);
+    expect(find.text('Rate not published'), findsOneWidget);
     expect(find.text('Job Scope & Duration'), findsOneWidget);
     expect(find.text('Select a Date'), findsOneWidget);
     expect(find.text('Available Time Slots'), findsOneWidget);
@@ -58,7 +68,9 @@ void main() {
     expect(find.text('Book Ramesh'), findsOneWidget);
   });
 
-  testWidgets('Interactive slot selection and booking confirmation flow', (WidgetTester tester) async {
+  testWidgets('does not fabricate appointment slots when API has none', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.resetPhysicalSize);
@@ -66,34 +78,13 @@ void main() {
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(
-          home: BookingSchedulerScreen(
-            business: dummyBiz,
-          ),
-        ),
+        child: MaterialApp(home: BookingSchedulerScreen(business: dummyBiz)),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    // Select afternoon slot 01:00 PM
-    final slotFinder = find.text('01:00 PM');
-    expect(slotFinder, findsOneWidget);
-    await tester.ensureVisible(slotFinder);
-    await tester.tap(slotFinder);
-    await tester.pumpAndSettle();
-
-    // Tap Book Ramesh CTA
-    final bookButton = find.text('Book Ramesh');
-    expect(bookButton, findsOneWidget);
-    await tester.tap(bookButton);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
-
-    // Verify confirmation modal bottom sheet
-    expect(find.text('Booking Requested!'), findsOneWidget);
-    expect(find.text('Ramesh Kumar - Electrical Services'), findsAtLeastNWidgets(1));
-    expect(find.text('Done'), findsOneWidget);
+    expect(find.text('01:00 PM'), findsNothing);
+    expect(find.text('Booking Requested!'), findsNothing);
   });
 }

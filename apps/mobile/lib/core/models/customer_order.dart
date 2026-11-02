@@ -1,11 +1,4 @@
-import 'package:flutter/foundation.dart';
-
-enum OrderType {
-  foodDelivery,
-  tableReservation,
-  hotelBooking,
-  serviceBooking,
-}
+enum OrderType { foodDelivery, tableReservation, hotelBooking, serviceBooking }
 
 enum OrderStatus {
   placed,
@@ -37,13 +30,13 @@ class CustomerOrderItem {
   double get subtotal => price * quantity;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'price': price,
-        'quantity': quantity,
-        'is_veg': isVeg,
-        'course': course,
-      };
+    'id': id,
+    'name': name,
+    'price': price,
+    'quantity': quantity,
+    'is_veg': isVeg,
+    'course': course,
+  };
 
   factory CustomerOrderItem.fromJson(Map<String, dynamic> json) =>
       CustomerOrderItem(
@@ -51,7 +44,7 @@ class CustomerOrderItem {
         name: json['name'] as String,
         price: (json['price'] as num).toDouble(),
         quantity: json['quantity'] as int? ?? 1,
-        isVeg: json['is_veg'] as bool? ?? true,
+        isVeg: json['dietary_type'] != 'non_veg',
         course: json['course'] as String?,
       );
 }
@@ -122,6 +115,72 @@ class CustomerOrder {
     this.hotelGuests,
     this.voucherCode,
   });
+
+  factory CustomerOrder.fromJson(Map<String, dynamic> json) {
+    final type = switch (json['order_type']) {
+      'table_reservation' => OrderType.tableReservation,
+      'hotel_booking' => OrderType.hotelBooking,
+      'service_booking' => OrderType.serviceBooking,
+      _ => OrderType.foodDelivery,
+    };
+    final status = switch (json['status']) {
+      'confirmed' => OrderStatus.confirmed,
+      'preparing' => OrderStatus.preparing,
+      'out_for_delivery' => OrderStatus.outForDelivery,
+      'delivered' => OrderStatus.delivered,
+      'completed' => OrderStatus.completed,
+      'cancelled' => OrderStatus.cancelled,
+      _ => OrderStatus.placed,
+    };
+    final items = (json['items'] as List<dynamic>? ?? [])
+        .map(
+          (entry) => CustomerOrderItem.fromJson(entry as Map<String, dynamic>),
+        )
+        .toList();
+    final reservationAt = DateTime.tryParse(
+      json['reservation_at'] as String? ?? '',
+    );
+    return CustomerOrder(
+      id: json['id'] as String,
+      businessId: json['business_id'] as String,
+      businessName: json['business_name'] as String? ?? '',
+      businessLocality: json['business_locality'] as String?,
+      businessPhone: json['business_phone'] as String?,
+      businessCoverUrl: json['business_cover_url'] as String?,
+      orderType: type,
+      status: status,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      isDelivery: json['fulfillment_type'] == 'delivery',
+      deliveryAddress: json['delivery_address'] as String?,
+      specialInstructions: json['special_instructions'] as String?,
+      items: items,
+      itemTotal: (json['item_total'] as num?)?.toDouble() ?? 0,
+      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
+      tax: (json['tax'] as num?)?.toDouble() ?? 0,
+      grandTotal: (json['grand_total'] as num?)?.toDouble() ?? 0,
+      etaMinutes: json['eta_minutes'] as int? ?? 0,
+      tableGuests: type == OrderType.tableReservation
+          ? json['guest_count'] as int?
+          : null,
+      tableDate: type == OrderType.tableReservation && reservationAt != null
+          ? reservationAt.toIso8601String()
+          : null,
+      tableSlot: type == OrderType.tableReservation && reservationAt != null
+          ? '${reservationAt.hour.toString().padLeft(2, '0')}:${reservationAt.minute.toString().padLeft(2, '0')}'
+          : null,
+      seatingArea: json['seating_area'] as String?,
+      hotelRoomName: type == OrderType.hotelBooking && items.isNotEmpty
+          ? items.first.name
+          : null,
+      hotelNights: type == OrderType.hotelBooking && items.isNotEmpty
+          ? items.first.quantity
+          : null,
+      hotelGuests: type == OrderType.hotelBooking
+          ? json['guest_count'] as int?
+          : null,
+      voucherCode: json['voucher_code'] as String?,
+    );
+  }
 
   bool get isActive {
     switch (status) {

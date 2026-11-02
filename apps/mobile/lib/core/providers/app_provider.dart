@@ -1100,8 +1100,8 @@ class MerchantHoursCoverageState extends Equatable {
     this.businessName = '',
     this.locality = '',
     this.city = '',
-    this.latitude = 12.9352,
-    this.longitude = 77.6245,
+    this.latitude = 0,
+    this.longitude = 0,
   });
 
   MerchantHoursCoverageState copyWith({
@@ -1153,8 +1153,7 @@ class MerchantHoursCoverageState extends Equatable {
 
 class MerchantHoursCoverageNotifier
     extends StateNotifier<MerchantHoursCoverageState> {
-  MerchantHoursCoverageNotifier()
-    : super(MerchantHoursCoverageState(hours: defaultSevenDays())) {
+  MerchantHoursCoverageNotifier() : super(const MerchantHoursCoverageState()) {
     load();
   }
 
@@ -1225,9 +1224,7 @@ class MerchantHoursCoverageNotifier
           state = state.copyWith(hours: hoursList);
         }
       } catch (_) {
-        if (state.hours.isEmpty) {
-          state = state.copyWith(hours: defaultSevenDays());
-        }
+        rethrow;
       }
 
       // 2. Load Coverage
@@ -1241,11 +1238,11 @@ class MerchantHoursCoverageNotifier
           serviceRadiusM:
               (covData['service_radius_m'] as num?)?.toInt() ?? 5000,
           acceptsRequests: covData['accepts_requests'] as bool? ?? true,
-          businessName: covData['business_name'] as String? ?? 'My Business',
-          locality: covData['locality'] as String? ?? 'Koramangala',
+          businessName: covData['business_name'] as String? ?? '',
+          locality: covData['locality'] as String? ?? '',
           city: covData['city'] as String? ?? '',
-          latitude: (covData['latitude'] as num?)?.toDouble() ?? 12.9352,
-          longitude: (covData['longitude'] as num?)?.toDouble() ?? 77.6245,
+          latitude: (covData['latitude'] as num?)?.toDouble() ?? 0,
+          longitude: (covData['longitude'] as num?)?.toDouble() ?? 0,
         );
       } catch (_) {}
 
@@ -1273,6 +1270,12 @@ class MerchantHoursCoverageNotifier
       return h;
     }).toList();
     state = state.copyWith(hours: updated);
+  }
+
+  void initializeHoursDraft() {
+    if (state.hours.isEmpty) {
+      state = state.copyWith(hours: defaultSevenDays());
+    }
   }
 
   void copyDayToWeekdays(int sourceWeekday) {

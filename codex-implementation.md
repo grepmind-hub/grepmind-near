@@ -84,6 +84,18 @@ The additive migration was applied to the local development database. Existing i
 
 The source audit still found simulated professional metrics/reviews, appointment availability/rates, service-status receipt/demo values, locally confirmed hospitality orders, delivery tracking, and draft coverage/locality values. Those are documented follow-up work; this change does not claim the whole application is mock-free.
 
+## Operational booking and simulation removal (2 November 2026)
+
+- Added migration 011 for durable customer food orders, table reservations, hotel bookings, line items, and service-request status events. Existing local Docker PostgreSQL was migrated successfully.
+- Added authenticated, ownership-scoped order APIs. Food totals and configured delivery fees are calculated from published database products on the server; table and hotel reservations are persisted, and hotel totals use the selected room price and stay duration. The client no longer creates voucher IDs or confirms local-only orders.
+- Added database-backed availability loading and slot-capacity reservation to appointment booking. Service requests validate that the service and slot belong to the selected business, update capacity transactionally, and no longer expose anonymous customer-request history.
+- Added customer service-request cancellation with state checks, event persistence, and transactional slot release. Removed customer-side order/request stage advancement controls.
+- Replaced simulated courier route, countdown, rider identity, vehicle, phone, support number, payment state, and delivery address with persisted values or explicit unavailable states. No map position is shown until backend tracking data exists.
+- Service professional profiles now use stored experience, services, completed-job count, request acceptance, coverage radius, hours, phone and ratings. Missing reviews or profile facts are disclosed rather than fabricated.
+- Merchant hours/coverage now start from persisted data. An empty account shows a deliberate draft action instead of silently creating Bangalore coordinates, locality names, or operating hours.
+- Local API image rebuilt successfully, migration 011 applied, Nginx restarted, and `GET /api/v1/categories` returned HTTP 200. Go tests pass, including anonymous rejection for all new mutation/read routes. All 25 Flutter widget tests pass. Targeted analysis of changed screens reports no compile errors (existing warnings/info remain). The Android debug APK built, installed and launched on Pixel 8 emulator-5554; the phone OTP screen rendered without visual overflow.
+- Remaining honest limitations: courier GPS, payment capture/status, review persistence and platform support contacts are not implemented, so the app displays unavailable states. The emulator smoke check covered install/launch, while authenticated order/reservation UI flows are covered by widget/API checks rather than a complete manual emulator transaction.
+
 ## Remaining implementation limitations
 
 This is an incremental implementation, not a completed production-readiness certification. Remaining work includes category-to-item assignment; merchant registration/claim persistence; durable food/table/hotel ordering and server-calculated totals; removal of remaining fixed business metrics, offers, and claims; SMS-provider integration; JWT/config hardening; request transition rules; database-backed tenant tests for all endpoints; migration tracking; CI repair; cloud private media/presigned access; full emulator flow validation and UI/accessibility QA. Do not deploy these changes to production until those gates pass.

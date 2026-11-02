@@ -17,7 +17,9 @@ void main() {
     phoneE164: '+919876543220',
   );
 
-  testWidgets('ServiceRequestStatusScreen renders all sections cleanly', (WidgetTester tester) async {
+  testWidgets('ServiceRequestStatusScreen renders all sections cleanly', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.resetPhysicalSize);
@@ -64,7 +66,9 @@ void main() {
     expect(find.text('Back to Explore'), findsOneWidget);
   });
 
-  testWidgets('Interactive stage switcher changes hero card and timeline dynamically', (WidgetTester tester) async {
+  testWidgets('does not expose client-side request stage controls', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.resetPhysicalSize);
@@ -84,26 +88,13 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Tap 'Accepted' stage pill
-    final acceptedPill = find.text('Accepted');
-    expect(acceptedPill, findsOneWidget);
-    await tester.tap(acceptedPill);
-    await tester.pumpAndSettle();
-
-    // Verify state changed to Accepted by Pro
-    expect(find.text('Accepted by Pro'), findsOneWidget);
-
-    // Tap 'Progress' stage pill
-    final progressPill = find.text('Progress');
-    expect(progressPill, findsOneWidget);
-    await tester.tap(progressPill);
-    await tester.pumpAndSettle();
-
-    // Verify state changed to Job In Progress
-    expect(find.text('Job In Progress'), findsOneWidget);
+    expect(find.text('Accepted'), findsNothing);
+    expect(find.text('Progress'), findsNothing);
   });
 
-  testWidgets('Cancel flow opens cancellation modal and allows selection', (WidgetTester tester) async {
+  testWidgets('Cancel flow opens cancellation modal and allows selection', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.resetPhysicalSize);
@@ -138,7 +129,7 @@ void main() {
     await tester.tap(find.text('Found another skilled professional'));
     await tester.pumpAndSettle();
 
-    // Verify status updated to cancelled
-    expect(find.text('Request Cancelled'), findsOneWidget);
+    // A failed API call must not fabricate a cancelled state.
+    expect(find.text('Request Cancelled'), findsNothing);
   });
 }

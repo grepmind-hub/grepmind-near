@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
-import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
@@ -715,9 +714,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () => _launchUrl(
-                              'tel:${biz.phoneE164 ?? '+919861000008'}',
-                            ),
+                            onPressed: biz.phoneE164 == null
+                                ? null
+                                : () => _launchUrl('tel:${biz.phoneE164}'),
                             icon: const Icon(
                               Icons.phone_in_talk_rounded,
                               size: 18,
@@ -747,7 +746,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         Expanded(
                           flex: 2,
                           child: ElevatedButton.icon(
-                            onPressed: () => _openHotelRoomBookingSheet(biz),
+                            onPressed: products.isEmpty
+                                ? null
+                                : () =>
+                                      _openHotelRoomBookingSheet(biz, products),
                             icon: const Icon(
                               Icons.calendar_month_rounded,
                               size: 19,
@@ -1495,7 +1497,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       ],
                     ),
                     ElevatedButton.icon(
-                      onPressed: () => _openHotelRoomBookingSheet(biz, room),
+                      onPressed: () =>
+                          _openHotelRoomBookingSheet(biz, [room], room),
                       icon: const Icon(
                         Icons.bookmark_add_rounded,
                         size: 16,
@@ -1539,9 +1542,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         bool isDelivery = true;
-        final addressController = TextEditingController(
-          text: '',
-        );
+        final addressController = TextEditingController(text: '');
         final instructionsController = TextEditingController();
 
         return StatefulBuilder(
@@ -1553,7 +1554,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             final deliveryFee = isDelivery
                 ? (itemTotal >= 500 ? 0.0 : 30.0)
                 : 0.0;
-            final taxes = 18.0;
+            const taxes = 0.0;
             final grandTotal = itemTotal + deliveryFee + taxes;
 
             return Container(
@@ -1951,68 +1952,42 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           : () async {
                               Navigator.pop(ctx);
 
-                              final newOrderId =
-                                  'GN-FD-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-                              final orderItems = cartItems.map((p) {
-                                return CustomerOrderItem(
-                                  id: p.id,
-                                  name: p.name,
-                                  price: p.price ?? 0.0,
-                                  quantity: _cart[p.id] ?? 1,
-                                  isVeg: p.isVeg,
-                                  course: p.foodCategory,
-                                );
-                              }).toList();
-
-                              final newOrder = CustomerOrder(
-                                id: newOrderId,
-                                businessId: biz.id,
-                                businessName: biz.name,
-                                businessLocality: biz.locality ?? biz.city ?? '',
-                                businessPhone: biz.phoneE164,
-                                businessCoverUrl: biz.coverPhotoUrl,
-                                orderType: OrderType.foodDelivery,
-                                status: OrderStatus.preparing,
-                                createdAt: DateTime.now(),
-                                isDelivery: isDelivery,
-                                deliveryAddress: addressController.text,
-                                specialInstructions:
-                                    instructionsController.text.isNotEmpty
-                                    ? instructionsController.text
-                                    : null,
-                                items: orderItems,
-                                itemTotal: itemTotal,
-                                deliveryFee: deliveryFee,
-                                tax: taxes,
-                                grandTotal: grandTotal,
-                                etaMinutes: isDelivery ? 35 : 20,
-                                riderName: 'Bikram Mohanty',
-                                riderPhone: '+919437108922',
-                                riderVehicle: 'TVS Raider 125 • OD 02 AB 4921',
-                                riderRating: 4.9,
-                              );
-
-                              ref
-                                  .read(customerOrdersProvider.notifier)
-                                  .addOrder(newOrder);
-
-                              // Broadcast synthetic event to Go SSE hub
                               try {
-                                await apiClient.post(
-                                  '/notifications/broadcast-test',
-                                  data: {
-                                    'business_id': biz.id,
-                                    'title':
-                                        'New Food Delivery Order (${isDelivery ? "Home Delivery" : "Takeaway"})',
-                                    'body':
-                                        'Customer Debabrata Sahu ordered $_cartItemCount items (₹${grandTotal.toStringAsFixed(0)}).',
-                                    'event_type': 'service_request.created',
-                                  },
-                                );
-                              } catch (_) {}
-
-                              setState(() => _cart.clear());
-                              _showOrderConfirmedCelebration(biz, newOrder);
+                                final newOrder = await ref
+                                    .read(customerOrdersProvider.notifier)
+                                    .createOrder(biz.id, {
+                                      'order_type': 'food_delivery',
+                                      'fulfillment_type': isDelivery
+                                          ? 'delivery'
+                                          : 'takeaway',
+                                      'delivery_address': isDelivery
+                                          ? addressController.text.trim()
+                                          : null,
+                                      'notes': instructionsController.text
+                                          .trim(),
+                                      'items': cartItems
+                                          .map(
+                                            (product) => {
+                                              'product_id': product.id,
+                                              'quantity':
+                                                  _cart[product.id] ?? 1,
+                                            },
+                                          )
+                                          .toList(),
+                                    });
+                                if (!mounted) return;
+                                setState(() => _cart.clear());
+                                _showOrderConfirmedCelebration(biz, newOrder);
+                              } catch (error) {
+                                if (mounted)
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'The order could not be confirmed. Review the address and current menu availability.',
+                                      ),
+                                    ),
+                                  );
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF15803D),
@@ -2416,92 +2391,95 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   // Confirm Reservation Button
                   SafeArea(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-
-                        final voucher =
-                            '#TB-GN-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
-                        final tableOrder = CustomerOrder(
-                          id: voucher,
-                          businessId: biz.id,
-                          businessName: biz.name,
-                          businessLocality: biz.locality ?? biz.city ?? '',
-                          businessPhone: biz.phoneE164,
-                          businessCoverUrl: biz.coverPhotoUrl,
-                          orderType: OrderType.tableReservation,
-                          status: OrderStatus.confirmed,
-                          createdAt: DateTime.now(),
-                          grandTotal: 0.0,
-                          tableGuests: guests,
-                          tableDate: selectedDate,
-                          tableSlot: selectedSlot,
-                          seatingArea: seatingArea,
-                          voucherCode: voucher,
+                      onPressed: () async {
+                        final reservationAt = _reservationDateTime(
+                          selectedDate,
+                          selectedSlot,
                         );
-                        ref
-                            .read(customerOrdersProvider.notifier)
-                            .addOrder(tableOrder);
+                        try {
+                          final tableOrder = await ref
+                              .read(customerOrdersProvider.notifier)
+                              .createOrder(biz.id, {
+                                'order_type': 'table_reservation',
+                                'reservation_at': reservationAt
+                                    .toUtc()
+                                    .toIso8601String(),
+                                'guest_count': guests,
+                                'seating_area': seatingArea,
+                              });
+                          if (!ctx.mounted || !context.mounted) return;
+                          Navigator.pop(ctx);
+                          final voucher =
+                              tableOrder.voucherCode ?? tableOrder.id;
 
-                        showDialog(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.table_restaurant_rounded,
-                                  size: 54,
-                                  color: Color(0xFF0F766E),
-                                ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Table Reserved!',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
+                          showDialog(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.table_restaurant_rounded,
+                                    size: 54,
+                                    color: Color(0xFF0F766E),
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '$guests Guests • $selectedDate at $selectedSlot\n$seatingArea',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.secondaryText,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF2F4F7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Booking Reference: $voucher',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Table Reserved!',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.pop(c),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F766E),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '$guests Guests • $selectedDate at $selectedSlot\n$seatingArea',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.secondaryText,
+                                    ),
                                   ),
-                                  child: const Text(
-                                    'Awesome, Done!',
-                                    style: TextStyle(color: Colors.white),
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF2F4F7),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'Booking Reference: $voucher',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(c),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0F766E),
+                                    ),
+                                    child: const Text(
+                                      'Awesome, Done!',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } catch (error) {
+                          if (!ctx.mounted) return;
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Reservation failed: $error'),
+                            ),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F766E),
@@ -2532,7 +2510,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   }
 
   // --- Interactive Sheet 3: Hotel Room Booking ---
-  void _openHotelRoomBookingSheet(Business biz, [Product? preselectedRoom]) {
+  void _openHotelRoomBookingSheet(
+    Business biz,
+    List<Product> products, [
+    Product? preselectedRoom,
+  ]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2540,14 +2522,15 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       builder: (ctx) {
         int nights = 2;
         int guests = 2;
-        String roomName =
-            preselectedRoom?.name ?? 'Deluxe Sea-Facing King Room';
-        double pricePerNight = preselectedRoom?.price ?? 4800.0;
+        final room =
+            preselectedRoom ?? (products.isNotEmpty ? products.first : null);
+        String roomName = room?.name ?? 'Room unavailable';
+        double pricePerNight = room?.price ?? 0;
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final total = pricePerNight * nights;
-            final tax = total * 0.12;
+            const tax = 0.0;
             final finalTotal = total + tax;
 
             return Container(
@@ -2779,93 +2762,107 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   // Confirm Reservation CTA
                   SafeArea(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
+                      onPressed: room == null
+                          ? null
+                          : () async {
+                              try {
+                                final checkIn = DateTime.now().add(
+                                  const Duration(days: 1),
+                                );
+                                final hotelOrder = await ref
+                                    .read(customerOrdersProvider.notifier)
+                                    .createOrder(biz.id, {
+                                      'order_type': 'hotel_booking',
+                                      'reservation_at': checkIn
+                                          .toUtc()
+                                          .toIso8601String(),
+                                      'reservation_end_at': checkIn
+                                          .add(Duration(days: nights))
+                                          .toUtc()
+                                          .toIso8601String(),
+                                      'guest_count': guests,
+                                      'room_product_id': room.id,
+                                    });
+                                if (!ctx.mounted || !context.mounted) return;
+                                Navigator.pop(ctx);
+                                final voucher =
+                                    hotelOrder.voucherCode ?? hotelOrder.id;
+                                roomName = hotelOrder.hotelRoomName ?? roomName;
 
-                        final voucher =
-                            '#STAY-${(DateTime.now().millisecondsSinceEpoch.toString().substring(9))}';
-                        final hotelOrder = CustomerOrder(
-                          id: voucher,
-                          businessId: biz.id,
-                          businessName: biz.name,
-                          businessLocality: biz.locality ?? biz.city ?? '',
-                          businessPhone: biz.phoneE164,
-                          businessCoverUrl: biz.coverPhotoUrl,
-                          orderType: OrderType.hotelBooking,
-                          status: OrderStatus.confirmed,
-                          createdAt: DateTime.now(),
-                          grandTotal: finalTotal,
-                          hotelRoomName: roomName,
-                          hotelNights: nights,
-                          hotelGuests: guests,
-                          voucherCode: voucher,
-                        );
-                        ref
-                            .read(customerOrdersProvider.notifier)
-                            .addOrder(hotelOrder);
-
-                        showDialog(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.beach_access_rounded,
-                                  size: 54,
-                                  color: AppTheme.primary,
-                                ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Stay Confirmed!',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '$roomName\n$nights Nights • $guests Guests\nPay upon check-in at hotel desk.',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.secondaryText,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Voucher: $voucher',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.primary,
+                                showDialog(
+                                  context: context,
+                                  builder: (c) => AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.beach_access_rounded,
+                                          size: 54,
+                                          color: AppTheme.primary,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'Stay Confirmed!',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          '$roomName\n$nights Nights • $guests Guests\nPay upon check-in at hotel desk.',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.secondaryText,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Voucher: $voucher',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: AppTheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: () => Navigator.pop(c),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.primary,
+                                          ),
+                                          child: const Text(
+                                            'View Booking Receipt',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.pop(c),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primary,
+                                );
+                              } catch (error) {
+                                if (!ctx.mounted) return;
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Booking failed: $error'),
                                   ),
-                                  child: const Text(
-                                    'View Booking Receipt',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                                );
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -3050,7 +3047,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    biz.reviewCount == null ? 'Review count unavailable' : '${biz.reviewCount} reviews',
+                    biz.reviewCount == null
+                        ? 'Review count unavailable'
+                        : '${biz.reviewCount} reviews',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppTheme.secondaryText,
@@ -3286,6 +3285,23 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             ServiceRequestScreen(businessId: biz.id, businessName: biz.name),
       ),
     );
+  }
+
+  DateTime _reservationDateTime(String dateLabel, String slotLabel) {
+    final now = DateTime.now();
+    final day = dateLabel == 'Tomorrow'
+        ? DateTime(now.year, now.month, now.day + 1)
+        : DateTime(now.year, now.month, now.day);
+    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)').firstMatch(slotLabel);
+    if (match == null) return day.add(const Duration(days: 1, hours: 12));
+    var hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final period = match.group(3)!;
+    if (period == 'PM' && hour != 12) hour += 12;
+    if (period == 'AM' && hour == 12) hour = 0;
+    var result = DateTime(day.year, day.month, day.day, hour, minute);
+    if (!result.isAfter(now)) result = result.add(const Duration(days: 1));
+    return result;
   }
 }
 

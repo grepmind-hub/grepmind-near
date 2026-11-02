@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -30,10 +31,12 @@ class ServiceRequestStatusScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ServiceRequestStatusScreen> createState() => _ServiceRequestStatusScreenState();
+  ConsumerState<ServiceRequestStatusScreen> createState() =>
+      _ServiceRequestStatusScreenState();
 }
 
-class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatusScreen> {
+class _ServiceRequestStatusScreenState
+    extends ConsumerState<ServiceRequestStatusScreen> {
   late String _currentStatus;
   late final String _bookingId;
   late final DateTime _scheduledTime;
@@ -43,15 +46,15 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
   @override
   void initState() {
     super.initState();
-    _currentStatus = widget.initialStatus ?? widget.request?.status ?? 'requested';
-    _bookingId = widget.requestId != null && widget.requestId!.length >= 4
-        ? (widget.requestId!.startsWith('#GN-') ? widget.requestId! : '#GN-${widget.requestId!.substring(0, 4).toUpperCase()}')
-        : (widget.request?.id != null
-            ? '#GN-${widget.request!.id.substring(0, 4).toUpperCase()}'
-            : '#GN-4921');
-    _scheduledTime = widget.appointmentTime ??
+    _currentStatus =
+        widget.initialStatus ?? widget.request?.status ?? 'requested';
+    final requestID = widget.requestId ?? widget.request?.id;
+    _bookingId = requestID == null ? 'Unavailable' : requestID;
+    _scheduledTime =
+        widget.appointmentTime ??
         widget.request?.requestedFor ??
-        DateTime.now().add(const Duration(hours: 2));
+        widget.request?.createdAt ??
+        DateTime.now();
 
     _fetchLiveStatus();
     _startLiveTracking();
@@ -85,7 +88,9 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
               _currentStatus = newStatus;
             });
           }
-          if (newStatus == 'completed' || newStatus == 'cancelled' || newStatus == 'declined') {
+          if (newStatus == 'completed' ||
+              newStatus == 'cancelled' ||
+              newStatus == 'declined') {
             _statusPollTimer?.cancel();
           }
         }
@@ -100,7 +105,7 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     if (widget.businessName != null && widget.businessName!.isNotEmpty) {
       return widget.businessName!;
     }
-    return 'Ramesh Kumar - Electrical Services';
+    return 'Provider details unavailable';
   }
 
   String get _providerShortName {
@@ -112,10 +117,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     if (widget.serviceName != null && widget.serviceName!.isNotEmpty) {
       return widget.serviceName!;
     }
-    if (widget.request?.description != null && widget.request!.description.isNotEmpty) {
+    if (widget.request?.description != null &&
+        widget.request!.description.isNotEmpty) {
       return widget.request!.description;
     }
-    return 'Ceiling Fan & Light Fixture Install';
+    return 'Service details unavailable';
   }
 
   Future<void> _makePhoneCall(String phone) async {
@@ -123,15 +129,16 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Calling $phone...')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Calling $phone...')));
     }
   }
 
   Future<void> _openWhatsApp(String phone) async {
     final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    final uri = Uri.parse('https://wa.me/$cleanPhone?text=Hi%20$_providerShortName,%20regarding%20my%20service%20request%20$_bookingId');
+    final uri = Uri.parse(
+      'https://wa.me/$cleanPhone?text=Hi%20$_providerShortName,%20regarding%20my%20service%20request%20$_bookingId',
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
@@ -175,7 +182,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     color: const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFDC2626),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -193,7 +204,10 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                       SizedBox(height: 2),
                       Text(
                         'You will not be charged any cancellation fee.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryText,
+                        ),
                       ),
                     ],
                   ),
@@ -203,7 +217,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
             const SizedBox(height: 18),
             const Text(
               'Please tell us the reason:',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.mainText,
+              ),
             ),
             const SizedBox(height: 10),
             ...[
@@ -215,17 +233,31 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
               (reason) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    setState(() => _currentStatus = 'cancelled');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Request $_bookingId cancelled')),
-                    );
+                  onTap: () async {
+                    if (widget.requestId == null) return;
+                    try {
+                      await apiClient.post(
+                        '/requests/${widget.requestId}/cancel',
+                      );
+                      if (!mounted || !ctx.mounted) return;
+                      Navigator.of(ctx).pop();
+                      setState(() => _currentStatus = 'cancelled');
+                    } catch (_) {
+                      if (!ctx.mounted) return;
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text('This request cannot be cancelled.'),
+                        ),
+                      );
+                    }
                   },
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(10),
@@ -233,7 +265,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     ),
                     child: Text(
                       reason,
-                      style: const TextStyle(fontSize: 13, color: AppTheme.mainText, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.mainText,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -245,11 +281,19 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
               height: 48,
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   side: const BorderSide(color: Color(0xFFCBD5E1)),
                 ),
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Keep My Request', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.mainText)),
+                child: const Text(
+                  'Keep My Request',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.mainText,
+                  ),
+                ),
               ),
             ),
           ],
@@ -285,7 +329,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
             const SizedBox(height: 20),
             const Text(
               'Grepmind Help & Support',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.mainText,
+              ),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -296,31 +344,49 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.headset_mic_rounded, color: AppTheme.primary),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.headset_mic_rounded,
+                  color: AppTheme.primary,
+                ),
               ),
-              title: const Text('Call Customer Support', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              subtitle: const Text('Toll-free • Available 8 AM - 10 PM', style: TextStyle(fontSize: 12)),
+              title: const Text(
+                'Call Customer Support',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Support contact is not configured.',
+                style: TextStyle(fontSize: 12),
+              ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _makePhoneCall('1800123456');
-              },
+              onTap: null,
             ),
             const Divider(height: 12),
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.chat_outlined, color: Color(0xFF15803D)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.chat_outlined,
+                  color: Color(0xFF15803D),
+                ),
               ),
-              title: const Text('Live Chat via WhatsApp', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              subtitle: const Text('Instant support bot & support agent', style: TextStyle(fontSize: 12)),
+              title: const Text(
+                'Live Chat via WhatsApp',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Support chat is not configured.',
+                style: TextStyle(fontSize: 12),
+              ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _openWhatsApp('+919876543210');
-              },
+              onTap: null,
             ),
           ],
         ),
@@ -337,7 +403,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.mainText),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppTheme.mainText,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
@@ -364,7 +434,10 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline_rounded, color: AppTheme.mainText),
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: AppTheme.mainText,
+            ),
             tooltip: 'Help & Support',
             onPressed: _showSupportModal,
           ),
@@ -385,15 +458,14 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 children: [
                   // Hero Status Card with pulsing pill
                   _buildHeroLiveStatusCard(),
                   const SizedBox(height: 14),
-
-                  // Demo Stage Switcher (Allows testing each stage of the request live)
-                  _buildStageSwitcherBar(),
-                  const SizedBox(height: 16),
 
                   // Multi-Step Progress Tracker Timeline
                   _buildTimelineStepperCard(),
@@ -434,7 +506,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFEFF6FF);
         pillTextColor = AppTheme.primary;
         statusTitle = 'Accepted by Pro';
-        statusDescription = '$_providerShortName accepted your request. Expected arrival on schedule.';
+        statusDescription =
+            '$_providerShortName accepted your request. Expected arrival on schedule.';
         statusIcon = Icons.thumb_up_alt_rounded;
         break;
       case 'en_route':
@@ -443,7 +516,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFCCFBF1);
         pillTextColor = const Color(0xFF0F766E);
         statusTitle = 'Professional En Route';
-        statusDescription = '$_providerShortName is heading to your address. ETA approx 18 mins.';
+        statusDescription =
+            '$_providerShortName is heading to your address. ETA approx 18 mins.';
         statusIcon = Icons.navigation_rounded;
         break;
       case 'in_progress':
@@ -452,7 +526,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFFFEDD5);
         pillTextColor = const Color(0xFFC2410C);
         statusTitle = 'Job In Progress';
-        statusDescription = '$_providerShortName is actively working on your electrical repair.';
+        statusDescription =
+            '$_providerShortName is actively working on your electrical repair.';
         statusIcon = Icons.build_circle_rounded;
         break;
       case 'completed':
@@ -461,7 +536,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFECFDF5);
         pillTextColor = const Color(0xFF047857);
         statusTitle = 'Job Completed';
-        statusDescription = 'The service has been completed successfully. Please review & pay.';
+        statusDescription =
+            'The service has been completed successfully. Please review & pay.';
         statusIcon = Icons.task_alt_rounded;
         break;
       case 'cancelled':
@@ -470,7 +546,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFFEF2F2);
         pillTextColor = const Color(0xFFDC2626);
         statusTitle = 'Request Cancelled';
-        statusDescription = 'This service request was cancelled. No charges applied.';
+        statusDescription =
+            'This service request was cancelled. No charges applied.';
         statusIcon = Icons.cancel_outlined;
         break;
       case 'requested':
@@ -480,7 +557,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         pillColor = const Color(0xFFF1F5F9);
         pillTextColor = const Color(0xFF1E293B);
         statusTitle = 'Request Submitted';
-        statusDescription = 'Awaiting confirmation from $_providerShortName within 15 minutes.';
+        statusDescription =
+            'Awaiting confirmation from $_providerShortName within 15 minutes.';
         statusIcon = Icons.hourglass_top_rounded;
         break;
     }
@@ -509,7 +587,10 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: pillColor,
                   borderRadius: BorderRadius.circular(20),
@@ -538,7 +619,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                   ],
                 ),
               ),
-              Icon(statusIcon, color: Colors.white.withValues(alpha: 0.9), size: 28),
+              Icon(
+                statusIcon,
+                color: Colors.white.withValues(alpha: 0.9),
+                size: 28,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -565,87 +650,45 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     );
   }
 
-  Widget _buildStageSwitcherBar() {
-    final stages = [
-      {'key': 'requested', 'label': 'Requested'},
-      {'key': 'accepted', 'label': 'Accepted'},
-      {'key': 'en_route', 'label': 'En Route'},
-      {'key': 'in_progress', 'label': 'Progress'},
-      {'key': 'completed', 'label': 'Done'},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: stages.map((stage) {
-            final isSelected = _currentStatus == stage['key'];
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => setState(() => _currentStatus = stage['key']!),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primary : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    stage['label']!,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? Colors.white : AppTheme.secondaryText,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTimelineStepperCard() {
     final steps = [
       {
         'title': 'Request Submitted',
         'subtitle': 'Details sent to $_providerShortName',
-        'time': '10:30 AM',
+        'time': DateFormat('h:mm a')
+            .format(widget.request?.createdAt ?? _scheduledTime),
         'state': _getStepState('requested'),
       },
       {
         'title': 'Provider Accepted',
         'subtitle': '$_providerShortName accepted the booking',
-        'time': _currentStatus != 'requested' ? '10:38 AM' : '--:--',
+        'time': _currentStatus != 'requested' ? 'Updated' : '--:--',
         'state': _getStepState('accepted'),
       },
       {
         'title': 'Professional En Route',
-        'subtitle': 'Traveling to Saheed Nagar location',
-        'time': (_currentStatus == 'en_route' || _currentStatus == 'in_progress' || _currentStatus == 'completed')
-            ? '11:15 AM'
+        'subtitle': 'Travel status reported by the provider',
+        'time':
+            (_currentStatus == 'en_route' ||
+                _currentStatus == 'in_progress' ||
+                _currentStatus == 'completed')
+            ? 'Updated'
             : '--:--',
         'state': _getStepState('en_route'),
       },
       {
         'title': 'Job In Progress',
         'subtitle': 'Inspection and fixtures installation',
-        'time': (_currentStatus == 'in_progress' || _currentStatus == 'completed') ? '11:35 AM' : '--:--',
+        'time':
+            (_currentStatus == 'in_progress' || _currentStatus == 'completed')
+            ? 'Updated'
+            : '--:--',
         'state': _getStepState('in_progress'),
       },
       {
         'title': 'Job Completed & Verified',
-        'subtitle': 'Final test & payment receipt generated',
-        'time': _currentStatus == 'completed' ? '12:20 PM' : '--:--',
+        'subtitle': 'Provider marked the job complete',
+        'time': _currentStatus == 'completed' ? 'Updated' : '--:--',
         'state': _getStepState('completed'),
       },
     ];
@@ -685,11 +728,19 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.sync_rounded, size: 12, color: Color(0xFF059669)),
+                    Icon(
+                      Icons.sync_rounded,
+                      size: 12,
+                      color: Color(0xFF059669),
+                    ),
                     SizedBox(width: 4),
                     Text(
                       'Live Tracking',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF059669),
+                      ),
                     ),
                   ],
                 ),
@@ -700,7 +751,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           ...List.generate(steps.length, (index) {
             final isLast = index == steps.length - 1;
             final step = steps[index];
-            final stepState = step['state'] as String; // 'done', 'current', 'upcoming'
+            final stepState =
+                step['state'] as String; // 'done', 'current', 'upcoming'
 
             return _buildTimelineStepRow(
               title: step['title'] as String,
@@ -718,7 +770,13 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
   String _getStepState(String stepKey) {
     if (_currentStatus == 'cancelled') return 'upcoming';
 
-    final order = ['requested', 'accepted', 'en_route', 'in_progress', 'completed'];
+    final order = [
+      'requested',
+      'accepted',
+      'en_route',
+      'in_progress',
+      'completed',
+    ];
     final currentIndex = order.indexOf(_currentStatus);
     final stepIndex = order.indexOf(stepKey);
 
@@ -739,7 +797,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
 
     if (state == 'done') {
       circleColor = const Color(0xFF059669);
-      iconWidget = const Icon(Icons.check_rounded, color: Colors.white, size: 14);
+      iconWidget = const Icon(
+        Icons.check_rounded,
+        color: Colors.white,
+        size: 14,
+      );
     } else if (state == 'current') {
       circleColor = AppTheme.primary;
       iconWidget = Container(
@@ -792,7 +854,9 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: state == 'done' ? const Color(0xFF059669) : const Color(0xFFE2E8F0),
+                    color: state == 'done'
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFE2E8F0),
                   ),
                 ),
             ],
@@ -815,8 +879,12 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                           title,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: state == 'current' ? FontWeight.w800 : FontWeight.w600,
-                            color: state == 'upcoming' ? AppTheme.secondaryText : AppTheme.mainText,
+                            fontWeight: state == 'current'
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: state == 'upcoming'
+                                ? AppTheme.secondaryText
+                                : AppTheme.mainText,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -836,7 +904,9 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: state == 'upcoming' ? const Color(0xFF94A3B8) : AppTheme.secondaryText,
+                      color: state == 'upcoming'
+                          ? const Color(0xFF94A3B8)
+                          : AppTheme.secondaryText,
                     ),
                   ),
                 ],
@@ -850,8 +920,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
 
   Widget _buildAssignedProfessionalCard() {
     final pro = widget.business;
-    final rating = pro?.rating ?? 4.9;
-    final phone = pro?.phoneE164 ?? '+919876543220';
+    final rating = pro?.rating;
+    final phone = pro?.phoneE164;
     final whatsapp = pro?.whatsappE164 ?? phone;
 
     return Container(
@@ -866,7 +936,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
         children: [
           const Text(
             'Assigned Professional',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.mainText,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -887,8 +961,14 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      _providerShortName.isNotEmpty ? _providerShortName[0] : 'P',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      _providerShortName.isNotEmpty
+                          ? _providerShortName[0]
+                          : 'P',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -896,8 +976,15 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     right: -2,
                     child: Container(
                       padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(color: Color(0xFF2457D6), shape: BoxShape.circle),
-                      child: const Icon(Icons.check, size: 10, color: Colors.white),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2457D6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 10,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -914,30 +1001,51 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                         Flexible(
                           child: Text(
                             _providerName,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, size: 15, color: Color(0xFF2457D6)),
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 15,
+                          color: Color(0xFF2457D6),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Color(0xFFF59E0B),
+                        ),
                         const SizedBox(width: 3),
                         Text(
-                          '$rating (124+ completed)',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                          rating == null
+                              ? 'No rating available'
+                              : rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       'Location not provided',
-                      style: TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ],
                 ),
@@ -957,11 +1065,21 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                       foregroundColor: AppTheme.primary,
                       side: const BorderSide(color: Color(0xFFBFDBFE)),
                       backgroundColor: const Color(0xFFEFF6FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     icon: const Icon(Icons.call_rounded, size: 16),
-                    label: const Text('Call Pro', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                    onPressed: () => _makePhoneCall(phone),
+                    label: const Text(
+                      'Call Pro',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    onPressed: phone == null
+                        ? null
+                        : () => _makePhoneCall(phone),
                   ),
                 ),
               ),
@@ -974,11 +1092,24 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                       foregroundColor: const Color(0xFF15803D),
                       side: const BorderSide(color: Color(0xFFBBF7D0)),
                       backgroundColor: const Color(0xFFDCFCE7),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                    label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                    onPressed: () => _openWhatsApp(whatsapp),
+                    icon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 16,
+                    ),
+                    label: const Text(
+                      'WhatsApp',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    onPressed: whatsapp == null
+                        ? null
+                        : () => _openWhatsApp(whatsapp),
                   ),
                 ),
               ),
@@ -1009,7 +1140,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
               const Expanded(
                 child: Text(
                   'Job & Receipt Summary',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mainText,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1023,7 +1158,11 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                 ),
                 child: Text(
                   _bookingId,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.mainText,
+                  ),
                 ),
               ),
             ],
@@ -1036,20 +1175,33 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           const SizedBox(height: 10),
           _buildReceiptRow('Address', 'Address not provided'),
           const SizedBox(height: 10),
-          _buildReceiptRow('Indicative Estimate', '₹299 - ₹599', isHighlight: true),
+          _buildReceiptRow(
+            'Indicative Estimate',
+            '₹299 - ₹599',
+            isHighlight: true,
+          ),
           const SizedBox(height: 10),
           _buildReceiptRow('Payment Mode', 'Pay after job (Cash / UPI / Card)'),
 
-          if (widget.request?.description != null && widget.request!.description.isNotEmpty) ...[
+          if (widget.request?.description != null &&
+              widget.request!.description.isNotEmpty) ...[
             const Divider(height: 20, color: Color(0xFFF1F5F9)),
             const Text(
               'Customer Instructions:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.secondaryText),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.secondaryText,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               widget.request!.description,
-              style: const TextStyle(fontSize: 12, color: AppTheme.mainText, height: 1.4),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.mainText,
+                height: 1.4,
+              ),
             ),
           ],
         ],
@@ -1057,7 +1209,12 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
     );
   }
 
-  Widget _buildReceiptRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
+  Widget _buildReceiptRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isHighlight = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1107,7 +1264,8 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             children: [
-              if (_currentStatus != 'completed' && _currentStatus != 'cancelled') ...[
+              if (_currentStatus != 'completed' &&
+                  _currentStatus != 'cancelled') ...[
                 // Cancel Request Action Button
                 Expanded(
                   child: SizedBox(
@@ -1117,10 +1275,18 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                         foregroundColor: const Color(0xFFDC2626),
                         side: const BorderSide(color: Color(0xFFFECACA)),
                         backgroundColor: const Color(0xFFFEF2F2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onPressed: _showCancelConfirmationModal,
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1136,14 +1302,26 @@ class _ServiceRequestStatusScreenState extends ConsumerState<ServiceRequestStatu
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    icon: const Icon(Icons.home_outlined, color: Colors.white, size: 18),
+                    icon: const Icon(
+                      Icons.home_outlined,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     label: Text(
-                        _currentStatus == 'completed' ? 'Back to Home' : 'Back to Explore',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      _currentStatus == 'completed'
+                          ? 'Back to Home'
+                          : 'Back to Explore',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     onPressed: () {
                       Navigator.of(context).popUntil((route) => route.isFirst);

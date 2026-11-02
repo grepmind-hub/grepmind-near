@@ -31,24 +31,25 @@ class BookingSchedulerScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<BookingSchedulerScreen> createState() => _BookingSchedulerScreenState();
+  ConsumerState<BookingSchedulerScreen> createState() =>
+      _BookingSchedulerScreenState();
 }
 
-class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen> {
+class _BookingSchedulerScreenState
+    extends ConsumerState<BookingSchedulerScreen> {
   late DateTime _selectedDate;
   String? _selectedSlotTime;
+  String? _selectedSlotId;
   Service? _currentService;
   final _notesController = TextEditingController();
+  final _locationController = TextEditingController();
   bool _isSubmitting = false;
 
   // Selected scope (when no specific service chosen)
   int _selectedScopeIndex = 0;
-  final List<Map<String, dynamic>> _scopeOptions = [
-    {'title': 'Standard Visit', 'duration': '45-60 mins', 'price': 299},
-    {'title': 'Full Inspection', 'duration': '60-90 mins', 'price': 499},
-    {'title': 'Major Repair', 'duration': '2-3 hours', 'price': 899},
-    {'title': 'Emergency Visit', 'duration': 'Immediate', 'price': 699},
-  ];
+  final List<Map<String, dynamic>> _scopeOptions = [];
+  List<Map<String, dynamic>> _availability = [];
+  bool _loadingAvailability = true;
 
   late final List<DateTime> _calendarDays;
 
@@ -62,16 +63,17 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     // Generate 14 days starting from today
     _calendarDays = List.generate(
       14,
-      (index) => DateTime(now.year, now.month, now.day).add(Duration(days: index)),
+      (index) =>
+          DateTime(now.year, now.month, now.day).add(Duration(days: index)),
     );
 
-    // Default slot for today
-    _selectedSlotTime = '10:00 AM';
+    _loadSchedulingData();
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -97,25 +99,105 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
         return _currentService!.indicativePriceMin!.round();
       }
     }
-    return _scopeOptions[_selectedScopeIndex]['price'] as int;
+    if (_scopeOptions.isNotEmpty)
+      return _scopeOptions[_selectedScopeIndex]['price'] as int;
+    return 0;
   }
 
-  List<String> _getMorningSlots() => ['08:30 AM', '10:00 AM', '11:30 AM'];
-  List<String> _getAfternoonSlots() => ['01:00 PM', '02:30 PM', '03:30 PM'];
-  List<String> _getEveningSlots() => ['05:00 PM', '06:30 PM', '07:30 PM'];
+  List<String> _slotsForPeriod(int fromHour, int toHour) => _availability
+      .where((slot) {
+        final start = DateTime.parse(slot['starts_at'] as String).toLocal();
+        return start.year == _selectedDate.year &&
+            start.month == _selectedDate.month &&
+            start.day == _selectedDate.day &&
+            start.hour >= fromHour &&
+            start.hour < toHour;
+      })
+      .map(
+        (slot) =>
+            DateFormat('hh:mm a')
+                .format(DateTime.parse(slot['starts_at'] as String).toLocal()),
+      )
+      .toList();
+
+  List<String> _getMorningSlots() => _slotsForPeriod(0, 12);
+  List<String> _getAfternoonSlots() => _slotsForPeriod(12, 16);
+  List<String> _getEveningSlots() => _slotsForPeriod(16, 24);
 
   bool _isSlotBooked(String slotTime) {
-    // Demo realistic scenario: tomorrow 11:30 AM is booked
-    final isTomorrow = _selectedDate.day == (DateTime.now().day + 1);
-    if (isTomorrow && slotTime == '11:30 AM') return true;
     return false;
   }
 
+  Future<void> _loadSchedulingData() async {
+    final bizId = widget.business?.id ?? widget.businessId;
+    if (bizId == null || bizId.isEmpty) return;
+    setState(() => _loadingAvailability = true);
+    try {
+      final from = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      final to = from.add(const Duration(days: 1));
+      final responses = await Future.wait([
+        apiClient.get('/businesses/$bizId/services'),
+        apiClient.get(
+          '/businesses/$bizId/availability',
+          queryParameters: {
+            'from': from.toUtc().toIso8601String(),
+            'to': to.toUtc().toIso8601String(),
+          },
+        ),
+      ]);
+      final services =
+          ((responses[0].data as Map<String, dynamic>)['data']
+                      as List<dynamic>? ??
+                  [])
+              .map((e) => Service.fromJson(e as Map<String, dynamic>))
+              .toList();
+      final slots =
+          ((responses[1].data as Map<String, dynamic>)['data']
+                      as List<dynamic>? ??
+                  [])
+              .cast<Map<String, dynamic>>();
+      if (!mounted) return;
+      setState(() {
+        _scopeOptions
+          ..clear()
+          ..addAll(
+            services.map(
+              (service) => {
+                'service': service,
+                'title': service.name,
+                'duration': 'Published service',
+                'price': service.indicativePriceMin?.round() ?? 0,
+              },
+            ),
+          );
+        if (_currentService == null && services.isNotEmpty)
+          _currentService = services.first;
+        _availability = slots;
+        _selectedSlotId = null;
+        _selectedSlotTime = null;
+        _loadingAvailability = false;
+      });
+    } catch (_) {
+      if (mounted)
+        setState(() {
+          _availability = [];
+          _loadingAvailability = false;
+        });
+    }
+  }
+
   Future<void> _confirmBooking() async {
-    if (_selectedSlotTime == null) {
+    if (_selectedSlotTime == null ||
+        _selectedSlotId == null ||
+        _currentService == null ||
+        _locationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select an appointment time slot'),
+          content: Text('Select a time slot and enter the service address'),
           backgroundColor: Color(0xFFDC2626),
         ),
       );
@@ -127,11 +209,12 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     try {
       final bizId = widget.business?.id ?? widget.businessId;
       if (bizId == null || bizId.isEmpty) throw StateError('Business required');
-      final description = _notesController.text.trim().isNotEmpty
-          ? _notesController.text.trim()
-          : (_currentService != null
-              ? 'Appointment booking for ${_currentService!.name}'
-              : 'Service appointment for ${_scopeOptions[_selectedScopeIndex]['title']}');
+      final notes = _notesController.text.trim();
+      final description = [
+        'Appointment booking for ${_currentService!.name}',
+        'Service address: ${_locationController.text.trim()}',
+        if (notes.isNotEmpty) notes,
+      ].join('\n');
 
       String? createdId;
       // Live API booking call to Grepmind Near backend
@@ -140,14 +223,20 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
           '/businesses/$bizId/requests',
           data: {
             'service_id': _currentService?.id,
-            'description': '$description [Slot: $_selectedSlotTime]',
-            'requested_for': _selectedDate.toIso8601String(),
+            'slot_id': _selectedSlotId,
+            'description': description,
+            'requested_for': _availability.firstWhere(
+              (slot) => slot['id'] == _selectedSlotId,
+            )['starts_at'],
           },
         );
         final data = res.data as Map<String, dynamic>;
         createdId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
-      } catch (_) { rethrow; }
-      if (createdId == null || createdId.isEmpty) throw StateError('Booking was not persisted');
+      } catch (_) {
+        rethrow;
+      }
+      if (createdId == null || createdId.isEmpty)
+        throw StateError('Booking was not persisted');
 
       await Future.delayed(const Duration(milliseconds: 400));
 
@@ -157,7 +246,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to book. Check your connection and sign in, then try again.')),
+          const SnackBar(
+            content: Text(
+              'Unable to book. Check your connection and sign in, then try again.',
+            ),
+          ),
         );
       }
     } finally {
@@ -165,12 +258,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     }
   }
 
-  void _showSuccessConfirmationSheet([String? realReqId]) {
+  void _showSuccessConfirmationSheet(String realReqId) {
     final dateFormat = DateFormat('EEE, MMM d, yyyy');
     final formattedDate = dateFormat.format(_selectedDate);
-    final bookingId = realReqId != null
-        ? '#GN-${realReqId.substring(0, 6).toUpperCase()}'
-        : 'GN-${(1000 + DateTime.now().millisecond * 7).toString().padLeft(4, '0')}';
+    final bookingId = '#GN-${realReqId.substring(0, 6).toUpperCase()}';
 
     showModalBottomSheet(
       context: context,
@@ -250,14 +341,23 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                   const SizedBox(height: 8),
                   _buildReceiptRow(
                     'Service',
-                    _currentService?.name ?? _scopeOptions[_selectedScopeIndex]['title'] as String,
+                    _currentService?.name ??
+                        _scopeOptions[_selectedScopeIndex]['title'] as String,
                   ),
                   const SizedBox(height: 8),
-                  _buildReceiptRow('Date & Time', '$formattedDate • $_selectedSlotTime'),
+                  _buildReceiptRow(
+                    'Date & Time',
+                    '$formattedDate • $_selectedSlotTime',
+                  ),
                   const SizedBox(height: 8),
-                  _buildReceiptRow('Location', 'Saheed Nagar, Plot 42'),
+                  _buildReceiptRow('Location', _locationController.text),
                   const Divider(height: 20, color: Color(0xFFE2E8F0)),
-                  _buildReceiptRow('Estimated Amount', '₹$_calculatedPrice', isBold: true, isHighlight: true),
+                  _buildReceiptRow(
+                    'Estimated Amount',
+                    '₹$_calculatedPrice',
+                    isBold: true,
+                    isHighlight: true,
+                  ),
                 ],
               ),
             ),
@@ -271,8 +371,13 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppTheme.primary, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: const BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     onPressed: () {
                       Navigator.of(ctx).pop();
@@ -283,7 +388,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                             requestId: realReqId,
                             business: widget.business,
                             businessName: widget.businessName,
-                            serviceName: _currentService?.name ?? _scopeOptions[_selectedScopeIndex]['title'] as String,
+                            serviceName:
+                                _currentService?.name ??
+                                _scopeOptions[_selectedScopeIndex]['title']
+                                    as String,
                             appointmentTime: _selectedDate,
                             initialStatus: 'requested',
                           ),
@@ -292,7 +400,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                     },
                     child: const Text(
                       'Track Live Status',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -303,7 +415,9 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: AppTheme.primary,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     onPressed: () {
                       Navigator.of(ctx).pop();
@@ -311,7 +425,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                     },
                     child: const Text(
                       'Done',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -323,7 +441,12 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     );
   }
 
-  Widget _buildReceiptRow(String label, String value, {bool isBold = false, bool isHighlight = false}) {
+  Widget _buildReceiptRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isHighlight = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -361,7 +484,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.mainText),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppTheme.mainText,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -375,7 +502,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border_rounded, color: AppTheme.mainText),
+            icon: const Icon(
+              Icons.bookmark_border_rounded,
+              color: AppTheme.mainText,
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Saved $_providerShortName for later')),
@@ -408,8 +538,8 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
 
   Widget _buildProProfileHeader() {
     final pro = widget.business;
-    final rating = pro?.rating ?? 4.9;
-    final locality = pro?.locality ?? 'Saheed Nagar';
+    final rating = pro?.rating;
+    final locality = pro?.locality ?? 'Locality unavailable';
     final city = pro?.city ?? '';
 
     return Container(
@@ -490,18 +620,32 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.verified_rounded, size: 15, color: Color(0xFF2457D6)),
+                    const Icon(
+                      Icons.verified_rounded,
+                      size: 15,
+                      color: Color(0xFF2457D6),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: Color(0xFFF59E0B),
+                    ),
                     const SizedBox(width: 3),
                     Flexible(
                       child: Text(
-                        '$rating (124+ completed)',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                        rating == null
+                            ? 'No rating available'
+                            : rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.mainText,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -511,7 +655,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                 const SizedBox(height: 2),
                 Text(
                   '$locality, $city • 1.8 km',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.secondaryText,
+                  ),
                 ),
               ],
             ),
@@ -568,7 +715,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                   },
                   child: const Text(
                     'Change Scope',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primary,
+                    ),
                   ),
                 ),
             ],
@@ -585,7 +736,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.build_circle_outlined, color: AppTheme.primary, size: 22),
+                  const Icon(
+                    Icons.build_circle_outlined,
+                    color: AppTheme.primary,
+                    size: 22,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -594,16 +749,30 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                       children: [
                         Text(
                           _currentService!.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.mainText),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                         const SizedBox(height: 2),
-                        const Text('Est. duration: 45 - 60 mins', style: TextStyle(fontSize: 11, color: AppTheme.secondaryText)),
+                        const Text(
+                          'Est. duration: 45 - 60 mins',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Text(
                     _currentService!.priceText,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.primary),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppTheme.primary,
+                    ),
                   ),
                 ],
               ),
@@ -615,72 +784,92 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                children: List.generate(_scopeOptions.length, (index) {
-                  final scope = _scopeOptions[index];
-                  final isSelected = _selectedScopeIndex == index;
-                  return Padding(
-                    padding: EdgeInsets.only(right: index == _scopeOptions.length - 1 ? 0 : 10),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedScopeIndex = index),
-                      child: Container(
-                        width: 144,
-                        height: 64,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
-                            width: isSelected ? 1.5 : 1,
+                  children: List.generate(_scopeOptions.length, (index) {
+                    final scope = _scopeOptions[index];
+                    final isSelected = _selectedScopeIndex == index;
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: index == _scopeOptions.length - 1 ? 0 : 10,
+                      ),
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedScopeIndex = index;
+                          _currentService = scope['service'] as Service;
+                        }),
+                        child: Container(
+                          width: 144,
+                          height: 64,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFEFF6FF)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : const Color(0xFFE2E8F0),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                scope['title'] as String,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? AppTheme.primary
+                                      : AppTheme.mainText,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      scope['duration'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppTheme.secondaryText,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '₹${scope['price']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: isSelected
+                                          ? AppTheme.primary
+                                          : AppTheme.mainText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              scope['title'] as String,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isSelected ? AppTheme.primary : AppTheme.mainText,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    scope['duration'] as String,
-                                    style: const TextStyle(fontSize: 10, color: AppTheme.secondaryText),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '₹${scope['price']}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: isSelected ? AppTheme.primary : AppTheme.mainText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -717,7 +906,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(8),
@@ -734,7 +926,11 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppTheme.secondaryText),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: AppTheme.secondaryText,
+                    ),
                   ],
                 ),
               ),
@@ -749,92 +945,108 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-              children: List.generate(_calendarDays.length, (index) {
-                final date = _calendarDays[index];
-                final isSelected = date.year == _selectedDate.year &&
-                    date.month == _selectedDate.month &&
-                    date.day == _selectedDate.day;
-                final isToday = date.day == DateTime.now().day && date.month == DateTime.now().month;
+                children: List.generate(_calendarDays.length, (index) {
+                  final date = _calendarDays[index];
+                  final isSelected =
+                      date.year == _selectedDate.year &&
+                      date.month == _selectedDate.month &&
+                      date.day == _selectedDate.day;
+                  final isToday =
+                      date.day == DateTime.now().day &&
+                      date.month == DateTime.now().month;
 
-                return Padding(
-                  padding: EdgeInsets.only(right: index == _calendarDays.length - 1 ? 0 : 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedDate = date;
-                        // reset selected slot when changing date if slot is not available
-                        if (_isSlotBooked(_selectedSlotTime ?? '')) {
-                          _selectedSlotTime = '10:00 AM';
-                        }
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 56,
-                      height: 72,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primary : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
-                          width: isSelected ? 1.5 : 1,
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index == _calendarDays.length - 1 ? 0 : 8,
+                    ),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedDate = date;
+                          _selectedSlotTime = null;
+                          _selectedSlotId = null;
+                        });
+                        _loadSchedulingData();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 56,
+                        height: 72,
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.primary
+                                : const Color(0xFFE2E8F0),
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppTheme.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
                         ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppTheme.primary.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            dayNameFormat.format(date).toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white.withValues(alpha: 0.85) : AppTheme.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${date.day}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: isSelected ? Colors.white : AppTheme.mainText,
-                            ),
-                          ),
-                          if (isToday) ...[
-                            const SizedBox(height: 2),
-                            Container(
-                              width: 4,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected ? Colors.white : AppTheme.primary,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              dayNameFormat.format(date).toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : AppTheme.secondaryText,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppTheme.mainText,
+                              ),
+                            ),
+                            if (isToday) ...[
+                              const SizedBox(height: 2),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.primary,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildTimeSlotsSection() {
     return Container(
@@ -869,9 +1081,15 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                   color: const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  '9 Slots Available',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                child: Text(
+                  _loadingAvailability
+                      ? 'Loading…'
+                      : '${_availability.length} available',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF059669),
+                  ),
                 ),
               ),
             ],
@@ -946,7 +1164,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             Flexible(
               child: Text(
                 '($timeRange)',
-                style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.secondaryText,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -965,24 +1186,38 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               onTap: isBooked
                   ? null
                   : () {
-                      setState(() => _selectedSlotTime = slot);
+                      final match = _availability.firstWhere(
+                        (entry) =>
+                            DateFormat('hh:mm a').format(
+                              DateTime.parse(entry['starts_at'] as String)
+                                  .toLocal(),
+                            ) ==
+                            slot,
+                      );
+                      setState(() {
+                        _selectedSlotTime = slot;
+                        _selectedSlotId = match['id'] as String;
+                      });
                     },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isBooked
                       ? const Color(0xFFF1F5F9)
                       : isSelected
-                          ? AppTheme.primary
-                          : Colors.white,
+                      ? AppTheme.primary
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isBooked
                         ? const Color(0xFFE2E8F0)
                         : isSelected
-                            ? AppTheme.primary
-                            : const Color(0xFFCBD5E1),
+                        ? AppTheme.primary
+                        : const Color(0xFFCBD5E1),
                     width: isSelected ? 1.5 : 1,
                   ),
                   boxShadow: isSelected
@@ -1002,34 +1237,42 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
                       isBooked
                           ? Icons.block_rounded
                           : isSelected
-                              ? Icons.check_circle_rounded
-                              : Icons.schedule_rounded,
+                          ? Icons.check_circle_rounded
+                          : Icons.schedule_rounded,
                       size: 14,
                       color: isBooked
                           ? const Color(0xFF94A3B8)
                           : isSelected
-                              ? Colors.white
-                              : AppTheme.secondaryText,
+                          ? Colors.white
+                          : AppTheme.secondaryText,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       slot,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                         color: isBooked
                             ? const Color(0xFF94A3B8)
                             : isSelected
-                                ? Colors.white
-                                : AppTheme.mainText,
-                        decoration: isBooked ? TextDecoration.lineThrough : null,
+                            ? Colors.white
+                            : AppTheme.mainText,
+                        decoration: isBooked
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                     if (isBooked) ...[
                       const SizedBox(width: 4),
                       const Text(
                         'Booked',
-                        style: TextStyle(fontSize: 10, color: Color(0xFFEF4444), fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFFEF4444),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ],
@@ -1071,29 +1314,42 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 18),
-                SizedBox(width: 10),
+                const Icon(
+                  Icons.location_on_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Service Address',
-                        style: TextStyle(fontSize: 11, color: AppTheme.secondaryText, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.secondaryText,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      Text(
-                        'Enter your service address',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                      TextField(
+                        controller: _locationController,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your service address',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                Text(
-                  'Change',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primary),
                 ),
               ],
             ),
@@ -1106,8 +1362,12 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
             controller: _notesController,
             maxLines: 3,
             decoration: InputDecoration(
-              hintText: 'Add special instructions for $_providerShortName (e.g. bring 16A switch, ladder needed)...',
-              hintStyle: const TextStyle(fontSize: 12, color: AppTheme.hintText),
+              hintText:
+                  'Add special instructions for $_providerShortName (e.g. bring 16A switch, ladder needed)...',
+              hintStyle: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.hintText,
+              ),
               contentPadding: const EdgeInsets.all(12),
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
@@ -1121,7 +1381,10 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppTheme.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -1137,9 +1400,7 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFE2E8F0)),
-        ),
+        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1153,77 +1414,93 @@ class _BookingSchedulerScreenState extends ConsumerState<BookingSchedulerScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
-        children: [
-          // Price & Slot Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '₹$_calculatedPrice',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.mainText,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$formattedDay • ${_selectedSlotTime ?? 'Select slot'}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          // Confirm Booking CTA
-          SizedBox(
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                minimumSize: const Size(120, 48),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: _isSubmitting ? null : _confirmBooking,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_rounded, color: Colors.white, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Book $_providerShortName',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+            children: [
+              // Price & Slot Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _calculatedPrice > 0
+                          ? 'From ₹$_calculatedPrice'
+                          : 'Rate not published',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.mainText,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-            ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$formattedDay • ${_selectedSlotTime ?? 'Select slot'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // Confirm Booking CTA
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    minimumSize: const Size(120, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed:
+                      _isSubmitting ||
+                          _selectedSlotId == null ||
+                          _currentService == null
+                      ? null
+                      : _confirmBooking,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Book $_providerShortName',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }

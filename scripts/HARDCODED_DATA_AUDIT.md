@@ -11,16 +11,18 @@ This audit distinguishes user/business data from legitimate design tokens, API l
 - Map/list/detail rating displays no longer invent 4.8 stars or 128 reviews when values are missing.
 - A selected-city center is described as a search center; GPS failures do not claim the user's current location was obtained.
 
+## Corrected in the operational-booking slice
+
+- Professional metrics, services, availability, operating hours and coverage use persisted API data.
+- Food, table and hotel orders are persisted and priced by the backend before confirmation.
+- Service and order stages can no longer be advanced locally by customers.
+- Missing courier GPS, payment, support and review data render explicit unavailable states.
+- Empty merchant schedules/localities remain empty until the merchant deliberately creates a draft.
+
 ## Still requiring implementation
 
 | Area | Evidence in source | Required work |
 |---|---|---|
-| Professional profile | `service_pro_screen.dart`: fixed experience, completed-job counts, ratings and review snippets | Return authoritative profile/review metrics; remove sample testimonials |
-| Appointment scheduling | `booking_scheduler_screen.dart`: fixed rate/scope options and simulated unavailable slot | Query persisted availability and rates; server-side capacity checks |
-| Service status | `service_request_status_screen.dart`: fallback booking number, demo stage controls and indicative receipt fields | Persist all status transitions and receipt values; remove simulation controls |
-| Food/table/hotel checkout | `business_detail_screen.dart`: local voucher/order confirmation and local totals | Persist orders/reservations and compute totals on the backend before confirmation |
-| Delivery tracking | `order_tracking_screen.dart`: simulated route/progress, sample address/rider defaults | Integrate a real delivery state/location source or show unavailable tracking |
-| Merchant hours/coverage | `app_provider.dart`: draft seven-day hours and fallback locality; web `HoursCoverageManager.tsx`: sample localities | Distinguish unsaved drafts from operating hours; load real service localities |
 | Registration and claim | `merchant_registration_screen.dart`: static classification/category choices and photo/GPS demonstration state | Connect taxonomy, verified location, upload and claim APIs; submission currently unavailable |
 | Admin/merchant desktop | Empty former sample datasets; several views/actions still use local state | Complete authenticated API wiring before claiming production-ready management |
 

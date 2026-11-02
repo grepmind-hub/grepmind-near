@@ -81,7 +81,8 @@ class Business extends Equatable {
       postalCode: json['postal_code'] as String?,
       distanceM: (json['distance_m'] as num?)?.toDouble(),
       status: json['status'] as String? ?? 'pending',
-      verificationStatus: json['verification_status'] as String? ?? 'unverified',
+      verificationStatus:
+          json['verification_status'] as String? ?? 'unverified',
       phoneE164: json['phone_e164'] as String?,
       whatsappE164: json['whatsapp_e164'] as String?,
       isOpenNow: json['is_open_now'] as bool? ?? false,
@@ -98,7 +99,11 @@ class Business extends Equatable {
       minOrderAmount: (json['min_order_amount'] as num?)?.toDouble() ?? 0.0,
       tableBookingEnabled: json['table_booking_enabled'] as bool? ?? false,
       roomBookingEnabled: json['room_booking_enabled'] as bool? ?? false,
-      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      amenities:
+          (json['amenities'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 
@@ -154,11 +159,30 @@ class Business extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, name, slug, categorySlug, categoryName, categoryIcon, addressText,
-        locality, city, postalCode, distanceM, status, verificationStatus,
-        phoneE164, whatsappE164, isOpenNow, acceptsRequests, coverPhotoUrl,
-        rating, reviewCount, latitude, longitude, description,
-      ];
+    id,
+    name,
+    slug,
+    categorySlug,
+    categoryName,
+    categoryIcon,
+    addressText,
+    locality,
+    city,
+    postalCode,
+    distanceM,
+    status,
+    verificationStatus,
+    phoneE164,
+    whatsappE164,
+    isOpenNow,
+    acceptsRequests,
+    coverPhotoUrl,
+    rating,
+    reviewCount,
+    latitude,
+    longitude,
+    description,
+  ];
 }
 
 /// Full business detail.
@@ -171,6 +195,7 @@ class BusinessDetail extends Business {
   final int? serviceRadiusM;
   final int? experienceYears;
   final String? serviceDescription;
+  final int completedJobs;
   final DateTime? nextAvailableAppointment;
 
   const BusinessDetail({
@@ -205,6 +230,7 @@ class BusinessDetail extends Business {
     this.serviceRadiusM,
     this.experienceYears,
     this.serviceDescription,
+    this.completedJobs = 0,
     this.nextAvailableAppointment,
   }) : super();
 
@@ -222,7 +248,8 @@ class BusinessDetail extends Business {
       postalCode: json['postal_code'] as String?,
       distanceM: (json['distance_m'] as num?)?.toDouble(),
       status: json['status'] as String? ?? 'pending',
-      verificationStatus: json['verification_status'] as String? ?? 'unverified',
+      verificationStatus:
+          json['verification_status'] as String? ?? 'unverified',
       phoneE164: json['phone_e164'] as String?,
       whatsappE164: json['whatsapp_e164'] as String?,
       isOpenNow: json['is_open_now'] as bool? ?? false,
@@ -233,24 +260,35 @@ class BusinessDetail extends Business {
       description: json['description'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      businessHours: (json['business_hours'] as List<dynamic>?)
-          ?.map((e) => BusinessHour.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [],
-      products: (json['products'] as List<dynamic>?)
-          ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [],
-      offers: (json['offers'] as List<dynamic>?)
-          ?.map((e) => Offer.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [],
-      services: (json['services'] as List<dynamic>?)
-          ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [],
-      media: (json['media'] as List<dynamic>?)
-          ?.map((e) => BusinessMedia.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [],
+      businessHours:
+          (json['business_hours'] as List<dynamic>?)
+              ?.map((e) => BusinessHour.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      products:
+          (json['products'] as List<dynamic>?)
+              ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      offers:
+          (json['offers'] as List<dynamic>?)
+              ?.map((e) => Offer.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      services:
+          (json['services'] as List<dynamic>?)
+              ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      media:
+          (json['media'] as List<dynamic>?)
+              ?.map((e) => BusinessMedia.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       serviceRadiusM: json['service_radius_m'] as int?,
       experienceYears: json['experience_years'] as int?,
       serviceDescription: json['service_description'] as String?,
+      completedJobs: json['completed_jobs'] as int? ?? 0,
       nextAvailableAppointment: json['next_available_appointment'] != null
           ? DateTime.tryParse(json['next_available_appointment'] as String)
           : null,
@@ -258,11 +296,19 @@ class BusinessDetail extends Business {
   }
 
   @override
-  List<Object?> get props => super.props..addAll([
-        businessHours, products, offers,
-        services, media, serviceRadiusM, experienceYears, serviceDescription,
-        nextAvailableAppointment,
-      ]);
+  List<Object?> get props => super.props
+    ..addAll([
+      businessHours,
+      products,
+      offers,
+      services,
+      media,
+      serviceRadiusM,
+      experienceYears,
+      serviceDescription,
+      nextAvailableAppointment,
+      completedJobs,
+    ]);
 }
 
 class BusinessHour extends Equatable {
@@ -366,9 +412,20 @@ class Product extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, businessId, name, description, price, currency, stockStatus,
-        isPublished, imageUrl, updatedAt, dietaryType, foodCategory, preparationTimeMin,
-      ];
+    id,
+    businessId,
+    name,
+    description,
+    price,
+    currency,
+    stockStatus,
+    isPublished,
+    imageUrl,
+    updatedAt,
+    dietaryType,
+    foodCategory,
+    preparationTimeMin,
+  ];
 }
 
 class Offer extends Equatable {
@@ -404,7 +461,8 @@ class Offer extends Equatable {
       businessId: json['business_id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String?,
-      startsAt: DateTime.tryParse(json['starts_at'] as String) ?? DateTime.now(),
+      startsAt:
+          DateTime.tryParse(json['starts_at'] as String) ?? DateTime.now(),
       endsAt: DateTime.tryParse(json['ends_at'] as String) ?? DateTime.now(),
       status: json['status'] as String? ?? 'draft',
       imageUrl: json['image_url'] as String?,
@@ -416,7 +474,8 @@ class Offer extends Equatable {
     );
   }
 
-  bool get isActive => status == 'published' &&
+  bool get isActive =>
+      status == 'published' &&
       DateTime.now().isAfter(startsAt) &&
       DateTime.now().isBefore(endsAt);
 
@@ -427,9 +486,18 @@ class Offer extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, businessId, title, description, startsAt, endsAt, status, imageUrl,
-        terms, discountPercent, createdAt,
-      ];
+    id,
+    businessId,
+    title,
+    description,
+    startsAt,
+    endsAt,
+    status,
+    imageUrl,
+    terms,
+    discountPercent,
+    createdAt,
+  ];
 }
 
 class Service extends Equatable {
@@ -480,9 +548,15 @@ class Service extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, businessId, name, description, indicativePriceMin, indicativePriceMax,
-        currency, isActive,
-      ];
+    id,
+    businessId,
+    name,
+    description,
+    indicativePriceMin,
+    indicativePriceMax,
+    currency,
+    isActive,
+  ];
 }
 
 class BusinessMedia extends Equatable {
@@ -539,9 +613,9 @@ class AppUser extends Equatable {
       displayName: json['display_name'] as String?,
       status: json['status'] as String? ?? 'active',
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
-      roles: (json['roles'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ?? const [],
+      roles:
+          (json['roles'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+          const [],
     );
   }
 
@@ -562,8 +636,13 @@ class AppUser extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, phoneE164, displayName, status, preferredLanguage, roles,
-      ];
+    id,
+    phoneE164,
+    displayName,
+    status,
+    preferredLanguage,
+    roles,
+  ];
 }
 
 /// Category.
@@ -631,16 +710,26 @@ class ServiceRequest extends Equatable {
           ? DateTime.tryParse(json['requested_for'] as String)
           : null,
       status: json['status'] as String? ?? 'requested',
-      createdAt: DateTime.tryParse(json['created_at'] as String) ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String) ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now(),
     );
   }
 
   @override
   List<Object?> get props => [
-        id, customerUserId, businessId, serviceId, slotId, description,
-        requestedFor, status, createdAt, updatedAt,
-      ];
+    id,
+    customerUserId,
+    businessId,
+    serviceId,
+    slotId,
+    description,
+    requestedFor,
+    status,
+    createdAt,
+    updatedAt,
+  ];
 }
 
 /// Availability slot for booking.
@@ -667,7 +756,8 @@ class AvailabilitySlot extends Equatable {
     return AvailabilitySlot(
       id: json['id'] as String,
       businessId: json['business_id'] as String? ?? '',
-      startsAt: DateTime.tryParse(json['starts_at'] as String) ?? DateTime.now(),
+      startsAt:
+          DateTime.tryParse(json['starts_at'] as String) ?? DateTime.now(),
       endsAt: DateTime.tryParse(json['ends_at'] as String) ?? DateTime.now(),
       capacity: json['capacity'] as int? ?? 1,
       bookedCount: json['booked_count'] as int? ?? 0,
@@ -693,6 +783,13 @@ class AvailabilitySlot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, businessId, startsAt, endsAt, capacity, bookedCount, status];
+  List<Object?> get props => [
+    id,
+    businessId,
+    startsAt,
+    endsAt,
+    capacity,
+    bookedCount,
+    status,
+  ];
 }
-

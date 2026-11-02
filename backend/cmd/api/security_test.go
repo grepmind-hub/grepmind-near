@@ -4,6 +4,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/notifications"
+	"grepmind-near/backend/internal/operations"
 	"grepmind-near/backend/pkg/config"
 	"net/http"
 	"net/http/httptest"
@@ -44,7 +45,7 @@ func TestAccessTokenClockBoundaries(t *testing.T) {
 }
 
 func TestSensitiveRoutesRejectAnonymousRequests(t *testing.T) {
-	router := setupRouter(auth.NewService(nil, nil), nil, nil, nil, notifications.NewHub(nil))
+	router := setupRouter(auth.NewService(nil, nil), nil, nil, nil, notifications.NewHub(nil), operations.NewService(nil))
 	for _, test := range []struct{ method, path string }{
 		{"GET", "/api/v1/events?business_id=00000000-0000-0000-0000-000000000001"},
 		{"GET", "/api/v1/notifications"},
@@ -52,6 +53,12 @@ func TestSensitiveRoutesRejectAnonymousRequests(t *testing.T) {
 		{"POST", "/api/v1/notifications/broadcast-test"},
 		{"GET", "/api/v1/requests/00000000-0000-0000-0000-000000000001"},
 		{"POST", "/api/v1/businesses/00000000-0000-0000-0000-000000000001/requests"},
+		{"POST", "/api/v1/requests/00000000-0000-0000-0000-000000000001/cancel"},
+		{"POST", "/api/v1/businesses/00000000-0000-0000-0000-000000000001/orders"},
+		{"GET", "/api/v1/customer/orders"},
+		{"GET", "/api/v1/orders/00000000-0000-0000-0000-000000000001"},
+		{"POST", "/api/v1/orders/00000000-0000-0000-0000-000000000001/cancel"},
+		{"PATCH", "/api/v1/merchant/orders/00000000-0000-0000-0000-000000000001/status"},
 		{"GET", "/api/v1/admin/unserved-locations"},
 		{"GET", "/api/v1/merchant/catalog-categories"},
 		{"POST", "/api/v1/merchant/catalog-categories"},
