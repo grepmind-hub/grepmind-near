@@ -48,7 +48,21 @@ The additive migration was applied to the local development database. Existing i
 - Android debug APK build: passed; installed successfully on emulator-5554. Visually confirmed live API categories and business listings on the emulator after restarting Nginx to refresh the recreated API upstream. Full merchant CRUD was tested through widget and real API integration tests, not yet through the emulator UI.
 - Replaced the fabricated Explore sale banner with neutral discovery content and replaced raw networking exceptions in the empty state with bounded recovery text.
 
-## Remaining production work
+## Cuttack/Jajpur category automation (2 November 2026)
+
+- Added `backend/cmd/validate-cities` and replaced the earlier fixed-account PowerShell test with a wrapper that discovers the repository path and passes configurable cities/API/manifest options.
+- Categories come from the live API; accounts, phone numbers, IDs and catalog entries are generated per run. Actual local OTP APIs authenticate both customer and merchant roles. No credentials/tokens are persisted or printed.
+- Completed two full runs across 19 categories in each city (38 combinations). Covered category/product/service CRUD, persisted customer visibility, city/category/query filtering, customer booking and merchant acceptance, anonymous/customer denial and cross-merchant isolation.
+- Each run has deferred transactional cleanup, exact account ownership checks, an atomically updated recovery manifest and an explicit `-Cleanup` command. Both successful and failed runs cleaned their generated entries. Existing accounts/listings were preserved.
+- Repeated runs exposed an intermittent API 401 (`token used before issued`). Added a bounded five-second allowance for issuance clock skew only; expiry and not-before remain strict. Added HS256, issuer, subject and clock-boundary tests. No automatic retries hide authentication failures.
+- Corrected OTP login's fixed `customer` role response: profile fields and roles now come from the account database, and inactive accounts are rejected before token issuance. The automation checks returned customer/merchant roles as well as authenticated `/me` merchant access.
+- Existing approved inventory after cleanup: Cuttack has one electrician and one hardware listing; Jajpur has one plumber listing. Remaining category tests used temporary fixtures, not fabricated permanent inventory.
+- Fixed backend city filtering and query filtering. Added `/locations` for live city names, counts and centroids; removed fake GPS selection, fixed city counts, fixed expansion claims, and hard-coded Bhubaneswar search coordinates from Explore/Search. A city/category notifier regression also caught and fixed duplicate result insertion.
+- Go suite passed; the existing 23 Flutter widget tests passed and the new city-discovery regression passed separately. Static analysis of affected discovery files had no compile errors, with lint information still reported. API Docker image rebuilt and local API/proxy restarted.
+- Usage, coverage and crash recovery are documented in `scripts/CITY_VALIDATION.md`. This is API/database automation with injected local fixtures, not browser script injection or full emulator UI automation. Other app areas still contain hard-coded data and require separate work.
+- Final post-fix run: all 38 combinations passed with actual customer/merchant login-role assertions; cleanup passed and both recovery manifest files were absent. Final city-aware Android debug APK built and installed successfully on emulator-5554. Existing approved city inventory remained two Cuttack listings and one Jajpur listing.
+
+## Outstanding production work
 
 This is an incremental implementation, not a completed production-readiness certification. Remaining work includes category-to-item assignment; merchant registration/claim persistence; durable food/table/hotel ordering and server-calculated totals; removal of remaining fixed business metrics, offers, and claims; SMS-provider integration; JWT/config hardening; request transition rules; database-backed tenant tests for all endpoints; migration tracking; CI repair; cloud private media/presigned access; full emulator flow validation and UI/accessibility QA. Do not deploy these changes to production until those gates pass.
 

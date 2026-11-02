@@ -195,12 +195,12 @@ class AppLocation {
 class LocationNotifier extends StateNotifier<AppLocation> {
   LocationNotifier()
       : super(const AppLocation(
-          cityName: 'Bhubaneswar',
-          localityName: 'Odisha',
-          latitude: 20.2961,
-          longitude: 85.8245,
+          cityName: '',
+          localityName: '',
+          latitude: 0,
+          longitude: 0,
           isSupported: true,
-          activeBusinessCount: 7,
+          activeBusinessCount: 0,
         ));
 
   void setLocation(AppLocation loc) {
@@ -243,7 +243,7 @@ class BusinessesState {
     return BusinessesState(
       items: reset
           ? (items ?? const [])
-          : (List<Business>.from(items ?? this.items)..addAll(items ?? const [])),
+          : (items ?? this.items),
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       cursor: cursor ?? this.cursor,
@@ -263,6 +263,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     double? lng,
     int? radiusM,
     String? categorySlug,
+    String? city,
     bool? openNow,
     bool? availableNow,
     String sort = 'relevance',
@@ -281,6 +282,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
         'lng': lng,
         'radius_m': radiusM ?? 5000,
         'category_slug': categorySlug,
+        'city': city,
         'open_now': openNow,
         'available_now': availableNow,
         'sort': sort,

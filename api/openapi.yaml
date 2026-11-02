@@ -36,6 +36,14 @@ tags:
     description: Health checks
 
 paths:
+  /locations:
+    get:
+      tags: [discovery]
+      summary: List supported cities from approved businesses
+      responses:
+        '200':
+          description: Live city name, listing count, latitude and longitude in data array (maximum 200 cities).
+        '500': {description: Unable to load cities}
   /merchant/catalog-categories:
     get:
       tags: [merchant]
@@ -552,6 +560,10 @@ paths:
       summary: Search businesses by query and filters
       tags: [discovery]
       parameters:
+        - in: query
+          name: city
+          description: Case-insensitive exact city filter, combined with category and optional radius.
+          schema: {type: string, maxLength: 120}
         - $ref: '#/components/parameters/Q'
         - $ref: '#/components/parameters/Lat'
         - $ref: '#/components/parameters/Lng'

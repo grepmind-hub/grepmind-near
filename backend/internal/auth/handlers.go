@@ -159,18 +159,24 @@ func (s *Service) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		ON CONFLICT (user_id, role) DO NOTHING
 	`, userID)
 
+	user := AppUser{ID: userID}
+	err = s.db.QueryRowContext(r.Context(), `SELECT phone_e164, COALESCE(display_name,''), status, preferred_language FROM users WHERE id=$1`, userID).Scan(&user.PhoneE164, &user.DisplayName, &user.Status, &user.PreferredLanguage)
+	if err != nil {
+		writeError(w, 500, "INTERNAL_ERROR", "Unable to load account.")
+		return
+	}
+	if user.Status != "active" {
+		writeError(w, 403, "FORBIDDEN", "Account is not active.")
+		return
+	}
+	if err = s.db.SelectContext(r.Context(), &user.Roles, `SELECT role FROM user_roles WHERE user_id=$1 ORDER BY role`, userID); err != nil {
+		writeError(w, 500, "INTERNAL_ERROR", "Unable to load account roles.")
+		return
+	}
 	accessToken, refreshToken, err := s.issueTokens(r.Context(), userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to issue session tokens.")
 		return
-	}
-
-	user := AppUser{
-		ID:                userID,
-		PhoneE164:         phone,
-		Status:            "active",
-		PreferredLanguage: "en",
-		Roles:             []string{"customer"},
 	}
 
 	writeJSON(w, http.StatusOK, envelope{

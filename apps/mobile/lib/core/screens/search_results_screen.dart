@@ -55,23 +55,17 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
 
   void _executeSearch() {
     final q = _searchController.text.trim();
-    if (q.isNotEmpty) {
+    final location = ref.read(appLocationProvider);
       ref.read(businessesProvider.notifier).search(
         query: q,
-        lat: 20.2961,
-        lng: 85.8245,
+        lat: location.latitude,
+        lng: location.longitude,
+        city: location.cityName,
         radiusM: _radiusM,
         categorySlug: _selectedCategory,
         openNow: _isOpenNow ? true : null,
         sort: _sortBy,
       );
-    } else {
-      ref.read(businessesProvider.notifier).nearby(
-        lat: 20.2961,
-        lng: 85.8245,
-        radiusM: _radiusM,
-      );
-    }
   }
 
   void _showRadiusSheet() {

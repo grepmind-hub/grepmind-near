@@ -35,8 +35,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _onFiltersChanged();
+      _loadInitialLocation();
     });
+  }
+
+  Future<void> _loadInitialLocation() async {
+    if (ref.read(appLocationProvider).cityName.isEmpty) {
+      try {
+        final response = await apiClient.get('/locations');
+        final locations = response.data['data'] as List;
+        if (!mounted) return;
+        if (locations.isNotEmpty) {
+          final location = locations.first as Map<String, dynamic>;
+          ref.read(appLocationProvider.notifier).setLocation(AppLocation(
+            cityName: location['city'] as String,
+            latitude: (location['latitude'] as num).toDouble(),
+            longitude: (location['longitude'] as num).toDouble(),
+            activeBusinessCount: location['count'] as int,
+          ));
+        }
+      } catch (_) { /* Location picker provides an explicit retry. */ }
+    }
+    if (mounted) _onFiltersChanged();
   }
 
   @override
@@ -69,10 +89,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     if (q.isEmpty) {
       ref.read(businessesProvider.notifier).search(
         query: '',
-        lat: loc.latitude,
-        lng: loc.longitude,
+        lat: loc.cityName.isEmpty ? null : loc.latitude,
+        lng: loc.cityName.isEmpty ? null : loc.longitude,
         radiusM: _radius,
         categorySlug: _selectedCategory == 'all' ? null : _selectedCategory,
+        city: loc.cityName,
         openNow: _isOpenNow,
         availableNow: _isAvailableNow,
         sort: _sortBy,
@@ -82,7 +103,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  void _showLocationModal() {
+  void _showLocationModal() async {
+    List<Map<String, dynamic>> locations;
+    try {
+      final response = await apiClient.get('/locations');
+      locations = (response.data['data'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to load cities. Please try again.')));
+      return;
+    }
+    if (!mounted) return;
     final customCityCtrl = TextEditingController();
 
     showModalBottomSheet(
@@ -128,140 +158,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // GPS Current Location
-                InkWell(
-                  onTap: () {
-                    ref.read(appLocationProvider.notifier).setLocation(
-                      const AppLocation(
-                        cityName: 'Bhubaneswar',
-                        localityName: 'Odisha (GPS)',
-                        latitude: 20.2961,
-                        longitude: 85.8245,
-                        isSupported: true,
-                        activeBusinessCount: 7,
-                      ),
-                    );
-                    Navigator.pop(ctx);
-                    _onFiltersChanged();
-                  },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Use Current GPS Location',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.mainText),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Bhubaneswar Hub (20.2961° N, 85.8245° E)',
-                                style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.primary),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                const Text(
-                  'ACTIVE SERVICE HUBS',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.secondaryText, letterSpacing: 0.8),
-                ),
+                const Text('AVAILABLE CITIES', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-
-                _buildLocationTile(
+                if (locations.isEmpty) const Text('No cities currently have active listings.'),
+                ...locations.map((location) => _buildLocationTile(
                   ctx: ctx,
-                  cityName: 'Bhubaneswar',
-                  locality: 'Unit 3 & Janpath',
-                  badge: '7 Verified Listings',
-                  lat: 20.2961,
-                  lng: 85.8245,
+                  cityName: location['city'] as String,
+                  locality: '',
+                  badge: '${location['count']} active listings',
+                  lat: (location['latitude'] as num).toDouble(),
+                  lng: (location['longitude'] as num).toDouble(),
                   isSupported: true,
-                  count: 7,
-                ),
-                _buildLocationTile(
-                  ctx: ctx,
-                  cityName: 'Cuttack',
-                  locality: 'Badambadi & Chandi Chhak',
-                  badge: '2 Verified Listings',
-                  lat: 20.4625,
-                  lng: 85.8830,
-                  isSupported: true,
-                  count: 2,
-                ),
-                _buildLocationTile(
-                  ctx: ctx,
-                  cityName: 'Jajpur',
-                  locality: 'Jajpur Road & Station',
-                  badge: '1 Verified Pro',
-                  lat: 20.8447,
-                  lng: 86.3315,
-                  isSupported: true,
-                  count: 1,
-                ),
-
-                const SizedBox(height: 16),
-                const Text(
-                  'UPCOMING CITIES (EXPANDING SOON)',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFD97706), letterSpacing: 0.8),
-                ),
-                const SizedBox(height: 8),
-
-                _buildLocationTile(
-                  ctx: ctx,
-                  cityName: 'Puri',
-                  locality: 'Grand Road & Sea Beach',
-                  badge: 'Expanding Soon',
-                  lat: 19.8135,
-                  lng: 85.8312,
-                  isSupported: false,
-                  count: 0,
-                ),
-                _buildLocationTile(
-                  ctx: ctx,
-                  cityName: 'Rourkela',
-                  locality: 'Panposh & Sector 5',
-                  badge: 'Expanding Soon',
-                  lat: 22.2604,
-                  lng: 84.8536,
-                  isSupported: false,
-                  count: 0,
-                ),
-                _buildLocationTile(
-                  ctx: ctx,
-                  cityName: 'Berhampur',
-                  locality: 'Silk City Main Market',
-                  badge: 'Expanding Soon',
-                  lat: 19.3149,
-                  lng: 84.7941,
-                  isSupported: false,
-                  count: 0,
-                ),
-
+                  count: location['count'] as int,
+                )),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -976,33 +885,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                _buildActiveCityChip(
-                  name: 'Bhubaneswar',
-                  count: '7 Stores & Pros',
-                  lat: 20.2961,
-                  lng: 85.8245,
-                  active: cityName == 'Bhubaneswar',
-                ),
-                const SizedBox(width: 8),
-                _buildActiveCityChip(
-                  name: 'Cuttack',
-                  count: '2 Active',
-                  lat: 20.4625,
-                  lng: 85.8830,
-                  active: cityName == 'Cuttack',
-                ),
-                const SizedBox(width: 8),
-                _buildActiveCityChip(
-                  name: 'Jajpur',
-                  count: '1 Active',
-                  lat: 20.8447,
-                  lng: 86.3315,
-                  active: cityName == 'Jajpur',
-                ),
-              ],
-            ),
+            OutlinedButton.icon(onPressed: _showLocationModal, icon: const Icon(Icons.location_city_outlined), label: const Text('Browse available cities')),
           ],
         ),
       ),
@@ -1106,64 +989,4 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
-  Widget _buildActiveCityChip({
-    required String name,
-    required String count,
-    required double lat,
-    required double lng,
-    required bool active,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          ref.read(appLocationProvider.notifier).setLocation(
-            AppLocation(
-              cityName: name,
-              localityName: 'Odisha',
-              latitude: lat,
-              longitude: lng,
-              isSupported: true,
-              activeBusinessCount: name == 'Bhubaneswar' ? 7 : (name == 'Cuttack' ? 2 : 1),
-            ),
-          );
-          _onFiltersChanged();
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(
-            color: active ? AppTheme.primary : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: active ? AppTheme.primary : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Column(
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: active ? Colors.white : AppTheme.mainText,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                count,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: active ? Colors.white.withValues(alpha: 0.8) : AppTheme.secondaryText,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

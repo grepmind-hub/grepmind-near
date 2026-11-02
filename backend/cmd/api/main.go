@@ -184,6 +184,7 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("PATCH /api/v1/me", requireAuth(authSvc, authUpdateMe))
 
 	mux.HandleFunc("GET /api/v1/categories", discSvc.ListCategories)
+	mux.HandleFunc("GET /api/v1/locations", discSvc.Locations)
 	mux.HandleFunc("GET /api/v1/businesses", discSvc.SearchBusinesses)
 	mux.HandleFunc("GET /api/v1/businesses/{id}", discSvc.GetBusiness)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/products", discSvc.ListProducts)
@@ -1836,14 +1837,21 @@ func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 
 func jwtParse(token string, authSvc *auth.Service) (*jwt.RegisteredClaims, error) {
 	claims := &jwt.RegisteredClaims{}
-	_, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(authSvc.ConfigSecret()), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
 	if err != nil {
 		return nil, err
 	}
-	if !claims.VerifyExpiresAt(authSvc.Now(), true) {
+	now := authSvc.Now()
+	if !parsed.Valid || !claims.VerifyExpiresAt(now, true) {
 		return nil, errors.New("expired")
+	}
+	// WSL/host wall-clock adjustments can occur between issuing and reading.
+	// Only issuance gets bounded skew; expiry and not-before remain strict.
+	if !claims.VerifyIssuer("grepmind-near", true) || claims.Subject == "" ||
+		!claims.VerifyIssuedAt(now.Add(5*time.Second), true) || !claims.VerifyNotBefore(now, false) {
+		return nil, errors.New("invalid token claims")
 	}
 	return claims, nil
 }

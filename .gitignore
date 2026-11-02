@@ -59,3 +59,7 @@ secrets/
 *.log
 coverage/
 .turbo/
+
+# Generated local validation recovery manifest (contains temporary fixture IDs).
+city-validation-run.json
+city-validation-run.json.tmp

@@ -32,27 +32,27 @@ type Category struct {
 }
 
 type Business struct {
-	ID                 string   `json:"id"`
-	Name               string   `json:"name"`
-	Slug               string   `json:"slug,omitempty"`
-	CategorySlug       string   `json:"category_slug"`
-	CategoryName       string   `json:"category_name,omitempty"`
-	AddressText        string   `json:"address_text"`
-	Locality           string   `json:"locality,omitempty"`
-	City               string   `json:"city,omitempty"`
-	PostalCode         string   `json:"postal_code,omitempty"`
-	Latitude           *float64 `json:"latitude,omitempty"`
-	Longitude          *float64 `json:"longitude,omitempty"`
-	DistanceM          *float64 `json:"distance_m,omitempty"`
-	Status             string   `json:"status"`
-	VerificationStatus string   `json:"verification_status"`
-	PhoneE164          string   `json:"phone_e164,omitempty"`
-	WhatsappE164       string   `json:"whatsapp_e164,omitempty"`
-	IsOpenNow          bool     `json:"is_open_now"`
-	AcceptsRequests    bool     `json:"accepts_requests"`
-	CoverPhotoURL      string   `json:"cover_photo_url,omitempty"`
-	Rating             *float64 `json:"rating,omitempty"`
-	ReviewCount        *int     `json:"review_count,omitempty"`
+	ID                  string   `json:"id"`
+	Name                string   `json:"name"`
+	Slug                string   `json:"slug,omitempty"`
+	CategorySlug        string   `json:"category_slug"`
+	CategoryName        string   `json:"category_name,omitempty"`
+	AddressText         string   `json:"address_text"`
+	Locality            string   `json:"locality,omitempty"`
+	City                string   `json:"city,omitempty"`
+	PostalCode          string   `json:"postal_code,omitempty"`
+	Latitude            *float64 `json:"latitude,omitempty"`
+	Longitude           *float64 `json:"longitude,omitempty"`
+	DistanceM           *float64 `json:"distance_m,omitempty"`
+	Status              string   `json:"status"`
+	VerificationStatus  string   `json:"verification_status"`
+	PhoneE164           string   `json:"phone_e164,omitempty"`
+	WhatsappE164        string   `json:"whatsapp_e164,omitempty"`
+	IsOpenNow           bool     `json:"is_open_now"`
+	AcceptsRequests     bool     `json:"accepts_requests"`
+	CoverPhotoURL       string   `json:"cover_photo_url,omitempty"`
+	Rating              *float64 `json:"rating,omitempty"`
+	ReviewCount         *int     `json:"review_count,omitempty"`
 	DeliveryEnabled     bool     `json:"delivery_enabled"`
 	DeliveryTimeMins    int      `json:"delivery_time_mins"`
 	DeliveryFee         float64  `json:"delivery_fee"`
@@ -214,6 +214,11 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	categorySlug := strings.TrimSpace(r.URL.Query().Get("category_slug"))
+	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	if len(city) > 120 {
+		writeError(w, 400, "VALIDATION_ERROR", "City is too long.")
+		return
+	}
 	openNow := r.URL.Query().Get("open_now") == "true"
 	sort := r.URL.Query().Get("sort")
 	if sort == "" {
@@ -238,6 +243,16 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 	argIdx := 1
 	where := []string{"b.status = 'approved'"}
 	orderBy := "distance_m ASC NULLS LAST, b.name ASC"
+	if city != "" {
+		where = append(where, fmt.Sprintf("lower(b.city) = lower($%d)", argIdx))
+		args = append(args, city)
+		argIdx++
+	}
+	if q != "" {
+		where = append(where, fmt.Sprintf("(b.name ILIKE $%d OR b.description ILIKE $%d)", argIdx, argIdx))
+		args = append(args, "%"+q+"%")
+		argIdx++
+	}
 
 	if hasLoc {
 		where = append(where, fmt.Sprintf(
@@ -357,11 +372,11 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	var b BusinessDetail
-		var slug, locality, city, postal, phone, whatsapp, cover sql.NullString
-		var desc sql.NullString
-		var lat, lng sql.NullFloat64
-		var amenitiesRaw []byte
-		err := s.db.QueryRowxContext(r.Context(), `
+	var slug, locality, city, postal, phone, whatsapp, cover sql.NullString
+	var desc sql.NullString
+	var lat, lng sql.NullFloat64
+	var amenitiesRaw []byte
+	err := s.db.QueryRowxContext(r.Context(), `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.postal_code, b.description,
 		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164,
