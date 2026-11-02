@@ -63,3 +63,7 @@ coverage/
 # Generated local validation recovery manifest (contains temporary fixture IDs).
 city-validation-run.json
 city-validation-run.json.tmp
+ui-injection-run.json
+ui-injection-run.json.tmp
+.ui-bridge-*.stop
+apps/mobile/android/.kotlin/

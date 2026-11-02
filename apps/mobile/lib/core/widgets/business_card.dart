@@ -90,8 +90,8 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ratingVal = business.rating ?? 4.8;
-    final reviewsCount = business.reviewCount ?? 128;
+    final ratingVal = business.rating;
+    final reviewsCount = business.reviewCount;
     final categoryText = business.categoryName ?? (business.categorySlug.isNotEmpty 
         ? '${business.categorySlug[0].toUpperCase()}${business.categorySlug.substring(1)}'
         : 'Store');
@@ -160,7 +160,7 @@ class BusinessCard extends StatelessWidget {
                           const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
                           const SizedBox(width: 3),
                           Text(
-                            ratingVal.toStringAsFixed(1),
+                            ratingVal?.toStringAsFixed(1) ?? 'Not rated',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -169,7 +169,7 @@ class BusinessCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '($reviewsCount)',
+                            reviewsCount == null ? '' : '($reviewsCount)',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.secondaryText,

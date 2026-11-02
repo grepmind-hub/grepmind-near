@@ -685,6 +685,11 @@ paths:
       summary: Nearby discovery endpoint
       tags: [discovery]
       parameters:
+        - in: query
+          name: city
+          description: Exact selected-city filter. Only active supported-city listings are returned.
+          schema: {type: string, maxLength: 120}
+        - $ref: '#/components/parameters/CategorySlug'
         - $ref: '#/components/parameters/Lat'
         - $ref: '#/components/parameters/Lng'
         - $ref: '#/components/parameters/RadiusM'

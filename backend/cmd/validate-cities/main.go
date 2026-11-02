@@ -31,6 +31,11 @@ type owner struct {
 type ledger struct {
 	Run   string
 	Users []owner
+	Cases []uiCase `json:"Cases,omitempty"`
+}
+type uiCase struct {
+	City, CategorySlug, CategoryName, BusinessID, Phone, ProductName string
+	Price, Latitude, Longitude                                       float64
 }
 type runner struct {
 	db               *database.DB
@@ -55,14 +60,15 @@ func main() {
 	manifest := flag.String("manifest", "city-validation-run.json", "Recovery manifest; contains fixture IDs, never tokens")
 	cleanup := flag.Bool("cleanup", false, "Clean only fixture users recorded in the manifest")
 	allow := flag.Bool("allow-local-fixtures", false, "Explicitly permit generated fixtures in the local database")
+	prepareUI := flag.Bool("prepare-ui", false, "Prepare generated stores for UI injection; keep manifest for subsequent cleanup")
 	flag.Parse()
-	if err := run(*base, *cities, *manifest, *cleanup, *allow); err != nil {
+	if err := run(*base, *cities, *manifest, *cleanup, *allow, *prepareUI); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(base, cities, path string, cleanup, allow bool) (result error) {
+func run(base, cities, path string, cleanup, allow, prepareUI bool) (result error) {
 	cfg := config.Load()
 	if cfg.DBHost != "localhost" && cfg.DBHost != "127.0.0.1" {
 		return errors.New("fixture runner requires a loopback database host")
@@ -97,13 +103,49 @@ func run(base, cities, path string, cleanup, allow bool) (result error) {
 	if err = r.save(); err != nil {
 		return err
 	}
-	defer func() { result = errors.Join(result, r.clean()) }()
+	defer func() {
+		if !prepareUI || result != nil {
+			result = errors.Join(result, r.clean())
+		}
+	}()
 	var categories []category
 	if err = r.api("GET", "/categories", "", nil, 200, &categories); err != nil {
 		return err
 	}
 	if len(categories) == 0 {
 		return errors.New("API has no active categories")
+	}
+	if prepareUI {
+		for _, city := range strings.Split(cities, ",") {
+			city = strings.TrimSpace(city)
+			var lat, lng float64
+			if err = r.db.QueryRow(`SELECT avg(ST_Y(location::geometry)),avg(ST_X(location::geometry)) FROM businesses WHERE lower(city)=lower($1) AND status='approved'`, city).Scan(&lat, &lng); err != nil {
+				return err
+			}
+			for _, cat := range categories {
+				user, err := r.newUser("merchant")
+				if err != nil {
+					return err
+				}
+				bid := uuid.NewString()
+				name := r.ledger.Run[:20] + "-" + uuid.NewString()
+				if err = r.db.Transaction(context.Background(), func(tx *sqlx.Tx) error {
+					if _, err := tx.Exec(`INSERT INTO businesses(id,owner_user_id,name,slug,category_slug,address_text,city,location,status) VALUES($1,$2,$3,$3,$4,$5,$5,ST_SetSRID(ST_MakePoint($6,$7),4326)::geography,'approved')`, bid, user.ID, name, cat.Slug, city, lng, lat); err != nil {
+						return err
+					}
+					_, err := tx.Exec(`INSERT INTO business_members(business_id,user_id,role) VALUES($1,$2,'owner')`, bid, user.ID)
+					return err
+				}); err != nil {
+					return err
+				}
+				r.ledger.Cases = append(r.ledger.Cases, uiCase{City: city, CategorySlug: cat.Slug, CategoryName: cat.Name, BusinessID: bid, Phone: user.Phone, ProductName: name, Price: float64(len(name)), Latitude: lat, Longitude: lng})
+				if err = r.save(); err != nil {
+					return err
+				}
+			}
+		}
+		fmt.Printf("PREPARED %d UI cases. No products created; run the Flutter UI injector, then --cleanup with this manifest.\n", len(r.ledger.Cases))
+		return nil
 	}
 	customer, err := r.newUser("customer")
 	if err != nil {

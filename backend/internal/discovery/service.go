@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -585,11 +586,17 @@ func (s *Service) ListOffers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
+	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	category := strings.TrimSpace(r.URL.Query().Get("category_slug"))
+	if len(city) > 120 || len(category) > 100 {
+		writeError(w, 400, "VALIDATION_ERROR", "Invalid city or category filter.")
+		return
+	}
 	latStr := r.URL.Query().Get("lat")
 	lngStr := r.URL.Query().Get("lng")
 	lat, err := strconv.ParseFloat(latStr, 64)
 	lng, err2 := strconv.ParseFloat(lngStr, 64)
-	if err != nil || err2 != nil || lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+	if err != nil || err2 != nil || math.IsNaN(lat) || math.IsNaN(lng) || math.IsInf(lat, 0) || math.IsInf(lng, 0) || lat < -90 || lat > 90 || lng < -180 || lng > 180 {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", errInvalidCoordinates.Error())
 		return
 	}
@@ -615,10 +622,13 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		WHERE b.status = 'approved'
+		  AND lower(b.city) IN ('cuttack','jajpur')
+		  AND ($5::text = '' OR lower(b.city) = lower($5))
+		  AND ($6::text = '' OR b.category_slug = $6)
 		  AND ST_DWithin(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326), $3)
 		ORDER BY distance_m ASC, b.name ASC
 		LIMIT $4
-	`, lng, lat, radiusM, limit)
+	`, lng, lat, radiusM, limit, city, category)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load nearby businesses.")
 		return

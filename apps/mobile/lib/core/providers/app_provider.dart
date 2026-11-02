@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,14 +79,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(clearActiveRole: true);
   }
 
-  Future<void> setSession({required String token, required AppUser user, String? activeRole}) async {
+  Future<void> setSession({
+    required String token,
+    required AppUser user,
+    String? activeRole,
+  }) async {
     final storage = const FlutterSecureStorage();
     await storage.write(key: AppConstants.accessTokenKey, value: token);
-    await storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+    await storage.write(
+      key: AppConstants.userKey,
+      value: jsonEncode(user.toJson()),
+    );
     if (activeRole != null) {
       await storage.write(key: AppConstants.activeRoleKey, value: activeRole);
     }
-    state = state.copyWith(user: user, accessToken: token, activeRole: activeRole, isLoading: false);
+    state = state.copyWith(
+      user: user,
+      accessToken: token,
+      activeRole: activeRole,
+      isLoading: false,
+    );
   }
 
   Future<void> logout() async {
@@ -100,7 +113,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Returns the OTP code when running against the local dev stub.
   Future<Map<String, dynamic>?> requestOTP(String phone) async {
     try {
-      final res = await apiClient.post('/auth/otp/request', data: {'phone_e164': phone});
+      final res = await apiClient.post(
+        '/auth/otp/request',
+        data: {'phone_e164': phone},
+      );
       final data = res.data as Map<String, dynamic>;
       final resultData = data['data'] as Map<String, dynamic>;
       return {
@@ -116,10 +132,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Verify an OTP and establish a session.
   Future<bool> verifyOTP(String phone, String otpCode) async {
     try {
-      final res = await apiClient.post('/auth/otp/verify', data: {
-        'phone_e164': phone,
-        'otp_code': otpCode,
-      });
+      final res = await apiClient.post(
+        '/auth/otp/verify',
+        data: {'phone_e164': phone, 'otp_code': otpCode},
+      );
       final data = res.data as Map<String, dynamic>;
       final resultData = data['data'] as Map<String, dynamic>;
       final accessToken = resultData['access_token'] as String;
@@ -194,14 +210,16 @@ class AppLocation {
 
 class LocationNotifier extends StateNotifier<AppLocation> {
   LocationNotifier()
-      : super(const AppLocation(
+    : super(
+        const AppLocation(
           cityName: '',
           localityName: '',
           latitude: 0,
           longitude: 0,
           isSupported: true,
           activeBusinessCount: 0,
-        ));
+        ),
+      );
 
   void setLocation(AppLocation loc) {
     state = loc;
@@ -210,8 +228,8 @@ class LocationNotifier extends StateNotifier<AppLocation> {
 
 final appLocationProvider =
     StateNotifierProvider<LocationNotifier, AppLocation>((ref) {
-  return LocationNotifier();
-});
+      return LocationNotifier();
+    });
 
 /// Businesses discovery state.
 class BusinessesState {
@@ -241,9 +259,7 @@ class BusinessesState {
     bool reset = false,
   }) {
     return BusinessesState(
-      items: reset
-          ? (items ?? const [])
-          : (items ?? this.items),
+      items: reset ? (items ?? const []) : (items ?? this.items),
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       cursor: cursor ?? this.cursor,
@@ -256,6 +272,7 @@ class BusinessesState {
 /// Business discovery notifier backed by real API calls.
 class BusinessesNotifier extends StateNotifier<BusinessesState> {
   BusinessesNotifier() : super(const BusinessesState());
+  int _requestSequence = 0;
 
   Future<void> search({
     required String query,
@@ -269,6 +286,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     String sort = 'relevance',
     bool reset = true,
   }) async {
+    final requestSequence = ++_requestSequence;
     if (reset) {
       state = BusinessesState(query: query, isLoading: true);
     } else {
@@ -276,24 +294,31 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     }
 
     try {
-      final res = await apiClient.get('/businesses', queryParameters: {
-        'q': query,
-        'lat': lat,
-        'lng': lng,
-        'radius_m': radiusM ?? 5000,
-        'category_slug': categorySlug,
-        'city': city,
-        'open_now': openNow,
-        'available_now': availableNow,
-        'sort': sort,
-        'limit': AppConstants.defaultLimit,
-        'cursor': state.cursor,
-      });
+      final res = await apiClient.get(
+        '/businesses',
+        queryParameters: {
+          'q': query,
+          'lat': lat,
+          'lng': lng,
+          'radius_m': radiusM ?? 5000,
+          'category_slug': categorySlug,
+          'city': city,
+          'open_now': openNow,
+          'available_now': availableNow,
+          'sort': sort,
+          'limit': AppConstants.defaultLimit,
+          'cursor': state.cursor,
+        },
+      );
+
+      if (!mounted || requestSequence != _requestSequence) return;
 
       final data = res.data as Map<String, dynamic>;
-      final items = (data['data'] as List<dynamic>?)
-          ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
+      final items =
+          (data['data'] as List<dynamic>?)
+              ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
       final meta = data['meta'] as Map<String, dynamic>?;
 
       state = state.copyWith(
@@ -303,6 +328,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
         hasMore: items.length >= AppConstants.defaultLimit,
       );
     } catch (e) {
+      if (!mounted || requestSequence != _requestSequence) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -311,8 +337,11 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     required double lat,
     required double lng,
     int radiusM = 5000,
+    String? city,
+    String? categorySlug,
     bool reset = true,
   }) async {
+    final requestSequence = ++_requestSequence;
     if (reset) {
       state = const BusinessesState(isLoading: true);
     } else {
@@ -320,18 +349,26 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
     }
 
     try {
-      final res = await apiClient.get('/nearby', queryParameters: {
-        'lat': lat,
-        'lng': lng,
-        'radius_m': radiusM,
-        'limit': AppConstants.defaultLimit,
-        'cursor': state.cursor,
-      });
+      final res = await apiClient.get(
+        '/nearby',
+        queryParameters: {
+          'city': city,
+          'category_slug': categorySlug,
+          'lat': lat,
+          'lng': lng,
+          'radius_m': radiusM,
+          'limit': 50,
+          'cursor': state.cursor,
+        },
+      );
 
       final data = res.data as Map<String, dynamic>;
-      final items = (data['data'] as List<dynamic>?)
-          ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
+      if (!mounted || requestSequence != _requestSequence) return;
+      final items =
+          (data['data'] as List<dynamic>?)
+              ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
       final meta = data['meta'] as Map<String, dynamic>?;
 
       state = state.copyWith(
@@ -341,6 +378,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
         hasMore: items.length >= AppConstants.defaultLimit,
       );
     } catch (e) {
+      if (!mounted || requestSequence != _requestSequence) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -414,7 +452,9 @@ class BusinessDetailNotifier extends StateNotifier<BusinessDetailState> {
       // Fetch business detail
       final res = await apiClient.get('/businesses/$businessId');
       final data = res.data as Map<String, dynamic>;
-      final detail = BusinessDetail.fromJson(data['data'] as Map<String, dynamic>);
+      final detail = BusinessDetail.fromJson(
+        data['data'] as Map<String, dynamic>,
+      );
 
       // Fetch related data in parallel
       final productsFuture = apiClient.get('/businesses/$businessId/products');
@@ -429,15 +469,21 @@ class BusinessDetailNotifier extends StateNotifier<BusinessDetailState> {
       final servicesData = servicesRes.data as Map<String, dynamic>;
       final offersData = offersRes.data as Map<String, dynamic>;
 
-      final products = (productsData['data'] as List<dynamic>?)
-          ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
-      final services = (servicesData['data'] as List<dynamic>?)
-          ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
-      final offers = (offersData['data'] as List<dynamic>?)
-          ?.map((e) => Offer.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
+      final products =
+          (productsData['data'] as List<dynamic>?)
+              ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
+      final services =
+          (servicesData['data'] as List<dynamic>?)
+              ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
+      final offers =
+          (offersData['data'] as List<dynamic>?)
+              ?.map((e) => Offer.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
 
       // Business hours are included in detail response
       final businessHours = detail.businessHours;
@@ -460,9 +506,10 @@ class BusinessDetailNotifier extends StateNotifier<BusinessDetailState> {
   }
 }
 
-final businessDetailProvider = StateNotifierProvider<BusinessDetailNotifier, BusinessDetailState>((ref) {
-  return BusinessDetailNotifier();
-});
+final businessDetailProvider =
+    StateNotifierProvider<BusinessDetailNotifier, BusinessDetailState>((ref) {
+      return BusinessDetailNotifier();
+    });
 
 /// Favorites state.
 class FavoritesState {
@@ -498,9 +545,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     try {
       final res = await apiClient.get('/favorites');
       final data = res.data as Map<String, dynamic>;
-      final items = (data['data'] as List<dynamic>?)
-          ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
+      final items =
+          (data['data'] as List<dynamic>?)
+              ?.map((e) => Business.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [];
       state = state.copyWith(items: items, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -516,11 +565,15 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         // Add to local list
         final detailRes = await apiClient.get('/businesses/$businessId');
         final detailData = detailRes.data as Map<String, dynamic>;
-        final biz = Business.fromJson(detailData['data'] as Map<String, dynamic>);
+        final biz = Business.fromJson(
+          detailData['data'] as Map<String, dynamic>,
+        );
         state = state.copyWith(items: [biz, ...state.items]);
       } else {
         // Remove from local list
-        state = state.copyWith(items: state.items.where((b) => b.id != businessId).toList());
+        state = state.copyWith(
+          items: state.items.where((b) => b.id != businessId).toList(),
+        );
       }
       return favorited;
     } catch (e) {
@@ -533,13 +586,21 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   }
 }
 
-final favoritesProvider = StateNotifierProvider<FavoritesNotifier, FavoritesState>((ref) {
-  return FavoritesNotifier();
-});
+final favoritesProvider =
+    StateNotifierProvider<FavoritesNotifier, FavoritesState>((ref) {
+      return FavoritesNotifier();
+    });
 
-final businessesProvider = StateNotifierProvider<BusinessesNotifier, BusinessesState>((ref) {
-  return BusinessesNotifier();
-});
+final businessesProvider =
+    StateNotifierProvider<BusinessesNotifier, BusinessesState>((ref) {
+      return BusinessesNotifier();
+    });
+
+/// Map queries must not replace Explore/search results.
+final mapBusinessesProvider =
+    StateNotifierProvider.autoDispose<BusinessesNotifier, BusinessesState>(
+      (ref) => BusinessesNotifier(),
+    );
 
 /// Categories state.
 class CategoriesState {
@@ -577,7 +638,8 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
     try {
       final res = await apiClient.get('/categories');
       final data = res.data as Map<String, dynamic>;
-      final items = (data['data'] as List<dynamic>?)
+      final items =
+          (data['data'] as List<dynamic>?)
               ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [];
@@ -588,9 +650,10 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
   }
 }
 
-final categoriesProvider = StateNotifierProvider<CategoriesNotifier, CategoriesState>((ref) {
-  return CategoriesNotifier();
-});
+final categoriesProvider =
+    StateNotifierProvider<CategoriesNotifier, CategoriesState>((ref) {
+      return CategoriesNotifier();
+    });
 
 // ---------------------------------------------------------------
 // Merchant Workspace Provider
@@ -694,9 +757,14 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
     try {
       final res = await apiClient.get('/merchant/requests');
       final data = res.data as Map<String, dynamic>;
-      final items = (data['data']['requests'] as List<dynamic>?)
-          ?.map((e) => MerchantServiceRequest.fromJson(e as Map<String, dynamic>))
-          .toList() ?? const [];
+      final items =
+          (data['data']['requests'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    MerchantServiceRequest.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [];
       state = state.copyWith(items: items, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -705,7 +773,10 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
 
   Future<bool> updateRequestStatus(String requestId, String status) async {
     try {
-      await apiClient.post('/merchant/requests/$requestId/status', data: {'status': status});
+      await apiClient.post(
+        '/merchant/requests/$requestId/status',
+        data: {'status': status},
+      );
       // Update local state
       state = state.copyWith(
         items: state.items.map((r) {
@@ -732,14 +803,16 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
   }
 }
 
-final merchantProvider = StateNotifierProvider<MerchantNotifier, MerchantRequestState>((ref) {
-  return MerchantNotifier();
-});
+final merchantProvider =
+    StateNotifierProvider<MerchantNotifier, MerchantRequestState>((ref) {
+      return MerchantNotifier();
+    });
 
 /// Merchant profile provider.
-final merchantProfileProvider = StateNotifierProvider.autoDispose.family<
-  MerchantProfileNotifier, MerchantProfileState, String
->((ref, userId) => MerchantProfileNotifier(userId));
+final merchantProfileProvider = StateNotifierProvider.autoDispose
+    .family<MerchantProfileNotifier, MerchantProfileState, String>(
+      (ref, userId) => MerchantProfileNotifier(userId),
+    );
 
 class MerchantProfileNotifier extends StateNotifier<MerchantProfileState> {
   MerchantProfileNotifier(this.userId) : super(const MerchantProfileState());
@@ -804,8 +877,10 @@ class MerchantCatalogState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       searchQuery: searchQuery ?? this.searchQuery,
-      selectedProductFilter: selectedProductFilter ?? this.selectedProductFilter,
-      selectedServiceFilter: selectedServiceFilter ?? this.selectedServiceFilter,
+      selectedProductFilter:
+          selectedProductFilter ?? this.selectedProductFilter,
+      selectedServiceFilter:
+          selectedServiceFilter ?? this.selectedServiceFilter,
     );
   }
 
@@ -813,7 +888,8 @@ class MerchantCatalogState {
     return products.where((p) {
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
-        final matches = p.name.toLowerCase().contains(q) ||
+        final matches =
+            p.name.toLowerCase().contains(q) ||
             (p.description?.toLowerCase().contains(q) ?? false);
         if (!matches) return false;
       }
@@ -838,7 +914,8 @@ class MerchantCatalogState {
     return services.where((s) {
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
-        final matches = s.name.toLowerCase().contains(q) ||
+        final matches =
+            s.name.toLowerCase().contains(q) ||
             (s.description?.toLowerCase().contains(q) ?? false);
         if (!matches) return false;
       }
@@ -878,11 +955,13 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
       final prodsData = prodsRes.data as Map<String, dynamic>;
       final srvsData = srvsRes.data as Map<String, dynamic>;
 
-      final prodsList = (prodsData['data'] as List<dynamic>?)
+      final prodsList =
+          (prodsData['data'] as List<dynamic>?)
               ?.map((e) => Product.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
-      final srvsList = (srvsData['data'] as List<dynamic>?)
+      final srvsList =
+          (srvsData['data'] as List<dynamic>?)
               ?.map((e) => Service.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -906,14 +985,17 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
     String? imageUrl,
   }) async {
     try {
-      await apiClient.post('/merchant/products', data: {
-        'name': name,
-        'description': description,
-        'price': price,
-        'stock_status': stockStatus,
-        'is_published': isPublished,
-        'image_url': imageUrl,
-      });
+      await apiClient.post(
+        '/merchant/products',
+        data: {
+          'name': name,
+          'description': description,
+          'price': price,
+          'stock_status': stockStatus,
+          'is_published': isPublished,
+          'image_url': imageUrl,
+        },
+      );
       await loadCatalog();
       return true;
     } catch (_) {
@@ -949,13 +1031,16 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
     bool isActive = true,
   }) async {
     try {
-      await apiClient.post('/merchant/services', data: {
-        'name': name,
-        'description': description,
-        'indicative_price_min': priceMin,
-        'indicative_price_max': priceMax,
-        'is_active': isActive,
-      });
+      await apiClient.post(
+        '/merchant/services',
+        data: {
+          'name': name,
+          'description': description,
+          'indicative_price_min': priceMin,
+          'indicative_price_max': priceMax,
+          'is_active': isActive,
+        },
+      );
       await loadCatalog();
       return true;
     } catch (_) {
@@ -986,8 +1071,8 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
 
 final merchantCatalogProvider =
     StateNotifierProvider<MerchantCatalogNotifier, MerchantCatalogState>((ref) {
-  return MerchantCatalogNotifier();
-});
+      return MerchantCatalogNotifier();
+    });
 
 /// Merchant operating hours and coverage state
 class MerchantHoursCoverageState extends Equatable {
@@ -1051,37 +1136,72 @@ class MerchantHoursCoverageState extends Equatable {
 
   @override
   List<Object?> get props => [
-        isLoading,
-        isSaving,
-        error,
-        successMessage,
-        hours,
-        serviceRadiusM,
-        acceptsRequests,
-        businessName,
-        locality,
-        city,
-        latitude,
-        longitude,
-      ];
+    isLoading,
+    isSaving,
+    error,
+    successMessage,
+    hours,
+    serviceRadiusM,
+    acceptsRequests,
+    businessName,
+    locality,
+    city,
+    latitude,
+    longitude,
+  ];
 }
 
 class MerchantHoursCoverageNotifier
     extends StateNotifier<MerchantHoursCoverageState> {
   MerchantHoursCoverageNotifier()
-      : super(MerchantHoursCoverageState(hours: defaultSevenDays())) {
+    : super(MerchantHoursCoverageState(hours: defaultSevenDays())) {
     load();
   }
 
   static List<BusinessHour> defaultSevenDays() {
     return [
-      const BusinessHour(weekday: 1, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
-      const BusinessHour(weekday: 2, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
-      const BusinessHour(weekday: 3, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
-      const BusinessHour(weekday: 4, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
-      const BusinessHour(weekday: 5, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: false),
-      const BusinessHour(weekday: 6, opensAt: '10:00:00', closesAt: '18:00:00', isClosed: false),
-      const BusinessHour(weekday: 0, opensAt: '09:00:00', closesAt: '20:00:00', isClosed: true),
+      const BusinessHour(
+        weekday: 1,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 2,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 3,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 4,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 5,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 6,
+        opensAt: '10:00:00',
+        closesAt: '18:00:00',
+        isClosed: false,
+      ),
+      const BusinessHour(
+        weekday: 0,
+        opensAt: '09:00:00',
+        closesAt: '20:00:00',
+        isClosed: true,
+      ),
     ];
   }
 
@@ -1113,9 +1233,13 @@ class MerchantHoursCoverageNotifier
       // 2. Load Coverage
       try {
         final covRes = await apiClient.get('/merchant/coverage');
-        final covData = (covRes.data as Map<String, dynamic>)['data'] as Map<String, dynamic>? ?? {};
+        final covData =
+            (covRes.data as Map<String, dynamic>)['data']
+                as Map<String, dynamic>? ??
+            {};
         state = state.copyWith(
-          serviceRadiusM: (covData['service_radius_m'] as num?)?.toInt() ?? 5000,
+          serviceRadiusM:
+              (covData['service_radius_m'] as num?)?.toInt() ?? 5000,
           acceptsRequests: covData['accepts_requests'] as bool? ?? true,
           businessName: covData['business_name'] as String? ?? 'My Business',
           locality: covData['locality'] as String? ?? 'Koramangala',
@@ -1131,7 +1255,12 @@ class MerchantHoursCoverageNotifier
     }
   }
 
-  void updateDayHour(int weekday, {bool? isClosed, String? opensAt, String? closesAt}) {
+  void updateDayHour(
+    int weekday, {
+    bool? isClosed,
+    String? opensAt,
+    String? closesAt,
+  }) {
     final updated = state.hours.map((h) {
       if (h.weekday == weekday) {
         return BusinessHour(
@@ -1147,7 +1276,10 @@ class MerchantHoursCoverageNotifier
   }
 
   void copyDayToWeekdays(int sourceWeekday) {
-    final source = state.hours.firstWhere((h) => h.weekday == sourceWeekday, orElse: () => state.hours.first);
+    final source = state.hours.firstWhere(
+      (h) => h.weekday == sourceWeekday,
+      orElse: () => state.hours.first,
+    );
     final updated = state.hours.map((h) {
       if (h.weekday >= 1 && h.weekday <= 5) {
         return BusinessHour(
@@ -1159,7 +1291,10 @@ class MerchantHoursCoverageNotifier
       }
       return h;
     }).toList();
-    state = state.copyWith(hours: updated, successMessage: 'Copied Mon-Fri hours!');
+    state = state.copyWith(
+      hours: updated,
+      successMessage: 'Copied Mon-Fri hours!',
+    );
   }
 
   void setAllDaysOpen(bool isOpen) {
@@ -1186,18 +1321,28 @@ class MerchantHoursCoverageNotifier
     state = state.copyWith(isSaving: true, error: null);
     try {
       final payload = {
-        'hours': state.hours.map((h) => {
-          'weekday': h.weekday,
-          'opens_at': h.opensAt,
-          'closes_at': h.closesAt,
-          'is_closed': h.isClosed,
-        }).toList(),
+        'hours': state.hours
+            .map(
+              (h) => {
+                'weekday': h.weekday,
+                'opens_at': h.opensAt,
+                'closes_at': h.closesAt,
+                'is_closed': h.isClosed,
+              },
+            )
+            .toList(),
       };
       await apiClient.put('/merchant/operating-hours', data: payload);
-      state = state.copyWith(isSaving: false, successMessage: 'Operating hours saved successfully');
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Operating hours saved successfully',
+      );
       return true;
     } catch (e) {
-      state = state.copyWith(isSaving: false, error: 'Failed to save hours: $e');
+      state = state.copyWith(
+        isSaving: false,
+        error: 'Failed to save hours: $e',
+      );
       return false;
     }
   }
@@ -1210,10 +1355,16 @@ class MerchantHoursCoverageNotifier
         'accepts_requests': state.acceptsRequests,
       };
       await apiClient.put('/merchant/coverage', data: payload);
-      state = state.copyWith(isSaving: false, successMessage: 'Service coverage updated successfully');
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Service coverage updated successfully',
+      );
       return true;
     } catch (e) {
-      state = state.copyWith(isSaving: false, error: 'Failed to save coverage: $e');
+      state = state.copyWith(
+        isSaving: false,
+        error: 'Failed to save coverage: $e',
+      );
       return false;
     }
   }
@@ -1223,8 +1374,10 @@ class MerchantHoursCoverageNotifier
   }
 }
 
-final merchantHoursCoverageProvider = StateNotifierProvider<
-    MerchantHoursCoverageNotifier, MerchantHoursCoverageState>((ref) {
-  return MerchantHoursCoverageNotifier();
-});
-
+final merchantHoursCoverageProvider =
+    StateNotifierProvider<
+      MerchantHoursCoverageNotifier,
+      MerchantHoursCoverageState
+    >((ref) {
+      return MerchantHoursCoverageNotifier();
+    });

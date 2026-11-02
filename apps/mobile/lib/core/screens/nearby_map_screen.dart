@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -7,6 +8,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
+import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -20,7 +22,13 @@ import 'package:url_launcher/url_launcher.dart';
 /// - Dynamic fallback Radar Map Canvas with concentric distance rings & interactive pins
 /// - Quick actions: GPS center me, directions launcher, profile routing
 class NearbyMapScreen extends ConsumerStatefulWidget {
-  const NearbyMapScreen({super.key});
+  const NearbyMapScreen({
+    super.key,
+    this.useDeviceLocation = true,
+    this.initialRadarView = false,
+  });
+  final bool useDeviceLocation;
+  final bool initialRadarView;
 
   @override
   ConsumerState<NearbyMapScreen> createState() => _NearbyMapScreenState();
@@ -34,7 +42,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   Set<Marker> _markers = {};
   bool _isLoading = false;
   String? _error;
-  String? _mapError;
+  int _loadSequence = 0;
+  bool _hasGpsFix = false;
   StreamSubscription<Position>? _positionStream;
 
   // Selected Category filter
@@ -47,25 +56,22 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   bool _useRadarView = false;
   late AnimationController _radarAnimController;
 
-  static const _categories = [
-    {'slug': 'all', 'name': 'All', 'icon': Icons.tune_rounded},
-    {'slug': 'electrician', 'name': 'Electrician', 'icon': Icons.bolt_rounded},
-    {'slug': 'hardware', 'name': 'Hardware', 'icon': Icons.hardware_rounded},
-    {'slug': 'medical', 'name': 'Pharmacy', 'icon': Icons.local_pharmacy_rounded},
-    {'slug': 'grocery', 'name': 'Grocery', 'icon': Icons.local_grocery_store_rounded},
-    {'slug': 'restaurant', 'name': 'Food & Cafe', 'icon': Icons.restaurant_rounded},
-    {'slug': 'salon', 'name': 'Salons', 'icon': Icons.content_cut_rounded},
-  ];
-
   @override
   void initState() {
     super.initState();
+    _useRadarView = widget.initialRadarView;
     _radarAnimController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat();
 
-    _requestLocationPermission();
+    if (widget.useDeviceLocation) {
+      _requestLocationPermission();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _useDefaultLocation();
+      });
+    }
   }
 
   @override
@@ -97,6 +103,18 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   void _useDefaultLocation() {
     final location = ref.read(appLocationProvider);
+    if (!const [
+      'cuttack',
+      'jajpur',
+    ].contains(location.cityName.toLowerCase())) {
+      if (mounted)
+        setState(() {
+          _error =
+              'Choose Cuttack or Jajpur in Explore to browse listed shops.';
+          _isLoading = false;
+        });
+      return;
+    }
     final defLat = location.latitude;
     final defLng = location.longitude;
     _updateMapPosition(defLat, defLng);
@@ -105,55 +123,89 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   void _startLocationUpdates() {
     _isLoading = true;
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 100,
-      ),
-    ).listen(
-      (Position position) {
-        _updateMapPosition(position.latitude, position.longitude);
-        _loadNearbyBusinesses(position.latitude, position.longitude);
-      },
-      onError: (_) {
-        _useDefaultLocation();
-      },
-    );
+    _positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 100,
+          ),
+        ).listen(
+          (Position position) {
+            _hasGpsFix = true;
+            _updateMapPosition(position.latitude, position.longitude);
+            _loadNearbyBusinesses(position.latitude, position.longitude);
+          },
+          onError: (_) {
+            _useDefaultLocation();
+          },
+        );
   }
 
   void _updateMapPosition(double lat, double lng) {
-    final newPosition = CameraPosition(
-      target: LatLng(lat, lng),
-      zoom: 15.0,
+    final newPosition = CameraPosition(target: LatLng(lat, lng), zoom: 15.0);
+    _currentPosition = newPosition;
+    _mapControllerInstance?.animateCamera(
+      CameraUpdate.newCameraPosition(newPosition),
     );
-    if (_currentPosition == null) {
-      _currentPosition = newPosition;
-      if (mounted) setState(() {});
-    } else if (_mapControllerInstance != null) {
-      _mapControllerInstance!.animateCamera(CameraUpdate.newCameraPosition(newPosition));
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadNearbyBusinesses(double lat, double lng) async {
+    final sequence = ++_loadSequence;
+    final city = ref.read(appLocationProvider).cityName;
+    if (!const ['cuttack', 'jajpur'].contains(city.toLowerCase())) {
+      if (mounted)
+        setState(() {
+          _error = 'Select Cuttack or Jajpur in Explore.';
+          _isLoading = false;
+        });
+      return;
+    }
+    if (mounted)
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     try {
-      final businessesState = ref.read(businessesProvider.notifier);
-      await businessesState.nearby(lat: lat, lng: lng);
-      _updateMarkers();
+      final businessesState = ref.read(mapBusinessesProvider.notifier);
+      await businessesState.nearby(
+        lat: lat,
+        lng: lng,
+        city: city,
+        categorySlug: _selectedCategorySlug == 'all'
+            ? null
+            : _selectedCategorySlug,
+      );
+      if (!mounted || sequence != _loadSequence) return;
+      if (ref.read(mapBusinessesProvider).error != null)
+        throw StateError('Nearby lookup failed');
 
       // Automatically select closest business if none selected
       final businesses = _filteredBusinesses;
-      if (_selectedBusiness == null && businesses.isNotEmpty) {
-        if (mounted) setState(() => _selectedBusiness = businesses.first);
-      }
+      setState(
+        () => _selectedBusiness = businesses.isEmpty ? null : businesses.first,
+      );
+      _updateMarkers();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted && sequence == _loadSequence)
+        setState(() {
+          _error = 'Unable to load nearby shops. Please try again.';
+          _selectedBusiness = null;
+          _markers = {};
+        });
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && sequence == _loadSequence)
+        setState(() => _isLoading = false);
     }
   }
 
   List<Business> get _filteredBusinesses {
-    final list = ref.watch(businessesProvider).items;
+    final city = ref.read(appLocationProvider).cityName.toLowerCase();
+    final list = ref
+        .read(mapBusinessesProvider)
+        .items
+        .where((b) => b.city?.toLowerCase() == city)
+        .toList();
     if (_selectedCategorySlug == 'all') return list;
     return list.where((b) => b.categorySlug == _selectedCategorySlug).toList();
   }
@@ -165,30 +217,39 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     for (final biz in businesses) {
       if (biz.latitude != null && biz.longitude != null) {
         final isSelected = _selectedBusiness?.id == biz.id;
-        newMarkers.add(Marker(
-          markerId: MarkerId(biz.id),
-          position: LatLng(biz.latitude!, biz.longitude!),
-          infoWindow: InfoWindow(
-            title: biz.name,
-            snippet: '${biz.categoryName ?? biz.categorySlug} • ${biz.distanceText}',
+        newMarkers.add(
+          Marker(
+            markerId: MarkerId(biz.id),
+            position: LatLng(biz.latitude!, biz.longitude!),
+            infoWindow: InfoWindow(
+              title: biz.name,
+              snippet:
+                  '${biz.categoryName ?? biz.categorySlug} • ${biz.distanceText}',
+            ),
+            onTap: () {
+              setState(() => _selectedBusiness = biz);
+            },
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              isSelected
+                  ? BitmapDescriptor.hueMagenta
+                  : _getCategoryHue(biz.categorySlug),
+            ),
           ),
-          onTap: () {
-            setState(() => _selectedBusiness = biz);
-          },
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            isSelected ? BitmapDescriptor.hueMagenta : _getCategoryHue(biz.categorySlug),
-          ),
-        ));
+        );
       }
     }
 
     if (_currentPosition != null) {
-      newMarkers.add(Marker(
-        markerId: const MarkerId('my_location'),
-        position: _currentPosition!.target,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'You are here'),
-      ));
+      newMarkers.add(
+        Marker(
+          markerId: const MarkerId('my_location'),
+          position: _currentPosition!.target,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: const InfoWindow(title: 'Search center'),
+        ),
+      );
     }
 
     setState(() => _markers = newMarkers);
@@ -217,67 +278,70 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     if (biz.categorySlug == 'electrician' ||
         biz.categorySlug == 'plumber' ||
         biz.categorySlug == 'carpenter') {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ServiceProScreen(business: biz),
-      ));
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ServiceProScreen(business: biz)),
+      );
     } else {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => BusinessDetailScreen(businessId: biz.id),
-      ));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BusinessDetailScreen(businessId: biz.id),
+        ),
+      );
     }
   }
 
   void _openDirections(Business biz) async {
-    final lat = biz.latitude ?? 20.2961;
-    final lng = biz.longitude ?? 85.8245;
+    final lat = biz.latitude;
+    final lng = biz.longitude;
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Directions are unavailable because this listing has no coordinates.',
+          ),
+        ),
+      );
+      return;
+    }
     final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Directions to ${biz.name}')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Directions to ${biz.name}')));
       }
     }
   }
 
   void _centerOnUser() async {
-    if (_currentPosition != null && _mapControllerInstance != null) {
-      await _mapControllerInstance!.animateCamera(
-        CameraUpdate.newCameraPosition(_currentPosition!),
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      _hasGpsFix = true;
+      _updateMapPosition(position.latitude, position.longitude);
+      await _loadNearbyBusinesses(position.latitude, position.longitude);
+    } catch (_) {
+      if (!mounted) return;
+      _useDefaultLocation();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('GPS unavailable. Searching the selected city center.'),
+        ),
       );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Centered on your current location'),
-        duration: Duration(seconds: 1),
-      ),
-    );
   }
 
   void _onMapCreated(GoogleMapController controller) {
-    _mapController.complete(controller);
+    if (!_mapController.isCompleted) _mapController.complete(controller);
     _mapControllerInstance = controller;
     _updateMarkers();
-
-    // Check if tiles load; fallback heuristic
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted && _mapControllerInstance != null) {
-        _checkMapTilesLoading();
-      }
-    });
-  }
-
-  void _checkMapTilesLoading() {
-    setState(() {
-      _mapError = 'Showing live interactive location radar.';
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(mapBusinessesProvider);
     final businesses = _filteredBusinesses;
 
     return Scaffold(
@@ -321,7 +385,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             },
           ),
           IconButton(
-            icon: const Icon(Icons.my_location_rounded, color: AppTheme.primary),
+            icon: const Icon(
+              Icons.my_location_rounded,
+              color: AppTheme.primary,
+            ),
             onPressed: _centerOnUser,
             tooltip: 'Center on Me',
           ),
@@ -335,7 +402,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               initialCameraPosition: _currentPosition!,
               onMapCreated: _onMapCreated,
               markers: _markers,
-              myLocationEnabled: true,
+              myLocationEnabled: _hasGpsFix,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
@@ -360,7 +427,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               backgroundColor: Colors.white,
               elevation: 4,
               onPressed: _centerOnUser,
-              child: const Icon(Icons.gps_fixed_rounded, color: AppTheme.primary),
+              child: const Icon(
+                Icons.gps_fixed_rounded,
+                color: AppTheme.primary,
+              ),
             ),
           ),
 
@@ -377,6 +447,30 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             ),
 
           // Loading overlay
+          if (!_isLoading && (_error != null || businesses.isEmpty))
+            Positioned(
+              top: 76,
+              left: 16,
+              right: 16,
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _error ?? 'No listed shops in this city within 5 km of the search position.',
+                        textAlign: TextAlign.center,
+                      ),
+                      TextButton(
+                        onPressed: _useDefaultLocation,
+                        child: const Text('Search selected city'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_isLoading)
             const Positioned(
               top: 76,
@@ -396,28 +490,47 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   }
 
   Widget _buildCategoryCarousel() {
+    final categories = ref.watch(categoriesProvider);
+    if (categories.error != null)
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: () => ref.read(categoriesProvider.notifier).load(),
+          child: const Text('Retry categories'),
+        ),
+      );
+    final items = <Map<String, dynamic>>[
+      {'slug': 'all', 'name': 'All', 'icon': Icons.tune_rounded},
+      ...categories.items.map(
+        (c) => {
+          'slug': c.slug,
+          'name': c.name,
+          'icon': CategoriesScreen.getCategoryIcon(c.slug),
+        },
+      ),
+    ];
     return SizedBox(
       height: 42,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final cat = _categories[index];
+          final cat = items[index];
           final slug = cat['slug'] as String;
           final isSelected = _selectedCategorySlug == slug;
 
           return GestureDetector(
+            key: ValueKey('map_category_$slug'),
             onTap: () {
               setState(() {
                 _selectedCategorySlug = slug;
-                _updateMarkers();
-                final filtered = _filteredBusinesses;
-                if (filtered.isNotEmpty) {
-                  _selectedBusiness = filtered.first;
-                }
+                _selectedBusiness = null;
               });
+              final center = _currentPosition?.target;
+              if (center != null)
+                _loadNearbyBusinesses(center.latitude, center.longitude);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
@@ -426,11 +539,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 color: isSelected ? AppTheme.primary : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
+                  color: isSelected
+                      ? AppTheme.primary
+                      : const Color(0xFFE2E8F0),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isSelected ? 0.15 : 0.04),
+                    color: Colors.black.withValues(
+                      alpha: isSelected ? 0.15 : 0.04,
+                    ),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -463,8 +580,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   }
 
   Widget _buildBottomBusinessCard(Business biz) {
-    final rating = biz.rating ?? 4.8;
-    final reviewCount = biz.reviewCount ?? 128;
+    final rating = biz.rating;
+    final reviewCount = biz.reviewCount;
     final distanceText = biz.distanceText;
     final categoryName = biz.categoryName ?? biz.categorySlug;
 
@@ -535,17 +652,27 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         ),
                         if (biz.verificationStatus == 'verified') ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded, size: 15, color: Color(0xFF2457D6)),
+                          const Icon(
+                            Icons.verified_rounded,
+                            size: 15,
+                            color: Color(0xFF2457D6),
+                          ),
                         ],
                       ],
                     ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF59E0B)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 15,
+                          color: Color(0xFFF59E0B),
+                        ),
                         const SizedBox(width: 3),
                         Text(
-                          '$rating ($reviewCount)',
+                          rating == null
+                              ? 'Not rated'
+                              : '${rating.toStringAsFixed(1)}${reviewCount == null ? '' : ' ($reviewCount)'}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -555,13 +682,16 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         const SizedBox(width: 8),
                         Text(
                           '• $categoryName',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$distanceText away • ${biz.locality ?? 'Saheed Nagar'}',
+                      '$distanceText • ${biz.locality ?? biz.city ?? ''}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -574,7 +704,11 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
               // Dismiss X button
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18, color: AppTheme.secondaryText),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppTheme.secondaryText,
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () => setState(() => _selectedBusiness = null),
@@ -594,18 +728,28 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () => _openDirections(biz),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.directions_rounded, size: 18, color: AppTheme.mainText),
+                        Icon(
+                          Icons.directions_rounded,
+                          size: 18,
+                          color: AppTheme.mainText,
+                        ),
                         SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             'Directions',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.mainText,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -626,18 +770,28 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () => _openBusinessDetail(biz),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.person_pin_circle_rounded, size: 18, color: Colors.white),
+                        Icon(
+                          Icons.person_pin_circle_rounded,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                         SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             'View Profile',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -690,21 +844,28 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
             // Business Marker Pins Placed in Polar Coordinates
             ...businesses.asMap().entries.map((entry) {
-              final index = entry.key;
               final biz = entry.value;
               final isSelected = _selectedBusiness?.id == biz.id;
 
-              // Derive realistic angle and radius from business coordinates or hash
-              final angle = (index * 1.1) + 0.4;
-              final distanceM = biz.distanceM ?? (400.0 + (index * 600));
-              final normalizedRadius = math.min(180.0, 40.0 + (distanceM / 5000.0) * 140.0);
+              final center = _currentPosition?.target;
+              if (center == null ||
+                  biz.latitude == null ||
+                  biz.longitude == null)
+                return const SizedBox.shrink();
+              // Project actual coordinates around the search center. Never invent positions.
+              final north = (biz.latitude! - center.latitude) * 111320;
+              final east =
+                  (biz.longitude! - center.longitude) *
+                  111320 *
+                  math.cos(center.latitude * math.pi / 180);
 
               return Align(
                 alignment: Alignment(
-                  (math.cos(angle) * normalizedRadius) / 180.0,
-                  (math.sin(angle) * normalizedRadius) / 180.0,
+                  (east / 5000).clamp(-0.85, 0.85),
+                  (-north / 5000).clamp(-0.85, 0.85),
                 ),
                 child: GestureDetector(
+                  key: ValueKey('radar_business_${biz.id}'),
                   onTap: () {
                     setState(() => _selectedBusiness = biz);
                   },
@@ -714,12 +875,17 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       // Pin Chip
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected ? AppTheme.primary : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFFCBD5E1),
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -736,7 +902,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             Icon(
                               _getCategoryIcon(biz.categorySlug),
                               size: 13,
-                              color: isSelected ? Colors.white : AppTheme.primary,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.primary,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -744,7 +912,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
-                                color: isSelected ? Colors.white : AppTheme.mainText,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppTheme.mainText,
                               ),
                             ),
                           ],
@@ -823,8 +993,16 @@ class _RadarMapPainter extends CustomPainter {
     final crosshairPaint = Paint()
       ..color = const Color(0xFFE2E8F0)
       ..strokeWidth = 1.0;
-    canvas.drawLine(Offset(center.dx, center.dy - maxRadius), Offset(center.dx, center.dy + maxRadius), crosshairPaint);
-    canvas.drawLine(Offset(center.dx - maxRadius, center.dy), Offset(center.dx + maxRadius, center.dy), crosshairPaint);
+    canvas.drawLine(
+      Offset(center.dx, center.dy - maxRadius),
+      Offset(center.dx, center.dy + maxRadius),
+      crosshairPaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx - maxRadius, center.dy),
+      Offset(center.dx + maxRadius, center.dy),
+      crosshairPaint,
+    );
 
     // Radar beam sweep
     final sweepAngle = sweepProgress * 2 * math.pi;

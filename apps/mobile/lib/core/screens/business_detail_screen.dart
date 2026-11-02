@@ -294,7 +294,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          (biz.rating ?? 4.8).toStringAsFixed(1),
+                          biz.rating?.toStringAsFixed(1) ?? 'Not rated',
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -303,7 +303,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          '(${biz.reviewCount ?? (isHotel ? 342 : 128)})',
+                          biz.reviewCount == null ? '' : '(${biz.reviewCount})',
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.secondaryText,
@@ -3031,7 +3031,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               Column(
                 children: [
                   Text(
-                    (biz.rating ?? 4.8).toStringAsFixed(1),
+                    biz.rating?.toStringAsFixed(1) ?? 'Not rated',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
@@ -3050,7 +3050,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${biz.reviewCount ?? 128} reviews',
+                    biz.reviewCount == null ? 'Review count unavailable' : '${biz.reviewCount} reviews',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppTheme.secondaryText,
