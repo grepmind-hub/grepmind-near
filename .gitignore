@@ -65,5 +65,7 @@ city-validation-run.json
 city-validation-run.json.tmp
 ui-injection-run.json
 ui-injection-run.json.tmp
+.merchant-e2e-*.stop
+backend/merchant-onboarding-e2e.json
 .ui-bridge-*.stop
 apps/mobile/android/.kotlin/

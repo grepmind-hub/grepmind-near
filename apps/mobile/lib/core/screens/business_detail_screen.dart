@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -8,6 +9,7 @@ import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/models/customer_order.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/utils/contact_actions.dart';
 
 /// Screen 11: Business Profile & Tabs matching showcase with Hospitality, Food Delivery & Table Reservation
 class BusinessDetailScreen extends ConsumerStatefulWidget {
@@ -21,7 +23,6 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
 
 class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     with SingleTickerProviderStateMixin {
-  bool _isFavorited = false;
   late TabController _tabController;
 
   // Cart State for Food & Multi-Item Ordering
@@ -31,8 +32,24 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No compatible app could open this link.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _launchContact(Future<bool> Function() launch) async {
+    final launched = await launch();
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Contact details are unavailable for this business.'),
+        ),
+      );
     }
   }
 
@@ -42,13 +59,35 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(businessDetailProvider.notifier).load(widget.businessId);
+      ref.read(favoritesProvider.notifier).load();
     });
+  }
+
+  Future<void> _toggleFavorite(String businessId) async {
+    final wasSaved = ref
+        .read(favoritesProvider)
+        .items
+        .any((business) => business.id == businessId);
+    final isSaved = await ref
+        .read(favoritesProvider.notifier)
+        .toggle(businessId);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isSaved == null || isSaved == wasSaved
+              ? 'Could not update saved places. Please try again.'
+              : isSaved
+              ? 'Business saved to your list.'
+              : 'Business removed from your saved list.',
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    ref.read(businessDetailProvider.notifier).clear();
     super.dispose();
   }
 
@@ -119,8 +158,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     }
     final hours = state.businessHours;
     final products = state.products;
+    final contactPhone = biz.phoneE164?.trim().isNotEmpty == true
+        ? biz.phoneE164
+        : null;
+    final whatsappPhone = biz.whatsappE164?.trim().isNotEmpty == true
+        ? biz.whatsappE164
+        : contactPhone;
     final isFood = _isFoodBusiness(biz);
     final isHotel = _isHotelBusiness(biz);
+    final isFavorited = ref
+        .watch(favoritesProvider)
+        .items
+        .any((business) => business.id == biz.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -160,16 +209,13 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     ),
                     child: IconButton(
                       icon: Icon(
-                        _isFavorited
+                        isFavorited
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
                         size: 20,
-                        color: _isFavorited
-                            ? AppTheme.error
-                            : AppTheme.mainText,
+                        color: isFavorited ? AppTheme.error : AppTheme.mainText,
                       ),
-                      onPressed: () =>
-                          setState(() => _isFavorited = !_isFavorited),
+                      onPressed: () => _toggleFavorite(biz.id),
                     ),
                   ),
                 ),
@@ -433,7 +479,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 ),
                                 SizedBox(width: 5),
                                 Text(
-                                  'Check-in 12:00 PM • 24/7 Front Desk',
+                                  'Hotel services and amenities',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -456,9 +502,13 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           Icons.phone_rounded,
                           const Color(0xFFE3EEFF),
                           AppTheme.primary,
-                          () => _launchUrl(
-                            'tel:${biz.phoneE164 ?? '+919861000008'}',
-                          ),
+                          contactPhone != null
+                              ? () => _launchContact(
+                                  () => ref
+                                      .read(contactActionsProvider)
+                                      .call(contactPhone),
+                                )
+                              : () => _launchContact(() async => false),
                         ),
                         _buildCircleAction(
                           'Directions',
@@ -474,18 +524,22 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           Icons.chat_bubble_rounded,
                           const Color(0xFFDCFCE7),
                           const Color(0xFF16A34A),
-                          () => _launchUrl(
-                            'https://wa.me/${biz.whatsappE164 ?? biz.phoneE164 ?? '+919861000008'}',
-                          ),
+                          whatsappPhone != null
+                              ? () => _launchContact(
+                                  () => ref
+                                      .read(contactActionsProvider)
+                                      .whatsapp(whatsappPhone),
+                                )
+                              : () => _launchContact(() async => false),
                         ),
                         _buildCircleAction(
                           'Save',
-                          _isFavorited
+                          isFavorited
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                           const Color(0xFFE3EEFF),
                           AppTheme.primary,
-                          () => setState(() => _isFavorited = !_isFavorited),
+                          () => _toggleFavorite(biz.id),
                         ),
                       ],
                     ),
@@ -549,6 +603,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     bool isFood,
     bool isHotel,
   ) {
+    final contactPhone = biz.phoneE164?.trim().isNotEmpty == true
+        ? biz.phoneE164
+        : null;
     if (_cart.isNotEmpty) {
       final total = _getCartTotal(products);
       return Container(
@@ -714,9 +771,13 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: biz.phoneE164 == null
+                            onPressed: contactPhone == null
                                 ? null
-                                : () => _launchUrl('tel:${biz.phoneE164}'),
+                                : () => _launchContact(
+                                    () => ref
+                                        .read(contactActionsProvider)
+                                        .call(contactPhone),
+                                  ),
                             icon: const Icon(
                               Icons.phone_in_talk_rounded,
                               size: 18,
@@ -831,11 +892,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         Text(
           biz.description != null && biz.description!.isNotEmpty
               ? biz.description!
-              : (isHotel
-                    ? 'Business description not provided.'
-                    : (isFood
-                          ? 'Authentic Odia cuisine, Mughlai specialties, and tandoor delicacies with clean hygiene standards and speedy home delivery.'
-                          : 'Premier local provider offering genuine products, verified technicians, and fast on-demand services across the city.')),
+              : 'Business description has not been provided.',
           style: const TextStyle(
             fontSize: 13,
             height: 1.5,
@@ -989,7 +1046,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE4E7EC)),
           ),
-          child: Column(children: hours.map((h) => _buildHourRow(h)).toList()),
+          child: hours.isEmpty
+              ? const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Operating hours have not been provided by this business.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
+                )
+              : Column(children: hours.map((h) => _buildHourRow(h)).toList()),
         ),
       ],
     );
@@ -2915,38 +2983,25 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   }
 
   Widget _buildOffersTab(List<Offer> offers) {
-    final list = offers.isNotEmpty
-        ? offers
-        : [
-            Offer(
-              id: 'o-1',
-              businessId: widget.businessId,
-              title: '15% OFF on Food Orders above ₹500',
-              description:
-                  'Use code NEARFEAST at checkout for instant 15% discount.',
-              startsAt: DateTime.now().subtract(const Duration(days: 2)),
-              endsAt: DateTime.now().add(const Duration(days: 30)),
-              status: 'published',
-              discountPercent: 15,
-            ),
-            Offer(
-              id: 'o-2',
-              businessId: widget.businessId,
-              title: 'Complimentary Dessert on Table Booking',
-              description: 'Get free authentic Chhena Poda with every dinner reservation.',
-              startsAt: DateTime.now().subtract(const Duration(days: 5)),
-              endsAt: DateTime.now().add(const Duration(days: 25)),
-              status: 'published',
-              discountPercent: 20,
-            ),
-          ];
+    if (offers.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'No active offers are available from this business.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppTheme.secondaryText),
+          ),
+        ),
+      );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
-      itemCount: list.length,
+      itemCount: offers.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
-        final o = list[i];
+        final o = offers[i];
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -2994,9 +3049,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                       ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Valid till 30 Jun 2026',
-                      style: TextStyle(
+                    Text(
+                      'Valid till ${DateFormat('d MMM yyyy').format(o.endsAt.toLocal())}',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFD97706),
@@ -3239,7 +3294,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
           Text(
             h.isClosed
                 ? 'Closed'
-                : '${h.opensAt ?? "9:00 AM"} - ${h.closesAt ?? "10:00 PM"}',
+                : '${_formatBusinessTime(h.opensAt)} - ${_formatBusinessTime(h.closesAt)}',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -3249,6 +3304,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         ],
       ),
     );
+  }
+
+  String _formatBusinessTime(String? value) {
+    if (value == null || value.isEmpty) return '—';
+    final parsed =
+        DateFormat('HH:mm:ss').tryParse(value) ??
+        DateFormat('HH:mm').tryParse(value);
+    return parsed == null ? value : DateFormat('h:mm a').format(parsed);
   }
 
   Widget _heroPlaceholder(Business biz) {

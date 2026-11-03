@@ -99,10 +99,16 @@ func (s *Service) Availability(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, starts_at, ends_at, capacity, booked_count
-		FROM availability_slots
-		WHERE business_id=$1 AND status='open' AND starts_at >= $2 AND starts_at < $3 AND booked_count < capacity
-		ORDER BY starts_at`, businessID, from, to)
+		SELECT s.id, s.starts_at, s.ends_at, s.capacity, s.booked_count, b.time_zone
+		FROM availability_slots s
+		JOIN businesses b ON b.id=s.business_id
+		WHERE s.business_id=$1 AND s.status='open' AND s.starts_at >= $2 AND s.starts_at < $3
+		  AND s.booked_count < s.capacity
+		  AND NOT EXISTS (
+			SELECT 1 FROM business_availability_exceptions e
+			WHERE e.business_id=s.business_id AND e.local_date=(s.starts_at AT TIME ZONE b.time_zone)::date AND e.is_closed=true
+		  )
+		ORDER BY s.starts_at`, businessID, from, to)
 	if err != nil {
 		writeError(w, 500, "INTERNAL_ERROR", "Unable to load availability.")
 		return
@@ -110,14 +116,25 @@ func (s *Service) Availability(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	items := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var id string
+		var id, zone string
 		var starts, ends time.Time
 		var capacity, booked int
-		if err := rows.Scan(&id, &starts, &ends, &capacity, &booked); err != nil {
+		if err := rows.Scan(&id, &starts, &ends, &capacity, &booked, &zone); err != nil {
 			writeError(w, 500, "INTERNAL_ERROR", "Unable to read availability.")
 			return
 		}
-		items = append(items, map[string]interface{}{"id": id, "starts_at": starts, "ends_at": ends, "remaining_capacity": capacity - booked})
+		location, err := time.LoadLocation(zone)
+		if err != nil {
+			writeError(w, 500, "INTERNAL_ERROR", "Business time zone is invalid.")
+			return
+		}
+		items = append(items, map[string]interface{}{
+			"id": id, "starts_at": starts, "ends_at": ends,
+			"local_date":         starts.In(location).Format("2006-01-02"),
+			"local_starts_at":    starts.In(location).Format("15:04"),
+			"local_ends_at":      ends.In(location).Format("15:04"),
+			"remaining_capacity": capacity - booked, "time_zone": zone,
+		})
 	}
 	writeJSON(w, 200, map[string]interface{}{"data": items, "meta": map[string]interface{}{"count": len(items)}})
 }
@@ -269,6 +286,15 @@ func (s *Service) CancelOrder(w http.ResponseWriter, r *http.Request, userID str
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
+		var owned bool
+		if err := s.db.GetContext(r.Context(), &owned, `SELECT EXISTS(SELECT 1 FROM customer_orders WHERE id=$1 AND customer_user_id=$2)`, r.PathValue("id"), userID); err != nil {
+			writeError(w, 500, "INTERNAL_ERROR", "Unable to check order state.")
+			return
+		}
+		if !owned {
+			writeError(w, 404, "NOT_FOUND", "Order not found.")
+			return
+		}
 		writeError(w, 409, "INVALID_STATE", "Only a new order or reservation can be cancelled.")
 		return
 	}
@@ -297,8 +323,23 @@ func (s *Service) UpdateOrderStatus(w http.ResponseWriter, r *http.Request, user
 		writeError(w, 409, "INVALID_STATE", "Invalid order status transition.")
 		return
 	}
-	if _, err := s.db.ExecContext(r.Context(), `UPDATE customer_orders SET status=$1,updated_at=now() WHERE id=$2`, body.Status, r.PathValue("id")); err != nil {
+	result, err := s.db.ExecContext(r.Context(), `
+		UPDATE customer_orders o SET status=$1,updated_at=now()
+		WHERE o.id=$2 AND o.business_id=$3 AND o.status=$4 AND EXISTS (
+			SELECT 1 FROM business_members bm WHERE bm.business_id=o.business_id AND bm.user_id=$5 AND bm.status='active'
+			UNION SELECT 1 FROM businesses b WHERE b.id=o.business_id AND b.owner_user_id=$5 AND b.status!='deleted'
+		)
+	`, body.Status, r.PathValue("id"), businessID, current, userID)
+	if err != nil {
 		writeError(w, 500, "INTERNAL_ERROR", "Unable to update order.")
+		return
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		if !s.hasMembership(r.Context(), userID, businessID) {
+			writeError(w, 403, "FORBIDDEN", "Order belongs to another business.")
+			return
+		}
+		writeError(w, 409, "INVALID_STATE", "Order status changed; reload before retrying.")
 		return
 	}
 	o, err := s.loadOrder(r.Context(), r.PathValue("id"), userID, true)

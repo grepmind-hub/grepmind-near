@@ -12,13 +12,13 @@ class AppTheme {
   static const Color primaryContainer = Color(0xFFE3EEFF);
   static const Color secondary = Color(0xFF0F766E);
   static const Color secondaryContainer = Color(0xFFE0F2F1);
-  static const Color background = Color(0xFFF7F8FA);
+  static const Color background = Color(0xFFF0F4FA);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF2F4F7);
+  static const Color surfaceVariant = Color(0xFFEAF0F8);
   static const Color mainText = Color(0xFF172033);
   static const Color secondaryText = Color(0xFF667085);
   static const Color hintText = Color(0xFF9AA5B1);
-  static const Color border = Color(0xFFE4E7EC);
+  static const Color border = Color(0xFFD6E1EF);
   static const Color success = Color(0xFF15803D);
   static const Color successContainer = Color(0xFFECFDF3);
   static const Color warning = Color(0xFFB45309);
@@ -33,43 +33,75 @@ class AppTheme {
   static TextTheme _textTheme(BuildContext context) {
     return GoogleFonts.interTextTheme(Theme.of(context).textTheme).copyWith(
       displayLarge: GoogleFonts.inter(
-        fontSize: 32, fontWeight: FontWeight.w700, color: mainText, letterSpacing: -0.5,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        color: mainText,
+        letterSpacing: -0.5,
       ),
       displayMedium: GoogleFonts.inter(
-        fontSize: 28, fontWeight: FontWeight.w700, color: mainText, letterSpacing: -0.4,
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: mainText,
+        letterSpacing: -0.4,
       ),
       headlineLarge: GoogleFonts.inter(
-        fontSize: 24, fontWeight: FontWeight.w700, color: mainText, letterSpacing: -0.2,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: mainText,
+        letterSpacing: -0.2,
       ),
       headlineMedium: GoogleFonts.inter(
-        fontSize: 20, fontWeight: FontWeight.w600, color: mainText,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: mainText,
       ),
       headlineSmall: GoogleFonts.inter(
-        fontSize: 18, fontWeight: FontWeight.w600, color: mainText,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: mainText,
       ),
       titleLarge: GoogleFonts.inter(
-        fontSize: 16, fontWeight: FontWeight.w600, color: mainText,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: mainText,
       ),
       titleMedium: GoogleFonts.inter(
-        fontSize: 14, fontWeight: FontWeight.w600, color: mainText,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: mainText,
       ),
       bodyLarge: GoogleFonts.inter(
-        fontSize: 16, fontWeight: FontWeight.w400, color: mainText, height: 1.5,
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: mainText,
+        height: 1.5,
       ),
       bodyMedium: GoogleFonts.inter(
-        fontSize: 14, fontWeight: FontWeight.w400, color: mainText, height: 1.5,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: mainText,
+        height: 1.5,
       ),
       bodySmall: GoogleFonts.inter(
-        fontSize: 12, fontWeight: FontWeight.w400, color: secondaryText, height: 1.4,
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: secondaryText,
+        height: 1.4,
       ),
       labelLarge: GoogleFonts.inter(
-        fontSize: 14, fontWeight: FontWeight.w500, color: mainText,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: mainText,
       ),
       labelMedium: GoogleFonts.inter(
-        fontSize: 12, fontWeight: FontWeight.w500, color: secondaryText,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: secondaryText,
       ),
       labelSmall: GoogleFonts.inter(
-        fontSize: 11, fontWeight: FontWeight.w500, color: hintText,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: hintText,
       ),
     );
   }
@@ -92,7 +124,11 @@ class AppTheme {
       ),
       textTheme: _textTheme(context),
       primaryColor: primary,
-      dividerTheme: const DividerThemeData(color: border, space: 1, thickness: 1),
+      dividerTheme: const DividerThemeData(
+        color: border,
+        space: 1,
+        thickness: 1,
+      ),
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
@@ -105,7 +141,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: border),
@@ -123,7 +162,11 @@ class AppTheme {
           borderSide: const BorderSide(color: error),
         ),
         hintStyle: const TextStyle(color: hintText, fontSize: 14),
-        labelStyle: const TextStyle(color: secondaryText, fontSize: 14, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+          color: secondaryText,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -132,7 +175,9 @@ class AppTheme {
           elevation: 0,
           minimumSize: const Size(double.infinity, 52),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -142,7 +187,9 @@ class AppTheme {
           minimumSize: const Size(double.infinity, 52),
           padding: const EdgeInsets.symmetric(vertical: 14),
           side: const BorderSide(color: primary),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -161,8 +208,14 @@ class AppTheme {
         unselectedItemColor: secondaryText,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+        selectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -171,7 +224,10 @@ class AppTheme {
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: mainText),
         titleTextStyle: TextStyle(
-          color: mainText, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Inter',
+          color: mainText,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'Inter',
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(

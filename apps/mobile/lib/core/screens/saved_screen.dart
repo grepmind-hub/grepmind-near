@@ -5,6 +5,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 
 /// Saved favourites screen.
 class SavedScreen extends ConsumerStatefulWidget {
@@ -43,15 +44,16 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-              ? _buildError(state.error!)
-              : state.items.isEmpty
-                  ? _buildEmpty()
-                  : _buildList(state.items),
+          ? _buildError(state.error!)
+          : state.items.isEmpty
+          ? _buildEmpty()
+          : _buildList(state.items),
     );
   }
 
   Widget _buildError(String error) {
-    final isAuthError = error.contains('401') || error.toLowerCase().contains('unauthorized');
+    final isAuthError =
+        error.contains('401') || error.toLowerCase().contains('unauthorized');
     if (isAuthError) {
       return Center(
         child: Padding(
@@ -59,11 +61,19 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.favorite_outline, size: 64, color: AppTheme.hintText),
+              const Icon(
+                Icons.favorite_outline,
+                size: 64,
+                color: AppTheme.hintText,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Save your favorite places',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -93,7 +103,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
             const SizedBox(height: 16),
             const Text(
               'Unable to load saved places',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.mainText,
+              ),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -117,11 +131,24 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.favorite_outline, size: 64, color: AppTheme.hintText),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: ScreenIllustrationCard(
+              illustration: ScreenIllustration.customer,
+              title: 'Keep local favorites close',
+              subtitle: 'Save places to find them again quickly',
+              icon: Icons.favorite_border_rounded,
+              compact: true,
+            ),
+          ),
           SizedBox(height: 16),
           Text(
             'No saved businesses yet',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mainText,
+            ),
           ),
           SizedBox(height: 8),
           Text(
@@ -136,20 +163,45 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
   Widget _buildList(List<Business> items) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(kScreenPadding, 12, kScreenPadding, 24),
+      padding: const EdgeInsets.fromLTRB(
+        kScreenPadding,
+        12,
+        kScreenPadding,
+        24,
+      ),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final biz = items[index];
         return _SavedBusinessCard(
           business: biz,
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => BusinessDetailScreen(businessId: biz.id),
-          )),
-          onFavoriteToggle: () => ref.read(favoritesProvider.notifier).toggle(biz.id),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BusinessDetailScreen(businessId: biz.id),
+            ),
+          ),
+          onFavoriteToggle: () => _removeSavedBusiness(biz.id),
         );
       },
     );
+  }
+
+  Future<void> _removeSavedBusiness(String businessId) async {
+    final wasSaved = ref
+        .read(favoritesProvider)
+        .items
+        .any((business) => business.id == businessId);
+    final isSaved = await ref
+        .read(favoritesProvider.notifier)
+        .toggle(businessId);
+    if (!mounted) return;
+    if (isSaved == null || isSaved == wasSaved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not remove this saved place. Please retry.'),
+        ),
+      );
+    }
   }
 
   void _showClearDialog() {
@@ -157,15 +209,32 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear all saved?'),
-        content: const Text('This will remove all businesses from your saved list.'),
+        content: const Text(
+          'This will remove all businesses from your saved list on this account.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-            onPressed: () {
-              ref.read(favoritesProvider.notifier).clear();
+            onPressed: () async {
+              final cleared = await ref
+                  .read(favoritesProvider.notifier)
+                  .clearAll();
+              if (!context.mounted) return;
               Navigator.pop(context);
+              if (!cleared && mounted) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Some saved places could not be removed. Please retry.',
+                    ),
+                  ),
+                );
+              }
             },
-            child: const Text('Clear'),
+            child: const Text('Remove all'),
           ),
         ],
       ),
@@ -198,7 +267,11 @@ class _SavedBusinessCard extends StatelessWidget {
               color: AppTheme.primaryContainer,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(_getCategoryIcon(business.categorySlug), color: AppTheme.primary, size: 28),
+            child: Icon(
+              _getCategoryIcon(business.categorySlug),
+              color: AppTheme.primary,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 14),
           // Info
@@ -208,7 +281,11 @@ class _SavedBusinessCard extends StatelessWidget {
               children: [
                 Text(
                   business.name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.mainText,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -216,17 +293,27 @@ class _SavedBusinessCard extends StatelessWidget {
                 Row(
                   children: [
                     if (business.distanceM != null) ...[
-                      const Icon(Icons.location_on_outlined, size: 13, color: AppTheme.hintText),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 13,
+                        color: AppTheme.hintText,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         business.distanceText,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryText,
+                        ),
                       ),
                       const SizedBox(width: 12),
                     ],
                     Text(
                       business.categoryName ?? business.categorySlug,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ],
                 ),

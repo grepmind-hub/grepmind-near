@@ -22,6 +22,23 @@ var (
 	errLimitOutOfRange    = errors.New("limit must be between 1 and 50")
 )
 
+// Odisha businesses use India Standard Time for weekly opening hours. The
+// expression accounts for schedules that run past midnight into the next day.
+const businessOpenNowSQL = `EXISTS (
+	SELECT 1 FROM business_hours bh
+	CROSS JOIN LATERAL (SELECT now() AT TIME ZONE 'Asia/Kolkata' AS local_now) clock
+	WHERE bh.business_id = b.id AND bh.is_closed = false
+	  AND bh.opens_at IS NOT NULL AND bh.closes_at IS NOT NULL
+	  AND (
+		(bh.weekday = EXTRACT(DOW FROM clock.local_now)::int AND (
+			(bh.opens_at < bh.closes_at AND bh.opens_at <= clock.local_now::time AND bh.closes_at > clock.local_now::time)
+			OR (bh.opens_at > bh.closes_at AND bh.opens_at <= clock.local_now::time)
+		))
+		OR (bh.weekday = ((EXTRACT(DOW FROM clock.local_now)::int + 6) % 7)
+			AND bh.opens_at > bh.closes_at AND bh.closes_at > clock.local_now::time)
+	  )
+)`
+
 // ---------- Models ----------
 
 type Category struct {
@@ -96,6 +113,16 @@ type Offer struct {
 	ImageURL    string    `json:"image_url,omitempty"`
 	Terms       string    `json:"terms,omitempty"`
 	DiscountPct *int      `json:"discount_percent,omitempty"`
+}
+
+// CityOffer is a currently published offer with the approved business context
+// required by the public Home feed. Contact details are intentionally omitted.
+type CityOffer struct {
+	Offer
+	BusinessName     string `json:"business_name"`
+	BusinessCity     string `json:"business_city"`
+	BusinessLocality string `json:"business_locality,omitempty"`
+	BusinessPhotoURL string `json:"business_photo_url,omitempty"`
 }
 
 type ServiceOffering struct {
@@ -222,6 +249,7 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	openNow := r.URL.Query().Get("open_now") == "true"
+	availableNow := r.URL.Query().Get("available_now") == "true"
 	sort := r.URL.Query().Get("sort")
 	if sort == "" {
 		sort = "relevance"
@@ -270,13 +298,13 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		argIdx++
 	}
 	if openNow {
-		where = append(where, `EXISTS (
-			SELECT 1 FROM business_hours bh
-			WHERE bh.business_id = b.id
-			AND bh.weekday = EXTRACT(DOW FROM now() AT TIME ZONE 'UTC')
-			AND bh.is_closed = false
-			AND bh.opens_at IS NOT NULL AND bh.closes_at IS NOT NULL
-		)`)
+		where = append(where, businessOpenNowSQL)
+	}
+	if availableNow {
+		where = append(where, `EXISTS (SELECT 1 FROM professional_profiles pp WHERE pp.business_id = b.id AND pp.accepts_requests = true)`)
+	}
+	if sort == "recent" {
+		orderBy = "b.created_at DESC, b.name ASC"
 	}
 
 	query := `
@@ -285,7 +313,8 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		       b.phone_e164, b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
-		       b.cover_photo_url`
+		       b.cover_photo_url, ` + businessOpenNowSQL + ` AS is_open_now,
+		       EXISTS (SELECT 1 FROM professional_profiles pp WHERE pp.business_id = b.id AND pp.accepts_requests = true) AS accepts_requests`
 	if hasLoc {
 		query += fmt.Sprintf(`, ST_Distance(b.location, ST_SetSRID(ST_MakePoint($%d, $%d)::geography, 4326)) AS distance_m`,
 			argIdx, argIdx+1)
@@ -323,7 +352,7 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		var dist, lat, lng sql.NullFloat64
 		err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &postal, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &lat, &lng, &cover, &dist)
+			&phone, &whatsapp, &lat, &lng, &cover, &b.IsOpenNow, &b.AcceptsRequests, &dist)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
@@ -385,6 +414,7 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
 		       b.cover_photo_url,
+	       `+businessOpenNowSQL+` AS is_open_now,
 		       COALESCE(b.delivery_enabled, false),
 		       COALESCE(b.delivery_time_mins, 30),
 		       COALESCE(b.delivery_fee, 30.0),
@@ -397,7 +427,7 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 		WHERE b.id = $1
 	`, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 		&b.AddressText, &locality, &city, &postal, &desc,
-		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover,
+		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover, &b.IsOpenNow,
 		&b.DeliveryEnabled, &b.DeliveryTimeMins, &b.DeliveryFee, &b.MinOrderAmount,
 		&b.TableBookingEnabled, &b.RoomBookingEnabled, &amenitiesRaw)
 	if err != nil {
@@ -624,6 +654,83 @@ func (s *Service) ListOffers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Service) ListCityOffers(w http.ResponseWriter, r *http.Request) {
+	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	if !isSupportedOfferCity(city) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "City must be Cuttack or Jajpur.")
+		return
+	}
+	limit, _ := parsePagination(r)
+	now := time.Now()
+	rows, err := s.db.QueryxContext(r.Context(), `
+		SELECT o.id, o.business_id, o.title, o.description, o.starts_at, o.ends_at,
+		       o.status, o.image_url, o.terms, o.discount_percent,
+		       b.name, b.city, b.locality, b.cover_photo_url
+		FROM offers o
+		JOIN businesses b ON b.id = o.business_id
+		WHERE lower(b.city) = lower($1)
+		  AND b.status = 'approved'
+		  AND o.status = 'published'
+		  AND o.starts_at <= $2 AND o.ends_at >= $2
+		ORDER BY o.starts_at DESC, o.created_at DESC
+		LIMIT $3
+	`, city, now, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load current offers.")
+		return
+	}
+	defer rows.Close()
+
+	offers := make([]CityOffer, 0)
+	for rows.Next() {
+		var item CityOffer
+		var desc, terms, image, locality, businessPhoto sql.NullString
+		var discount sql.NullInt64
+		if err := rows.Scan(&item.ID, &item.BusinessID, &item.Title, &desc, &item.StartsAt, &item.EndsAt,
+			&item.Status, &image, &terms, &discount, &item.BusinessName, &item.BusinessCity, &locality, &businessPhoto); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read current offers.")
+			return
+		}
+		if desc.Valid {
+			item.Description = desc.String
+		}
+		if terms.Valid {
+			item.Terms = terms.String
+		}
+		if image.Valid {
+			item.ImageURL = image.String
+		}
+		if discount.Valid {
+			value := int(discount.Int64)
+			item.DiscountPct = &value
+		}
+		if locality.Valid {
+			item.BusinessLocality = locality.String
+		}
+		if businessPhoto.Valid {
+			item.BusinessPhotoURL = businessPhoto.String
+		}
+		offers = append(offers, item)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read current offers.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": offers,
+		"meta": map[string]string{"request_id": "city-offers"},
+	})
+}
+
+func isSupportedOfferCity(city string) bool {
+	switch strings.ToLower(strings.TrimSpace(city)) {
+	case "cuttack", "jajpur":
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 	city := strings.TrimSpace(r.URL.Query().Get("city"))
 	category := strings.TrimSpace(r.URL.Query().Get("category_slug"))
@@ -657,6 +764,7 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
 		       b.cover_photo_url,
+	       `+businessOpenNowSQL+` AS is_open_now,
 		       ST_Distance(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326)) AS distance_m
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
@@ -681,7 +789,7 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 		var dist, latitude, longitude sql.NullFloat64
 		if err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &latitude, &longitude, &cover, &dist); err != nil {
+			&phone, &whatsapp, &latitude, &longitude, &cover, &b.IsOpenNow, &dist); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
 		}

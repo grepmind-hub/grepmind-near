@@ -25,6 +25,7 @@ void main() {
 
       // Verify Tabs
       expect(find.text('Operating Hours'), findsOneWidget);
+      expect(find.text('Appointments'), findsOneWidget);
       expect(find.text('Service Coverage'), findsOneWidget);
 
       expect(find.text('No operating hours published'), findsOneWidget);
@@ -45,6 +46,31 @@ void main() {
       expect(find.text('Save Operating Hours'), findsOneWidget);
     },
   );
+
+  testWidgets('Appointments tab presents real-data loading error with retry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: MerchantHoursCoverageScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Appointments'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Could not load appointment availability. Please retry.'),
+      findsOneWidget,
+    );
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Save Operating Hours'), findsNothing);
+  });
 
   testWidgets(
     'Operating Hours quick action All Closed and All Open toggle day states',

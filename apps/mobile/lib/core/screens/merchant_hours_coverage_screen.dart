@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/business.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/screen_illustration_card.dart';
 import '../widgets/premium_card.dart';
+import 'merchant_availability_screen.dart';
 
 class MerchantHoursCoverageScreen extends ConsumerStatefulWidget {
   const MerchantHoursCoverageScreen({super.key});
@@ -24,7 +26,7 @@ class _MerchantHoursCoverageScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -171,6 +173,10 @@ class _MerchantHoursCoverageScreenState
           indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.schedule), text: 'Operating Hours'),
+            Tab(
+              icon: Icon(Icons.event_available_outlined),
+              text: 'Appointments',
+            ),
             Tab(icon: Icon(Icons.radar), text: 'Service Coverage'),
           ],
         ),
@@ -181,18 +187,21 @@ class _MerchantHoursCoverageScreenState
               index: _tabController.index,
               children: [
                 _buildOperatingHoursTab(state, notifier),
+                const MerchantAvailabilityScreen(),
                 _buildServiceCoverageTab(state, notifier),
               ],
             ),
-      bottomNavigationBar: _buildBottomBar(
-        label: _tabController.index == 0
-            ? 'Save Operating Hours'
-            : 'Save Coverage Settings',
-        isSaving: state.isSaving,
-        onPressed: _tabController.index == 0
-            ? () => notifier.saveOperatingHours()
-            : () => notifier.saveCoverage(),
-      ),
+      bottomNavigationBar: _tabController.index == 1
+          ? null
+          : _buildBottomBar(
+              label: _tabController.index == 0
+                  ? 'Save Operating Hours'
+                  : 'Save Coverage Settings',
+              isSaving: state.isSaving,
+              onPressed: _tabController.index == 0
+                  ? () => notifier.saveOperatingHours()
+                  : () => notifier.saveCoverage(),
+            ),
     );
   }
 
@@ -210,6 +219,14 @@ class _MerchantHoursCoverageScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const ScreenIllustrationCard(
+            illustration: ScreenIllustration.merchant,
+            title: 'Set your availability',
+            subtitle: 'Keep your operating schedule current',
+            icon: Icons.schedule_outlined,
+            compact: true,
+          ),
+          const SizedBox(height: 14),
           // Info Banner
           Container(
             padding: const EdgeInsets.all(14),
@@ -622,6 +639,14 @@ class _MerchantHoursCoverageScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const ScreenIllustrationCard(
+            illustration: ScreenIllustration.search,
+            title: 'Choose your service area',
+            subtitle: 'Set where customers can find your business',
+            icon: Icons.radar_rounded,
+            compact: true,
+          ),
+          const SizedBox(height: 14),
           // Store Location Summary
           PremiumCard(
             padding: const EdgeInsets.all(16),

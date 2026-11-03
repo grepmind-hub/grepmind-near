@@ -3,25 +3,25 @@
 Run in Windows PowerShell with the Windows emulator and local Compose stack running:
 
 ```powershell
-# Create products through the merchant UI, verify them, delete through UI, and clean fixtures.
+# Opt-in cycle: inject and delete through the product UI, then clean fixtures.
 .\scripts\merchant_ui_injection.ps1 -Action Run
 
-# Keep injected products so you can inspect customer listings and the map.
+# Default action: retain generated products/offers so you can inspect customer listings.
 .\scripts\merchant_ui_injection.ps1 -Action Inject
 
 # Remove this script's retained fixtures or recover an interrupted run.
 .\scripts\merchant_ui_injection.ps1 -Action Cleanup
 ```
 
-`-Cities Cuttack,Jajpur` is the default. The script fetches all active categories from the API (currently 19). It creates a separate temporary merchant/business for each taxonomy category in each city and one product per business: currently 38 products. A business has one primary discovery category; this does not create 19 product groups inside one existing store. Existing merchants and their catalog entries are not used or changed.
+`-Cities Cuttack,Jajpur` is the default. The script fetches active categories from the API (currently 19). It creates one clearly marked QA merchant/business for each category in each city and one sample product per business (currently 38 products). Fixture profiles reuse an existing city address, generate a dedicated OTP test phone, and populate all seven weekly hours. Category photos are uploaded to a run-scoped `ui-fixtures/<run-id>/` prefix in local MinIO and read by the emulator through Nginx `/media/`. Cleanup removes only keys in that run's manifest.
 
-Account IDs, phone numbers, business IDs, product names/prices and coordinates are generated or derived from existing approved city data. No fixed account credentials, OTPs, tokens, category lists or merchant IDs are embedded. Temporary records have a `validation-` marker and are never marked verified.
+Account IDs, phone numbers, business IDs, product names/prices and coordinates are generated or derived from existing approved city data. No fixed account credentials, OTPs, tokens, category lists or merchant IDs are embedded. These product names/prices/details are plausible QA samples, not claims of real merchant inventory. Temporary records have a `validation-` marker and are never marked verified.
 
 ## What runs through the UI
 
-The Android integration driver mounts the actual `MerchantCatalogScreen`, opens Add Product, enters the generated name/price and presses Create Product. It verifies public API visibility and matching city/category nearby results. It also opens the real radar map screen, selects the live category chip and asserts the generated business marker and city/category results. Run mode creates all products, then opens each real delete confirmation and verifies removal. It does not insert products directly into PostgreSQL.
+The Android integration driver mounts the actual `MerchantCatalogScreen`, opens Add Product, enters the sample name, description, price and category image URL, and presses Create Product. It verifies persistence, image retrieval and city/category discovery results. It exercises merchant offer create/update/list/delete through authenticated API routes, checks merchant hours and public business profile data, opens the customer profile screen, verifies schedule rendering, and intercepts phone and WhatsApp intents. It also selects the real radar map category and checks the fixture marker. `Inject` retains records for review. `Run` opts into a create/delete cycle and removes the generated fixtures.
 
-Account/store setup uses parameterized local SQL because merchant onboarding is not yet connected. Login uses the real local OTP API and verifies the merchant role. The automation does not drive the onboarding/login UI, does not mock HTTP responses, and does not overwrite the emulator user's saved authentication in secure storage.
+Account/store setup uses parameterized local SQL because merchant onboarding is not yet connected. Login uses the real local OTP API and verifies merchant/customer roles. The automation does not drive the onboarding/login UI, does not mock HTTP responses, and does not overwrite the emulator user's saved authentication in secure storage. Addresses come from local approved city records; source category photos are copied into local MinIO; contact numbers are generated for OTP testing.
 
 ## WSL and emulator support
 
@@ -33,7 +33,7 @@ Account/store setup uses parameterized local SQL because merchant onboarding is 
 
 ## Cleanup guarantees and limits
 
-The backend recovery ledger is `backend/ui-injection-run.json`. It contains generated IDs/phones and case metadata, never bearer tokens or OTPs. IDs are recorded before insertion and the ledger is atomically replaced. Cleanup checks exact run ownership, removes dependent records transactionally, verifies generated users are gone, then removes the ledger. A failed run also cleans up. Run mode deletes products through UI first; ledger cleanup handles remaining setup data and interrupted/failed UI operations. Inject mode keeps fixtures only after success.
+The backend recovery ledger is `backend/ui-injection-run.json`. It contains generated IDs/phones, case metadata and exact MinIO object keys, never bearer tokens or OTPs. IDs and upload keys are recorded before insertion and the ledger is atomically replaced. Cleanup checks the run UUID/object prefix, removes only those objects and generated dependent records, verifies generated users are gone, then removes the ledger. Successful `Inject` runs intentionally retain data. Cleanup is a separate explicit command; `Run` is an opt-in cycle. A failed scripted run cleans partial fixtures, while a forced shutdown preserves the manifest for explicit recovery.
 
 If Windows is killed or the machine shuts down, no script can execute its finalizer at that instant. Keep the ledger and run `-Action Cleanup` after recovery. Never remove the ledger manually before cleanup. The runner refuses a new run when a recovery ledger exists. Supported targets are the local API/database and emulator loopback endpoints; production use is rejected.
 

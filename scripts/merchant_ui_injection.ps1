@@ -1,14 +1,16 @@
 param(
-    [ValidateSet('Run','Inject','Cleanup')][string]$Action = 'Run',
+    [ValidateSet('Run','Inject','Cleanup')][string]$Action = 'Inject',
     [string[]]$Cities = @('Cuttack','Jajpur'),
     [string]$DeviceId = '',
     [string]$ApiBaseUrl = 'http://127.0.0.1:8080/api/v1',
     [string]$EmulatorApiBaseUrl = 'http://10.0.2.2:80',
     [string]$Manifest = 'ui-injection-run.json',
+    [ValidateSet('Products','Availability')][string]$Scenario = 'Products',
     [switch]$SkipAppRestore
 )
 $ErrorActionPreference = 'Stop'
 if (([Uri]$EmulatorApiBaseUrl).Host -notin @('10.0.2.2','127.0.0.1','localhost')) {throw 'UI fixtures require a local emulator API endpoint'}
+if (($Cities | Sort-Object -Unique) -join ',' -ne 'Cuttack,Jajpur') {throw 'Only the approved fixture cities Cuttack and Jajpur are supported'}
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $wslRepo = (& wsl --exec wslpath -a $repo).Trim()
 if ($LASTEXITCODE -ne 0) {throw 'WSL path resolution failed'}
@@ -63,13 +65,20 @@ try {
     $linuxBridge = Start-Process -FilePath (Get-Command wsl.exe).Source -ArgumentList @('--exec','python3',"$wslRepo/scripts/adb_bridge.py",'--bind-ip','127.0.0.1','--bind-port',$vmPort,'--target-ip',$gateway,'--target-port',$vmGatewayPort,'--stop-file',"$wslRepo/$stopName") -WindowStyle Hidden -PassThru
     $socket = "ADB_SERVER_SOCKET=tcp:${gateway}:$port"
     $pathEnv = "PATH=${flutterBin}:/usr/local/bin:/usr/bin:/bin"
-    & wsl --cd "$wslRepo/backend" --exec env APP_ENV=local DB_HOST=127.0.0.1 go run ./cmd/validate-cities @common --cities ($Cities -join ',') --prepare-ui
+    & wsl --cd "$wslRepo/backend" --exec env APP_ENV=local DB_HOST=127.0.0.1 go run ./cmd/validate-cities @common --cities ($Cities -join ',') --prepare-ui --media-base-url "$EmulatorApiBaseUrl"
     if ($LASTEXITCODE -ne 0) {throw 'Fixture preparation failed'}
     $ledger = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
-    $payload = @{Run=$ledger.Run;Cases=$ledger.Cases} | ConvertTo-Json -Depth 8 -Compress
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($payload))
-    $mode = if ($Action -eq 'Inject') {'inject'} else {'cycle'}
-    & wsl --cd "$wslRepo/apps/mobile" --exec env $pathEnv $socket flutter drive --driver=test_driver/merchant_ui_driver.dart --target=integration_test/merchant_ui_injection_test.dart -d $DeviceId --no-dds "--host-vmservice-port=$vmPort" "--dart-define=API_BASE_URL=$EmulatorApiBaseUrl" "--dart-define=UI_FIXTURES=$encoded" "--dart-define=UI_MODE=$mode"
+    $payload = @{Run=$ledger.Run;Cases=$ledger.Cases;CustomerPhone=$ledger.CustomerPhone} | ConvertTo-Json -Depth 8 -Compress
+    $payloadBytes = [Text.Encoding]::UTF8.GetBytes($payload)
+    $compressedPayload = [IO.MemoryStream]::new()
+    $gzipPayload = [IO.Compression.GZipStream]::new($compressedPayload,[IO.Compression.CompressionMode]::Compress)
+    $gzipPayload.Write($payloadBytes,0,$payloadBytes.Length)
+    $gzipPayload.Dispose()
+    $encoded = [Convert]::ToBase64String($compressedPayload.ToArray())
+    $compressedPayload.Dispose()
+    $target = if ($Scenario -eq 'Availability') {'integration_test/merchant_availability_e2e_test.dart'} else {'integration_test/merchant_ui_injection_test.dart'}
+    $mode = if ($Scenario -eq 'Availability') {'availability'} elseif ($Action -eq 'Inject') {'inject'} else {'cycle'}
+    & wsl --cd "$wslRepo/apps/mobile" --exec env $pathEnv $socket flutter drive --driver=test_driver/merchant_ui_driver.dart "--target=$target" -d $DeviceId --no-dds "--host-vmservice-port=$vmPort" "--dart-define=API_BASE_URL=$EmulatorApiBaseUrl" "--dart-define=UI_FIXTURES_GZIP=$encoded" "--dart-define=UI_MODE=$mode"
     if ($LASTEXITCODE -ne 0) {throw 'Merchant UI injection validation failed'}
     $success = $true
 } finally {

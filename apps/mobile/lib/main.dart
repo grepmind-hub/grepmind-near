@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/screens/explore_screen.dart';
+import 'package:grepmind_mobile/core/screens/home_screen.dart';
 import 'package:grepmind_mobile/core/screens/saved_screen.dart';
 import 'package:grepmind_mobile/core/screens/profile_screen.dart';
 import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
@@ -34,12 +35,12 @@ class GrepmindNearApp extends ConsumerWidget {
       home: authState.isLoading
           ? const SplashScreen()
           : authState.isAuthenticated
-              ? (authState.activeRole == null
-                  ? const RoleSelectionScreen()
-                  : authState.activeRole == 'admin'
-                      ? const AdminPortalScreen()
-                      : const MainNavigator())
-              : const OnboardingScreen(),
+          ? (authState.activeRole == null
+                ? const RoleSelectionScreen()
+                : authState.activeRole == 'admin'
+                ? const AdminPortalScreen()
+                : const MainNavigator())
+          : const OnboardingScreen(),
     );
   }
 }
@@ -91,10 +92,11 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
       );
     }
 
-    // Customer Experience: Explore, Nearby, Saved, Profile
+    // Customer Experience: Home feed, Explore, Nearby, Saved, Profile
     final customerScreens = [
+      HomeScreen(key: ValueKey(_selectedIndex == 0)),
       const ExploreScreen(),
-      _selectedIndex == 1 ? const NearbyMapScreen() : const SizedBox.shrink(),
+      _selectedIndex == 2 ? const NearbyMapScreen() : const SizedBox.shrink(),
       const SavedScreen(),
       const ProfileScreen(),
     ];
@@ -106,10 +108,31 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
     }
 
     final navItems = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Explore'),
-      const BottomNavigationBarItem(icon: Icon(Icons.map_outlined), activeIcon: Icon(Icons.map), label: 'Nearby'),
-      const BottomNavigationBarItem(icon: Icon(Icons.favorite_outline), activeIcon: Icon(Icons.favorite), label: 'Saved'),
-      const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home_rounded),
+        label: 'Home',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.search_rounded),
+        activeIcon: Icon(Icons.manage_search_rounded),
+        label: 'Explore',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.map_outlined),
+        activeIcon: Icon(Icons.map),
+        label: 'Nearby',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.favorite_outline),
+        activeIcon: Icon(Icons.favorite),
+        label: 'Saved',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        activeIcon: Icon(Icons.person),
+        label: 'Profile',
+      ),
     ];
 
     return Scaffold(

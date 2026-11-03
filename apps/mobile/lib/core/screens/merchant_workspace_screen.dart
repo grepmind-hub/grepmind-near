@@ -5,6 +5,7 @@ import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
 /// Merchant Workspace Screen - Main dashboard for business owners.
@@ -13,10 +14,12 @@ class MerchantWorkspaceScreen extends ConsumerStatefulWidget {
   const MerchantWorkspaceScreen({super.key});
 
   @override
-  ConsumerState<MerchantWorkspaceScreen> createState() => _MerchantWorkspaceScreenState();
+  ConsumerState<MerchantWorkspaceScreen> createState() =>
+      _MerchantWorkspaceScreenState();
 }
 
-class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScreen> {
+class _MerchantWorkspaceScreenState
+    extends ConsumerState<MerchantWorkspaceScreen> {
   @override
   void initState() {
     super.initState();
@@ -70,18 +73,34 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return _buildErrorState(state.error!, () => ref.read(merchantProvider.notifier).loadRequests());
+      return _buildErrorState(
+        state.error!,
+        () => ref.read(merchantProvider.notifier).loadRequests(),
+      );
     }
 
-    final pendingCount = state.items.where((r) => r.status == 'requested').length;
-    final acceptedCount = state.items.where((r) => r.status == 'accepted').length;
-    final completedCount = state.items.where((r) => r.status == 'completed').length;
+    final pendingCount = state.items
+        .where((r) => r.status == 'requested')
+        .length;
+    final acceptedCount = state.items
+        .where((r) => r.status == 'accepted')
+        .length;
+    final completedCount = state.items
+        .where((r) => r.status == 'completed')
+        .length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(kScreenPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const ScreenIllustrationCard(
+            illustration: ScreenIllustration.merchant,
+            title: 'Your business workspace',
+            subtitle: 'Manage your storefront and service requests',
+            icon: Icons.storefront_outlined,
+          ),
+          const SizedBox(height: 14),
           // Welcome header
           PremiumCard(
             padding: const EdgeInsets.all(20),
@@ -94,7 +113,11 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                     color: AppTheme.primaryContainer,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.store_outlined, color: AppTheme.primary, size: 32),
+                  child: const Icon(
+                    Icons.store_outlined,
+                    color: AppTheme.primary,
+                    size: 32,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 const Expanded(
@@ -129,15 +152,30 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           Row(
             children: [
               Expanded(
-                child: _statCard('Pending', pendingCount.toString(), AppTheme.warning, AppTheme.warningContainer),
+                child: _statCard(
+                  'Pending',
+                  pendingCount.toString(),
+                  AppTheme.warning,
+                  AppTheme.warningContainer,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _statCard('Accepted', acceptedCount.toString(), AppTheme.success, AppTheme.successContainer),
+                child: _statCard(
+                  'Accepted',
+                  acceptedCount.toString(),
+                  AppTheme.success,
+                  AppTheme.successContainer,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _statCard('Completed', completedCount.toString(), AppTheme.primary, AppTheme.primaryContainer),
+                child: _statCard(
+                  'Completed',
+                  completedCount.toString(),
+                  AppTheme.primary,
+                  AppTheme.primaryContainer,
+                ),
               ),
             ],
           ),
@@ -176,7 +214,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                   const Color(0xFF0F766E),
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const MerchantCatalogScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantCatalogScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -188,7 +228,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                   const Color(0xFF2457D6),
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const MerchantCatalogScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantCatalogScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -204,7 +246,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                   const Color(0xFFD97706),
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantHoursCoverageScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -216,7 +260,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                   const Color(0xFF7C3AED),
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantHoursCoverageScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -234,7 +280,11 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 48, color: AppTheme.hintText),
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 48,
+                    color: AppTheme.hintText,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'No service requests yet',
@@ -266,7 +316,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return _buildErrorState(state.error!, () => ref.read(merchantProvider.notifier).loadRequests());
+      return _buildErrorState(
+        state.error!,
+        () => ref.read(merchantProvider.notifier).loadRequests(),
+      );
     }
 
     return RefreshIndicator(
@@ -276,7 +329,11 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: AppTheme.hintText),
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 64,
+                    color: AppTheme.hintText,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'No service requests',
@@ -310,7 +367,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       return const Center(child: CircularProgressIndicator());
     }
     if (state.error != null) {
-      return _buildErrorState(state.error!, () => ref.read(merchantProfileProvider('').notifier).load());
+      return _buildErrorState(
+        state.error!,
+        () => ref.read(merchantProfileProvider('').notifier).load(),
+      );
     }
 
     final profile = state.profile ?? {};
@@ -325,18 +385,26 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(45),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(45),
+                  child: SizedBox(
+                    width: 90,
+                    height: 90,
+                    child: _extractString(profile['cover_photo_url']).isNotEmpty
+                        ? Image.network(
+                            _extractString(profile['cover_photo_url']),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                const _MerchantProfilePlaceholder(),
+                          )
+                        : const _MerchantProfilePlaceholder(),
                   ),
-                  child: const Icon(Icons.store, color: AppTheme.primary, size: 40),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _extractString(profile['name']).isEmpty ? 'My Business' : _extractString(profile['name']),
+                  _extractString(profile['name']).isEmpty
+                      ? 'My Business'
+                      : _extractString(profile['name']),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -345,7 +413,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _extractString(profile['category_slug']).isEmpty ? 'Business' : _extractString(profile['category_slug']),
+                  _extractString(profile['category_slug']).isEmpty
+                      ? 'Business'
+                      : _extractString(profile['category_slug']),
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppTheme.secondaryText,
@@ -365,15 +435,24 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               children: [
                 _profileRow('Business Name', _extractString(profile['name'])),
                 const Divider(),
-                _profileRow('Description', _extractString(profile['description'])),
+                _profileRow(
+                  'Description',
+                  _extractString(profile['description']),
+                ),
                 const Divider(),
-                _profileRow('Address', '${_extractString(profile['address_text'])}, ${_extractString(profile['city'])}'),
+                _profileRow(
+                  'Address',
+                  '${_extractString(profile['address_text'])}, ${_extractString(profile['city'])}',
+                ),
                 const Divider(),
                 _profileRow('Phone', _extractString(profile['phone_e164'])),
                 const Divider(),
                 _profileRow('Status', _extractString(profile['status'])),
                 const Divider(),
-                _profileRow('Verification', _extractString(profile['verification_status'])),
+                _profileRow(
+                  'Verification',
+                  _extractString(profile['verification_status']),
+                ),
               ],
             ),
           ),
@@ -398,11 +477,15 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.primary,
                 side: const BorderSide(color: AppTheme.primary, width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const MerchantHoursCoverageScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const MerchantHoursCoverageScreen(),
+                ),
               ),
             ),
           ),
@@ -411,7 +494,12 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
     );
   }
 
-  Widget _statCard(String label, String value, Color color, Color containerColor) {
+  Widget _statCard(
+    String label,
+    String value,
+    Color color,
+    Color containerColor,
+  ) {
     return PremiumCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,7 +511,11 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              label == 'Pending' ? Icons.pending : label == 'Accepted' ? Icons.check_circle : Icons.check,
+              label == 'Pending'
+                  ? Icons.pending
+                  : label == 'Accepted'
+                  ? Icons.check_circle
+                  : Icons.check,
               color: color,
               size: 24,
             ),
@@ -439,17 +531,19 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           ),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryText,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
           ),
         ],
       ),
     );
   }
 
-  Widget _actionButton(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Material(
       color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(16),
@@ -500,7 +594,11 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           const CircleAvatar(
             radius: 20,
             backgroundColor: AppTheme.primaryContainer,
-            child: Icon(Icons.person_outlined, color: AppTheme.primary, size: 20),
+            child: Icon(
+              Icons.person_outlined,
+              color: AppTheme.primary,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -509,12 +607,18 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               children: [
                 Text(
                   r.customerName,
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.mainText,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   r.description,
-                  style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.secondaryText,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -552,7 +656,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             children: [
               Text(
                 r.customerName,
-                style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -575,7 +682,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           if (r.serviceName != null)
             Text(
               'Service: ${r.serviceName}',
-              style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.secondaryText,
+              ),
             ),
           const SizedBox(height: 4),
           Text(
@@ -586,7 +696,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
           if (r.requestedFor != null)
             Text(
               'Requested for: ${r.requestedFor}',
-              style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.secondaryText,
+              ),
             ),
           const SizedBox(height: 16),
           Row(
@@ -617,7 +730,10 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 Expanded(
                   child: Text(
                     'Status: ${r.status}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.secondaryText,
+                    ),
                   ),
                 ),
             ],
@@ -645,7 +761,9 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
   }
 
   Future<void> _updateRequest(String requestId, String status) async {
-    final success = await ref.read(merchantProvider.notifier).updateRequestStatus(requestId, status);
+    final success = await ref
+        .read(merchantProvider.notifier)
+        .updateRequestStatus(requestId, status);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to update request status')),
@@ -692,13 +810,20 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.secondaryText,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               displayValue,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.mainText),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.mainText,
+              ),
             ),
           ),
         ],
@@ -707,8 +832,16 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
   }
 
   Widget _buildErrorState(String error, VoidCallback onRetry) {
-    final isAuthError = error.contains('401') || error.toLowerCase().contains('unauthorized') || error.contains('INVALID_TOKEN');
-    final isNotFound = error.contains('404') || error.contains('NOT_FOUND') || error.contains('Business profile not found') || error.contains('FORBIDDEN') || error.contains('Merchant role required');
+    final isAuthError =
+        error.contains('401') ||
+        error.toLowerCase().contains('unauthorized') ||
+        error.contains('INVALID_TOKEN');
+    final isNotFound =
+        error.contains('404') ||
+        error.contains('NOT_FOUND') ||
+        error.contains('Business profile not found') ||
+        error.contains('FORBIDDEN') ||
+        error.contains('Merchant role required');
 
     return Center(
       child: Padding(
@@ -720,31 +853,51 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: isAuthError ? AppTheme.warningContainer : (isNotFound ? AppTheme.primaryContainer : Colors.red.shade50),
+                color: isAuthError
+                    ? AppTheme.warningContainer
+                    : (isNotFound
+                          ? AppTheme.primaryContainer
+                          : Colors.red.shade50),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isAuthError ? Icons.lock_clock_outlined : (isNotFound ? Icons.storefront_outlined : Icons.error_outline),
+                isAuthError
+                    ? Icons.lock_clock_outlined
+                    : (isNotFound
+                          ? Icons.storefront_outlined
+                          : Icons.error_outline),
                 size: 36,
-                color: isAuthError ? AppTheme.warning : (isNotFound ? AppTheme.primary : AppTheme.error),
+                color: isAuthError
+                    ? AppTheme.warning
+                    : (isNotFound ? AppTheme.primary : AppTheme.error),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               isAuthError
                   ? 'Session Expired'
-                  : (isNotFound ? 'Business Profile Required' : 'Unable to Load Workspace'),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                  : (isNotFound
+                        ? 'Business Profile Required'
+                        : 'Unable to Load Workspace'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.mainText,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               isAuthError
                   ? 'Your login session has expired. Please sign in again with your registered phone number.'
                   : (isNotFound
-                      ? 'You have not registered or claimed a business listing yet. Register your business to start receiving customer service requests and managing catalog.'
-                      : 'We encountered an error while loading your merchant profile. Please check your network and try again.'),
+                        ? 'You have not registered or claimed a business listing yet. Register your business to start receiving customer service requests and managing catalog.'
+                        : 'We encountered an error while loading your merchant profile. Please check your network and try again.'),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AppTheme.secondaryText, height: 1.4),
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.secondaryText,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             if (isNotFound)
@@ -752,13 +905,20 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantRegistrationScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.add_business_outlined, size: 20),
@@ -769,8 +929,13 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   ref.read(authProvider.notifier).logout();
@@ -783,8 +948,13 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 20),
@@ -795,4 +965,15 @@ class _MerchantWorkspaceScreenState extends ConsumerState<MerchantWorkspaceScree
       ),
     );
   }
+}
+
+class _MerchantProfilePlaceholder extends StatelessWidget {
+  const _MerchantProfilePlaceholder();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: AppTheme.primaryContainer,
+    alignment: Alignment.center,
+    child: const Icon(Icons.store, color: AppTheme.primary, size: 40),
+  );
 }

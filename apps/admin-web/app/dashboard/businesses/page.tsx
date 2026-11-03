@@ -6,11 +6,14 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, RefreshCw, Check, X, ShieldCheck, Filter } from 'lucide-react'
-import { getAllBusinesses, approveBusiness, rejectBusiness, verifyBusiness, Business } from '@/lib/api'
+import { ArrowLeft, RefreshCw, Check, X, ShieldCheck, Filter, UserRoundCheck } from 'lucide-react'
+import { getAllBusinesses, approveBusiness, rejectBusiness, verifyBusiness, getBusinessClaims, decideBusinessClaim, Business, BusinessClaim } from '@/lib/api'
 
 export default function BusinessesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([])
+  const [claims, setClaims] = useState<BusinessClaim[]>([])
+  const [claimsLoading, setClaimsLoading] = useState(true)
+  const [claimsError, setClaimsError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [actionId, setActionId] = useState<string | null>(null)
@@ -28,6 +31,18 @@ export default function BusinessesPage() {
     }
   }, [filter])
 
+  const loadClaims = useCallback(async () => {
+    setClaimsLoading(true)
+    try {
+      setClaimsError(null)
+      setClaims(await getBusinessClaims())
+    } catch {
+      setClaimsError('Claim review queue could not be loaded. Check the admin API connection and retry.')
+    } finally {
+      setClaimsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     const token = localStorage.getItem('admin_token')
     if (!token) {
@@ -35,7 +50,26 @@ export default function BusinessesPage() {
       return
     }
     loadBusinesses()
-  }, [router, loadBusinesses])
+    loadClaims()
+  }, [router, loadBusinesses, loadClaims])
+
+  async function handleClaimDecision(claim: BusinessClaim, decision: 'approve' | 'reject') {
+    const note = window.prompt(
+      decision === 'approve'
+        ? `Confirm ownership transfer for ${claim.business_name}. Add the verification evidence reviewed:`
+        : `Explain why ${claim.business_name} claim is rejected:`,
+    )
+    if (note === null || note.trim().length < (decision === 'approve' ? 10 : 5)) return
+    setActionId(claim.id)
+    try {
+      await decideBusinessClaim(claim.id, decision, note.trim())
+      await Promise.all([loadClaims(), loadBusinesses()])
+    } catch {
+      alert('Claim decision failed. The ownership change was not confirmed.')
+    } finally {
+      setActionId(null)
+    }
+  }
 
   async function handleApprove(id: string) {
     setActionId(id)
@@ -107,7 +141,7 @@ export default function BusinessesPage() {
               </button>
             ))}
           </div>
-          <Button onClick={loadBusinesses} disabled={loading} variant="outline" size="sm" className="flex items-center gap-1.5">
+          <Button onClick={() => { loadBusinesses(); loadClaims() }} disabled={loading} variant="outline" size="sm" className="flex items-center gap-1.5">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
         </div>
@@ -239,6 +273,57 @@ export default function BusinessesPage() {
           <div>Showing {businesses.length} records</div>
           <div className="text-xs">All actions are recorded in the audit trail.</div>
         </CardFooter>
+      </Card>
+
+      <Card className="mt-6 border-[#E4E7EC] shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <UserRoundCheck className="h-4 w-4 text-[#2457D6]" />
+            Existing business ownership claims ({claims.length})
+          </CardTitle>
+          <p className="text-sm text-[#667085]">Review evidence before approving. Approval transfers business ownership and merchant access atomically.</p>
+        </CardHeader>
+        <CardContent>
+          {claimsError ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+              {claimsError} <button className="ml-2 font-semibold underline" onClick={loadClaims}>Retry</button>
+            </div>
+          ) : claimsLoading ? (
+            <div className="py-8 text-center text-sm text-[#667085]">Loading pending claims…</div>
+          ) : claims.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[#D0D5DD] p-8 text-center text-sm text-[#667085]">No pending ownership claims.</div>
+          ) : (
+            <div className="space-y-3">
+              {claims.map((claim) => (
+                <article key={claim.id} className="rounded-xl border border-[#E4E7EC] bg-white p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-semibold text-[#172033]">{claim.business_name}</h2>
+                        <Badge variant="outline">{claim.category}</Badge>
+                        <Badge variant="outline">{claim.city}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-[#667085]">{claim.address}{claim.locality ? ` · ${claim.locality}` : ''}</p>
+                      <div className="mt-3 rounded-lg bg-[#F7F8FA] p-3 text-sm text-[#344054]">
+                        <p className="font-medium">Claimant: {claim.claimant_name || 'Name not set'} · {claim.claimant_phone}</p>
+                        <p className="mt-2 whitespace-pre-wrap">{claim.message}</p>
+                        <p className="mt-2 text-xs text-[#667085]">Submitted {new Date(claim.created_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" className="bg-[#15803D] hover:bg-[#166534]" disabled={actionId === claim.id} onClick={() => handleClaimDecision(claim, 'approve')}>
+                        <Check className="mr-1 h-4 w-4" /> Approve transfer
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" disabled={actionId === claim.id} onClick={() => handleClaimDecision(claim, 'reject')}>
+                        <X className="mr-1 h-4 w-4" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

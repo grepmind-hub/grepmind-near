@@ -10,6 +10,8 @@ import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -24,7 +26,7 @@ import 'package:url_launcher/url_launcher.dart';
 class NearbyMapScreen extends ConsumerStatefulWidget {
   const NearbyMapScreen({
     super.key,
-    this.useDeviceLocation = true,
+    this.useDeviceLocation = false,
     this.initialRadarView = false,
   });
   final bool useDeviceLocation;
@@ -48,6 +50,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   // Selected Category filter
   String _selectedCategorySlug = 'all';
+  int _radiusKm = 5;
+  bool _showResultsList = false;
 
   // Selected Business for bottom floating preview card
   Business? _selectedBusiness;
@@ -171,6 +175,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
       await businessesState.nearby(
         lat: lat,
         lng: lng,
+        radiusM: _radiusKm * 1000,
         city: city,
         categorySlug: _selectedCategorySlug == 'all'
             ? null
@@ -290,6 +295,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     }
   }
 
+  Future<void> _setSearchRadius(int radiusKm) async {
+    if (radiusKm == _radiusKm || !mounted) return;
+    setState(() => _radiusKm = radiusKm);
+    final center = _currentPosition?.target;
+    if (center != null) {
+      await _loadNearbyBusinesses(center.latitude, center.longitude);
+    }
+  }
+
   void _openDirections(Business biz) async {
     final lat = biz.latitude;
     final lng = biz.longitude;
@@ -317,6 +331,14 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   void _centerOnUser() async {
     try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        throw StateError('Location permission was not granted');
+      }
       final position = await Geolocator.getCurrentPosition();
       if (!mounted) return;
       _hasGpsFix = true;
@@ -363,7 +385,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               ),
             ),
             Text(
-              '${ref.watch(appLocationProvider).displayName} (5 km radius)',
+              '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
               style: TextStyle(
                 fontSize: 11,
                 color: AppTheme.secondaryText,
@@ -418,24 +440,41 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             child: _buildCategoryCarousel(),
           ),
 
-          // Floating Center Button with Radar Ripple
           Positioned(
+            top: 62,
+            left: 16,
             right: 16,
-            bottom: _selectedBusiness != null ? 220 : 32,
-            child: FloatingActionButton.small(
-              heroTag: 'center_gps_fab',
-              backgroundColor: Colors.white,
-              elevation: 4,
-              onPressed: _centerOnUser,
-              child: const Icon(
-                Icons.gps_fixed_rounded,
-                color: AppTheme.primary,
-              ),
-            ),
+            child: _buildResultsControls(businesses.length),
           ),
 
+          if (_showResultsList)
+            Positioned(
+              top: 112,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildResultsList(businesses),
+            ),
+
+          // Floating Center Button with Radar Ripple
+          if (!_showResultsList)
+            Positioned(
+              right: 16,
+              bottom: _selectedBusiness != null ? 220 : 32,
+              child: FloatingActionButton.small(
+                heroTag: 'center_gps_fab',
+                backgroundColor: Colors.white,
+                elevation: 4,
+                onPressed: _centerOnUser,
+                child: const Icon(
+                  Icons.gps_fixed_rounded,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ),
+
           // Floating Bottom Business Preview Card
-          if (_selectedBusiness != null)
+          if (!_showResultsList && _selectedBusiness != null)
             Positioned(
               bottom: 12,
               left: 16,
@@ -449,7 +488,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           // Loading overlay
           if (!_isLoading && (_error != null || businesses.isEmpty))
             Positioned(
-              top: 76,
+              top: 112,
               left: 16,
               right: 16,
               child: Card(
@@ -459,12 +498,14 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _error ?? 'No listed shops in this city within 5 km of the search position.',
+                        _error ?? 'No approved shops or services are within 5 km of this search point.',
                         textAlign: TextAlign.center,
                       ),
                       TextButton(
                         onPressed: _useDefaultLocation,
-                        child: const Text('Search selected city'),
+                        child: Text(
+                          'Search ${ref.watch(appLocationProvider).cityName} center',
+                        ),
                       ),
                     ],
                   ),
@@ -473,7 +514,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             ),
           if (_isLoading)
             const Positioned(
-              top: 76,
+              top: 112,
               left: 0,
               right: 0,
               child: Center(
@@ -486,6 +527,158 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildResultsControls(int count) {
+    final isAll = _selectedCategorySlug == 'all';
+    return Row(
+      children: [
+        Container(
+          height: 40,
+          padding: const EdgeInsets.only(left: 8, right: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              key: const ValueKey('nearby_radius_selector'),
+              value: _radiusKm,
+              isDense: true,
+              borderRadius: BorderRadius.circular(14),
+              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+              selectedItemBuilder: (context) => [
+                for (final radius in const [1, 3, 5, 10, 20, 50])
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.radar_rounded,
+                        size: 17,
+                        color: AppTheme.mainText,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Within $radius km',
+                        style: const TextStyle(
+                          color: AppTheme.mainText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+              items: [
+                for (final radius in const [1, 3, 5, 10, 20, 50])
+                  DropdownMenuItem(value: radius, child: Text('$radius km')),
+              ],
+              onChanged: (radius) {
+                if (radius != null) _setSearchRadius(radius);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 38,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$count ${isAll ? 'places' : 'results'}${isAll ? ' · All categories' : ''}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppTheme.secondaryText,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          key: const ValueKey('nearby_list_view_toggle'),
+          tooltip: _showResultsList ? 'Show map' : 'Show all results',
+          onPressed: () => setState(() => _showResultsList = !_showResultsList),
+          icon: Icon(
+            _showResultsList ? Icons.map_outlined : Icons.list_rounded,
+          ),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: AppTheme.primary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultsList(List<Business> businesses) {
+    return Container(
+      color: const Color(0xFFF1F5F9),
+      child: businesses.isEmpty
+          ? const Center(child: Text('No places match these filters.'))
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              itemCount: businesses.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final business = businesses[index];
+                return Card(
+                  margin: EdgeInsets.zero,
+                  color: Colors.white,
+                  child: ListTile(
+                    key: ValueKey('nearby_result_${business.id}'),
+                    minVerticalPadding: 12,
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 84,
+                        height: 68,
+                        child: _businessThumbnail(business),
+                      ),
+                    ),
+                    title: Text(
+                      business.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      '${business.categoryName ?? business.categorySlug} · ${business.distanceText}${business.locality == null ? '' : ' · ${business.locality}'}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => _openBusinessDetail(business),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _businessThumbnail(Business business) {
+    final coverPhotoUrl = business.coverPhotoUrl?.trim();
+    final fallback = CategorySampleImage(
+      index: categorySampleIndex(
+        business.categorySlug,
+        business.categoryName ?? business.categorySlug,
+      ),
+    );
+    if (coverPhotoUrl == null || coverPhotoUrl.isEmpty) {
+      return fallback;
+    }
+    return Image.network(
+      apiClient.resolveMediaUrl(coverPhotoUrl),
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => fallback,
     );
   }
 
@@ -680,11 +873,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          '• $categoryName',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.secondaryText,
+                        Expanded(
+                          child: Text(
+                            '• $categoryName',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.secondaryText,
+                            ),
                           ),
                         ),
                       ],
@@ -861,8 +1058,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
               return Align(
                 alignment: Alignment(
-                  (east / 5000).clamp(-0.85, 0.85),
-                  (-north / 5000).clamp(-0.85, 0.85),
+                  (east / (_radiusKm * 1000)).clamp(-0.85, 0.85),
+                  (-north / (_radiusKm * 1000)).clamp(-0.85, 0.85),
                 ),
                 child: GestureDetector(
                   key: ValueKey('radar_business_${biz.id}'),

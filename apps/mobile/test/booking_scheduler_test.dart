@@ -65,7 +65,32 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('Job Details & Address'), findsOneWidget);
-    expect(find.text('Book Ramesh'), findsOneWidget);
+    expect(find.text('Book now'), findsOneWidget);
+  });
+
+  testWidgets('booking action fits a narrow screen with a long business name', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: BookingSchedulerScreen(
+            business: dummyBiz,
+            businessName:
+                'Generated Cuttack Business With A Very Long Validation Name',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Book now'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('does not fabricate appointment slots when API has none', (

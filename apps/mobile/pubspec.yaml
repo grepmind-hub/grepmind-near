@@ -52,6 +52,7 @@ dependencies:
 
   # Image loading & caching
   cached_network_image: ^3.3.1
+  image_picker: ^1.2.0
 
   # Shimmer / skeleton loading
   shimmer: ^3.0.0
@@ -95,6 +96,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/splash_discovery.png
+    - assets/images/screen_illustrations.png
+    - assets/images/login_welcome.jpg
+    - assets/images/category_sample_atlas.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

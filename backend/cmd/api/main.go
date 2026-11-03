@@ -17,6 +17,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"grepmind-near/backend/internal/auth"
+	"grepmind-near/backend/internal/businessclaims"
 	"grepmind-near/backend/internal/discovery"
 	"grepmind-near/backend/internal/media"
 	"grepmind-near/backend/internal/moderation"
@@ -31,6 +32,9 @@ func main() {
 	cfg := config.Load()
 	logger.Init(cfg.LogLevel)
 	log := logger.Log
+	if err := cfg.ValidateAuth(); err != nil {
+		log.Fatal().Err(err).Msg("unsafe authentication configuration")
+	}
 
 	db, err := database.Open(cfg.DBDSN(), 25, 25, 5*time.Minute)
 	if err != nil {
@@ -80,6 +84,7 @@ func main() {
 
 func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub, opsSvc *operations.Service) *http.ServeMux {
 	mux := http.NewServeMux()
+	claimsSvc := businessclaims.NewService(authSvc.DB())
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{"status": "ok"})
@@ -124,6 +129,7 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 				UPDATE notifications n SET is_read = true
 				WHERE n.id = $1 AND (n.user_id = $2 OR EXISTS (
 					SELECT 1 FROM business_members bm WHERE bm.business_id = n.business_id AND bm.user_id = $2 AND bm.status = 'active'
+					UNION SELECT 1 FROM businesses b WHERE b.id = n.business_id AND b.owner_user_id = $2 AND b.status != 'deleted'
 				))
 			`, id, userID)
 			if err != nil {
@@ -192,7 +198,20 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/businesses/{id}/products", discSvc.ListProducts)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/services", discSvc.ListServices)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/offers", discSvc.ListOffers)
+	mux.HandleFunc("GET /api/v1/offers", discSvc.ListCityOffers)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/availability", opsSvc.Availability)
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{id}/availability", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.MerchantAvailability(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{id}/availability-slots", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.CreateAvailabilitySlot(w, r, userID)
+	}))
+	mux.HandleFunc("PATCH /api/v1/merchant/businesses/{id}/availability-slots/{slotId}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.UpdateAvailabilitySlot(w, r, userID)
+	}))
+	mux.HandleFunc("PUT /api/v1/merchant/businesses/{id}/availability-exceptions", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.UpsertAvailabilityException(w, r, userID)
+	}))
 	mux.HandleFunc("GET /api/v1/nearby", discSvc.Nearby)
 	mux.HandleFunc("POST /api/v1/businesses/{id}/orders", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.CreateOrder(w, r, userID)
@@ -226,7 +245,11 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		handleListUnservedLocations(db)(w, r)
 	}))
 
-	// Merchant workspace (require auth + merchant role)
+	// Merchant workspace. Creating the first listing establishes merchant role
+	// transactionally; existing merchant operations enforce ownership below.
+	mux.HandleFunc("POST /api/v1/merchant/businesses", requireAuth(authSvc, func(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		createMerchantBusiness(db, w, r, userID)
+	}))
 	mux.HandleFunc("GET /api/v1/merchant/catalog-categories", requireAuth(authSvc, merchantCatalogCategories))
 	mux.HandleFunc("POST /api/v1/merchant/catalog-categories", requireAuth(authSvc, merchantCatalogCategories))
 	mux.HandleFunc("PATCH /api/v1/merchant/catalog-categories/{id}", requireAuth(authSvc, merchantCatalogCategories))
@@ -250,6 +273,18 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("DELETE /api/v1/merchant/services/{id}", requireAuth(authSvc, merchantDeleteService))
 	mux.HandleFunc("GET /api/v1/merchant/operating-hours", requireAuth(authSvc, merchantGetOperatingHours))
 	mux.HandleFunc("PUT /api/v1/merchant/operating-hours", requireAuth(authSvc, merchantUpdateOperatingHours))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{id}/offers", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.ListMerchantOffers(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{id}/offers", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.CreateMerchantOffer(w, r, userID)
+	}))
+	mux.HandleFunc("PATCH /api/v1/merchant/offers/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.UpdateMerchantOffer(w, r, userID)
+	}))
+	mux.HandleFunc("DELETE /api/v1/merchant/offers/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.DeleteMerchantOffer(w, r, userID)
+	}))
 	mux.HandleFunc("GET /api/v1/merchant/coverage", requireAuth(authSvc, merchantGetCoverage))
 	mux.HandleFunc("PUT /api/v1/merchant/coverage", requireAuth(authSvc, merchantUpdateCoverage))
 
@@ -260,8 +295,23 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/merchant/members", requireAuth(authSvc, merchantListCurrentMembers))
 	mux.HandleFunc("POST /api/v1/merchant/members", requireAuth(authSvc, merchantAddCurrentMember))
 	mux.HandleFunc("DELETE /api/v1/merchant/members/{userId}", requireAuth(authSvc, merchantRevokeCurrentMember))
+	mux.HandleFunc("GET /api/v1/merchant/claimable-businesses", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		claimsSvc.Search(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/business-claims", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		claimsSvc.ListMine(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{id}/claim", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		claimsSvc.Submit(w, r, userID)
+	}))
 
 	// Admin operations & moderation (Phase 4)
+	mux.HandleFunc("GET /api/v1/admin/business-claims", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, adminID string) {
+		claimsSvc.ListPending(w, r, adminID)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/business-claims/{id}/decision", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, adminID string) {
+		claimsSvc.Decide(w, r, adminID)
+	}))
 	mux.HandleFunc("POST /api/v1/admin/session", modSvc.AdminSession)
 	mux.HandleFunc("GET /api/v1/admin/stats", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.GetStats(w, r, uid)
@@ -314,16 +364,19 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 
 func authMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 	type userRow struct {
-		ID                string         `db:"id"`
-		PhoneE164         string         `db:"phone_e164"`
-		DisplayName       sql.NullString `db:"display_name"`
-		Status            string         `db:"status"`
-		PreferredLanguage string         `db:"preferred_language"`
+		ID                      string         `db:"id"`
+		PhoneE164               string         `db:"phone_e164"`
+		DisplayName             sql.NullString `db:"display_name"`
+		AvatarURL               sql.NullString `db:"avatar_url"`
+		Status                  string         `db:"status"`
+		PreferredLanguage       string         `db:"preferred_language"`
+		NotificationPreferences []byte         `db:"notification_preferences"`
 	}
 	var u userRow
 	err := db.QueryRowxContext(r.Context(), `
-		SELECT id, phone_e164, display_name, status, preferred_language FROM users WHERE id = $1
-	`, userID).Scan(&u.ID, &u.PhoneE164, &u.DisplayName, &u.Status, &u.PreferredLanguage)
+		SELECT id, phone_e164, display_name, avatar_url, status, preferred_language, notification_preferences
+		FROM users WHERE id = $1
+	`, userID).Scan(&u.ID, &u.PhoneE164, &u.DisplayName, &u.AvatarURL, &u.Status, &u.PreferredLanguage, &u.NotificationPreferences)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "User not found.")
 		return
@@ -340,22 +393,102 @@ func authMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *ht
 	}
 	writeJSON(w, http.StatusOK, envelope{
 		"data": map[string]interface{}{
-			"id":                 u.ID,
-			"phone_e164":         u.PhoneE164,
-			"display_name":       u.DisplayName.String,
-			"status":             u.Status,
-			"preferred_language": u.PreferredLanguage,
-			"roles":              roles,
+			"id":                       u.ID,
+			"phone_e164":               u.PhoneE164,
+			"display_name":             u.DisplayName.String,
+			"avatar_url":               u.AvatarURL.String,
+			"status":                   u.Status,
+			"preferred_language":       u.PreferredLanguage,
+			"notification_preferences": json.RawMessage(u.NotificationPreferences),
+			"roles":                    roles,
 		},
 		"meta": map[string]string{"request_id": "me"},
 	})
 }
 
 func authUpdateMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	writeJSON(w, http.StatusOK, envelope{
-		"data": map[string]string{"status": "updated"},
-		"meta": map[string]string{"request_id": "me-update"},
-	})
+	var input struct {
+		DisplayName             *string         `json:"display_name"`
+		PreferredLanguage       *string         `json:"preferred_language"`
+		AvatarURL               *string         `json:"avatar_url"`
+		NotificationPreferences map[string]bool `json:"notification_preferences"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid profile settings.")
+		return
+	}
+	if input.DisplayName != nil {
+		name := strings.TrimSpace(*input.DisplayName)
+		if len([]rune(name)) > 80 {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Display name must be 80 characters or fewer.")
+			return
+		}
+		input.DisplayName = &name
+	}
+	if input.PreferredLanguage != nil && *input.PreferredLanguage != "en" && *input.PreferredLanguage != "or" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Choose a supported language.")
+		return
+	}
+	if input.AvatarURL != nil {
+		avatar := strings.TrimSpace(*input.AvatarURL)
+		if avatar != "" && (!strings.HasPrefix(avatar, "/media/avatar/") || strings.Contains(avatar, "..")) {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Choose a profile photo uploaded to your account.")
+			return
+		}
+		if avatar != "" {
+			objectKey := strings.TrimPrefix(avatar, "/media/")
+			var owned bool
+			if err := db.GetContext(r.Context(), &owned, `
+				SELECT EXISTS(SELECT 1 FROM media_uploads WHERE user_id = $1 AND purpose = 'avatar' AND object_key = $2)
+			`, userID, objectKey); err != nil || !owned {
+				writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Choose a profile photo uploaded to your account.")
+				return
+			}
+		}
+		input.AvatarURL = &avatar
+	}
+	if input.NotificationPreferences != nil {
+		allowed := map[string]bool{"booking_updates": true, "offers": true, "service_updates": true}
+		if len(input.NotificationPreferences) != len(allowed) {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid notification preferences.")
+			return
+		}
+		for key := range input.NotificationPreferences {
+			if !allowed[key] {
+				writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid notification preferences.")
+				return
+			}
+		}
+	}
+
+	preferences, err := json.Marshal(input.NotificationPreferences)
+	if err != nil && input.NotificationPreferences != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid notification preferences.")
+		return
+	}
+	_, err = db.ExecContext(r.Context(), `
+		UPDATE users SET
+			display_name = COALESCE($1, display_name),
+			preferred_language = COALESCE($2, preferred_language),
+			avatar_url = COALESCE($3, avatar_url),
+			notification_preferences = COALESCE($4::jsonb, notification_preferences),
+			updated_at = now()
+		WHERE id = $5 AND status = 'active'
+	`, input.DisplayName, input.PreferredLanguage, input.AvatarURL, nullableJSON(preferences, input.NotificationPreferences != nil), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update profile settings.")
+		return
+	}
+	authMe(authSvc, db, w, r, userID)
+}
+
+func nullableJSON(value []byte, valid bool) interface{} {
+	if !valid {
+		return nil
+	}
+	return string(value)
 }
 
 // ---------------------------------------------------------------
@@ -387,16 +520,18 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 	}
 
 	// Get business profile for this user
-	var bizID, bizName, bizSlug, bizDesc, bizAddr, bizCity, bizPhone string
+	var bizID, bizName, bizSlug string
+	var bizDesc, bizAddr, bizCity, bizPhone sql.NullString
+	var bizCover sql.NullString
 	var bizStatus, bizVerify sql.NullString
 	var lat, lng sql.NullFloat64
 	err = db.QueryRowxContext(r.Context(), `
-		SELECT b.id, b.name, b.slug, b.description, b.address_text, b.city, b.phone_e164,
+		SELECT b.id, b.name, b.slug, b.description, b.address_text, b.city, b.phone_e164, b.cover_photo_url,
 		       b.status, b.verification_status, ST_Y(b.location::geometry), ST_X(b.location::geometry)
 		FROM businesses b
 		WHERE b.owner_user_id = $1 AND b.status != 'deleted'
 		LIMIT 1
-	`, userID).Scan(&bizID, &bizName, &bizSlug, &bizDesc, &bizAddr, &bizCity, &bizPhone,
+	`, userID).Scan(&bizID, &bizName, &bizSlug, &bizDesc, &bizAddr, &bizCity, &bizPhone, &bizCover,
 		&bizStatus, &bizVerify, &lat, &lng)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
@@ -444,10 +579,11 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 			"id":                  bizID,
 			"name":                bizName,
 			"slug":                bizSlug,
-			"description":         bizDesc,
-			"address_text":        bizAddr,
-			"city":                bizCity,
-			"phone_e164":          bizPhone,
+			"description":         nullableStringValue(bizDesc),
+			"address_text":        nullableStringValue(bizAddr),
+			"city":                nullableStringValue(bizCity),
+			"phone_e164":          nullableStringValue(bizPhone),
+			"cover_photo_url":     nullableStringValue(bizCover),
 			"status":              statusStr,
 			"verification_status": verifyStr,
 			"latitude":            latVal,
@@ -460,11 +596,12 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 
 func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 	var req struct {
-		Name        *string `json:"name"`
-		Description *string `json:"description"`
-		AddressText *string `json:"address_text"`
-		City        *string `json:"city"`
-		PhoneE164   *string `json:"phone_e164"`
+		Name          *string `json:"name"`
+		Description   *string `json:"description"`
+		AddressText   *string `json:"address_text"`
+		City          *string `json:"city"`
+		PhoneE164     *string `json:"phone_e164"`
+		CoverPhotoURL *string `json:"cover_photo_url"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid request body.")
@@ -511,6 +648,11 @@ func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.Respon
 	if req.PhoneE164 != nil {
 		setParts = append(setParts, fmt.Sprintf("phone_e164 = $%d", argIdx))
 		args = append(args, *req.PhoneE164)
+		argIdx++
+	}
+	if req.CoverPhotoURL != nil {
+		setParts = append(setParts, fmt.Sprintf("cover_photo_url = $%d", argIdx))
+		args = append(args, strings.TrimSpace(*req.CoverPhotoURL))
 		argIdx++
 	}
 
@@ -594,9 +736,9 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 		var ok bool
 		_ = db.QueryRowxContext(r.Context(), `
 			SELECT EXISTS(
-				SELECT 1 FROM businesses WHERE id = $1 AND owner_user_id = $2
+				SELECT 1 FROM businesses WHERE id = $1 AND owner_user_id = $2 AND status != 'deleted'
 				UNION
-				SELECT 1 FROM business_members WHERE business_id = $1 AND user_id = $2
+				SELECT 1 FROM business_members WHERE business_id = $1 AND user_id = $2 AND status = 'active'
 			)
 		`, requestedBiz, userID).Scan(&ok)
 		if ok {
@@ -630,21 +772,33 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 
-	// Verify request belongs to this business
-	var exists bool
-	err := db.QueryRowxContext(r.Context(), `
-		SELECT EXISTS(SELECT 1 FROM service_requests WHERE id = $1 AND business_id = $2)
-	`, reqID, bizID).Scan(&exists)
-	if err != nil || !exists {
+	var previousStatus string
+	err := db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
+		if err := tx.QueryRowxContext(r.Context(), `SELECT status FROM service_requests WHERE id=$1 AND business_id=$2 FOR UPDATE`, reqID, bizID).Scan(&previousStatus); err != nil {
+			return sql.ErrNoRows
+		}
+		if !validServiceRequestTransition(previousStatus, reqBody.Status) {
+			return errors.New("invalid request transition")
+		}
+		if _, err := tx.ExecContext(r.Context(), `UPDATE service_requests SET status=$1,updated_at=now() WHERE id=$2 AND business_id=$3`, reqBody.Status, reqID, bizID); err != nil {
+			return err
+		}
+		if reqBody.Status == "declined" || reqBody.Status == "cancelled" {
+			if _, err := tx.ExecContext(r.Context(), `UPDATE availability_slots SET booked_count=GREATEST(booked_count-1,0),updated_at=now() WHERE id=(SELECT slot_id FROM service_requests WHERE id=$1 AND business_id=$2) AND booked_count>0`, reqID, bizID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Request not found.")
 		return
 	}
-
-	// Update status
-	_, err = db.ExecContext(r.Context(), `
-		UPDATE service_requests SET status = $1, updated_at = now() WHERE id = $2 AND business_id = $3
-	`, reqBody.Status, reqID, bizID)
 	if err != nil {
+		if err.Error() == "invalid request transition" {
+			writeError(w, http.StatusConflict, "INVALID_STATE", "This request cannot transition from its current state.")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update request status.")
 		return
 	}
@@ -675,6 +829,16 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 	})
 }
 
+func validServiceRequestTransition(from, to string) bool {
+	allowed := map[string]map[string]bool{
+		"requested":   {"accepted": true, "declined": true, "cancelled": true},
+		"accepted":    {"in_progress": true, "rescheduled": true, "cancelled": true},
+		"rescheduled": {"accepted": true, "cancelled": true},
+		"in_progress": {"completed": true, "cancelled": true},
+	}
+	return allowed[from][to]
+}
+
 func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 	var bizID string
 	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
@@ -694,7 +858,7 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 	}
 	defer rows.Close()
 
-	var products []discovery.Product
+	products := make([]discovery.Product, 0)
 	for rows.Next() {
 		var p discovery.Product
 		var price sql.NullFloat64
@@ -736,13 +900,18 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		IsPublished bool     `json:"is_published"`
 		ImageURL    *string  `json:"image_url"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name is required.")
 		return
 	}
 	if req.StockStatus == "" {
-		req.StockStatus = "in_stock"
+		req.StockStatus = "unknown"
 	}
+	if !validProductInput(req.Name, req.Price, req.StockStatus) || req.Description != nil && len(*req.Description) > 2000 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name, price, or stock status is invalid.")
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
 	var newID string
 	err = db.QueryRowxContext(r.Context(), `
 		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at)
@@ -750,7 +919,7 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		RETURNING id
 	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.IsPublished, req.ImageURL).Scan(&newID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product: "+err.Error())
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product.")
 		return
 	}
 	writeJSON(w, http.StatusCreated, envelope{
@@ -775,8 +944,20 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		IsPublished *bool    `json:"is_published"`
 		ImageURL    *string  `json:"image_url"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+		return
+	}
+	if req.Name != nil && (len(strings.TrimSpace(*req.Name)) < 2 || len(strings.TrimSpace(*req.Name)) > 100) || req.Description != nil && len(*req.Description) > 2000 || req.Price != nil && (*req.Price < 0 || *req.Price > 9999999999.99) || req.StockStatus != nil && !validStockStatus(*req.StockStatus) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name, price, or stock status is invalid.")
+		return
+	}
+	if req.Name != nil {
+		trimmed := strings.TrimSpace(*req.Name)
+		req.Name = &trimmed
+	}
+	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.IsPublished == nil && req.ImageURL == nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No product fields to update.")
 		return
 	}
 	setParts := []string{"updated_at = now()"}
@@ -813,9 +994,13 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		argIdx++
 	}
 	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $1 AND business_id = $2", strings.Join(setParts, ", "))
-	_, err = db.ExecContext(r.Context(), query, args...)
+	result, err := db.ExecContext(r.Context(), query, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update product.")
+		return
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Product not found.")
 		return
 	}
 	writeJSON(w, http.StatusOK, envelope{
@@ -832,9 +1017,13 @@ func merchantDeleteProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 	prodID := r.PathValue("id")
-	_, err = db.ExecContext(r.Context(), `DELETE FROM products WHERE id = $1 AND business_id = $2`, prodID, bizID)
+	result, err := db.ExecContext(r.Context(), `DELETE FROM products WHERE id = $1 AND business_id = $2`, prodID, bizID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to delete product.")
+		return
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Product not found.")
 		return
 	}
 	writeJSON(w, http.StatusOK, envelope{
@@ -936,7 +1125,7 @@ func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.Respon
 		PriceMax    *float64 `json:"indicative_price_max"`
 		IsActive    *bool    `json:"is_active"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
 		return
 	}
@@ -1063,9 +1252,28 @@ func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http
 			IsClosed bool    `json:"is_closed"`
 		} `json:"hours"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid hours payload.")
 		return
+	}
+	if len(req.Hours) == 0 || len(req.Hours) > 7 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Provide one to seven operating-hour entries.")
+		return
+	}
+	seenWeekdays := make(map[int]bool, len(req.Hours))
+	for _, h := range req.Hours {
+		if h.Weekday < 0 || h.Weekday > 6 || seenWeekdays[h.Weekday] {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Weekdays must be unique values from 0 through 6.")
+			return
+		}
+		seenWeekdays[h.Weekday] = true
+		if h.IsClosed {
+			continue
+		}
+		if h.OpensAt == nil || h.ClosesAt == nil || !validBusinessTime(*h.OpensAt) || !validBusinessTime(*h.ClosesAt) || *h.OpensAt == *h.ClosesAt {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Open days require valid, different opening and closing times.")
+			return
+		}
 	}
 
 	tx, err := db.BeginTxx(r.Context(), nil)
@@ -1076,9 +1284,6 @@ func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http
 	defer tx.Rollback()
 
 	for _, h := range req.Hours {
-		if h.Weekday < 0 || h.Weekday > 6 {
-			continue
-		}
 		// If closed, opens_at and closes_at can be null or default
 		var op, cl interface{}
 		if h.OpensAt != nil && *h.OpensAt != "" {
@@ -1087,12 +1292,6 @@ func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http
 		if h.ClosesAt != nil && *h.ClosesAt != "" {
 			cl = *h.ClosesAt
 		}
-		if !h.IsClosed && (op == nil || cl == nil) {
-			defOp := "09:00:00"
-			defCl := "20:00:00"
-			op = defOp
-			cl = defCl
-		}
 		_, err := tx.ExecContext(r.Context(), `
 			INSERT INTO business_hours (business_id, weekday, opens_at, closes_at, is_closed)
 			VALUES ($1, $2, $3, $4, $5)
@@ -1100,7 +1299,7 @@ func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http
 			DO UPDATE SET opens_at = EXCLUDED.opens_at, closes_at = EXCLUDED.closes_at, is_closed = EXCLUDED.is_closed
 		`, bizID, h.Weekday, op, cl, h.IsClosed)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save hours: "+err.Error())
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save hours.")
 			return
 		}
 	}
@@ -1479,12 +1678,20 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 			CustomerName  string  `json:"customer_name"`
 			CustomerPhone string  `json:"customer_phone"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
 			return
 		}
 		if strings.TrimSpace(req.Description) == "" {
 			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Description is required.")
+			return
+		}
+		if len(req.Description) > 2000 {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Description must be 2000 characters or fewer.")
+			return
+		}
+		if req.RequestedFor != nil && req.SlotID == nil {
+			writeError(w, http.StatusBadRequest, "SLOT_REQUIRED", "Scheduled appointments must select a published availability slot.")
 			return
 		}
 		if req.ServiceID != nil {
@@ -1502,19 +1709,30 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 		// Reserve an optional persisted slot and insert the request atomically.
 		var reqID string
 		var createdAt time.Time
+		var requestedFor interface{}
 		err = db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-			var requestedFor interface{} = req.RequestedFor
 			if req.SlotID != nil {
-				var startsAt time.Time
+				var startsAt, endsAt time.Time
 				var capacity, booked int
-				if err := tx.QueryRowx(`SELECT starts_at,capacity,booked_count FROM availability_slots WHERE id=$1 AND business_id=$2 AND status='open' FOR UPDATE`, *req.SlotID, bizID).Scan(&startsAt, &capacity, &booked); err != nil {
+				if err := tx.QueryRowx(`SELECT starts_at,ends_at,capacity,booked_count FROM availability_slots WHERE id=$1 AND business_id=$2 AND status='open' FOR UPDATE`, *req.SlotID, bizID).Scan(&startsAt, &endsAt, &capacity, &booked); err != nil {
 					return errors.New("selected slot is unavailable")
 				}
-				if booked >= capacity || startsAt.Before(time.Now()) {
+				if booked >= capacity || startsAt.Before(time.Now().UTC()) || !endsAt.After(startsAt) {
 					return errors.New("selected slot is full or expired")
 				}
-				if _, err := tx.Exec(`UPDATE availability_slots SET booked_count=booked_count+1 WHERE id=$1`, *req.SlotID); err != nil {
+				var closedDate bool
+				if err := tx.Get(&closedDate, `SELECT EXISTS(SELECT 1 FROM availability_slots s JOIN businesses b ON b.id=s.business_id JOIN business_availability_exceptions e ON e.business_id=s.business_id AND e.local_date=(s.starts_at AT TIME ZONE b.time_zone)::date WHERE s.id=$1 AND e.is_closed=true)`, *req.SlotID); err != nil {
 					return err
+				}
+				if closedDate {
+					return errors.New("selected appointment date is closed")
+				}
+				result, err := tx.Exec(`UPDATE availability_slots SET booked_count=booked_count+1,updated_at=now() WHERE id=$1 AND business_id=$2 AND status='open' AND booked_count<capacity`, *req.SlotID, bizID)
+				if err != nil {
+					return err
+				}
+				if affected, _ := result.RowsAffected(); affected != 1 {
+					return errors.New("selected slot is full or unavailable")
 				}
 				requestedFor = startsAt
 			}
@@ -1525,7 +1743,7 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 			return err
 		})
 		if err != nil {
-			writeError(w, http.StatusConflict, "SLOT_UNAVAILABLE", err.Error())
+			writeError(w, http.StatusConflict, "SLOT_UNAVAILABLE", "The requested appointment time is no longer available. Refresh availability and choose another time.")
 			return
 		}
 
@@ -1533,7 +1751,7 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 		var svcName *string
 		if req.ServiceID != nil {
 			var sn string
-			if err := db.QueryRowxContext(r.Context(), `SELECT name FROM services WHERE id = $1`, *req.ServiceID).Scan(&sn); err == nil {
+			if err := db.QueryRowxContext(r.Context(), `SELECT name FROM services WHERE id = $1 AND business_id=$2`, *req.ServiceID, bizID).Scan(&sn); err == nil {
 				svcName = &sn
 			}
 		}
@@ -1555,7 +1773,7 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 					"service_name":  svcName,
 					"description":   req.Description,
 					"status":        "requested",
-					"requested_for": req.RequestedFor,
+					"requested_for": requestedFor,
 					"created_at":    createdAt.Format(time.RFC3339),
 				},
 			})
@@ -1569,7 +1787,7 @@ func handleCreateServiceRequest(notifHub *notifications.Hub) authedHandler {
 				"service_id":    req.ServiceID,
 				"service_name":  svcName,
 				"description":   req.Description,
-				"requested_for": req.RequestedFor,
+				"requested_for": requestedFor,
 				"status":        "requested",
 				"created_at":    createdAt.Format(time.RFC3339),
 			},
@@ -1639,15 +1857,27 @@ func handleCancelServiceRequest(_ *auth.Service, db *database.DB, w http.Respons
 	}
 	defer tx.Rollback()
 	var slotID *string
-	var status string
-	err = tx.QueryRowxContext(r.Context(), `
-		UPDATE service_requests
-		SET status = 'cancelled', updated_at = NOW()
-		WHERE id = $1 AND customer_user_id = $2 AND status IN ('requested', 'accepted')
-		RETURNING slot_id, status
-	`, r.PathValue("id"), userID).Scan(&slotID, &status)
+	var status, ownerID string
+	err = tx.QueryRowxContext(r.Context(), `SELECT customer_user_id, status, slot_id FROM service_requests WHERE id=$1 FOR UPDATE`, r.PathValue("id")).Scan(&ownerID, &status, &slotID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Service request not found.")
+		return
+	}
 	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Could not load request.")
+		return
+	}
+	if ownerID != userID {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this service request.")
+		return
+	}
+	if status != "requested" && status != "accepted" {
 		writeError(w, http.StatusConflict, "INVALID_STATE", "Only pending or accepted requests can be cancelled.")
+		return
+	}
+	status = "cancelled"
+	if _, err = tx.ExecContext(r.Context(), `UPDATE service_requests SET status='cancelled', updated_at=NOW() WHERE id=$1`, r.PathValue("id")); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Could not cancel request.")
 		return
 	}
 	if slotID != nil {
@@ -1886,24 +2116,7 @@ func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 }
 
 func jwtParse(token string, authSvc *auth.Service) (*jwt.RegisteredClaims, error) {
-	claims := &jwt.RegisteredClaims{}
-	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte(authSvc.ConfigSecret()), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
-	if err != nil {
-		return nil, err
-	}
-	now := authSvc.Now()
-	if !parsed.Valid || !claims.VerifyExpiresAt(now, true) {
-		return nil, errors.New("expired")
-	}
-	// WSL/host wall-clock adjustments can occur between issuing and reading.
-	// Only issuance gets bounded skew; expiry and not-before remain strict.
-	if !claims.VerifyIssuer("grepmind-near", true) || claims.Subject == "" ||
-		!claims.VerifyIssuedAt(now.Add(5*time.Second), true) || !claims.VerifyNotBefore(now, false) {
-		return nil, errors.New("invalid token claims")
-	}
-	return claims, nil
+	return authSvc.ValidateAccessToken(context.Background(), token)
 }
 
 type envelope map[string]interface{}
@@ -1912,6 +2125,36 @@ func writeJSON(w http.ResponseWriter, code int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func nullableStringValue(value sql.NullString) interface{} {
+	if !value.Valid {
+		return nil
+	}
+	return value.String
+}
+
+func validStockStatus(value string) bool {
+	switch value {
+	case "unknown", "in_stock", "out_of_stock", "limited":
+		return true
+	default:
+		return false
+	}
+}
+
+func validProductInput(name string, price *float64, stockStatus string) bool {
+	name = strings.TrimSpace(name)
+	return len(name) >= 2 && len(name) <= 100 && (price == nil || (*price >= 0 && *price <= 9999999999.99)) && validStockStatus(stockStatus)
+}
+
+func validBusinessTime(value string) bool {
+	for _, layout := range []string{"15:04", "15:04:05"} {
+		if parsed, err := time.Parse(layout, value); err == nil && parsed.Format(layout) == value {
+			return true
+		}
+	}
+	return false
 }
 
 func writeError(w http.ResponseWriter, code int, errCode, message string) {

@@ -4,6 +4,7 @@ import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 
 /// Service request submission screen.
@@ -116,6 +117,14 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const ScreenIllustrationCard(
+              illustration: ScreenIllustration.booking,
+              title: 'Tell us what you need',
+              subtitle: 'Share a few details so the provider can respond',
+              icon: Icons.handyman_outlined,
+              compact: true,
+            ),
+            const SizedBox(height: 18),
             const Text(
               'What do you need help with?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),

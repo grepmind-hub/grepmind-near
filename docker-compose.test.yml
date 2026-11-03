@@ -47,6 +47,7 @@ services:
       minio:
         condition: service_healthy
     environment:
+      APP_ENV: ${APP_ENV:-local}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: grepmind_test

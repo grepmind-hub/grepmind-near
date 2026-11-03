@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 
@@ -106,19 +107,28 @@ class _BookingSchedulerScreenState
 
   List<String> _slotsForPeriod(int fromHour, int toHour) => _availability
       .where((slot) {
-        final start = DateTime.parse(slot['starts_at'] as String).toLocal();
-        return start.year == _selectedDate.year &&
-            start.month == _selectedDate.month &&
-            start.day == _selectedDate.day &&
+        final start = _slotLocalStart(slot);
+        return (slot['local_date'] == null
+                ? DateUtils.isSameDay(start, _selectedDate)
+                : slot['local_date'] ==
+                      DateFormat('yyyy-MM-dd').format(_selectedDate)) &&
             start.hour >= fromHour &&
             start.hour < toHour;
       })
-      .map(
-        (slot) =>
-            DateFormat('hh:mm a')
-                .format(DateTime.parse(slot['starts_at'] as String).toLocal()),
-      )
+      .map(_formatSlotTime)
       .toList();
+
+  DateTime _slotLocalStart(Map<String, dynamic> slot) {
+    final date = slot['local_date'] as String?;
+    final time = slot['local_starts_at'] as String?;
+    if (date != null && time != null) {
+      return DateTime.parse('${date}T${time.length == 5 ? '$time:00' : time}');
+    }
+    return DateTime.parse(slot['starts_at'] as String).toLocal();
+  }
+
+  String _formatSlotTime(Map<String, dynamic> slot) =>
+      DateFormat('hh:mm a').format(_slotLocalStart(slot));
 
   List<String> _getMorningSlots() => _slotsForPeriod(0, 12);
   List<String> _getAfternoonSlots() => _slotsForPeriod(12, 16);
@@ -133,12 +143,15 @@ class _BookingSchedulerScreenState
     if (bizId == null || bizId.isEmpty) return;
     setState(() => _loadingAvailability = true);
     try {
-      final from = DateTime(
+      final localDayStart = DateTime(
         _selectedDate.year,
         _selectedDate.month,
         _selectedDate.day,
       );
-      final to = from.add(const Duration(days: 1));
+      // The business time zone may differ from the phone's zone. Expand the
+      // UTC query window, then filter by the server's business-local date.
+      final from = localDayStart.subtract(const Duration(hours: 14));
+      final to = localDayStart.add(const Duration(days: 1, hours: 14));
       final responses = await Future.wait([
         apiClient.get('/businesses/$bizId/services'),
         apiClient.get(
@@ -521,6 +534,14 @@ class _BookingSchedulerScreenState
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
+          const ScreenIllustrationCard(
+            illustration: ScreenIllustration.booking,
+            title: 'Plan a convenient visit',
+            subtitle: 'Choose a date and time that works for you',
+            icon: Icons.event_available_outlined,
+            compact: true,
+          ),
+          const SizedBox(height: 14),
           _buildProProfileHeader(),
           const SizedBox(height: 16),
           _buildServiceScopeSection(),
@@ -1188,11 +1209,11 @@ class _BookingSchedulerScreenState
                   : () {
                       final match = _availability.firstWhere(
                         (entry) =>
-                            DateFormat('hh:mm a').format(
-                              DateTime.parse(entry['starts_at'] as String)
-                                  .toLocal(),
-                            ) ==
-                            slot,
+                            (entry['local_date'] == null ||
+                                entry['local_date'] ==
+                                    DateFormat('yyyy-MM-dd')
+                                        .format(_selectedDate)) &&
+                            _formatSlotTime(entry) == slot,
                       );
                       setState(() {
                         _selectedSlotTime = slot;
@@ -1485,9 +1506,9 @@ class _BookingSchedulerScreenState
                               size: 18,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              'Book $_providerShortName',
-                              style: const TextStyle(
+                            const Text(
+                              'Book now',
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,

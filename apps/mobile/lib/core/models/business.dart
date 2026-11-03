@@ -593,17 +593,25 @@ class AppUser extends Equatable {
   final String id;
   final String phoneE164;
   final String? displayName;
+  final String? avatarUrl;
   final String status;
   final String preferredLanguage;
   final List<String> roles;
+  final Map<String, bool> notificationPreferences;
 
   const AppUser({
     required this.id,
     required this.phoneE164,
     this.displayName,
+    this.avatarUrl,
     required this.status,
     required this.preferredLanguage,
     required this.roles,
+    this.notificationPreferences = const {
+      'booking_updates': true,
+      'offers': true,
+      'service_updates': true,
+    },
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -611,11 +619,21 @@ class AppUser extends Equatable {
       id: json['id'] as String,
       phoneE164: json['phone_e164'] as String? ?? '',
       displayName: json['display_name'] as String?,
+      avatarUrl: json['avatar_url'] as String?,
       status: json['status'] as String? ?? 'active',
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
       roles:
           (json['roles'] as List<dynamic>?)?.map((e) => e as String).toList() ??
           const [],
+      notificationPreferences:
+          (json['notification_preferences'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(key, value as bool),
+          ) ??
+          const {
+            'booking_updates': true,
+            'offers': true,
+            'service_updates': true,
+          },
     );
   }
 
@@ -628,9 +646,11 @@ class AppUser extends Equatable {
       'id': id,
       'phone_e164': phoneE164,
       'display_name': displayName,
+      'avatar_url': avatarUrl,
       'status': status,
       'preferred_language': preferredLanguage,
       'roles': roles,
+      'notification_preferences': notificationPreferences,
     };
   }
 
@@ -639,9 +659,11 @@ class AppUser extends Equatable {
     id,
     phoneE164,
     displayName,
+    avatarUrl,
     status,
     preferredLanguage,
     roles,
+    notificationPreferences,
   ];
 }
 

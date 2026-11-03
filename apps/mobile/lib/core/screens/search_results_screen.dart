@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/widgets/business_card.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
@@ -23,7 +24,8 @@ class SearchResultsScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SearchResultsScreen> createState() => _SearchResultsScreenState();
+  ConsumerState<SearchResultsScreen> createState() =>
+      _SearchResultsScreenState();
 }
 
 class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
@@ -44,6 +46,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _executeSearch();
+      ref.read(favoritesProvider.notifier).load();
     });
   }
 
@@ -56,16 +59,36 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   void _executeSearch() {
     final q = _searchController.text.trim();
     final location = ref.read(appLocationProvider);
-      ref.read(businessesProvider.notifier).search(
-        query: q,
-        lat: location.latitude,
-        lng: location.longitude,
-        city: location.cityName,
-        radiusM: _radiusM,
-        categorySlug: _selectedCategory,
-        openNow: _isOpenNow ? true : null,
-        sort: _sortBy,
+    ref
+        .read(businessesProvider.notifier)
+        .search(
+          query: q,
+          lat: location.latitude,
+          lng: location.longitude,
+          city: location.cityName,
+          radiusM: _radiusM,
+          categorySlug: _selectedCategory,
+          openNow: _isOpenNow ? true : null,
+          sort: _sortBy,
+        );
+  }
+
+  Future<void> _toggleFavorite(String businessId) async {
+    final wasSaved = ref
+        .read(favoritesProvider)
+        .items
+        .any((business) => business.id == businessId);
+    final isSaved = await ref
+        .read(favoritesProvider.notifier)
+        .toggle(businessId);
+    if (!mounted) return;
+    if (isSaved == null || isSaved == wasSaved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not update saved places. Please retry.'),
+        ),
       );
+    }
   }
 
   void _showRadiusSheet() {
@@ -85,7 +108,11 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Text(
                   'Search Radius',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mainText,
+                  ),
                 ),
               ),
               const Divider(height: 1),
@@ -135,7 +162,11 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Text(
                   'Sort By',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mainText,
+                  ),
                 ),
               ),
               const Divider(height: 1),
@@ -177,9 +208,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     if (serviceCategories.contains(biz.categorySlug) || biz.acceptsRequests) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => ServiceProScreen(business: biz),
-        ),
+        MaterialPageRoute(builder: (_) => ServiceProScreen(business: biz)),
       );
     } else {
       // Otherwise navigate to Screen 11 (Business Detail Profile)
@@ -195,11 +224,17 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(businessesProvider);
-    final favNotifier = ref.read(favoritesProvider.notifier);
+    final savedBusinessIds = ref
+        .watch(favoritesProvider)
+        .items
+        .map((business) => business.id)
+        .toSet();
 
     // Apply local filters if category or verified is active
     var items = state.items;
-    if (_selectedCategory != null && _selectedCategory!.isNotEmpty && _selectedCategory != 'all') {
+    if (_selectedCategory != null &&
+        _selectedCategory!.isNotEmpty &&
+        _selectedCategory != 'all') {
       items = items.where((b) => b.categorySlug == _selectedCategory).toList();
     }
     if (_isVerifiedOnly) {
@@ -233,11 +268,22 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             onSubmitted: (_) => _executeSearch(),
             decoration: InputDecoration(
               hintText: 'Search shops, services, products...',
-              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-              prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 20),
+              hintStyle: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 14,
+              ),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: Color(0xFF94A3B8),
+                size: 20,
+              ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8), size: 18),
+                      icon: const Icon(
+                        Icons.clear_rounded,
+                        color: Color(0xFF94A3B8),
+                        size: 18,
+                      ),
                       onPressed: () {
                         _searchController.clear();
                         _executeSearch();
@@ -270,7 +316,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 height: 48,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   children: [
                     // Category Active Chip
                     if (_selectedCategory != null) ...[
@@ -284,7 +333,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                         },
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryContainer,
                             borderRadius: BorderRadius.circular(20),
@@ -302,7 +354,11 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(Icons.close_rounded, size: 14, color: AppTheme.primary),
+                              const Icon(
+                                Icons.close_rounded,
+                                size: 14,
+                                color: AppTheme.primary,
+                              ),
                             ],
                           ),
                         ),
@@ -324,8 +380,8 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       label: _sortBy == 'distance'
                           ? 'Nearest'
                           : _sortBy == 'rating'
-                              ? 'Top Rated'
-                              : 'Best Match',
+                          ? 'Top Rated'
+                          : 'Best Match',
                       icon: Icons.swap_vert_rounded,
                       isActive: _sortBy != 'distance',
                       onTap: _showSortSheet,
@@ -379,7 +435,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     color: AppTheme.secondaryText,
                   ),
                 ),
-                if (_selectedCategory != null || _isVerifiedOnly || _isOpenNow || _radiusM != 5000)
+                if (_selectedCategory != null ||
+                    _isVerifiedOnly ||
+                    _isOpenNow ||
+                    _radiusM != 5000)
                   InkWell(
                     onTap: () {
                       setState(() {
@@ -405,97 +464,114 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             ),
           ),
 
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 2, 16, 10),
+            child: ScreenIllustrationCard(
+              illustration: ScreenIllustration.search,
+              title: 'Search your neighborhood',
+              subtitle: 'Compare nearby options at a glance',
+              icon: Icons.travel_explore_rounded,
+              compact: true,
+            ),
+          ),
+
           // Results List
           Expanded(
             child: state.isLoading && items.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  )
                 : items.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 72,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(
-                                  Icons.search_off_rounded,
-                                  color: AppTheme.primary,
-                                  size: 36,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'No businesses found',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.mainText,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Try expanding your radius, clearing category filters, or searching a different term.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppTheme.secondaryText,
-                                  height: 1.4,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _searchController.clear();
-                                    _selectedCategory = null;
-                                    _selectedCategoryName = null;
-                                    _isVerifiedOnly = false;
-                                    _isOpenNow = false;
-                                    _radiusM = 10000;
-                                  });
-                                  _executeSearch();
-                                },
-                                child: const Text(
-                                  'Reset Filters & Show All',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.search_off_rounded,
+                              color: AppTheme.primary,
+                              size: 36,
+                            ),
                           ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async => _executeSearch(),
-                        color: AppTheme.primary,
-                        child: SafeArea(
-                          top: false,
-                          child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                            itemCount: items.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final biz = items[index];
-                              return BusinessCard(
-                                business: biz,
-                                onTap: () => _onBusinessTapped(biz),
-                                onFavoriteToggled: () => favNotifier.toggle(biz.id),
-                              );
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No businesses found',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Try expanding your radius, clearing category filters, or searching a different term.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondaryText,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _selectedCategory = null;
+                                _selectedCategoryName = null;
+                                _isVerifiedOnly = false;
+                                _isOpenNow = false;
+                                _radiusM = 10000;
+                              });
+                              _executeSearch();
                             },
+                            child: const Text(
+                              'Reset Filters & Show All',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async => _executeSearch(),
+                    color: AppTheme.primary,
+                    child: SafeArea(
+                      top: false,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final biz = items[index];
+                          return BusinessCard(
+                            business: biz,
+                            onTap: () => _onBusinessTapped(biz),
+                            isFavorited: savedBusinessIds.contains(biz.id),
+                            onFavoriteToggled: () => _toggleFavorite(biz.id),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -514,7 +590,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primary.withValues(alpha: 0.1) : Colors.white,
+          color: isActive
+              ? AppTheme.primary.withValues(alpha: 0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive ? AppTheme.primary : const Color(0xFFE2E8F0),

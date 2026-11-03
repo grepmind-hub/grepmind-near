@@ -64,6 +64,22 @@ export interface Business {
   created_at: string;
 }
 
+export interface BusinessClaim {
+  id: string;
+  business_id: string;
+  business_name: string;
+  category_slug: string;
+  category: string;
+  address: string;
+  locality: string;
+  city: string;
+  claimant_id: string;
+  claimant_name: string;
+  claimant_phone: string;
+  message: string;
+  created_at: string;
+}
+
 export interface Report {
   id: string;
   reporter_phone?: string;
@@ -165,6 +181,16 @@ export async function rejectBusiness(id: string, reason: string) {
 
 export async function verifyBusiness(id: string, verification_status: 'verified' | 'rejected', reason?: string) {
   const res = await api.post(`/admin/businesses/${id}/verify`, { verification_status, reason });
+  return res.data;
+}
+
+export async function getBusinessClaims(): Promise<BusinessClaim[]> {
+  const res = await api.get<{ data: BusinessClaim[] }>('/admin/business-claims');
+  return res.data.data ?? [];
+}
+
+export async function decideBusinessClaim(id: string, decision: 'approve' | 'reject', note: string) {
+  const res = await api.post(`/admin/business-claims/${id}/decision`, { decision, note });
   return res.data;
 }
 

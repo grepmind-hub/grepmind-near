@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
 import 'package:grepmind_mobile/core/screens/booking_scheduler_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:grepmind_mobile/core/utils/contact_actions.dart';
 
 /// Screen 13: Service Professional Profile
 /// Matching Grepmind Near UI/UX Showcase Screen 13 & Service request.png.
@@ -61,29 +62,23 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
   }
 
   void _callPhone(String? phone) async {
-    if (phone == null || phone.isEmpty) return;
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
+    if (!await ref.read(contactActionsProvider).call(phone)) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Calling $phone')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open the phone app.')),
+        );
       }
     }
   }
 
   void _openWhatsApp(String? phone) async {
-    if (phone == null || phone.isEmpty) return;
-    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    final uri = Uri.parse('https://wa.me/$cleanPhone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    if (!await ref.read(contactActionsProvider).whatsapp(phone)) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Opening WhatsApp for $phone')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to open WhatsApp for this business.'),
+          ),
+        );
       }
     }
   }
@@ -417,6 +412,14 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    const ScreenIllustrationCard(
+                      illustration: ScreenIllustration.booking,
+                      title: 'Service details',
+                      subtitle: 'Review the profile and request a visit',
+                      icon: Icons.handyman_outlined,
+                      compact: true,
+                    ),
+                    const SizedBox(height: 14),
                     // About Section Card
                     _buildSectionCard(
                       title: 'About Professional',

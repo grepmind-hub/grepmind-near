@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
@@ -101,9 +102,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  Future<bool> updateProfile(Map<String, dynamic> changes) async {
+    try {
+      final response = await apiClient.patch('/me', data: changes);
+      final envelope = response.data as Map<String, dynamic>;
+      final data = envelope['data'] as Map<String, dynamic>;
+      final updatedUser = AppUser.fromJson(data);
+      await setSession(
+        token: state.accessToken ?? '',
+        user: updatedUser,
+        activeRole: state.activeRole,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     final storage = const FlutterSecureStorage();
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (_) {
+      // Local credentials are always cleared, including when offline.
+    }
     await storage.delete(key: AppConstants.accessTokenKey);
+    await storage.delete(key: AppConstants.refreshTokenKey);
     await storage.delete(key: AppConstants.userKey);
     await storage.delete(key: AppConstants.activeRoleKey);
     state = const AuthState();
@@ -121,10 +145,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final resultData = data['data'] as Map<String, dynamic>;
       return {
         'phone_e164': resultData['phone_e164'],
-        'otp_code': resultData['otp_code'], // dev-only stub
+        if (kDebugMode)
+          'otp_code': resultData['otp_code'], // local emulator aid only
         'status': resultData['status'],
       };
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -143,7 +168,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final userMap = resultData['user'] as Map<String, dynamic>;
       final user = AppUser.fromJson(userMap);
       await setSession(token: accessToken, user: user);
-      _storeRefreshToken(refreshToken);
+      await _storeRefreshToken(refreshToken);
       return true;
     } catch (e) {
       return false;
@@ -447,7 +472,9 @@ class BusinessDetailNotifier extends StateNotifier<BusinessDetailState> {
   BusinessDetailNotifier() : super(const BusinessDetailState());
 
   Future<void> load(String businessId) async {
-    state = state.copyWith(isLoading: true);
+    // Clear the prior business immediately so a fast route switch never shows
+    // stale catalog, offers, contact details, or operating hours.
+    state = const BusinessDetailState(isLoading: true);
     try {
       // Fetch business detail
       final res = await apiClient.get('/businesses/$businessId');
@@ -556,7 +583,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     }
   }
 
-  Future<bool> toggle(String businessId) async {
+  Future<bool?> toggle(String businessId) async {
     try {
       final res = await apiClient.post('/businesses/$businessId/favorite');
       final data = res.data as Map<String, dynamic>;
@@ -576,13 +603,33 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         );
       }
       return favorited;
-    } catch (e) {
-      return false;
+    } catch (_) {
+      return null;
     }
   }
 
-  void clear() {
-    state = const FavoritesState();
+  Future<bool> clearAll() async {
+    final savedItems = List<Business>.of(state.items);
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      for (final business in savedItems) {
+        final res = await apiClient.post('/businesses/${business.id}/favorite');
+        final data = res.data as Map<String, dynamic>;
+        final favorited = data['data']['favorited'] as bool;
+        if (favorited) {
+          throw StateError('A saved place changed while clearing the list.');
+        }
+        state = state.copyWith(
+          items: state.items.where((item) => item.id != business.id).toList(),
+          isLoading: true,
+        );
+      }
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
   }
 }
 

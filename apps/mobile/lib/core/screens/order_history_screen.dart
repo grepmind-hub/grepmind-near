@@ -4,6 +4,7 @@ import 'package:grepmind_mobile/core/models/customer_order.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 
 class OrderHistoryScreen extends ConsumerStatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -22,7 +23,30 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
         title: const Text('My Orders & Bookings'),
         centerTitle: true,
       ),
-      body: ListView.builder(
+      body: allOrders.isEmpty
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScreenIllustrationCard(
+                      illustration: ScreenIllustration.hospitality,
+                      title: 'Your bookings appear here',
+                      subtitle: 'Orders and reservations appear after you place them',
+                      icon: Icons.receipt_long_outlined,
+                      compact: true,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No orders or bookings yet',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: allOrders.length,
         itemBuilder: (context, index) {

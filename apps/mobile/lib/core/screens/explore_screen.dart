@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/banner_card.dart';
 import 'package:grepmind_mobile/core/widgets/business_card.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
@@ -13,6 +12,7 @@ import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
+import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 
 /// Explore screen: search, categories, featured offer, nearby businesses.
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -26,7 +26,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchController = TextEditingController();
   String _selectedCategory = 'all';
   bool _isSearching = false;
-  final bool _isOpenNow = false;
+  bool _isOpenNow = false;
   final bool _isAvailableNow = false;
   final String _sortBy = 'relevance';
   final int _radius = 5000; // meters
@@ -47,14 +47,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         if (!mounted) return;
         if (locations.isNotEmpty) {
           final location = locations.first as Map<String, dynamic>;
-          ref.read(appLocationProvider.notifier).setLocation(AppLocation(
-            cityName: location['city'] as String,
-            latitude: (location['latitude'] as num).toDouble(),
-            longitude: (location['longitude'] as num).toDouble(),
-            activeBusinessCount: location['count'] as int,
-          ));
+          ref
+              .read(appLocationProvider.notifier)
+              .setLocation(
+                AppLocation(
+                  cityName: location['city'] as String,
+                  latitude: (location['latitude'] as num).toDouble(),
+                  longitude: (location['longitude'] as num).toDouble(),
+                  activeBusinessCount: location['count'] as int,
+                ),
+              );
         }
-      } catch (_) { /* Location picker provides an explicit retry. */ }
+      } catch (_) {
+        /* Location picker provides an explicit retry. */
+      }
     }
     if (mounted) _onFiltersChanged();
   }
@@ -76,7 +82,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       MaterialPageRoute(
         builder: (_) => SearchResultsScreen(
           initialQuery: q.isEmpty ? null : q,
-          initialCategory: _selectedCategory == 'all' ? null : _selectedCategory,
+          initialCategory: _selectedCategory == 'all'
+              ? null
+              : _selectedCategory,
         ),
       ),
     );
@@ -87,17 +95,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final loc = ref.read(appLocationProvider);
     final q = _searchController.text.trim();
     if (q.isEmpty) {
-      ref.read(businessesProvider.notifier).search(
-        query: '',
-        lat: loc.cityName.isEmpty ? null : loc.latitude,
-        lng: loc.cityName.isEmpty ? null : loc.longitude,
-        radiusM: _radius,
-        categorySlug: _selectedCategory == 'all' ? null : _selectedCategory,
-        city: loc.cityName,
-        openNow: _isOpenNow,
-        availableNow: _isAvailableNow,
-        sort: _sortBy,
-      );
+      ref
+          .read(businessesProvider.notifier)
+          .search(
+            query: '',
+            lat: loc.cityName.isEmpty ? null : loc.latitude,
+            lng: loc.cityName.isEmpty ? null : loc.longitude,
+            radiusM: _radius,
+            categorySlug: _selectedCategory == 'all' ? null : _selectedCategory,
+            city: loc.cityName,
+            openNow: _isOpenNow,
+            availableNow: _isAvailableNow,
+            sort: _sortBy,
+          );
     } else {
       _search();
     }
@@ -109,11 +119,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       final response = await apiClient.get('/locations');
       locations = (response.data['data'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to load cities. Please try again.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to load cities. Please try again.'),
+          ),
+        );
+      }
       return;
     }
     if (!mounted) return;
-
 
     showModalBottomSheet(
       context: context,
@@ -142,35 +157,51 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       children: [
                         Text(
                           'Select Location',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           'Choose Cuttack or Jajpur',
-                          style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppTheme.secondaryText),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.secondaryText,
+                      ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text('AVAILABLE CITIES', style: TextStyle(fontWeight: FontWeight.w700)),
+                const Text(
+                  'AVAILABLE CITIES',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 8),
-                if (locations.isEmpty) const Text('No cities currently have active listings.'),
-                ...locations.map((location) => _buildLocationTile(
-                  ctx: ctx,
-                  cityName: location['city'] as String,
-                  locality: '',
-                  badge: '${location['count']} active listings',
-                  lat: (location['latitude'] as num).toDouble(),
-                  lng: (location['longitude'] as num).toDouble(),
-                  isSupported: true,
-                  count: location['count'] as int,
-                )),
+                if (locations.isEmpty)
+                  const Text('No cities currently have active listings.'),
+                ...locations.map(
+                  (location) => _buildLocationTile(
+                    ctx: ctx,
+                    cityName: location['city'] as String,
+                    locality: '',
+                    badge: '${location['count']} active listings',
+                    lat: (location['latitude'] as num).toDouble(),
+                    lng: (location['longitude'] as num).toDouble(),
+                    isSupported: true,
+                    count: location['count'] as int,
+                  ),
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -210,12 +241,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       ),
       title: Row(
         children: [
-          Text(cityName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(
+            cityName,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: isSupported ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+              color: isSupported
+                  ? const Color(0xFFDCFCE7)
+                  : const Color(0xFFFEF3C7),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -223,25 +259,36 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: isSupported ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                color: isSupported
+                    ? const Color(0xFF15803D)
+                    : const Color(0xFFB45309),
               ),
             ),
           ),
         ],
       ),
-      subtitle: Text(locality, style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.secondaryText, size: 18),
+      subtitle: Text(
+        locality,
+        style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: AppTheme.secondaryText,
+        size: 18,
+      ),
       onTap: () {
-        ref.read(appLocationProvider.notifier).setLocation(
-          AppLocation(
-            cityName: cityName,
-            localityName: locality,
-            latitude: lat,
-            longitude: lng,
-            isSupported: isSupported,
-            activeBusinessCount: count,
-          ),
-        );
+        ref
+            .read(appLocationProvider.notifier)
+            .setLocation(
+              AppLocation(
+                cityName: cityName,
+                localityName: locality,
+                latitude: lat,
+                longitude: lng,
+                isSupported: isSupported,
+                activeBusinessCount: count,
+              ),
+            );
 
         if (!isSupported) {
           try {
@@ -276,83 +323,75 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Screen 7 Header: Location selector + notification bell
+            // Explore is a task-focused search surface; Home owns promotional discovery.
             Padding(
-              padding: const EdgeInsets.fromLTRB(kScreenPadding, 12, kScreenPadding, 8),
+              padding: const EdgeInsets.fromLTRB(
+                kScreenPadding,
+                10,
+                kScreenPadding,
+                8,
+              ),
               child: Row(
                 children: [
                   Expanded(
-                    child: InkWell(
-                      onTap: _showLocationModal,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 22),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                appLocation.displayName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.mainText,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Explore',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        InkWell(
+                          onTap: _showLocationModal,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppTheme.secondary,
+                                  size: 17,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    appLocation.displayName.isEmpty
+                                        ? 'Choose Cuttack or Jajpur'
+                                        : appLocation.displayName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                          color: AppTheme.secondaryText,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: AppTheme.secondaryText,
+                                  size: 18,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.secondaryText, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Notification bell with badge
-                  Stack(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE4E7EC)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.mainText, size: 22),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No new notifications')),
-                            );
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.error,
-                            shape: BoxShape.circle,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    tooltip: 'Nearby map',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NearbyMapScreen(),
                       ),
-                    ],
+                    ),
+                    icon: const Icon(Icons.map_outlined),
                   ),
                 ],
               ),
@@ -380,11 +419,22 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   onSubmitted: (_) => _search(),
                   decoration: InputDecoration(
                     hintText: 'Search shops, services, products...',
-                    hintStyle: const TextStyle(color: Color(0xFF9AA5B1), fontSize: 14),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF9AA5B1), size: 22),
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF9AA5B1),
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF9AA5B1),
+                      size: 22,
+                    ),
                     suffixIcon: _isSearching
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, color: Color(0xFF9AA5B1), size: 18),
+                            icon: const Icon(
+                              Icons.clear_rounded,
+                              color: Color(0xFF9AA5B1),
+                              size: 18,
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _isSearching = false);
@@ -392,12 +442,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             },
                           )
                         : IconButton(
-                            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primary, size: 20),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('QR Code scanner coming soon')),
-                              );
-                            },
+                            tooltip: 'Search',
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: AppTheme.primary,
+                              size: 20,
+                            ),
+                            onPressed: _search,
                           ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -406,6 +457,48 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('Open now'),
+                    avatar: const Icon(Icons.schedule_rounded, size: 17),
+                    selected: _isOpenNow,
+                    onSelected: (selected) {
+                      setState(() => _isOpenNow = selected);
+                      _onFiltersChanged();
+                    },
+                    showCheckmark: false,
+                    materialTapTargetSize: MaterialTapTargetSize.padded,
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NearbyMapScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text('Map'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(88, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${state.items.length} results',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
 
             // Screen 7 Circular Category Buttons Row Header
             Padding(
@@ -426,7 +519,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const CategoriesScreen(),
+                        ),
                       );
                     },
                     borderRadius: BorderRadius.circular(8),
@@ -453,28 +548,57 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-                itemCount: categoryState.isLoading ? 6 : categoryItems.length + 2,
+                itemCount: categoryState.isLoading
+                    ? 6
+                    : categoryItems.length + 2,
                 separatorBuilder: (_, _) => const SizedBox(width: 4),
                 itemBuilder: (_, i) {
                   if (categoryState.isLoading) {
-                    return const SizedBox(width: 68, child: SkeletonLoader(height: 68, radius: 34));
+                    return const SizedBox(
+                      width: 68,
+                      child: SkeletonLoader(height: 68, radius: 34),
+                    );
                   }
                   final isAll = i == 0;
                   final isMore = i == categoryItems.length + 1;
-                  final category = isAll || isMore ? null : categoryItems[i - 1];
-                  final slug = isAll ? 'all' : (isMore ? 'more' : category!.slug);
+                  final category = isAll || isMore
+                      ? null
+                      : categoryItems[i - 1];
+                  final slug = isAll
+                      ? 'all'
+                      : (isMore ? 'more' : category!.slug);
                   final isSel = _selectedCategory == slug;
                   return CategoryCircleItem(
                     label: isAll ? 'All' : (isMore ? 'More' : category!.name),
-                    icon: isAll ? Icons.apps_rounded : (isMore ? Icons.grid_view_rounded : CategoriesScreen.getCategoryIcon(category!.slug)),
-                    backgroundColor: isAll ? const Color(0xFFEEF2FF) : (isMore ? const Color(0xFFEDE9FE) : CategoriesScreen.getCategoryColor(category!.slug).withOpacity(0.13)),
-                    iconColor: isAll ? const Color(0xFF4F46E5) : (isMore ? const Color(0xFF7C3AED) : CategoriesScreen.getCategoryColor(category!.slug)),
+                    icon: isAll
+                        ? Icons.apps_rounded
+                        : (isMore
+                              ? Icons.grid_view_rounded
+                              : CategoriesScreen.getCategoryIcon(
+                                  category!.slug,
+                                )),
+                    backgroundColor: isAll
+                        ? const Color(0xFFEEF2FF)
+                        : (isMore
+                              ? const Color(0xFFEDE9FE)
+                              : CategoriesScreen.getCategoryColor(
+                                  category!.slug,
+                                ).withOpacity(0.13)),
+                    iconColor: isAll
+                        ? const Color(0xFF4F46E5)
+                        : (isMore
+                              ? const Color(0xFF7C3AED)
+                              : CategoriesScreen.getCategoryColor(
+                                  category!.slug,
+                                )),
                     isSelected: isSel,
                     onTap: () {
                       if (isMore) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const CategoriesScreen(),
+                          ),
                         );
                       } else {
                         setState(() => _selectedCategory = slug);
@@ -487,28 +611,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Screen 7 Hero Promotional Banner
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-              child: BannerCard(
-                badgeText: 'Discover nearby',
-                title: 'Find your local essentials',
-                subtitle: 'Browse shops and services in your area',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            // Section Header: "Nearby Shops" with "View All" matching Screen 7
+            // Search results are the main Explore content, distinct from Home's feed.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _isSearching
-                        ? 'Search results'
-                        : 'Nearby Shops & Services',
+                    _isSearching ? 'Search results' : 'Nearby Shops & Services',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -520,7 +630,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const SearchResultsScreen(),
+                        ),
                       );
                     },
                     borderRadius: BorderRadius.circular(8),
@@ -546,40 +658,63 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               child: state.isLoading && state.items.isEmpty
                   ? _buildSkeletonList()
                   : state.error != null && state.items.isEmpty
-                      ? _buildEmpty('Unable to load nearby businesses. Please check your connection and try again.')
-                      : state.items.isEmpty
-                          ? _buildUnservedOrEmptyState(appLocation)
-                          : RefreshIndicator(
-                              onRefresh: () async {
-                                _onFiltersChanged();
+                  ? _buildEmpty(
+                      'Unable to load nearby businesses. Please check your connection and try again.',
+                    )
+                  : state.items.isEmpty
+                  ? _buildUnservedOrEmptyState(appLocation)
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        _onFiltersChanged();
+                      },
+                      child: SafeArea(
+                        top: false,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(
+                            kScreenPadding,
+                            0,
+                            kScreenPadding,
+                            32,
+                          ),
+                          itemCount: state.items.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, i) {
+                            final b = state.items[i];
+                            return BusinessCard(
+                              business: b,
+                              onTap: () {
+                                final serviceCategories = [
+                                  'electrician',
+                                  'plumber',
+                                  'carpenter',
+                                  'tailor',
+                                ];
+                                if (serviceCategories.contains(
+                                      b.categorySlug,
+                                    ) ||
+                                    b.acceptsRequests) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ServiceProScreen(business: b),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => BusinessDetailScreen(
+                                        businessId: b.id,
+                                      ),
+                                    ),
+                                  );
+                                }
                               },
-                              child: SafeArea(
-                                top: false,
-                                child: ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(kScreenPadding, 0, kScreenPadding, 32),
-                                  itemCount: state.items.length,
-                                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                                  itemBuilder: (_, i) {
-                                    final b = state.items[i];
-                                    return BusinessCard(
-                                      business: b,
-                                      onTap: () {
-                                        final serviceCategories = ['electrician', 'plumber', 'carpenter', 'tailor'];
-                                        if (serviceCategories.contains(b.categorySlug) || b.acceptsRequests) {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => ServiceProScreen(business: b)),
-                                          );
-                                        } else {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => BusinessDetailScreen(businessId: b.id)),
-                                          );
-                                        }
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -628,7 +763,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           Text(
             error,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryText),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: AppTheme.secondaryText),
           ),
         ],
       ),
@@ -655,7 +791,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     color: AppTheme.primary.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.storefront_outlined, size: 36, color: AppTheme.primary),
+                  child: const Icon(
+                    Icons.storefront_outlined,
+                    size: 36,
+                    color: AppTheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 Text(
@@ -674,7 +814,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   _selectedCategory != 'all'
                       ? 'Try switching to "All" or exploring other categories nearby.'
                       : 'Try broadening your search or switching to another locality.',
-                  style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText, height: 1.4),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.secondaryText,
+                    height: 1.4,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -685,8 +829,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: const BorderSide(color: AppTheme.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
                     onPressed: () {
                       setState(() => _selectedCategory = 'all');
@@ -726,7 +875,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 children: [
                   // Radar / Expanding Soon Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       borderRadius: BorderRadius.circular(20),
@@ -735,7 +887,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.radar_rounded, size: 16, color: Color(0xFFD97706)),
+                        const Icon(
+                          Icons.radar_rounded,
+                          size: 16,
+                          color: Color(0xFFD97706),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'EXPANDING TO ${cityName.toUpperCase()} SOON',
@@ -758,7 +914,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       color: AppTheme.primary.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.location_off_rounded, size: 32, color: AppTheme.primary),
+                    child: const Icon(
+                      Icons.location_off_rounded,
+                      size: 32,
+                      color: AppTheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -789,15 +949,25 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.notifications_active_outlined, size: 18, color: Colors.white),
+                      icon: const Icon(
+                        Icons.notifications_active_outlined,
+                        size: 18,
+                        color: Colors.white,
+                      ),
                       label: const Text(
                         'Notify Me When Available',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: () => _promptNotifyMe(appLocation),
@@ -821,7 +991,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(onPressed: _showLocationModal, icon: const Icon(Icons.location_city_outlined), label: const Text('Browse available cities')),
+            OutlinedButton.icon(
+              onPressed: _showLocationModal,
+              icon: const Icon(Icons.location_city_outlined),
+              label: const Text('Browse available cities'),
+            ),
           ],
         ),
       ),
@@ -853,7 +1027,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               children: [
                 Text(
                   'Launch Alert for ${appLocation.cityName}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.mainText),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.mainText,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close_rounded),
@@ -864,7 +1042,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 6),
             Text(
               'Enter your mobile number to receive instant SMS & WhatsApp notification when Grepmind Near launches in ${appLocation.cityName}.',
-              style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText, height: 1.4),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.secondaryText,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -872,7 +1054,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: 'Mobile Number',
-                prefixIcon: Icon(Icons.phone_iphone_rounded, color: AppTheme.primary),
+                prefixIcon: Icon(
+                  Icons.phone_iphone_rounded,
+                  color: AppTheme.primary,
+                ),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -883,13 +1068,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () async {
                   final phone = phoneCtrl.text.trim();
                   if (phone.length < 10) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a valid phone number')),
+                      const SnackBar(
+                        content: Text('Please enter a valid phone number'),
+                      ),
                     );
                     return;
                   }
@@ -910,13 +1099,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Saved! We will notify $phone when services launch in ${appLocation.cityName}.'),
+                        content: Text(
+                          'Saved! We will notify $phone when services launch in ${appLocation.cityName}.',
+                        ),
                         backgroundColor: AppTheme.success,
                       ),
                     );
                   }
                 },
-                child: const Text('Confirm Notification Alert', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+                child: const Text(
+                  'Confirm Notification Alert',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -924,5 +1121,4 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       ),
     );
   }
-
 }

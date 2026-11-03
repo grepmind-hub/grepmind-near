@@ -1,6 +1,6 @@
 FROM golang:1.22-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache postgresql-client ca-certificates && \
+RUN apk add --no-cache postgresql-client ca-certificates tzdata && \
     addgroup -S app && adduser -S app -G app
 
 # ---------------------------------------------------------------

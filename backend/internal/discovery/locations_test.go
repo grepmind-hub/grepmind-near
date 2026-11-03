@@ -21,3 +21,26 @@ func TestNearbyRejectsInvalidInputsBeforeDatabase(t *testing.T) {
 		})
 	}
 }
+
+func TestCityOffersRejectUnsupportedCityBeforeDatabase(t *testing.T) {
+	service := NewService(nil, nil)
+	for _, city := range []string{"", "Bhubaneswar", "Puri"} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/offers?city="+city, nil)
+		service.ListCityOffers(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("city %q: got %d want %d", city, rec.Code, http.StatusBadRequest)
+		}
+	}
+}
+
+func TestSupportedOfferCities(t *testing.T) {
+	for _, city := range []string{"Cuttack", "cuttack", " Jajpur "} {
+		if !isSupportedOfferCity(city) {
+			t.Errorf("expected supported city %q", city)
+		}
+	}
+	if isSupportedOfferCity("Bhubaneswar") {
+		t.Fatal("Bhubaneswar must not be accepted for the city offers feed")
+	}
+}

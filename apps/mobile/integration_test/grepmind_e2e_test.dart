@@ -30,15 +30,26 @@ void main() {
 
       // Enter phone number
       await tester.tap(find.byKey(const Key('phoneInput')));
-      await tester.enterText(find.byType(EditableText).last, '+919876543210');
+      final generatedDigits =
+          (DateTime.now().millisecondsSinceEpoch % 10000000000)
+              .toString()
+              .padLeft(10, '0');
+      await tester.enterText(
+        find.byType(EditableText).last,
+        '+91$generatedDigits',
+      );
 
       // Send OTP
       await tester.tap(find.byKey(const Key('sendOTPButton')));
       await tester.pumpAndSettle();
 
       // Enter OTP code
+      final localCodeLabel = tester.widget<Text>(
+        find.textContaining('Local development code:'),
+      );
+      final code = localCodeLabel.data!.split(': ').last;
       await tester.tap(find.byKey(const Key('otpInput')));
-      await tester.enterText(find.byType(EditableText).last, '123456');
+      await tester.enterText(find.byType(EditableText).last, code);
 
       // Verify OTP
       await tester.tap(find.byKey(const Key('verifyOTPButton')));

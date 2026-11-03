@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -49,7 +50,9 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Env:      getenv("APP_ENV", "local"),
+		// Fail closed when the environment is not explicitly marked local. The
+		// local Docker Compose stack sets APP_ENV=local by default.
+		Env:      getenv("APP_ENV", "production"),
 		Port:     getenv("APP_PORT", "8080"),
 		BaseURL:  getenv("APP_BASE_URL", "http://localhost:8080"),
 		LogLevel: getenv("LOG_LEVEL", "info"),
@@ -122,4 +125,19 @@ func parseInt(s string) int {
 
 func (c *Config) IsLocal() bool {
 	return strings.EqualFold(c.Env, "local")
+}
+
+// ValidateAuth rejects unsafe production authentication configuration before
+// the API starts listening. Development defaults remain available in local.
+func (c *Config) ValidateAuth() error {
+	if c == nil {
+		return errors.New("configuration is required")
+	}
+	if c.JWTAccessTTL <= 0 || c.JWTRefreshTTL <= 0 || c.OTPTTL <= 0 || c.OTPMaxAttempts <= 0 {
+		return errors.New("authentication expiries and attempt limits must be positive")
+	}
+	if !c.IsLocal() && (len(strings.TrimSpace(c.JWTSecret)) < 32 || c.JWTSecret == "replace-with-strong-secret-min-32-chars") {
+		return errors.New("JWT_SECRET must be explicitly configured with at least 32 characters outside local mode")
+	}
+	return nil
 }

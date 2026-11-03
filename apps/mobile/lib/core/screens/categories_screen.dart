@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 
 /// Screen 8: Categories Directory
@@ -183,7 +184,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -224,256 +225,285 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           child: Container(color: const Color(0xFFE4E7EC), height: 1),
         ),
       ),
-      body: Column(
-        children: [
-          // Search categories bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _searchQuery = v),
-                decoration: InputDecoration(
-                  hintText: 'Search categories or services...',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 14,
+      body: CustomScrollView(
+        key: const Key('categories_page_scroll'),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                // Search categories bar
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      decoration: InputDecoration(
+                        hintText: 'Search categories or services...',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 14,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFF94A3B8),
+                          size: 22,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  color: Color(0xFF94A3B8),
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 13,
+                        ),
+                      ),
+                    ),
                   ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: Color(0xFF94A3B8),
-                    size: 22,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.clear_rounded,
-                            color: Color(0xFF94A3B8),
-                            size: 18,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
                 ),
-              ),
-            ),
-          ),
 
-          // Horizontal section pill filter
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.only(bottom: 12),
-            child: SizedBox(
-              height: 38,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _sections.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, index) {
-                  final sec = _sections[index];
-                  final isSelected = _selectedSection == sec;
-                  return InkWell(
-                    onTap: () => setState(() => _selectedSection = sec),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppTheme.primary
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppTheme.primary
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Text(
-                        sec,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                          color: isSelected ? Colors.white : AppTheme.mainText,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: ScreenIllustrationCard(
+                    illustration: ScreenIllustration.discovery,
+                    title: 'Explore by category',
+                    subtitle:
+                        'Find local shops and services that fit your needs',
+                    icon: Icons.grid_view_rounded,
+                    compact: true,
+                  ),
+                ),
 
-          const Divider(height: 1, thickness: 1, color: Color(0xFFE4E7EC)),
-
-          // Categories directory list
-          Expanded(
-            child: catState.isLoading && allCategories.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary),
-                  )
-                : filteredCategories.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF1F5F9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.category_outlined,
-                            color: Color(0xFF94A3B8),
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'No categories found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Try adjusting your search query',
-                          style: TextStyle(
-                            color: AppTheme.secondaryText,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : SafeArea(
-                    top: false,
+                // Horizontal section pill filter
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SizedBox(
+                    height: 52,
                     child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                      itemCount: filteredCategories.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final category = filteredCategories[index];
-                        final icon = getCategoryIcon(category.slug);
-                        final color = getCategoryColor(category.slug);
-
-                        return InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SearchResultsScreen(
-                                  initialCategory: category.slug,
-                                  categoryName: category.name,
+                      key: const Key('category_section_filters'),
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _sections.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (_, index) {
+                        final sec = _sections[index];
+                        final isSelected = _selectedSection == sec;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedSection = sec),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primary
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppTheme.primary
+                                      : const Color(0xFFE2E8F0),
                                 ),
                               ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFFE4E7EC),
+                              child: Text(
+                                sec,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.mainText,
+                                ),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Icon(icon, color: color, size: 26),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        category.name,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppTheme.mainText,
-                                          letterSpacing: -0.2,
-                                        ),
-                                      ),
-                                      if (category.description != null &&
-                                          category.description!.isNotEmpty) ...[
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          category.description!,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.secondaryText,
-                                            height: 1.25,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: Color(0xFF64748B),
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         );
                       },
                     ),
                   ),
+                ),
+
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE4E7EC),
+                ),
+              ],
+            ),
           ),
+          // Results share the page scroll, so the complete screen scrolls as one surface.
+          if (catState.isLoading && allCategories.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.primary),
+              ),
+            )
+          else if (filteredCategories.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.category_outlined,
+                        color: Color(0xFF94A3B8),
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'No categories found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mainText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Try adjusting your search query',
+                      style: TextStyle(
+                        color: AppTheme.secondaryText,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final category = filteredCategories[index];
+                  final icon = getCategoryIcon(category.slug);
+                  final color = getCategoryColor(category.slug);
+
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SearchResultsScreen(
+                            initialCategory: category.slug,
+                            categoryName: category.name,
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE4E7EC)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(icon, color: color, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.mainText,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                if (category.description != null &&
+                                    category.description!.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    category.description!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondaryText,
+                                      height: 1.25,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFF64748B),
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }, childCount: filteredCategories.length),
+              ),
+            ),
         ],
       ),
     );
