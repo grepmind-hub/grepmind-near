@@ -143,7 +143,7 @@ func (s *Service) GetStats(w http.ResponseWriter, r *http.Request, adminUserID s
 		 (SELECT COUNT(*) FROM customer_orders co JOIN businesses b ON b.id=co.business_id WHERE co.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city) = lower($1))),
 		 (SELECT COUNT(*) FROM users WHERE status='active'),
 		 (SELECT COUNT(*) FROM notifications n LEFT JOIN businesses b ON b.id=n.business_id WHERE n.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR n.business_id IS NULL OR lower(b.city) = lower($1)))
-	`).Scan(&stats.PendingVerifications, &stats.ReportedListings, &stats.PendingOffers, &stats.ActiveListings, &stats.PendingClaims, &stats.ServiceRequests, &stats.CustomerOrders, &stats.ActiveAccounts, &stats.NotificationEvents)
+	`, city, days).Scan(&stats.PendingVerifications, &stats.ReportedListings, &stats.PendingOffers, &stats.ActiveListings, &stats.PendingClaims, &stats.ServiceRequests, &stats.CustomerOrders, &stats.ActiveAccounts, &stats.NotificationEvents)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load operational statistics.")
 		return

@@ -34,7 +34,7 @@ api.interceptors.response.use((response) => response, async (error) => {
   const refreshToken = sessionStorage.getItem('admin_refresh_token');
   if (!refreshToken) {
     clearAuthToken();
-    window.location.assign('/login');
+    window.location.assign('/admin/login');
     return Promise.reject(error);
   }
   refreshInFlight ??= axios.post(`${baseURL}/auth/refresh`, { refresh_token: refreshToken }).then((res) => {
@@ -45,7 +45,7 @@ api.interceptors.response.use((response) => response, async (error) => {
     return nextAccess;
   }).catch(() => {
     clearAuthToken();
-    window.location.assign('/login');
+    window.location.assign('/admin/login');
     return null;
   }).finally(() => { refreshInFlight = null; });
   const token = await refreshInFlight;

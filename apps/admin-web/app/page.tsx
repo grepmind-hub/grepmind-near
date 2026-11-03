@@ -57,7 +57,7 @@ export default function AdminPortalPage() {
   // Load only API-backed operational data; authentication is handled by OTP.
   const initSessionAndLoad = useCallback(async () => {
     if (!hasAuthToken()) {
-      if (typeof window !== 'undefined') window.location.replace('/login');
+      if (typeof window !== 'undefined') window.location.replace('/admin/login');
       return;
     }
     setIsRefreshing(true);
@@ -176,7 +176,7 @@ export default function AdminPortalPage() {
   function handleSignOut() {
     void api.post('/auth/logout').catch(() => undefined).finally(() => {
       setAuthToken(null);
-      if (typeof window !== 'undefined') window.location.replace('/login');
+      if (typeof window !== 'undefined') window.location.replace('/admin/login');
     });
   }
 
@@ -199,7 +199,7 @@ export default function AdminPortalPage() {
           currentTab={currentTab}
           onSelectTab={(tab) => {
             if (tab === 'claims') {
-              window.location.assign('/dashboard/businesses');
+              window.location.assign('/admin/dashboard/businesses');
               return;
             }
             setCurrentTab(tab);
