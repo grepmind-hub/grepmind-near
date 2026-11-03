@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdminHeader } from '@/components/AdminHeader';
 import { AdminSidebar, AdminTab } from '@/components/AdminSidebar';
 import { GraphicalMetricsView } from '@/components/GraphicalMetricsView';
@@ -38,6 +39,7 @@ import {
 } from '@/lib/api';
 
 export default function AdminPortalPage() {
+  const router = useRouter();
   const [currentTab, setCurrentTab] = useState<AdminTab>('overview');
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [selectedRange, setSelectedRange] = useState<'7d' | '14d' | '30d'>('14d');
@@ -89,7 +91,11 @@ export default function AdminPortalPage() {
   }, [selectedCity, selectedRange]);
 
   useEffect(() => {
-    initSessionAndLoad();
+    let active = true;
+    queueMicrotask(() => {
+      if (active) void initSessionAndLoad();
+    });
+    return () => { active = false; };
   }, [initSessionAndLoad]);
 
   // Handlers for moderation actions
@@ -199,7 +205,7 @@ export default function AdminPortalPage() {
           currentTab={currentTab}
           onSelectTab={(tab) => {
             if (tab === 'claims') {
-              window.location.assign('/admin/dashboard/businesses');
+              router.push('/dashboard/businesses');
               return;
             }
             setCurrentTab(tab);

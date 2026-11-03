@@ -29,12 +29,17 @@ export default function OffersPage() {
   }, [filter])
 
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-    loadOffers()
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      const token = sessionStorage.getItem('admin_access_token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+      void loadOffers()
+    })
+    return () => { active = false }
   }, [router, loadOffers])
 
   async function handleApprove(id: string) {

@@ -186,7 +186,11 @@ jobs:
 
       - name: Install admin-web dependencies
         working-directory: apps/admin-web
-        run: npm install
+        run: npm ci
+
+      - name: Install Admin Playwright browser
+        working-directory: apps/admin-web
+        run: npx playwright install --with-deps chromium
 
       - name: Run merchant-web tests
         working-directory: apps/merchant-web

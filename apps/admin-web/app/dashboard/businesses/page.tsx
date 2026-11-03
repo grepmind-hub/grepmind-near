@@ -47,13 +47,18 @@ export default function BusinessesPage() {
   }, [])
 
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-    loadBusinesses()
-    loadClaims()
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      const token = sessionStorage.getItem('admin_access_token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+      void loadBusinesses()
+      void loadClaims()
+    })
+    return () => { active = false }
   }, [router, loadBusinesses, loadClaims])
 
   async function handleClaimDecision(claim: BusinessClaim, decision: 'approve' | 'reject') {

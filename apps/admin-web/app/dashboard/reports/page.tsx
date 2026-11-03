@@ -29,12 +29,17 @@ export default function ReportsPage() {
   }, [filter])
 
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-    loadReports()
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      const token = sessionStorage.getItem('admin_access_token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+      void loadReports()
+    })
+    return () => { active = false }
   }, [router, loadReports])
 
   async function handleResolve(id: string, resolution: 'action_taken' | 'dismissed') {

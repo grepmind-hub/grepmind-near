@@ -27,12 +27,17 @@ export default function AuditLogsPage() {
   }, [])
 
   useEffect(() => {
-    const token = sessionStorage.getItem('admin_access_token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-    loadLogs()
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      const token = sessionStorage.getItem('admin_access_token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+      void loadLogs()
+    })
+    return () => { active = false }
   }, [router, loadLogs])
 
   const getActionBadge = (action: string) => {
