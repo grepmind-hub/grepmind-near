@@ -2183,235 +2183,230 @@ class _MerchantRegistrationScreenState
   // Claim Existing Listing View
   // -------------------------------------------------------------
   Widget _buildClaimListingView() {
-    return SingleChildScrollView(
+    return ListView(
       key: const ValueKey('claim_listings'),
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Banner Notice
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Icon(Icons.info_outline, color: AppTheme.primary, size: 20),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Search approved business listings in Cuttack and Jajpur. You can request a review; ownership changes only after an administrator verifies the claim.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF1E3A8A),
-                      height: 1.35,
-                    ),
+      children: [
+        // Banner Notice
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFBFDBFE)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Icon(Icons.info_outline, color: AppTheme.primary, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Search approved business listings in Cuttack and Jajpur. You can request a review; ownership changes only after an administrator verifies the claim.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF1E3A8A),
+                    height: 1.35,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        if (_myClaimRequests.isNotEmpty) ...[
+          const Text(
+            'Your claim requests',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.mainText,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          ..._myClaimRequests.take(3).map((claim) {
+            final status = claim['status'] as String? ?? 'pending';
+            final approved = status == 'approved';
+            final rejected = status == 'rejected';
+            final color = approved
+                ? const Color(0xFF15803D)
+                : rejected
+                ? const Color(0xFFB42318)
+                : AppTheme.primary;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    approved
+                        ? Icons.check_circle_outline
+                        : rejected
+                        ? Icons.info_outline
+                        : Icons.hourglass_top_rounded,
+                    color: color,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          claim['business_name'] as String? ?? 'Business',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          rejected
+                              ? 'Request declined · Contact support for details'
+                              : approved
+                              ? 'Ownership review approved'
+                              : 'Waiting for administrator review',
+                          style: TextStyle(color: color, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    status.toUpperCase(),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 10),
+        ],
 
-          if (_myClaimRequests.isNotEmpty) ...[
+        // Search Field
+        TextField(
+          controller: _searchClaimController,
+          decoration: InputDecoration(
+            hintText: 'Search name, category or locality...',
+            prefixIcon: const Icon(Icons.search),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             const Text(
-              'Your claim requests',
+              'Available listings for claim',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.mainText,
               ),
             ),
-            const SizedBox(height: 8),
-            ..._myClaimRequests.take(3).map((claim) {
-              final status = claim['status'] as String? ?? 'pending';
-              final approved = status == 'approved';
-              final rejected = status == 'rejected';
-              final color = approved
-                  ? const Color(0xFF15803D)
-                  : rejected
-                  ? const Color(0xFFB42318)
-                  : AppTheme.primary;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      approved
-                          ? Icons.check_circle_outline
-                          : rejected
-                          ? Icons.info_outline
-                          : Icons.hourglass_top_rounded,
-                      color: color,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            claim['business_name'] as String? ?? 'Business',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Text(
-                            rejected
-                                ? 'Request declined · Contact support for details'
-                                : approved
-                                ? 'Ownership review approved'
-                                : 'Waiting for administrator review',
-                            style: TextStyle(color: color, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      status.toUpperCase(),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 10),
-          ],
-
-          // Search Field
-          TextField(
-            controller: _searchClaimController,
-            decoration: InputDecoration(
-              hintText: 'Search name, category or locality...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+            Text(
+              _claimSearchLoading
+                  ? 'Searching…'
+                  : '${_filteredClaimable.length} found',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.secondaryText,
               ),
-              filled: true,
-              fillColor: Colors.white,
             ),
-          ),
-          const SizedBox(height: 18),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Available listings for claim',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
-                ),
+        if (_claimSearchLoading && _filteredClaimable.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_claimSearchError != null)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.cloud_off_outlined,
+                    size: 42,
+                    color: AppTheme.hintText,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_claimSearchError!, textAlign: TextAlign.center),
+                  TextButton(
+                    onPressed: () =>
+                        _loadClaimableListings(_searchClaimController.text),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
-              Text(
-                _claimSearchLoading
-                    ? 'Searching…'
-                    : '${_filteredClaimable.length} found',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.secondaryText,
-                ),
+            ),
+          )
+        else if (_searchClaimController.text.trim().length < 2)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 34),
+              child: Text(
+                'Enter at least 2 characters to search approved listings.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.secondaryText),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          if (_claimSearchLoading && _filteredClaimable.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_claimSearchError != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 28),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.cloud_off_outlined,
-                      size: 42,
-                      color: AppTheme.hintText,
+            ),
+          )
+        else if (_filteredClaimable.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.search_off,
+                    size: 48,
+                    color: AppTheme.hintText,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'No matching listing found',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Try a different business name, category or locality.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.secondaryText,
                     ),
-                    const SizedBox(height: 8),
-                    Text(_claimSearchError!, textAlign: TextAlign.center),
-                    TextButton(
-                      onPressed: () =>
-                          _loadClaimableListings(_searchClaimController.text),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => setState(() => _mode = 0),
+                    child: const Text('Register as New Business'),
+                  ),
+                ],
               ),
-            )
-          else if (_searchClaimController.text.trim().length < 2)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 34),
-                child: Text(
-                  'Enter at least 2 characters to search approved listings.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.secondaryText),
-                ),
-              ),
-            )
-          else if (_filteredClaimable.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.search_off,
-                      size: 48,
-                      color: AppTheme.hintText,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'No matching listing found',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Try a different business name, category or locality.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryText,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => setState(() => _mode = 0),
-                      child: const Text('Register as New Business'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            for (final item in _filteredClaimable)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildClaimCard(item),
-              ),
-          const SizedBox(height: 40),
-        ],
-      ),
+            ),
+          )
+        else
+          for (final item in _filteredClaimable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildClaimCard(item),
+            ),
+        const SizedBox(height: 40),
+      ],
     );
   }
 
@@ -2420,84 +2415,51 @@ class _MerchantRegistrationScreenState
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.store,
-                  color: AppTheme.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${item['category']} • ${item['locality']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            item['name'] as String,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppTheme.mainText,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Approved listing · ${item['city'] ?? 'Odisha'}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.hintText,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 4),
+          Text(
+            '${item['category']} • ${item['locality']}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Approved listing · ${item['city'] ?? 'Odisha'}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppTheme.hintText, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              SizedBox(
-                height: 36,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
-                  onPressed: () => _showClaimConfirmationSheet(item),
-                  icon: const Icon(Icons.verified_outlined, size: 14),
-                  label: const Text(
-                    'Request review',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                  ),
-                ),
+              onPressed: () => _showClaimConfirmationSheet(item),
+              icon: const Icon(Icons.verified_outlined, size: 16),
+              label: const Text(
+                'Request review',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
-            ],
+            ),
           ),
         ],
       ),
