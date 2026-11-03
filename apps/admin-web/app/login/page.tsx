@@ -9,6 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { api, setAuthToken } from '@/lib/api'
 
+function createIdempotencyKey(): string {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
+  if (!globalThis.crypto?.getRandomValues) throw new Error('Secure randomness is unavailable.')
+
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export default function LoginPage() {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
@@ -41,7 +52,7 @@ export default function LoginPage() {
       const res = await api.post('/auth/otp/verify', {
         phone_e164: phone,
         otp_code: otp,
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: createIdempotencyKey(),
       })
       const data = res.data?.data
       if (!data?.user?.roles?.includes('admin')) {
