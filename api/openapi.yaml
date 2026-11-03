@@ -1656,37 +1656,26 @@ paths:
   # ---------------------------------------------------------------
   # Administration
   # ---------------------------------------------------------------
-  /admin/session:
-    post:
-      summary: Direct administrator authentication
-      tags: [admin]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [phone_e164]
-              properties:
-                phone_e164:
-                  type: string
-                  example: "+910000000000"
-                password:
-                  type: string
-      responses:
-        '200':
-          description: Session established
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthSession'
-
   /admin/stats:
     get:
-      summary: Operational counts and metrics
+      summary: Database-backed operational counts
       tags: [admin]
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: city
+          schema:
+            type: string
+            enum: [Cuttack, Jajpur]
+          description: Optional market city filter.
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [7d, 14d, 30d]
+            default: 14d
+          description: Time window for service request and order counts.
       responses:
         '200':
           description: Operational statistics
@@ -2869,6 +2858,9 @@ components:
         business_id:
           type: string
           format: uuid
+        business_name:
+          type: string
+          description: Present on administrator offer-list responses.
         title:
           type: string
         description:
@@ -3089,33 +3081,13 @@ components:
         active_listings:
           type: integer
           example: 12
-
-    Offer:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        business_id:
-          type: string
-          format: uuid
-        business_name:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-          nullable: true
-        discount_percent:
+        pending_claims:
           type: integer
-          nullable: true
-        starts_at:
-          type: string
-          format: date-time
-        ends_at:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [draft, active, expired, rejected, archived]
-
+        service_requests:
+          type: integer
+        customer_orders:
+          type: integer
+        active_accounts:
+          type: integer
+        notification_events:
+          type: integer

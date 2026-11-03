@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Activity, RefreshCw, LogOut, Bell, Sparkles } from 'lucide-react';
+import { ShieldCheck, RefreshCw, LogOut } from 'lucide-react';
 
 interface AdminHeaderProps {
   selectedCity: string;
@@ -41,15 +41,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </div>
         </div>
 
-        {/* Live Service Health Pill */}
-        <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/70 px-3 py-1 lg:flex">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-medium text-emerald-800">
-            Platform Operational • 14ms latency
-          </span>
+        <div className="hidden items-center gap-2 rounded-full border border-blue-100 bg-blue-50/70 px-3 py-1 lg:flex">
+          <ShieldCheck className="h-3.5 w-3.5 text-[#2457D6]" />
+          <span className="text-xs font-medium text-[#2457D6]">Authenticated workspace</span>
         </div>
       </div>
 
@@ -107,12 +101,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             </div>
             <div className="hidden md:block text-left">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-[#172033]">Platform Admin</span>
+                <span className="text-xs font-semibold text-[#172033]">Admin session</span>
                 <span className="rounded bg-[#0F766E]/10 px-1.5 py-0.2 text-[9px] font-bold text-[#0F766E]">
-                  SUPERUSER
+                  VERIFIED
                 </span>
               </div>
-              <div className="text-[10px] text-[#667085]">+91 00000 00000</div>
+              <div className="text-[10px] text-[#667085]">Role checked by API</div>
             </div>
           </div>
 

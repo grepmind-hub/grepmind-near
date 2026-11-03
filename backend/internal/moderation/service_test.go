@@ -144,3 +144,29 @@ func TestAdminJWTTokenClaims(t *testing.T) {
 		t.Errorf("expected role 'admin', got '%v'", claims["role"])
 	}
 }
+
+func TestParseStatsFilters(t *testing.T) {
+	tests := []struct {
+		name, city, period string
+		wantCity string
+		wantDays int
+		wantErr bool
+	}{
+		{name: "default", wantDays: 14},
+		{name: "Cuttack 7 days", city: "Cuttack", period: "7d", wantCity: "Cuttack", wantDays: 7},
+		{name: "Jajpur 30 days", city: "Jajpur", period: "30d", wantCity: "Jajpur", wantDays: 30},
+		{name: "reject unsupported city", city: "Unknown City", period: "14d", wantErr: true},
+		{name: "reject unbounded period", city: "Cuttack", period: "365d", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			city, days, err := parseStatsFilters(tt.city, tt.period)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil && (city != tt.wantCity || days != tt.wantDays) {
+				t.Fatalf("got (%q, %d), want (%q, %d)", city, days, tt.wantCity, tt.wantDays)
+			}
+		})
+	}
+}

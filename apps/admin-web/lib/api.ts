@@ -15,7 +15,7 @@ export const api: AxiosInstance = axios.create({
 // Dynamic request interceptor to always attach active auth token
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('admin_token');
+    const token = sessionStorage.getItem('admin_access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,18 +23,60 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export function setAuthToken(token: string | null) {
+let refreshInFlight: Promise<string | null> | null = null;
+
+api.interceptors.response.use((response) => response, async (error) => {
+  const original = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+  if (typeof window === 'undefined' || error.response?.status !== 401 || !original || original._retried || original.url?.includes('/auth/')) {
+    return Promise.reject(error);
+  }
+  original._retried = true;
+  const refreshToken = sessionStorage.getItem('admin_refresh_token');
+  if (!refreshToken) {
+    clearAuthToken();
+    window.location.assign('/login');
+    return Promise.reject(error);
+  }
+  refreshInFlight ??= axios.post(`${baseURL}/auth/refresh`, { refresh_token: refreshToken }).then((res) => {
+    const nextAccess = res.data?.data?.access_token as string | undefined;
+    const nextRefresh = res.data?.data?.refresh_token as string | undefined;
+    if (!nextAccess || !nextRefresh) throw new Error('Session refresh response was incomplete.');
+    setAuthToken(nextAccess, nextRefresh);
+    return nextAccess;
+  }).catch(() => {
+    clearAuthToken();
+    window.location.assign('/login');
+    return null;
+  }).finally(() => { refreshInFlight = null; });
+  const token = await refreshInFlight;
+  if (!token) return Promise.reject(error);
+  original.headers = original.headers ?? {};
+  original.headers.Authorization = `Bearer ${token}`;
+  return api(original);
+});
+
+export function setAuthToken(token: string | null, refreshToken?: string | null) {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('admin_token', token);
+      sessionStorage.setItem('admin_access_token', token);
+      if (refreshToken) sessionStorage.setItem('admin_refresh_token', refreshToken);
     }
   } else {
-    delete api.defaults.headers.common['Authorization'];
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-    }
+    clearAuthToken();
   }
+}
+
+function clearAuthToken() {
+  delete api.defaults.headers.common['Authorization'];
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem('admin_access_token');
+    sessionStorage.removeItem('admin_refresh_token');
+  }
+}
+
+export function hasAuthToken(): boolean {
+  return typeof window !== 'undefined' && Boolean(sessionStorage.getItem('admin_access_token'));
 }
 
 export interface Paged<T> {
@@ -47,6 +89,11 @@ export interface Stats {
   reported_listings: number;
   pending_offers: number;
   active_listings: number;
+  pending_claims: number;
+  service_requests: number;
+  customer_orders: number;
+  active_accounts: number;
+  notification_events: number;
 }
 
 export interface Business {
@@ -123,50 +170,24 @@ export interface AdminUser {
   created_at: string;
 }
 
-// ---------- Fallback seed data for resilience ----------
-const FALLBACK_BUSINESSES: Business[] = [];
-
-const FALLBACK_REPORTS: Report[] = [];
-
-const FALLBACK_OFFERS: Offer[] = [];
-
-const FALLBACK_AUDIT_LOGS: AuditLog[] = [];
-
 // ---------- API client methods ----------
 
-export async function getStats(): Promise<Stats> {
-  try {
-    const res = await api.get<{ data: Stats }>('/admin/stats');
-    return res.data.data;
-  } catch {
-    return {
-      pending_verifications: 0,
-      reported_listings: 0,
-      pending_offers: 0,
-      active_listings: 0,
-    };
-  }
+export async function getStats(city: string, range: string): Promise<Stats> {
+  const params: Record<string, string> = { range };
+  if (city !== 'All Cities') params.city = city;
+  const res = await api.get<{ data: Stats }>('/admin/stats', { params });
+  return res.data.data;
 }
 
 export async function getPendingBusinesses(): Promise<Business[]> {
-  try {
-    const res = await api.get<{ data: Business[] }>('/admin/businesses/pending');
-    if (res.data?.data && res.data.data.length > 0) return res.data.data;
-    return FALLBACK_BUSINESSES.filter((b) => b.status === 'pending');
-  } catch {
-    return FALLBACK_BUSINESSES.filter((b) => b.status === 'pending');
-  }
+  const res = await api.get<{ data: Business[] }>('/admin/businesses/pending');
+  return res.data.data ?? [];
 }
 
 export async function getAllBusinesses(status?: string): Promise<Business[]> {
-  try {
-    const params = status && status !== 'all' ? { status } : {};
-    const res = await api.get<{ data: Business[] }>('/admin/businesses', { params });
-    if (res.data?.data && res.data.data.length > 0) return res.data.data;
-    return FALLBACK_BUSINESSES;
-  } catch {
-    return FALLBACK_BUSINESSES;
-  }
+  const params = status && status !== 'all' ? { status } : {};
+  const res = await api.get<{ data: Business[] }>('/admin/businesses', { params });
+  return res.data.data ?? [];
 }
 
 export async function approveBusiness(id: string, reason?: string) {
@@ -195,14 +216,9 @@ export async function decideBusinessClaim(id: string, decision: 'approve' | 'rej
 }
 
 export async function getReports(status?: string): Promise<Report[]> {
-  try {
-    const params = status && status !== 'all' ? { status } : {};
-    const res = await api.get<{ data: Report[] }>('/admin/reports', { params });
-    if (res.data?.data && res.data.data.length > 0) return res.data.data;
-    return FALLBACK_REPORTS;
-  } catch {
-    return FALLBACK_REPORTS;
-  }
+  const params = status && status !== 'all' ? { status } : {};
+  const res = await api.get<{ data: Report[] }>('/admin/reports', { params });
+  return res.data.data ?? [];
 }
 
 export async function resolveReport(id: string, resolution: 'action_taken' | 'dismissed', reason?: string) {
@@ -211,14 +227,9 @@ export async function resolveReport(id: string, resolution: 'action_taken' | 'di
 }
 
 export async function getOffers(status?: string): Promise<Offer[]> {
-  try {
-    const params = status && status !== 'all' ? { status } : {};
-    const res = await api.get<{ data: Offer[] }>('/admin/offers', { params });
-    if (res.data?.data && res.data.data.length > 0) return res.data.data;
-    return FALLBACK_OFFERS;
-  } catch {
-    return FALLBACK_OFFERS;
-  }
+  const params = status && status !== 'all' ? { status } : {};
+  const res = await api.get<{ data: Offer[] }>('/admin/offers', { params });
+  return res.data.data ?? [];
 }
 
 export async function approveOffer(id: string) {
@@ -232,21 +243,13 @@ export async function rejectOffer(id: string) {
 }
 
 export async function getAuditLogs(): Promise<AuditLog[]> {
-  try {
-    const res = await api.get<{ data: AuditLog[] }>('/admin/audit-logs');
-    if (res.data?.data && res.data.data.length > 0) return res.data.data;
-    return FALLBACK_AUDIT_LOGS;
-  } catch {
-    return FALLBACK_AUDIT_LOGS;
-  }
+  const res = await api.get<{ data: AuditLog[] }>('/admin/audit-logs');
+  return res.data.data ?? [];
 }
 
 export async function getAdmins(): Promise<AdminUser[]> {
-  try {
-    const res = await api.get<{ data: AdminUser[] }>('/admin/admins');
-    return res.data.data ?? [];
-  } catch { return [];
-  }
+  const res = await api.get<{ data: AdminUser[] }>('/admin/admins');
+  return res.data.data ?? [];
 }
 
 export async function addAdmin(phone_e164: string, display_name?: string): Promise<AdminUser> {

@@ -15,17 +15,20 @@ export default function BusinessesPage() {
   const [claimsLoading, setClaimsLoading] = useState(true)
   const [claimsError, setClaimsError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [businessesError, setBusinessesError] = useState<string | null>(null)
   const [filter, setFilter] = useState('all')
   const [actionId, setActionId] = useState<string | null>(null)
   const router = useRouter()
 
   const loadBusinesses = useCallback(async () => {
     setLoading(true)
+    setBusinessesError(null)
     try {
       const list = await getAllBusinesses(filter)
       setBusinesses(list)
     } catch (err) {
       console.error(err)
+      setBusinessesError('Business listings could not be loaded from the API.')
     } finally {
       setLoading(false)
     }
@@ -44,7 +47,7 @@ export default function BusinessesPage() {
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
+    const token = sessionStorage.getItem('admin_access_token')
     if (!token) {
       router.push('/login')
       return
@@ -154,7 +157,9 @@ export default function BusinessesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {businessesError ? (
+            <div role="alert" className="py-12 text-center text-sm text-rose-700">{businessesError} <button className="ml-2 font-semibold underline" onClick={loadBusinesses}>Retry</button></div>
+          ) : loading ? (
             <div className="py-16 text-center text-sm text-[#667085]">
               Loading business listings...
             </div>

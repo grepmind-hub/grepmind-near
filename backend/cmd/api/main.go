@@ -312,7 +312,6 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("POST /api/v1/admin/business-claims/{id}/decision", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, adminID string) {
 		claimsSvc.Decide(w, r, adminID)
 	}))
-	mux.HandleFunc("POST /api/v1/admin/session", modSvc.AdminSession)
 	mux.HandleFunc("GET /api/v1/admin/stats", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.GetStats(w, r, uid)
 	}))

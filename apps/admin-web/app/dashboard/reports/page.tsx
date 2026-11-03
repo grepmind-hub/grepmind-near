@@ -29,7 +29,7 @@ export default function ReportsPage() {
   }, [filter])
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
+    const token = sessionStorage.getItem('admin_access_token')
     if (!token) {
       router.push('/login')
       return

@@ -13,6 +13,7 @@ import { AdminUsersView } from '@/components/AdminUsersView';
 import {
   api,
   setAuthToken,
+  hasAuthToken,
   getStats,
   getPendingBusinesses,
   getAllBusinesses,
@@ -41,14 +42,11 @@ export default function AdminPortalPage() {
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [selectedRange, setSelectedRange] = useState<'7d' | '14d' | '30d'>('14d');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Live state from API
-  const [stats, setStats] = useState<Stats>({
-    pending_verifications: 4,
-    reported_listings: 2,
-    pending_offers: 2,
-    active_listings: 10,
-  });
+  const [stats, setStats] = useState<Stats | null>(null);
   const [pendingBusinesses, setPendingBusinesses] = useState<Business[]>([]);
   const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -56,40 +54,23 @@ export default function AdminPortalPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
 
-  // Authenticate session and load data
+  // Load only API-backed operational data; authentication is handled by OTP.
   const initSessionAndLoad = useCallback(async () => {
+    if (!hasAuthToken()) {
+      if (typeof window !== 'undefined') window.location.replace('/login');
+      return;
+    }
     setIsRefreshing(true);
+    setLoadError(null);
     try {
-      let token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-
-      // Ensure valid session token via Go backend
-      if (!token) {
-        try {
-          const authRes = await api.post('/admin/session', {
-            email: 'admin@grepmind.local',
-            password: 'replace-me',
-          });
-          token = authRes.data?.data?.access_token;
-          if (token) setAuthToken(token);
-        } catch (e) {
-          console.warn('Admin auto-session failed, using existing token if available:', e);
-        }
-      }
-
-      // Fetch live records from Go backend
       const [s, p, b, r, o, l, a] = await Promise.all([
-        getStats().catch(() => ({
-          pending_verifications: 4,
-          reported_listings: 2,
-          pending_offers: 2,
-          active_listings: 10,
-        })),
-        getPendingBusinesses().catch(() => []),
-        getAllBusinesses('all').catch(() => []),
-        getReports('all').catch(() => []),
-        getOffers('all').catch(() => []),
-        getAuditLogs().catch(() => []),
-        getAdmins().catch(() => []),
+        getStats(selectedCity, selectedRange),
+        getPendingBusinesses(),
+        getAllBusinesses('all'),
+        getReports('all'),
+        getOffers('all'),
+        getAuditLogs(),
+        getAdmins(),
       ]);
 
       setStats(s);
@@ -101,31 +82,34 @@ export default function AdminPortalPage() {
       setAdmins(a);
     } catch (err) {
       console.error('Data load error:', err);
+      setLoadError('Live platform data could not be loaded. Check the API connection and refresh.');
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [selectedCity, selectedRange]);
 
   useEffect(() => {
     initSessionAndLoad();
   }, [initSessionAndLoad]);
 
   // Handlers for moderation actions
-  async function handleApproveBusiness(id: string) {
+  async function handleApproveBusiness(id: string, reason = 'Approved via Admin business registry') {
     try {
-      await approveBusiness(id, 'Approved via Admin KYC Hub');
+      await approveBusiness(id, reason);
       await initSessionAndLoad();
     } catch (e) {
       console.error('Approve failed:', e);
+      setActionError('Business approval failed. No successful update was confirmed.');
     }
   }
 
-  async function handleVerifyBusiness(id: string) {
+  async function handleVerifyBusiness(id: string, reason = 'Verification status updated via Admin business registry') {
     try {
-      await verifyBusiness(id, 'verified', 'Physical and trade credentials verified');
+      await verifyBusiness(id, 'verified', reason);
       await initSessionAndLoad();
     } catch (e) {
       console.error('Verify failed:', e);
+      setActionError('Business verification failed. No successful update was confirmed.');
     }
   }
 
@@ -135,6 +119,7 @@ export default function AdminPortalPage() {
       await initSessionAndLoad();
     } catch (e) {
       console.error('Reject failed:', e);
+      setActionError('Business rejection failed. No successful update was confirmed.');
     }
   }
 
@@ -144,6 +129,7 @@ export default function AdminPortalPage() {
       await initSessionAndLoad();
     } catch (e) {
       console.error('Report resolution failed:', e);
+      setActionError('Report resolution failed. No successful update was confirmed.');
     }
   }
 
@@ -153,6 +139,7 @@ export default function AdminPortalPage() {
       await initSessionAndLoad();
     } catch (e) {
       console.error('Offer approval failed:', e);
+      setActionError('Offer approval failed. No successful update was confirmed.');
     }
   }
 
@@ -162,6 +149,7 @@ export default function AdminPortalPage() {
       await initSessionAndLoad();
     } catch (e) {
       console.error('Offer rejection failed:', e);
+      setActionError('Offer rejection failed. No successful update was confirmed.');
     }
   }
 
@@ -186,12 +174,10 @@ export default function AdminPortalPage() {
   }
 
   function handleSignOut() {
-    setAuthToken(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-    }
-    // Re-authenticate cleanly
-    initSessionAndLoad();
+    void api.post('/auth/logout').catch(() => undefined).finally(() => {
+      setAuthToken(null);
+      if (typeof window !== 'undefined') window.location.replace('/login');
+    });
   }
 
   return (
@@ -211,15 +197,25 @@ export default function AdminPortalPage() {
       <div className="flex flex-1 overflow-hidden">
         <AdminSidebar
           currentTab={currentTab}
-          onSelectTab={setCurrentTab}
-          pendingCount={stats.pending_verifications}
-          reportsCount={stats.reported_listings}
-          offersCount={stats.pending_offers}
+          onSelectTab={(tab) => {
+            if (tab === 'claims') {
+              window.location.assign('/dashboard/businesses');
+              return;
+            }
+            setCurrentTab(tab);
+          }}
+          pendingCount={stats?.pending_verifications ?? 0}
+          reportsCount={stats?.reported_listings ?? 0}
+          offersCount={stats?.pending_offers ?? 0}
         />
 
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          {actionError && <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{actionError}</span><button onClick={() => setActionError(null)} className="min-h-10 rounded-lg px-3 font-semibold">Dismiss</button></div>}
+          {loadError && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{loadError}</span><button onClick={() => void initSessionAndLoad()} className="min-h-10 rounded-lg bg-white px-4 font-semibold text-rose-700 shadow-sm">Retry</button></div>}
+          {!loadError && !stats && <div className="mb-5 animate-pulse rounded-2xl border border-[#E4E7EC] bg-white p-5 text-sm text-[#667085]">Loading live operational data…</div>}
           {currentTab === 'overview' && (
             <GraphicalMetricsView
+              stats={stats}
               selectedCity={selectedCity}
               selectedRange={selectedRange}
               onNavigateTab={(tab) => setCurrentTab(tab)}

@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 )
@@ -34,6 +32,11 @@ type Stats struct {
 	ReportedListings     int `json:"reported_listings"`
 	PendingOffers        int `json:"pending_offers"`
 	ActiveListings       int `json:"active_listings"`
+	PendingClaims        int `json:"pending_claims"`
+	ServiceRequests      int `json:"service_requests"`
+	CustomerOrders       int `json:"customer_orders"`
+	ActiveAccounts       int `json:"active_accounts"`
+	NotificationEvents   int `json:"notification_events"`
 }
 
 type AdminBusiness struct {
@@ -121,99 +124,52 @@ func (s *Service) logAudit(ctx context.Context, actorID, action, targetType, tar
 
 // ---------- Handlers ----------
 
-// AdminSession allows platform administrators to log in to admin-web.
-func (s *Service) AdminSession(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
-
-	// Fetch or ensure admin user exists
-	var adminID, phone string
-	err := s.db.QueryRowxContext(r.Context(), `
-		SELECT u.id, u.phone_e164
-		FROM users u
-		JOIN user_roles ur ON ur.user_id = u.id
-		WHERE ur.role = 'admin'
-		LIMIT 1
-	`).Scan(&adminID, &phone)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// Create seed admin if not found
-			err = s.db.QueryRowxContext(r.Context(), `
-				INSERT INTO users (phone_e164, display_name, status, preferred_language)
-				VALUES ('+910000000000', 'Platform Admin', 'active', 'en')
-				ON CONFLICT (phone_e164) DO UPDATE SET updated_at = now()
-				RETURNING id, phone_e164
-			`).Scan(&adminID, &phone)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get admin user.")
-				return
-			}
-			_, _ = s.db.ExecContext(r.Context(), `
-				INSERT INTO user_roles (user_id, role) VALUES ($1, 'admin')
-				ON CONFLICT DO NOTHING
-			`, adminID)
-		} else {
-			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Database error.")
-			return
-		}
-	}
-
-	// Issue token with admin claim
-	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Subject:   adminID,
-		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-		Issuer:    "grepmind-near",
-	}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.JWTSecret))
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to issue token.")
-		return
-	}
-
-	writeJSON(w, http.StatusOK, envelope{
-		"data": map[string]interface{}{
-			"access_token": token,
-			"user": map[string]interface{}{
-				"id":           adminID,
-				"phone_e164":   phone,
-				"display_name": "Platform Admin",
-				"roles":        []string{"admin"},
-			},
-		},
-		"meta": map[string]string{"request_id": "admin-session"},
-	})
-}
-
 // GetStats returns counts for the admin dashboard.
 func (s *Service) GetStats(w http.ResponseWriter, r *http.Request, adminUserID string) {
 	var stats Stats
-
-	_ = s.db.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM businesses
-		WHERE status = 'pending_review' OR verification_status = 'pending'
-	`).Scan(&stats.PendingVerifications)
-
-	_ = s.db.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM reports WHERE status = 'open'
-	`).Scan(&stats.ReportedListings)
-
-	_ = s.db.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM offers WHERE status = 'draft'
-	`).Scan(&stats.PendingOffers)
-
-	_ = s.db.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM businesses WHERE status = 'approved'
-	`).Scan(&stats.ActiveListings)
+	city, days, filterErr := parseStatsFilters(r.URL.Query().Get("city"), r.URL.Query().Get("range"))
+	if filterErr != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", filterErr.Error())
+		return
+	}
+	err := s.db.QueryRowContext(r.Context(), `
+		SELECT
+		 (SELECT COUNT(*) FROM businesses b WHERE (b.status IN ('pending','pending_review','draft') OR b.verification_status = 'pending') AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM reports WHERE status = 'open'),
+		 (SELECT COUNT(*) FROM offers o JOIN businesses b ON b.id=o.business_id WHERE o.status IN ('draft','pending') AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM businesses b WHERE b.status = 'approved' AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM business_claim_requests c JOIN businesses b ON b.id=c.business_id WHERE c.status='pending' AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM service_requests sr JOIN businesses b ON b.id=sr.business_id WHERE sr.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM customer_orders co JOIN businesses b ON b.id=co.business_id WHERE co.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city) = lower($1))),
+		 (SELECT COUNT(*) FROM users WHERE status='active'),
+		 (SELECT COUNT(*) FROM notifications n LEFT JOIN businesses b ON b.id=n.business_id WHERE n.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR n.business_id IS NULL OR lower(b.city) = lower($1)))
+	`).Scan(&stats.PendingVerifications, &stats.ReportedListings, &stats.PendingOffers, &stats.ActiveListings, &stats.PendingClaims, &stats.ServiceRequests, &stats.CustomerOrders, &stats.ActiveAccounts, &stats.NotificationEvents)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load operational statistics.")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, envelope{
 		"data": stats,
 		"meta": map[string]string{"request_id": "admin-stats"},
 	})
+}
+
+func parseStatsFilters(city, period string) (string, int, error) {
+	if city != "" && city != "Cuttack" && city != "Jajpur" {
+		return "", 0, fmt.Errorf("city must be Cuttack or Jajpur.")
+	}
+	days := 14
+	switch period {
+	case "", "14d":
+	case "7d":
+		days = 7
+	case "30d":
+		days = 30
+	default:
+		return "", 0, fmt.Errorf("range must be 7d, 14d, or 30d.")
+	}
+	return city, days, nil
 }
 
 // ListPendingBusinesses returns businesses awaiting review or verification.

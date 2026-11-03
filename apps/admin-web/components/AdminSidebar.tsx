@@ -12,12 +12,14 @@ import {
   TrendingUp,
   MapPin,
   ExternalLink,
+  UserRoundCheck,
 } from 'lucide-react';
 
 export type AdminTab =
   | 'overview'
   | 'verification'
   | 'businesses'
+  | 'claims'
   | 'reports'
   | 'offers'
   | 'audit-logs'
@@ -42,7 +44,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     {
       id: 'overview' as AdminTab,
       label: 'Analytics & Trends',
-      description: 'Charts, GMV, and SLAs',
+      description: 'Live operational totals',
       icon: BarChart3,
       badge: null,
     },
@@ -59,6 +61,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Merchant Registry',
       description: 'All stores & status',
       icon: Building2,
+      badge: null,
+    },
+    {
+      id: 'claims' as AdminTab,
+      label: 'Ownership claims',
+      description: 'Review merchant claims',
+      icon: UserRoundCheck,
       badge: null,
     },
     {
@@ -176,7 +185,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
           </div>
           <a
-            href="http://localhost/merchant/"
+            href="/merchant/"
             target="_blank"
             rel="noreferrer"
             className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[11px] font-medium text-[#344054] hover:bg-[#F9FAFB]"

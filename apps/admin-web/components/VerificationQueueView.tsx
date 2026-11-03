@@ -1,247 +1,64 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  FileCheck2,
-  Building,
-  MapPin,
-  Phone,
-  Search,
-  Filter,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  Award,
-  Sparkles,
-} from 'lucide-react';
-import { KYCSubmission, KYC_SUBMISSIONS } from '@/lib/adminData';
-import { KYCReviewModal } from './KYCReviewModal';
-import { Business } from '@/lib/api';
+import React, { useMemo, useState } from 'react';
+import { Building2, Check, MapPin, Phone, Search, ShieldCheck, X } from 'lucide-react';
+import type { Business } from '@/lib/api';
 
 interface VerificationQueueViewProps {
   apiPendingList: Business[];
-  onApproveBusiness: (id: string) => Promise<void>;
-  onVerifyBusiness: (id: string) => Promise<void>;
+  onApproveBusiness: (id: string, reason?: string) => Promise<void>;
+  onVerifyBusiness: (id: string, reason?: string) => Promise<void>;
   onRejectBusiness: (id: string, reason: string) => Promise<void>;
 }
 
-export const VerificationQueueView: React.FC<VerificationQueueViewProps> = ({
-  apiPendingList,
-  onApproveBusiness,
-  onVerifyBusiness,
-  onRejectBusiness,
-}) => {
-  const [submissions, setSubmissions] = useState<KYCSubmission[]>(KYC_SUBMISSIONS);
-  const [selectedSubmission, setSelectedSubmission] = useState<KYCSubmission | null>(null);
-  const [cityFilter, setCityFilter] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+export const VerificationQueueView: React.FC<VerificationQueueViewProps> = ({ apiPendingList, onApproveBusiness, onVerifyBusiness, onRejectBusiness }) => {
+  const [city, setCity] = useState('All');
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const filtered = useMemo(() => apiPendingList.filter((item) => {
+    const matchesCity = city === 'All' || item.city?.toLowerCase() === city.toLowerCase();
+    const text = `${item.name} ${item.category_name ?? item.category_slug} ${item.address_text} ${item.owner_phone ?? ''}`.toLowerCase();
+    return matchesCity && text.includes(query.toLowerCase());
+  }), [apiPendingList, city, query]);
 
-  // Filter submissions
-  const filteredSubmissions = submissions.filter((sub) => {
-    const matchesCity = cityFilter === 'All' || sub.city.toLowerCase() === cityFilter.toLowerCase();
-    const matchesSearch =
-      sub.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.documentNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCity && matchesSearch;
-  });
-
-  async function handleApprove(submissionId: string, businessId: string) {
-    setActionLoadingId(businessId);
+  async function run(id: string, action: 'approve' | 'reject') {
+    setBusy(id); setError(null);
     try {
-      await onVerifyBusiness(businessId);
-      await onApproveBusiness(businessId);
-      setSubmissions((prev) =>
-        prev.map((s) => (s.id === submissionId ? { ...s, status: 'verified' } : s))
-      );
-    } finally {
-      setActionLoadingId(null);
-    }
-  }
-
-  async function handleReject(submissionId: string, businessId: string, reason: string) {
-    setActionLoadingId(businessId);
-    try {
-      await onRejectBusiness(businessId, reason);
-      setSubmissions((prev) =>
-        prev.map((s) => (s.id === submissionId ? { ...s, status: 'rejected' } : s))
-      );
-    } finally {
-      setActionLoadingId(null);
-    }
+      if (action === 'approve') {
+        const evidence = window.prompt('Record the evidence reference you reviewed offline (do not enter sensitive document numbers):');
+        if (!evidence?.trim() || evidence.trim().length < 8) return;
+        const reason = `Offline evidence reviewed: ${evidence.trim()}`;
+        await onVerifyBusiness(id, reason);
+        await onApproveBusiness(id, reason);
+      } else {
+        const reason = window.prompt('Add a reason for rejecting this listing:');
+        if (!reason?.trim()) return;
+        await onRejectBusiness(id, reason.trim());
+      }
+    } catch {
+      setError('The listing could not be updated. Refresh the queue and verify its current status.');
+    } finally { setBusy(null); }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-[#172033]">Merchant &amp; Listing Verification Queue</h2>
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
-              {filteredSubmissions.filter((s) => s.status === 'pending').length} Pending Review
-            </span>
-          </div>
-          <p className="text-xs text-[#667085] mt-1">
-            Validate trade licenses, GSTIN registrations, and physical storefront geotags before listing activation
-          </p>
-        </div>
-
-        {/* Filter Chips */}
-        <div className="flex items-center gap-2">
-          {['All', 'Cuttack', 'Jajpur'].map((city) => (
-            <button
-              key={city}
-              onClick={() => setCityFilter(city)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                cityFilter === city
-                  ? 'bg-[#2457D6] text-white font-semibold shadow-xs'
-                  : 'bg-white border border-[#D0D5DD] text-[#344054] hover:bg-[#F9FAFB]'
-              }`}
-            >
-              {city}
-            </button>
-          ))}
-        </div>
+    <section className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#2457D6]">Merchant governance</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-[#172033]">Listing verification</h1><p className="mt-1 text-sm text-[#667085]">Review submitted listing details before approval. No external license or KYC documents are stored in the current platform.</p></div>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">{filtered.length} records in queue</span>
       </div>
-
-      {/* Search Input Bar */}
-      <div className="flex items-center rounded-xl border border-[#E4E7EC] bg-white px-3.5 py-2 shadow-xs">
-        <Search className="h-4 w-4 text-[#98A2B3] mr-2" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by store name, owner name, or license number..."
-          className="w-full text-xs text-[#172033] placeholder-[#98A2B3] focus:outline-none"
-        />
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#E4EAF2] bg-white p-3 shadow-sm">
+        <div className="relative min-w-[220px] flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-[#98A2B3]"/><input aria-label="Search listings" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, category, address or phone" className="h-10 w-full rounded-xl border border-[#E4E7EC] bg-[#FAFBFD] pl-9 pr-3 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100" /></div>
+        <div className="flex gap-1 rounded-xl bg-[#F3F6FA] p-1">{['All', 'Cuttack', 'Jajpur'].map((item) => <button key={item} onClick={() => setCity(item)} className={`min-h-9 rounded-lg px-3 text-xs font-semibold ${city === item ? 'bg-white text-[#2457D6] shadow-sm' : 'text-[#667085]'}`}>{item}</button>)}</div>
       </div>
-
-      {/* Verification Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredSubmissions.map((sub) => {
-          const isPending = sub.status === 'pending';
-          const isVerified = sub.status === 'verified';
-          const isRejected = sub.status === 'rejected';
-
-          return (
-            <div
-              key={sub.id}
-              className={`rounded-2xl border bg-white p-5 shadow-xs transition-all ${
-                isPending
-                  ? 'border-[#E4E7EC] hover:border-[#2457D6]/40'
-                  : isVerified
-                  ? 'border-emerald-200 bg-emerald-50/20'
-                  : 'border-rose-200 bg-rose-50/20'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-[#172033]">{sub.businessName}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        sub.city === 'Jajpur'
-                          ? 'bg-amber-100 text-amber-800'
-                          : sub.city === 'Cuttack'
-                          ? 'bg-teal-100 text-teal-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {sub.city}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[#667085]">
-                    <Building className="h-3.5 w-3.5" />
-                    <span>{sub.category}</span>
-                    <span>•</span>
-                    <MapPin className="h-3.5 w-3.5 text-[#0F766E]" />
-                    <span>{sub.locality}</span>
-                  </div>
-                </div>
-
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                    isPending
-                      ? 'bg-amber-100 text-amber-800'
-                      : isVerified
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-rose-100 text-rose-800'
-                  }`}
-                >
-                  {sub.status.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Document Summary Box */}
-              <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] p-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#344054] flex items-center gap-1.5">
-                    <Award className="h-4 w-4 text-[#2457D6]" />
-                    {sub.documentType}
-                  </span>
-                  <span className="font-mono text-[11px] font-bold text-[#172033]">
-                    {sub.documentNumber}
-                  </span>
-                </div>
-                <div className="mt-2 text-[11px] text-[#667085]">
-                  <span>Issuer: {sub.issuer}</span>
-                  <span className="mx-2">•</span>
-                  <span>Owner: {sub.ownerName} ({sub.ownerPhone})</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-4 flex items-center justify-between pt-2 border-t border-[#F2F4F7]">
-                <button
-                  onClick={() => setSelectedSubmission(sub)}
-                  className="flex items-center gap-1 text-xs font-semibold text-[#2457D6] hover:underline"
-                >
-                  <Eye className="h-3.5 w-3.5" /> Review Full KYC Documents →
-                </button>
-
-                {isPending && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleReject(sub.id, sub.businessId, 'Incomplete documentation')}
-                      disabled={actionLoadingId === sub.businessId}
-                      className="rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 transition-colors"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => handleApprove(sub.id, sub.businessId)}
-                      disabled={actionLoadingId === sub.businessId}
-                      className="flex items-center gap-1 rounded-lg bg-[#2457D6] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#1E40AF] transition-colors"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      {actionLoadingId === sub.businessId ? 'Saving...' : 'Approve'}
-                    </button>
-                  </div>
-                )}
-
-                {isVerified && (
-                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                    <CheckCircle2 className="h-4 w-4" /> Verified &amp; Live on Platform
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* KYC Document Review Modal */}
-      {selectedSubmission && (
-        <KYCReviewModal
-          submission={selectedSubmission}
-          isOpen={true}
-          onClose={() => setSelectedSubmission(null)}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
-    </div>
+      {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {filtered.length === 0 ? <div className="rounded-2xl border border-dashed border-[#D0D9E5] bg-white px-6 py-14 text-center"><ShieldCheck className="mx-auto h-8 w-8 text-[#98A2B3]"/><h2 className="mt-3 font-semibold text-[#172033]">No listings need review</h2><p className="mt-1 text-sm text-[#667085]">The live API returned no pending business records for this filter.</p></div> :
+        <div className="grid gap-4 xl:grid-cols-2">{filtered.map((item) => <article key={item.id} className="rounded-2xl border border-[#E4EAF2] bg-white p-5 shadow-[0_4px_18px_-14px_rgba(23,32,51,.35)]">
+          <div className="flex items-start justify-between gap-4"><div className="flex min-w-0 items-start gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#2457D6]"><Building2 className="h-5 w-5"/></span><div className="min-w-0"><h2 className="truncate font-semibold text-[#172033]">{item.name}</h2><p className="mt-0.5 text-sm text-[#667085]">{item.category_name || item.category_slug}</p></div></div><span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold capitalize text-amber-800">{item.status} · {item.verification_status}</span></div>
+          <div className="mt-4 space-y-2 text-sm text-[#475467]"><p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0F766E]"/><span>{item.address_text}{item.city ? `, ${item.city}` : ''}</span></p>{item.phone_e164 && <p className="flex gap-2"><Phone className="h-4 w-4 text-[#667085]"/>{item.phone_e164}</p>}{item.owner_phone && <p className="text-xs text-[#667085]">Owner account: {item.owner_phone}</p>}</div>
+          <p className="mt-4 rounded-xl bg-[#F7F9FC] p-3 text-xs leading-5 text-[#667085]">Listing fields are available for review. Business identity documents and external registry checks are not attached to this record; verify evidence through your approved offline process before approving.</p>
+          <div className="mt-4 flex justify-end gap-2 border-t border-[#F2F4F7] pt-4"><button onClick={() => void run(item.id, 'reject')} disabled={busy === item.id} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-rose-200 px-3.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"><X className="h-4 w-4"/>Reject</button><button onClick={() => void run(item.id, 'approve')} disabled={busy === item.id} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#2457D6] px-4 text-sm font-semibold text-white hover:bg-[#1D49BD] disabled:opacity-50"><Check className="h-4 w-4"/>{busy === item.id ? 'Saving…' : 'Verify & approve'}</button></div>
+        </article>)}</div>}
+    </section>
   );
 };
