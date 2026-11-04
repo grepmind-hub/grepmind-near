@@ -820,7 +820,7 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
 
   Future<bool> updateRequestStatus(String requestId, String status) async {
     try {
-      await apiClient.post(
+      await apiClient.patch(
         '/merchant/requests/$requestId/status',
         data: {'status': status},
       );
@@ -879,10 +879,16 @@ class MerchantProfileNotifier extends StateNotifier<MerchantProfileState> {
   }
 
   Future<bool> update(Map<String, dynamic> updates) async {
+    state = state.copyWith(isLoading: true);
     try {
       await apiClient.patch('/merchant/profile', data: updates);
+      state = state.copyWith(
+        profile: {...?state.profile, ...updates},
+        isLoading: false,
+      );
       return true;
     } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
   }

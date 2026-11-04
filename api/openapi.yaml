@@ -1296,6 +1296,7 @@ paths:
                       id: {type: string, format: uuid}
                       name: {type: string}
                       cover_photo_url: {type: string, nullable: true}
+                      can_edit_profile: {type: boolean, description: True only for the business owner}
                       business_hours:
                         type: array
                         items: {$ref: '#/components/schemas/BusinessHour'}
@@ -1322,6 +1323,7 @@ paths:
       responses:
         '200': {description: Profile updated}
         '400': {description: Invalid profile fields}
+        '403': {description: Business owner permission required}
         '404': {description: Business profile not found}
 
   /merchant/businesses:

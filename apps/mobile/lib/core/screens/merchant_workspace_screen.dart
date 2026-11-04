@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart';
@@ -19,10 +21,14 @@ class MerchantWorkspaceScreen extends ConsumerStatefulWidget {
 }
 
 class _MerchantWorkspaceScreenState
-    extends ConsumerState<MerchantWorkspaceScreen> {
+    extends ConsumerState<MerchantWorkspaceScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(merchantProvider.notifier).loadRequests();
       ref.read(merchantProfileProvider('').notifier).load();
@@ -30,40 +36,46 @@ class _MerchantWorkspaceScreenState
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final merchantState = ref.watch(merchantProvider);
     final profileState = ref.watch(merchantProfileProvider(''));
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: const Text('Merchant Workspace'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.dashboard_outlined), text: 'Dashboard'),
-              Tab(icon: Icon(Icons.request_quote_outlined), text: 'Requests'),
-              Tab(icon: Icon(Icons.store_outlined), text: 'Profile'),
-            ],
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: const Text('Merchant Workspace'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard_outlined), text: 'Dashboard'),
+            Tab(icon: Icon(Icons.request_quote_outlined), text: 'Requests'),
+            Tab(icon: Icon(Icons.store_outlined), text: 'Profile'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_outlined),
+            onPressed: () {
+              ref.read(merchantProvider.notifier).loadRequests();
+              ref.read(merchantProfileProvider('').notifier).load();
+            },
+            tooltip: 'Refresh',
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh_outlined),
-              onPressed: () {
-                ref.read(merchantProvider.notifier).loadRequests();
-              },
-              tooltip: 'Refresh',
-            ),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            _buildDashboardTab(merchantState),
-            _buildRequestsTab(merchantState),
-            _buildProfileTab(profileState),
-          ],
-        ),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildDashboardTab(merchantState),
+          _buildRequestsTab(merchantState),
+          _buildProfileTab(profileState),
+        ],
       ),
     );
   }
@@ -190,7 +202,8 @@ class _MerchantWorkspaceScreenState
                   Icons.request_quote,
                   'View Requests',
                   AppTheme.primary,
-                  () => DefaultTabController.of(context).animateTo(1),
+                  () => _tabController.animateTo(1),
+                  key: const Key('merchant_view_requests'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -199,7 +212,8 @@ class _MerchantWorkspaceScreenState
                   Icons.edit_outlined,
                   'Edit Profile',
                   AppTheme.secondary,
-                  () => DefaultTabController.of(context).animateTo(2),
+                  () => _tabController.animateTo(2),
+                  key: const Key('merchant_edit_profile'),
                 ),
               ),
             ],
@@ -374,6 +388,11 @@ class _MerchantWorkspaceScreenState
     }
 
     final profile = state.profile ?? {};
+    final canEditProfile = profile['can_edit_profile'] != false;
+    final address = [
+      _extractString(profile['address_text']),
+      _extractString(profile['city']),
+    ].where((part) => part.isNotEmpty).join(', ');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(kScreenPadding),
@@ -413,7 +432,9 @@ class _MerchantWorkspaceScreenState
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _extractString(profile['category_slug']).isEmpty
+                  _extractString(profile['category_name']).isNotEmpty
+                      ? _extractString(profile['category_name'])
+                      : _extractString(profile['category_slug']).isEmpty
                       ? 'Business'
                       : _extractString(profile['category_slug']),
                   style: const TextStyle(
@@ -440,10 +461,7 @@ class _MerchantWorkspaceScreenState
                   _extractString(profile['description']),
                 ),
                 const Divider(),
-                _profileRow(
-                  'Address',
-                  '${_extractString(profile['address_text'])}, ${_extractString(profile['city'])}',
-                ),
+                _profileRow('Address', address),
                 const Divider(),
                 _profileRow('Phone', _extractString(profile['phone_e164'])),
                 const Divider(),
@@ -459,14 +477,25 @@ class _MerchantWorkspaceScreenState
           const SizedBox(height: 24),
 
           // Actions
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () => _showEditProfileDialog(),
-              child: const Text('Edit Business Profile'),
+          if (canEditProfile)
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                key: const Key('merchant_edit_business_profile'),
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => _showEditProfileDialog(profile),
+                label: const Text('Edit Business Profile'),
+              ),
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Only the business owner can edit this profile.',
+                style: TextStyle(color: AppTheme.secondaryText),
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -542,9 +571,11 @@ class _MerchantWorkspaceScreenState
     IconData icon,
     String label,
     Color color,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    Key? key,
+  }) {
     return Material(
+      key: key,
       color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
@@ -654,13 +685,18 @@ class _MerchantWorkspaceScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                r.customerName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
+              Expanded(
+                child: Text(
+                  r.customerName.isEmpty ? 'Customer request' : r.customerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.mainText,
+                  ),
                 ),
               ),
+              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -771,20 +807,23 @@ class _MerchantWorkspaceScreenState
     }
   }
 
-  void _showEditProfileDialog() {
-    showDialog(
+  Future<void> _showEditProfileDialog(Map<String, dynamic> profile) async {
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Profile'),
-        content: const Text('Profile editing coming soon.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      builder: (_) => _MerchantProfileEditDialog(
+        profile: profile,
+        onSave: (updates) =>
+            ref.read(merchantProfileProvider('').notifier).update(updates),
       ),
     );
+    if (saved == true && mounted) {
+      await ref.read(merchantProfileProvider('').notifier).load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Business profile updated.')),
+        );
+      }
+    }
   }
 
   String _extractString(dynamic val) {
@@ -976,4 +1015,267 @@ class _MerchantProfilePlaceholder extends StatelessWidget {
     alignment: Alignment.center,
     child: const Icon(Icons.store, color: AppTheme.primary, size: 40),
   );
+}
+
+class _MerchantProfileEditDialog extends StatefulWidget {
+  const _MerchantProfileEditDialog({
+    required this.profile,
+    required this.onSave,
+  });
+
+  final Map<String, dynamic> profile;
+  final Future<bool> Function(Map<String, dynamic> updates) onSave;
+
+  @override
+  State<_MerchantProfileEditDialog> createState() =>
+      _MerchantProfileEditDialogState();
+}
+
+class _MerchantProfileEditDialogState
+    extends State<_MerchantProfileEditDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _phoneController;
+  late String _city;
+  late String _coverPhotoUrl;
+  bool _isSaving = false;
+  bool _isUploading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: _value('name'));
+    _descriptionController = TextEditingController(text: _value('description'));
+    _addressController = TextEditingController(text: _value('address_text'));
+    _phoneController = TextEditingController(text: _value('phone_e164'));
+    _city = _value('city') == 'Jajpur' ? 'Jajpur' : 'Cuttack';
+    _coverPhotoUrl = _value('cover_photo_url');
+  }
+
+  String _value(String key) => widget.profile[key]?.toString() ?? '';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 85,
+    );
+    if (image == null || !mounted) return;
+    setState(() {
+      _isUploading = true;
+      _error = null;
+    });
+    try {
+      final upload = await ApiClient().uploadMedia(
+        bytes: await image.readAsBytes(),
+        filename: image.name,
+        purpose: 'storefront',
+      );
+      if (!mounted) return;
+      setState(() => _coverPhotoUrl = upload['url'] as String? ?? '');
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Photo upload failed. Check your connection and retry.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+    final updates = <String, dynamic>{
+      'name': _nameController.text.trim(),
+      'description': _descriptionController.text.trim(),
+      'address_text': _addressController.text.trim(),
+      'city': _city,
+      'phone_e164': _phoneController.text.trim(),
+    };
+    if (_coverPhotoUrl.isNotEmpty) {
+      updates['cover_photo_url'] = _coverPhotoUrl;
+    }
+    final saved = await widget.onSave(updates);
+    if (!mounted) return;
+    if (saved) {
+      Navigator.pop(context, true);
+    } else {
+      setState(() {
+        _isSaving = false;
+        _error = 'Could not save the profile. Please retry.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit business profile'),
+      content: SizedBox(
+        width: 440,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.62,
+          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_coverPhotoUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        ApiClient().resolveMediaUrl(_coverPhotoUrl),
+                        height: 130,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _isUploading || _isSaving ? null : _pickPhoto,
+                      icon: _isUploading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_a_photo_outlined),
+                      label: const Text('Change storefront photo'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('merchant_profile_name'),
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Business name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter a business name'
+                        : value.trim().length > 160
+                        ? 'Business name must be 160 characters or fewer'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    maxLength: 1000,
+                    decoration: const InputDecoration(
+                      labelText: 'About your business',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('merchant_profile_address'),
+                    controller: _addressController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Street address',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter a street address'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: const Key('merchant_profile_city'),
+                    initialValue: _city,
+                    decoration: const InputDecoration(
+                      labelText: 'City',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Cuttack',
+                        child: Text('Cuttack'),
+                      ),
+                      DropdownMenuItem(value: 'Jajpur', child: Text('Jajpur')),
+                    ],
+                    onChanged: _isSaving
+                        ? null
+                        : (value) {
+                            if (value != null) setState(() => _city = value);
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Business phone (+country code)',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      final phone = value?.trim() ?? '';
+                      if (phone.isEmpty) return null;
+                      return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)
+                          ? null
+                          : 'Use international format, e.g. +919876543210';
+                    },
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: AppTheme.error),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          key: const Key('merchant_save_profile'),
+          onPressed: _isSaving || _isUploading ? null : _save,
+          icon: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.check),
+          label: Text(_isSaving ? 'Saving' : 'Save changes'),
+        ),
+      ],
+    );
+  }
 }

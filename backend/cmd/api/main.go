@@ -534,7 +534,7 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 
 	// Resolve an owned or explicitly requested member business. The resolver
 	// enforces active business_members membership before any profile data loads.
-	bizID, _, err := resolveMerchantBusiness(r.Context(), db, userID, r.URL.Query().Get("business_id"))
+	bizID, businessRole, err := resolveMerchantBusiness(r.Context(), db, userID, r.URL.Query().Get("business_id"))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
 		return
@@ -609,6 +609,7 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 			"cover_photo_url":     nullableStringValue(bizCover),
 			"status":              statusStr,
 			"verification_status": verifyStr,
+			"can_edit_profile":    businessRole == "owner",
 			"latitude":            latVal,
 			"longitude":           lngVal,
 			"business_hours":      hours,

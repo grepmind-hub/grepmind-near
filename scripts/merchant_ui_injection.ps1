@@ -5,7 +5,7 @@ param(
     [string]$ApiBaseUrl = 'http://127.0.0.1:8080/api/v1',
     [string]$EmulatorApiBaseUrl = 'http://10.0.2.2:80',
     [string]$Manifest = 'ui-injection-run.json',
-    [ValidateSet('Products','Availability')][string]$Scenario = 'Products',
+    [ValidateSet('Products','Availability','Workspace')][string]$Scenario = 'Products',
     [switch]$SkipAppRestore
 )
 $ErrorActionPreference = 'Stop'
@@ -76,10 +76,24 @@ try {
     $gzipPayload.Dispose()
     $encoded = [Convert]::ToBase64String($compressedPayload.ToArray())
     $compressedPayload.Dispose()
-    $target = if ($Scenario -eq 'Availability') {'integration_test/merchant_availability_e2e_test.dart'} else {'integration_test/merchant_ui_injection_test.dart'}
-    $mode = if ($Scenario -eq 'Availability') {'availability'} elseif ($Action -eq 'Inject') {'inject'} else {'cycle'}
-    & wsl --cd "$wslRepo/apps/mobile" --exec env $pathEnv $socket flutter drive --driver=test_driver/merchant_ui_driver.dart "--target=$target" -d $DeviceId --no-dds "--host-vmservice-port=$vmPort" "--dart-define=API_BASE_URL=$EmulatorApiBaseUrl" "--dart-define=UI_FIXTURES_GZIP=$encoded" "--dart-define=UI_MODE=$mode"
-    if ($LASTEXITCODE -ne 0) {throw 'Merchant UI injection validation failed'}
+    $target = switch ($Scenario) {
+        'Availability' {'integration_test/merchant_availability_e2e_test.dart'}
+        'Workspace' {'integration_test/merchant_workspace_e2e_test.dart'}
+        default {'integration_test/merchant_ui_injection_test.dart'}
+    }
+    $mode = if ($Scenario -eq 'Availability') {'availability'} elseif ($Scenario -eq 'Workspace') {'workspace'} elseif ($Action -eq 'Inject') {'inject'} else {'cycle'}
+    try {
+        # Flutter driver emits informational VM-service lines on stderr. In
+        # PowerShell with Stop preference they become terminating native errors
+        # before Flutter's real exit code is checked; allow the process to finish
+        # and evaluate its exit code explicitly instead.
+        $ErrorActionPreference = 'Continue'
+        & wsl --cd "$wslRepo/apps/mobile" --exec env $pathEnv $socket flutter drive --driver=test_driver/merchant_ui_driver.dart "--target=$target" -d $DeviceId --no-dds "--host-vmservice-port=$vmPort" "--dart-define=API_BASE_URL=$EmulatorApiBaseUrl" "--dart-define=UI_FIXTURES_GZIP=$encoded" "--dart-define=UI_MODE=$mode"
+        $driveExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = 'Stop'
+    }
+    if ($driveExitCode -ne 0) {throw 'Merchant UI injection validation failed'}
     $success = $true
 } finally {
     try {
@@ -101,4 +115,7 @@ try {
         }
     }
 }
-if ($Action -eq 'Inject') {Write-Output 'Injected products retained for inspection. Remove only these entries with this script -Action Cleanup.'}
+if ($Action -eq 'Inject') {
+    if ($Scenario -eq 'Workspace') {Write-Output 'Workspace QA requests/profile changes retained for inspection. Remove generated fixture data with this script -Action Cleanup.'}
+    else {Write-Output 'Injected products retained for inspection. Remove only these entries with this script -Action Cleanup.'}
+}

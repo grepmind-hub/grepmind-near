@@ -116,6 +116,16 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("member profile access status=%d body=%s", w.Code, w.Body.String())
 	}
+	var memberProfile struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &memberProfile); err != nil || memberProfile.Data["can_edit_profile"] != false {
+		t.Fatalf("non-owner profile capability should be false: %s (%v)", w.Body.String(), err)
+	}
+	w = request(http.MethodPatch, "/api/v1/merchant/profile?business_id="+businessA, token(memberA), `{"name":"Unauthorized update"}`)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("non-owner profile update status=%d, want 403: %s", w.Code, w.Body.String())
+	}
 	w = request(http.MethodGet, "/api/v1/merchant/products?business_id="+businessB, token(memberA), "")
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("cross-business catalog read status=%d, want 403: %s", w.Code, w.Body.String())
@@ -329,6 +339,9 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &profile); err != nil || profile.Data["cover_photo_url"] != "https://assets.example/storefront.jpg" {
 		t.Fatalf("profile cover photo missing: %s (%v)", w.Body.String(), err)
+	}
+	if profile.Data["can_edit_profile"] != true {
+		t.Fatalf("business owner profile capability missing: %s", w.Body.String())
 	}
 	w = request(http.MethodPatch, "/api/v1/merchant/profile", token(ownerA), `{"cover_photo_url":"https://assets.example/new-storefront.jpg"}`)
 	if w.Code != http.StatusOK {
