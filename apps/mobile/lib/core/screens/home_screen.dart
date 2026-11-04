@@ -7,6 +7,7 @@ import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
+import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 
@@ -50,11 +51,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final serviceBusinesses = (feedData?.services ?? const <Business>[])
         .where((business) => !usedBusinessIds.contains(business.id))
         .toList(growable: false);
-    usedBusinessIds.addAll(serviceBusinesses.map((item) => item.id));
-    final recentBusinesses = (feedData?.recentlyAdded ?? const <Business>[])
-        .where((business) => !usedBusinessIds.contains(business.id))
-        .toList(growable: false);
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -184,6 +180,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: _SectionHeading(
+                  title: 'New near you',
+                  subtitle: 'Fresh products and services from local businesses',
+                  action: 'See all',
+                  onAction: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          HomeNewNearYouScreen(city: location.cityName),
+                    ),
+                  ),
+                ),
+              ),
+              _newArrivalsRail(
+                feed,
+                feedData?.newArrivals ?? const [],
+                context,
+              ),
+              SliverToBoxAdapter(
+                child: _SectionHeading(
                   title: 'Open now',
                   action: 'See all',
                   onAction: () => _openExplore(context),
@@ -209,15 +224,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 serviceBusinesses,
                 style: _RailStyle.service,
               ),
-              SliverToBoxAdapter(
-                child: _SectionHeading(
-                  title: 'Recently added',
-                  subtitle: 'Newly approved local businesses',
-                  action: 'Explore',
-                  onAction: () => _openExplore(context),
-                ),
-              ),
-              _recentBusinessRail(feed, recentBusinesses),
               const SliverToBoxAdapter(child: SizedBox(height: 28)),
             ],
           ),
@@ -285,20 +291,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ),
   );
 
-  static Widget _recentBusinessRail(
+  static Widget _newArrivalsRail(
     AsyncValue<HomeFeed> feed,
-    List<Business> items,
+    List<HomeCatalogItem> items,
+    BuildContext context,
   ) => feed.when(
     loading: () => const SliverToBoxAdapter(
       child: SizedBox(
-        height: 190,
+        height: 214,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
     ),
     error: (_, _) => const SliverToBoxAdapter(
       child: _InlineState(
         icon: Icons.wifi_off_rounded,
-        title: 'Recent listings could not be loaded',
+        title: 'New items could not be loaded',
         message: 'Pull down to retry.',
       ),
     ),
@@ -306,31 +313,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: items.isEmpty
           ? const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Text(
-                'New approved businesses will appear here.',
-                style: TextStyle(color: AppTheme.secondaryText),
+              child: _InlineState(
+                icon: Icons.auto_awesome_outlined,
+                title: 'New discoveries are on the way',
+                message: 'Recently published products and services from approved Cuttack and Jajpur businesses will appear here.',
               ),
             )
           : SizedBox(
-              height: 188,
+              height: 222,
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) => SizedBox(
-                  width: 206,
-                  child: _RecentBusinessCard(
-                    business: items[index],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            BusinessDetailScreen(businessId: items[index].id),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return SizedBox(
+                    width: 250,
+                    child: _NewArrivalCard(
+                      item: item,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              BusinessDetailScreen(businessId: item.businessId),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
     ),
@@ -699,7 +710,7 @@ class _OfferCard extends StatelessWidget {
                 ),
               ),
               Padding(
-              padding: const EdgeInsets.fromLTRB(170, 15, 10, 14),
+                padding: const EdgeInsets.fromLTRB(170, 15, 10, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -897,81 +908,108 @@ class _BusinessTile extends StatelessWidget {
 
 enum _RailStyle { open, service }
 
-class _RecentBusinessCard extends StatelessWidget {
-  const _RecentBusinessCard({required this.business, required this.onTap});
-  final Business business;
+class _NewArrivalCard extends StatelessWidget {
+  const _NewArrivalCard({required this.item, required this.onTap});
+  final HomeCatalogItem item;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: AppTheme.surface,
-    borderRadius: BorderRadius.circular(17),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                business.coverPhotoUrl?.isNotEmpty == true
-                    ? Image.network(
-                        business.coverPhotoUrl!,
-                        fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const _BusinessPlaceholder(),
-                      )
-                : const _BusinessPlaceholder(),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+  Widget build(BuildContext context) {
+    final image = item.imageUrl == null || item.imageUrl!.isEmpty
+        ? null
+        : apiClient.resolveMediaUrl(item.imageUrl!);
+    final price = item.price == null
+        ? null
+        : item.priceMax != null && item.priceMax != item.price
+        ? '₹${item.price!.toStringAsFixed(0)}–₹${item.priceMax!.toStringAsFixed(0)}'
+        : '₹${item.price!.toStringAsFixed(0)}';
+    return Material(
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 112,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  image == null
+                      ? const _BusinessPlaceholder()
+                      : Image.network(
+                          image,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const _BusinessPlaceholder(),
+                        ),
+                  Positioned(
+                    left: 9,
+                    top: 9,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .94),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Text(
-                        'NEW',
-                        style: TextStyle(
+                        item.type == 'product' ? 'NEW PRODUCT' : 'NEW SERVICE',
+                        style: const TextStyle(
                           color: AppTheme.primary,
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: .3,
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(11, 8, 11, 9),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  business.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  '${business.categoryName ?? business.categorySlug} · ${business.city ?? ''}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${item.businessName} · ${item.locality?.isNotEmpty == true ? item.locality : item.city}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (price != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      price,
+                      style: const TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _BusinessPlaceholder extends StatelessWidget {

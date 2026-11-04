@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/business_card.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
@@ -316,6 +317,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final categoryItems = categoryState.items.take(10).toList(growable: false);
     final state = ref.watch(businessesProvider);
     final appLocation = ref.watch(appLocationProvider);
+    final recentBusinesses = ref.watch(
+      recentlyAddedBusinessesProvider(appLocation.cityName),
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -652,6 +656,160 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
             ),
             const SizedBox(height: 10),
+
+            if (recentBusinesses.isLoading ||
+                (recentBusinesses.valueOrNull?.isNotEmpty ?? false)) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  kScreenPadding,
+                  0,
+                  kScreenPadding,
+                  8,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Recently added',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            'Newly approved businesses in ${appLocation.cityName}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.secondaryText),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 114,
+                child: recentBusinesses.when(
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (items) => ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: kScreenPadding,
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final business = items[index];
+                      return SizedBox(
+                        width: 270,
+                        child: Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BusinessDetailScreen(
+                                  businessId: business.id,
+                                ),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(9),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox(
+                                      width: 86,
+                                      height: 86,
+                                      child:
+                                          business.coverPhotoUrl?.isNotEmpty ==
+                                              true
+                                          ? Image.network(
+                                              business.coverPhotoUrl!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  const _RecentBusinessPlaceholder(),
+                                            )
+                                          : const _RecentBusinessPlaceholder(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryContainer,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'NEW LISTING',
+                                            style: TextStyle(
+                                              color: AppTheme.primary,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          business.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                        ),
+                                        Text(
+                                          '${business.categoryName ?? business.categorySlug} · ${business.locality ?? business.city ?? ''}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: AppTheme.secondaryText,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppTheme.secondaryText,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
 
             // Business list.
             Expanded(
@@ -1121,4 +1279,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       ),
     );
   }
+}
+
+class _RecentBusinessPlaceholder extends StatelessWidget {
+  const _RecentBusinessPlaceholder();
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+    color: AppTheme.surfaceVariant,
+    child: Center(
+      child: Icon(Icons.storefront_outlined, color: AppTheme.secondary),
+    ),
+  );
 }

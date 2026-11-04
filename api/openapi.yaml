@@ -721,6 +721,41 @@ paths:
         '400':
           description: Unsupported or missing city
 
+  /catalog/new-arrivals:
+    get:
+      summary: List recently published products and services in a supported city
+      description: Returns only published products and active services belonging to approved Cuttack or Jajpur businesses. Drafts, inactive services and out-of-stock products are excluded. Items are ordered by publish or activation time.
+      tags: [discovery]
+      parameters:
+        - in: query
+          name: city
+          required: true
+          schema: {type: string, enum: [Cuttack, Jajpur]}
+        - in: query
+          name: type
+          schema: {type: string, enum: [all, products, services], default: all}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 50, default: 8}
+        - in: query
+          name: offset
+          schema: {type: integer, minimum: 0, maximum: 10000, default: 0}
+      responses:
+        '200':
+          description: Catalog items with pagination metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/CityCatalogItem'}
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          description: Unsupported city or invalid filter/pagination
+
   /nearby:
     get:
       summary: Nearby discovery endpoint
@@ -2570,6 +2605,12 @@ components:
         request_id:
           type: string
           example: "req_abc123"
+        limit:
+          type: integer
+        offset:
+          type: integer
+        has_more:
+          type: boolean
 
     StandardResponse:
       type: object
@@ -3017,6 +3058,25 @@ components:
             business_city: {type: string, enum: [Cuttack, Jajpur]}
             business_locality: {type: string}
             business_photo_url: {type: string}
+
+    CityCatalogItem:
+      type: object
+      required: [id, item_type, business_id, business_name, business_city, category_name, name, currency, published_at]
+      properties:
+        id: {type: string, format: uuid}
+        item_type: {type: string, enum: [product, service]}
+        business_id: {type: string, format: uuid}
+        business_name: {type: string}
+        business_city: {type: string, enum: [Cuttack, Jajpur]}
+        business_locality: {type: string}
+        category_name: {type: string}
+        name: {type: string}
+        description: {type: string}
+        price: {type: number, format: double}
+        price_max: {type: number, format: double}
+        currency: {type: string, example: INR}
+        image_url: {type: string}
+        published_at: {type: string, format: date-time}
 
     CreateOfferRequest:
       type: object

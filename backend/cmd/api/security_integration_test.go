@@ -87,6 +87,31 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), businessA) || strings.Contains(w.Body.String(), businessB) {
 		t.Fatalf("merchant business directory was not tenant-scoped: %d %s", w.Code, w.Body.String())
 	}
+
+	// Public new-arrivals results include only current catalog records from
+	// approved businesses in the selected supported city.
+	publishedProductID, foreignPublishedProductID, inactiveProductID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	publishedServiceID, foreignPublishedServiceID, inactiveServiceID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	if _, err := db.Exec(`INSERT INTO products(id,business_id,name,is_published,stock_status,published_at) VALUES($1,$2,'Cuttack published item',true,'in_stock',now()),($3,$4,'Jajpur published item',true,'in_stock',now()),($5,$2,'Out of stock item',true,'out_of_stock',now())`, publishedProductID, businessA, foreignPublishedProductID, businessB, inactiveProductID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO services(id,business_id,name,is_active,activated_at) VALUES($1,$2,'Cuttack active service',true,now()),($3,$4,'Jajpur active service',true,now()),($5,$2,'Inactive service',false,NULL)`, publishedServiceID, businessA, foreignPublishedServiceID, businessB, inactiveServiceID); err != nil {
+		t.Fatal(err)
+	}
+	w = request(http.MethodGet, "/api/v1/catalog/new-arrivals?city=Cuttack&type=all&limit=10", "", "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), publishedProductID) || !strings.Contains(w.Body.String(), publishedServiceID) || strings.Contains(w.Body.String(), businessB) || strings.Contains(w.Body.String(), inactiveProductID) {
+		t.Fatalf("new catalog feed must be published and city scoped: status=%d response=%s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/v1/catalog/new-arrivals?city=Cuttack&type=services", "", "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), publishedServiceID) || strings.Contains(w.Body.String(), publishedProductID) {
+		t.Fatalf("service filter failed: status=%d response=%s", w.Code, w.Body.String())
+	}
+	if _, err := db.Exec(`DELETE FROM products WHERE id IN ($1,$2,$3)`, publishedProductID, foreignPublishedProductID, inactiveProductID); err != nil {
+		t.Fatalf("remove product feed fixtures from shared test schema: %v", err)
+	}
+	if _, err := db.Exec(`DELETE FROM services WHERE id IN ($1,$2,$3)`, publishedServiceID, foreignPublishedServiceID, inactiveServiceID); err != nil {
+		t.Fatalf("remove feed fixtures from shared test schema: %v", err)
+	}
 	w = request(http.MethodGet, "/api/v1/merchant/profile?business_id="+businessA, token(memberA), "")
 	if w.Code != http.StatusOK {
 		t.Fatalf("member profile access status=%d body=%s", w.Code, w.Body.String())
@@ -658,8 +683,8 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 		`CREATE TABLE businesses(id UUID PRIMARY KEY, owner_user_id UUID NOT NULL, name TEXT NOT NULL, slug TEXT, description TEXT, category_slug TEXT NOT NULL, address_text TEXT NOT NULL, locality TEXT, city TEXT, postal_code TEXT, phone_e164 TEXT, whatsapp_e164 TEXT, cover_photo_url TEXT, location GEOGRAPHY(POINT,4326), status TEXT NOT NULL, verification_status TEXT NOT NULL, time_zone TEXT NOT NULL DEFAULT 'Asia/Kolkata', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE business_members(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, user_id UUID NOT NULL, role TEXT NOT NULL DEFAULT 'staff', status TEXT NOT NULL)`,
 		`CREATE TABLE business_hours(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, weekday SMALLINT NOT NULL, opens_at TIME, closes_at TIME, is_closed BOOLEAN NOT NULL, UNIQUE(business_id,weekday))`,
-		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
-		`CREATE TABLE services(id UUID PRIMARY KEY, business_id UUID, name TEXT, is_active BOOLEAN NOT NULL DEFAULT true)`,
+		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), published_at TIMESTAMPTZ)`,
+		`CREATE TABLE services(id UUID PRIMARY KEY, business_id UUID, name TEXT, description TEXT, indicative_price_min NUMERIC, indicative_price_max NUMERIC, currency CHAR(3) NOT NULL DEFAULT 'INR', is_active BOOLEAN NOT NULL DEFAULT true, activated_at TIMESTAMPTZ)`,
 		`CREATE TABLE service_requests(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), customer_user_id UUID NOT NULL, business_id UUID NOT NULL, service_id UUID, slot_id UUID, description TEXT, requested_for TIMESTAMPTZ, status TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE service_request_events(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), request_id UUID, status TEXT, actor_user_id UUID, created_at TIMESTAMPTZ DEFAULT now())`,
 		`CREATE TABLE availability_slots(id UUID PRIMARY KEY, business_id UUID NOT NULL, starts_at TIMESTAMPTZ NOT NULL, ends_at TIMESTAMPTZ NOT NULL, capacity INT NOT NULL, booked_count INT NOT NULL DEFAULT 0, status TEXT NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`,

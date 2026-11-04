@@ -34,6 +34,20 @@ func TestCityOffersRejectUnsupportedCityBeforeDatabase(t *testing.T) {
 	}
 }
 
+func TestNewCatalogFeedRejectsInvalidFiltersBeforeDatabase(t *testing.T) {
+	service := NewService(nil, nil)
+	for _, query := range []string{
+		"", "city=Puri", "city=Cuttack&type=offers", "city=Jajpur&limit=0",
+		"city=Cuttack&limit=51", "city=Cuttack&offset=-1", "city=Cuttack&offset=10001",
+	} {
+		rec := httptest.NewRecorder()
+		service.ListNewCatalogItems(rec, httptest.NewRequest(http.MethodGet, "/api/v1/catalog/new-arrivals?"+query, nil))
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("query %q: got %d want 400", query, rec.Code)
+		}
+	}
+}
+
 func TestSupportedOfferCities(t *testing.T) {
 	for _, city := range []string{"Cuttack", "cuttack", " Jajpur "} {
 		if !isSupportedOfferCity(city) {

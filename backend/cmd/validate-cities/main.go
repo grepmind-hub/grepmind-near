@@ -257,6 +257,14 @@ func (r *runner) prepareHomePreview(cities []string, categories []category, cfg 
 	if err := r.initStorage(cfg); err != nil {
 		return err
 	}
+	customer, err := r.newUser("customer")
+	if err != nil {
+		return err
+	}
+	r.ledger.CustomerPhone = customer.Phone
+	if err := r.save(); err != nil {
+		return err
+	}
 	bySlug := make(map[string]category, len(categories))
 	for _, item := range categories {
 		bySlug[item.Slug] = item
@@ -315,6 +323,13 @@ func (r *runner) prepareHomePreview(cities []string, categories []category, cfg 
 					if _, err := tx.Exec(`INSERT INTO professional_profiles(business_id,accepts_requests) VALUES($1,true)`, businessID); err != nil {
 						return err
 					}
+					if _, err := tx.Exec(`INSERT INTO services(business_id,name,description,indicative_price_min,indicative_price_max,is_active,activated_at) VALUES($1,'QA preview: Home repair service','Local home repair consultation used only for reversible Home feed validation.',450,1200,true,now())`, businessID); err != nil {
+						return err
+					}
+				} else if item.liveOffer {
+					if _, err := tx.Exec(`INSERT INTO products(business_id,name,description,price,stock_status,is_published,image_url,updated_at,published_at) VALUES($1,'QA preview: Fresh Market product','Temporary catalog item with a real local image for the Home feed preview.',125,'in_stock',true,$2,now(),now())`, businessID, imageURL); err != nil {
+						return err
+					}
 				}
 				if item.liveOffer {
 					_, err := tx.Exec(`INSERT INTO offers(business_id,title,description,starts_at,ends_at,status,image_url,terms,discount_percent) VALUES($1,'QA preview: Fresh produce picks','A temporary offer used to validate the live offer card. Confirm final pricing with the merchant.',$2,$3,'published',$4,'Local preview fixture; no purchase is being made.',10)`, businessID, time.Now().UTC().Add(-time.Hour), time.Now().UTC().AddDate(0, 0, 6), imageURL)
@@ -332,7 +347,7 @@ func (r *runner) prepareHomePreview(cities []string, categories []category, cfg 
 			}
 		}
 	}
-	fmt.Printf("PREPARED %d labelled Home preview merchants in Cuttack and Jajpur; one active QA offer per city. Manifest: %s\n", len(cities)*len(samples), r.manifest)
+	fmt.Printf("PREPARED %d labelled Home preview merchants in Cuttack and Jajpur; active QA offers, products and services are included. Manifest: %s\n", len(cities)*len(samples), r.manifest)
 	return nil
 }
 

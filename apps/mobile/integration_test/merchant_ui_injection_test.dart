@@ -8,7 +8,10 @@ import 'package:integration_test/integration_test.dart';
 import 'package:dio/dio.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
+import 'package:grepmind_mobile/core/screens/home_screen.dart';
+import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/utils/contact_actions.dart';
@@ -154,6 +157,63 @@ void main() {
                 entry['ProductDescription'],
               );
               expect(savedRows.single['image_url'], entry['ImageURL']);
+              final product = container
+                  .read(merchantCatalogProvider)
+                  .products
+                  .singleWhere((p) => p.name == name);
+              await tester.tap(
+                find.byKey(Key('edit_product_btn_${product.id}')),
+              );
+              await tester.pumpAndSettle();
+              final updatedName = '$name updated';
+              await tester.enterText(
+                find.byKey(const Key('modal_product_name')),
+                updatedName,
+              );
+              final saveEdit = find.byKey(const Key('save_product_btn'));
+              await tester.ensureVisible(saveEdit);
+              await tester.tap(saveEdit);
+              await waitFor(
+                () => container
+                    .read(merchantCatalogProvider)
+                    .products
+                    .any((p) => p.id == product.id && p.name == updatedName),
+                'Product edit was not persisted through the merchant UI',
+              );
+              final updatedVisible = await apiClient.get(
+                '/businesses/$businessId/products',
+              );
+              expect(
+                (updatedVisible.data['data'] as List).any(
+                  (dynamic p) =>
+                      p['id'] == product.id && p['name'] == updatedName,
+                ),
+                isTrue,
+              );
+              await container
+                  .read(merchantCatalogProvider.notifier)
+                  .updateProduct(product.id, {'name': name});
+              await waitFor(
+                () => container
+                    .read(merchantCatalogProvider)
+                    .products
+                    .any((p) => p.id == product.id && p.name == name),
+                'Product could not be restored after edit validation',
+              );
+              final newArrivals = await apiClient.get(
+                '/catalog/new-arrivals',
+                queryParameters: {
+                  'city': entry['City'],
+                  'type': 'products',
+                  'limit': 50,
+                },
+              );
+              expect(
+                (newArrivals.data['data'] as List).any(
+                  (dynamic p) => p['id'] == product.id,
+                ),
+                isTrue,
+              );
               final imageUrl = entry['ImageURL'] as String;
               if (verifiedImages.add(imageUrl)) {
                 final imageResponse = await apiClient.dio.get<List<int>>(
@@ -284,6 +344,17 @@ void main() {
                     'Bearer $customerToken';
                 final customerContainer = ProviderContainer(
                   overrides: [
+                    appLocationProvider.overrideWith((ref) {
+                      final location = LocationNotifier();
+                      location.setLocation(
+                        AppLocation(
+                          cityName: entry['City'] as String,
+                          latitude: (entry['Latitude'] as num).toDouble(),
+                          longitude: (entry['Longitude'] as num).toDouble(),
+                        ),
+                      );
+                      return location;
+                    }),
                     contactActionsProvider.overrideWith(
                       (ref) => ContactActions(
                         launcher: (uri) async {
@@ -294,6 +365,51 @@ void main() {
                     ),
                   ],
                 );
+                await tester.pumpWidget(
+                  UncontrolledProviderScope(
+                    container: customerContainer,
+                    child: const MaterialApp(home: HomeScreen()),
+                  ),
+                );
+                await waitFor(
+                  () =>
+                      customerContainer
+                          .read(homeFeedProvider(entry['City'] as String))
+                          .valueOrNull
+                          ?.newArrivals
+                          .any((item) => item.name == name) ==
+                      true,
+                  'Customer Home feed did not receive the newly published merchant product',
+                );
+                await tester.scrollUntilVisible(
+                  find.text(name),
+                  180,
+                  scrollable: find.byType(Scrollable).first,
+                );
+                expect(find.text(name), findsOneWidget);
+                await tester.scrollUntilVisible(
+                  find.text('See all'),
+                  180,
+                  scrollable: find.byType(Scrollable).first,
+                );
+                await tester.tap(find.text('See all').first);
+                await tester.pumpAndSettle();
+                expect(find.byType(HomeNewNearYouScreen), findsOneWidget);
+                await waitFor(
+                  () => find.text(name).evaluate().isNotEmpty,
+                  'See all catalog arrivals did not show the newly published product',
+                );
+                await tester.tap(find.text('Products'));
+                await tester.pumpAndSettle();
+                expect(find.text(name), findsOneWidget);
+                await tester.tap(find.text('Services'));
+                await tester.pumpAndSettle();
+                expect(find.text(name), findsNothing);
+                await tester.tap(find.text('All'));
+                await tester.pumpAndSettle();
+                expect(find.text(name), findsOneWidget);
+                await tester.pageBack();
+                await tester.pumpAndSettle();
                 await tester.pumpWidget(
                   UncontrolledProviderScope(
                     container: customerContainer,

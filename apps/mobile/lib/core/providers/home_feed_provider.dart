@@ -7,13 +7,65 @@ class HomeFeed {
     this.offers = const [],
     this.openNow = const [],
     this.services = const [],
-    this.recentlyAdded = const [],
+    this.newArrivals = const [],
   });
 
   final List<HomeOffer> offers;
   final List<Business> openNow;
   final List<Business> services;
-  final List<Business> recentlyAdded;
+  final List<HomeCatalogItem> newArrivals;
+}
+
+class HomeCatalogItem {
+  const HomeCatalogItem({
+    required this.id,
+    required this.type,
+    required this.businessId,
+    required this.businessName,
+    required this.city,
+    required this.categoryName,
+    required this.name,
+    required this.currency,
+    required this.publishedAt,
+    this.locality,
+    this.description,
+    this.price,
+    this.priceMax,
+    this.imageUrl,
+  });
+
+  final String id;
+  final String type;
+  final String businessId;
+  final String businessName;
+  final String city;
+  final String categoryName;
+  final String name;
+  final String currency;
+  final DateTime publishedAt;
+  final String? locality;
+  final String? description;
+  final double? price;
+  final double? priceMax;
+  final String? imageUrl;
+
+  factory HomeCatalogItem.fromJson(Map<String, dynamic> json) =>
+      HomeCatalogItem(
+        id: json['id'] as String,
+        type: json['item_type'] as String,
+        businessId: json['business_id'] as String,
+        businessName: json['business_name'] as String,
+        city: json['business_city'] as String,
+        categoryName: json['category_name'] as String,
+        name: json['name'] as String,
+        currency: json['currency'] as String? ?? 'INR',
+        publishedAt: DateTime.parse(json['published_at'] as String),
+        locality: json['business_locality'] as String?,
+        description: json['description'] as String?,
+        price: (json['price'] as num?)?.toDouble(),
+        priceMax: (json['price_max'] as num?)?.toDouble(),
+        imageUrl: json['image_url'] as String?,
+      );
 }
 
 class HomeOffer {
@@ -67,6 +119,10 @@ final homeFeedProvider = FutureProvider.family<HomeFeed, String>((
   final responses = await Future.wait([
     apiClient.get('/offers', queryParameters: {'city': city, 'limit': 8}),
     apiClient.get(
+      '/catalog/new-arrivals',
+      queryParameters: {'city': city, 'type': 'all', 'limit': 8},
+    ),
+    apiClient.get(
       '/businesses',
       queryParameters: {
         'city': city,
@@ -84,10 +140,6 @@ final homeFeedProvider = FutureProvider.family<HomeFeed, String>((
         'limit': 6,
       },
     ),
-    apiClient.get(
-      '/businesses',
-      queryParameters: {'city': city, 'sort': 'recent', 'limit': 6},
-    ),
   ]);
   List<dynamic> rows(int index) =>
       (responses[index].data as Map<String, dynamic>)['data']
@@ -101,8 +153,23 @@ final homeFeedProvider = FutureProvider.family<HomeFeed, String>((
     offers: rows(0)
         .map((item) => HomeOffer.fromJson(item as Map<String, dynamic>))
         .toList(growable: false),
-    openNow: businesses(1),
-    services: businesses(2),
-    recentlyAdded: businesses(3),
+    newArrivals: rows(1)
+        .map((item) => HomeCatalogItem.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false),
+    openNow: businesses(2),
+    services: businesses(3),
   );
 });
+
+final recentlyAddedBusinessesProvider =
+    FutureProvider.family<List<Business>, String>((ref, city) async {
+      if (city.isEmpty) return const [];
+      final response = await apiClient.get(
+        '/businesses',
+        queryParameters: {'city': city, 'sort': 'recent', 'limit': 6},
+      );
+      final data = response.data as Map<String, dynamic>;
+      return (data['data'] as List<dynamic>? ?? const [])
+          .map((item) => Business.fromJson(item as Map<String, dynamic>))
+          .toList(growable: false);
+    });

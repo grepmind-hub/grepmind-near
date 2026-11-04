@@ -125,6 +125,25 @@ type CityOffer struct {
 	BusinessPhotoURL string `json:"business_photo_url,omitempty"`
 }
 
+// CityCatalogItem is a customer-visible product or service recently
+// published by an approved business in a supported city.
+type CityCatalogItem struct {
+	ID               string    `json:"id"`
+	ItemType         string    `json:"item_type"`
+	BusinessID       string    `json:"business_id"`
+	BusinessName     string    `json:"business_name"`
+	BusinessCity     string    `json:"business_city"`
+	BusinessLocality string    `json:"business_locality,omitempty"`
+	CategoryName     string    `json:"category_name"`
+	Name             string    `json:"name"`
+	Description      string    `json:"description,omitempty"`
+	Price            *float64  `json:"price,omitempty"`
+	PriceMax         *float64  `json:"price_max,omitempty"`
+	Currency         string    `json:"currency"`
+	ImageURL         string    `json:"image_url,omitempty"`
+	PublishedAt      time.Time `json:"published_at"`
+}
+
 type ServiceOffering struct {
 	ID          string   `json:"id"`
 	BusinessID  string   `json:"business_id"`
@@ -719,6 +738,118 @@ func (s *Service) ListCityOffers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, envelope{
 		"data": offers,
 		"meta": map[string]string{"request_id": "city-offers"},
+	})
+}
+
+func (s *Service) ListNewCatalogItems(w http.ResponseWriter, r *http.Request) {
+	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	if !isSupportedOfferCity(city) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "City must be Cuttack or Jajpur.")
+		return
+	}
+	kind := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("type")))
+	if kind == "" {
+		kind = "all"
+	}
+	if kind != "all" && kind != "products" && kind != "services" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Type must be all, products, or services.")
+		return
+	}
+	limit := 8
+	if value := r.URL.Query().Get("limit"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 50 {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", errLimitOutOfRange.Error())
+			return
+		}
+		limit = parsed
+	}
+	offset := 0
+	if value := r.URL.Query().Get("offset"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 0 || parsed > 10000 {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Offset must be between 0 and 10000.")
+			return
+		}
+		offset = parsed
+	}
+	query := `
+		SELECT item_id, item_type, business_id, business_name, business_city,
+		       business_locality, category_name, name, description, price, price_max,
+		       currency, image_url, published_at
+		FROM (
+			SELECT p.id AS item_id, 'product'::text AS item_type, b.id AS business_id,
+			       b.name AS business_name, b.city AS business_city, COALESCE(b.locality, '') AS business_locality,
+			       COALESCE(c.name, b.category_slug) AS category_name, p.name,
+			       COALESCE(p.description, '') AS description, p.price, NULL::numeric AS price_max,
+			       p.currency, COALESCE(p.image_url, b.cover_photo_url, '') AS image_url, p.published_at
+			FROM products p
+			JOIN businesses b ON b.id = p.business_id
+			LEFT JOIN categories c ON c.slug = b.category_slug
+			WHERE lower(b.city) = lower($1) AND b.status = 'approved'
+			  AND p.is_published = true AND p.stock_status <> 'out_of_stock'
+			  AND p.published_at IS NOT NULL AND $2 IN ('all', 'products')
+			UNION ALL
+			SELECT s.id AS item_id, 'service'::text AS item_type, b.id AS business_id,
+			       b.name AS business_name, b.city AS business_city, COALESCE(b.locality, '') AS business_locality,
+			       COALESCE(c.name, b.category_slug) AS category_name, s.name,
+			       COALESCE(s.description, '') AS description, s.indicative_price_min AS price,
+			       s.indicative_price_max AS price_max, s.currency, COALESCE(b.cover_photo_url, '') AS image_url, s.activated_at AS published_at
+			FROM services s
+			JOIN businesses b ON b.id = s.business_id
+			LEFT JOIN categories c ON c.slug = b.category_slug
+			WHERE lower(b.city) = lower($1) AND b.status = 'approved'
+			  AND s.is_active = true AND s.activated_at IS NOT NULL AND $2 IN ('all', 'services')
+		) catalog
+		ORDER BY published_at DESC, item_id DESC
+		LIMIT $3 OFFSET $4`
+	rows, err := s.db.QueryxContext(r.Context(), query, city, kind, limit+1, offset)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load new local products and services.")
+		return
+	}
+	defer rows.Close()
+	items := make([]CityCatalogItem, 0, limit)
+	for rows.Next() {
+		var item CityCatalogItem
+		var desc, locality, image sql.NullString
+		var price, priceMax sql.NullFloat64
+		if err := rows.Scan(&item.ID, &item.ItemType, &item.BusinessID, &item.BusinessName,
+			&item.BusinessCity, &locality, &item.CategoryName, &item.Name, &desc, &price,
+			&priceMax, &item.Currency, &image, &item.PublishedAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read new local products and services.")
+			return
+		}
+		if locality.Valid {
+			item.BusinessLocality = locality.String
+		}
+		if desc.Valid {
+			item.Description = desc.String
+		}
+		if price.Valid {
+			value := price.Float64
+			item.Price = &value
+		}
+		if priceMax.Valid {
+			value := priceMax.Float64
+			item.PriceMax = &value
+		}
+		if image.Valid {
+			item.ImageURL = image.String
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read new local products and services.")
+		return
+	}
+	hasMore := len(items) > limit
+	if hasMore {
+		items = items[:limit]
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": items,
+		"meta": map[string]interface{}{"request_id": "new-catalog-items", "limit": limit, "offset": offset, "has_more": hasMore},
 	})
 }
 

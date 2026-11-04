@@ -199,6 +199,7 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/businesses/{id}/services", discSvc.ListServices)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/offers", discSvc.ListOffers)
 	mux.HandleFunc("GET /api/v1/offers", discSvc.ListCityOffers)
+	mux.HandleFunc("GET /api/v1/catalog/new-arrivals", discSvc.ListNewCatalogItems)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/availability", opsSvc.Availability)
 	mux.HandleFunc("GET /api/v1/merchant/businesses/{id}/availability", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.MerchantAvailability(w, r, userID)
@@ -965,8 +966,8 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	req.Name = strings.TrimSpace(req.Name)
 	var newID string
 	err := db.QueryRowxContext(r.Context(), `
-		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, now(), CASE WHEN $6 THEN now() ELSE NULL END)
 		RETURNING id
 	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.IsPublished, req.ImageURL).Scan(&newID)
 	if err != nil {
@@ -1035,7 +1036,9 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	if req.IsPublished != nil {
 		setParts = append(setParts, fmt.Sprintf("is_published = $%d", argIdx))
 		args = append(args, *req.IsPublished)
+		publishedArg := argIdx
 		argIdx++
+		setParts = append(setParts, fmt.Sprintf("published_at = CASE WHEN $%d THEN COALESCE(published_at, now()) ELSE NULL END", publishedArg))
 	}
 	if req.ImageURL != nil {
 		setParts = append(setParts, fmt.Sprintf("image_url = $%d", argIdx))
@@ -1139,8 +1142,8 @@ func merchantCreateService(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 	var newID string
 	err := db.QueryRowxContext(r.Context(), `
-		INSERT INTO services (business_id, name, description, indicative_price_min, indicative_price_max, is_active)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO services (business_id, name, description, indicative_price_min, indicative_price_max, is_active, activated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $6 THEN now() ELSE NULL END)
 		RETURNING id
 	`, bizID, req.Name, req.Description, req.PriceMin, req.PriceMax, req.IsActive).Scan(&newID)
 	if err != nil {
@@ -1196,7 +1199,9 @@ func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.Respon
 	if req.IsActive != nil {
 		setParts = append(setParts, fmt.Sprintf("is_active = $%d", argIdx))
 		args = append(args, *req.IsActive)
+		activeArg := argIdx
 		argIdx++
+		setParts = append(setParts, fmt.Sprintf("activated_at = CASE WHEN $%d THEN COALESCE(activated_at, now()) ELSE NULL END", activeArg))
 	}
 	if len(setParts) == 0 {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No fields to update.")
