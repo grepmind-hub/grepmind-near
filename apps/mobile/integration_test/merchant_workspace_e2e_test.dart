@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
@@ -154,6 +155,60 @@ void main() {
                 item['status'] == 'accepted',
           ),
           isTrue,
+        );
+
+        final requestId =
+            rows.singleWhere((item) => item['description'] == description)['id']
+                as String;
+        final startWork = find.byKey(Key('merchant_start_request_$requestId'));
+        await tester.ensureVisible(startWork);
+        await tester.tap(startWork);
+        await waitFor(
+          () => container
+              .read(merchantProvider)
+              .items
+              .any(
+                (item) =>
+                    item.description == description &&
+                    item.status == 'in_progress',
+              ),
+          '$city request did not transition to in progress through the UI',
+        );
+        final completeWork = find.byKey(
+          Key('merchant_complete_request_$requestId'),
+        );
+        await tester.ensureVisible(completeWork);
+        await tester.tap(completeWork);
+        await waitFor(
+          () => container
+              .read(merchantProvider)
+              .items
+              .any(
+                (item) =>
+                    item.description == description &&
+                    item.status == 'completed',
+              ),
+          '$city request did not complete through the UI',
+        );
+        final completedRequests = await apiClient.get(
+          '/merchant/requests',
+          queryParameters: {'business_id': businessId},
+        );
+        final completedRows =
+            (completedRequests.data['data']['requests'] as List)
+                .cast<Map<String, dynamic>>();
+        expect(
+          completedRows.singleWhere(
+            (item) => item['id'] == requestId,
+          )['status'],
+          'completed',
+        );
+        await expectLater(
+          apiClient.patch(
+            '/merchant/requests/$requestId/status',
+            data: {'status': 'accepted'},
+          ),
+          throwsA(isA<DioException>()),
         );
 
         await tester.tap(find.text('Dashboard').first);

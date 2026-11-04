@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/screens/booking_scheduler_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_availability_screen.dart';
+import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
+import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
 /// Uses generated local merchant/customer identities and cleanup-owned records.
@@ -34,7 +37,11 @@ void main() {
     if (cases.isEmpty || customerPhone == null || customerPhone.isEmpty) {
       throw StateError('The local fixture requires a merchant and customer.');
     }
-    final merchantFixture = cases.first;
+    final merchantFixture = cases.firstWhere(
+      (entry) =>
+          entry['City'] == 'Cuttack' && entry['CategorySlug'] == 'plumber',
+      orElse: () => cases.first,
+    );
     final businessId = merchantFixture['BusinessID'] as String;
     apiClient.init();
     apiClient.dio.interceptors.clear();
@@ -79,6 +86,22 @@ void main() {
       'merchant',
     );
     final merchantToken = merchantSession['token'] as String;
+    apiClient.dio.options.headers['Authorization'] = 'Bearer $merchantToken';
+
+    final otherBusiness = cases.firstWhere(
+      (entry) => entry['BusinessID'] != businessId,
+    );
+    final otherMerchantSession = await login(
+      otherBusiness['Phone'] as String,
+      'merchant',
+    );
+    final otherMerchantToken = otherMerchantSession['token'] as String;
+    apiClient.dio.options.headers['Authorization'] =
+        'Bearer $otherMerchantToken';
+    await expectLater(
+      apiClient.get('/merchant/businesses/$businessId/availability'),
+      throwsA(isA<DioException>()),
+    );
     apiClient.dio.options.headers['Authorization'] = 'Bearer $merchantToken';
 
     final hours = List.generate(
@@ -148,6 +171,18 @@ void main() {
 
     final slotA = await createSlot(slotAStart, slotAEnd);
     final slotB = await createSlot(slotBStart, slotBEnd);
+    await expectLater(
+      apiClient.post(
+        '/merchant/businesses/$businessId/availability-slots',
+        data: {
+          'date': localDate,
+          'starts_at': slotAStart,
+          'ends_at': slotAEnd,
+          'capacity': 1,
+        },
+      ),
+      throwsA(isA<DioException>()),
+    );
     String displayMerchantTime(String value) {
       final parts = value.split(':');
       final hour = int.parse(parts[0]);
@@ -226,10 +261,83 @@ void main() {
       'closed',
     );
 
-    // Real customer scheduler: book the remaining slot through the API-backed UI.
+    // A date exception closes the full local date and releases all open slots.
+    final closedDate = appointmentDate.add(const Duration(days: 1));
+    final closedDateKey = DateFormat('yyyy-MM-dd').format(closedDate);
+    final closedSlot = await apiClient.post(
+      '/merchant/businesses/$businessId/availability-slots',
+      data: {
+        'date': closedDateKey,
+        'starts_at': slotAStart,
+        'ends_at': slotAEnd,
+        'capacity': 1,
+      },
+    );
+    final closedSlotId = closedSlot.data['data']['id'] as String;
+    await apiClient.put(
+      '/merchant/businesses/$businessId/availability-exceptions',
+      data: {
+        'date': closedDateKey,
+        'is_closed': true,
+        'note': 'QA closed-date validation',
+      },
+    );
+    final closedDayAvailability = await apiClient.get(
+      '/businesses/$businessId/availability',
+      queryParameters: {
+        'from': '${closedDateKey}T00:00:00+05:30',
+        'to': '${closedDateKey}T23:59:59+05:30',
+      },
+    );
+    final closedDayRows = closedDayAvailability.data['data'] as List<dynamic>;
+    expect(
+      closedDayRows.cast<Map<String, dynamic>>().any(
+        (slot) => slot['id'] == closedSlotId,
+      ),
+      isFalse,
+    );
     final customerSession = await login(customerPhone, 'customer');
     final customerToken = customerSession['token'] as String;
     apiClient.dio.options.headers['Authorization'] = 'Bearer $customerToken';
+    await expectLater(
+      apiClient.post(
+        '/businesses/$businessId/requests',
+        data: {
+          'service_id': service.id,
+          'slot_id': closedSlotId,
+          'requested_for': '${closedDateKey}T$slotAStart:00+05:30',
+          'description': 'Closed-date QA booking rejection',
+        },
+      ),
+      throwsA(isA<DioException>()),
+    );
+
+    // A failed request submission must remain on the form, not show receipt.
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: ServiceRequestScreen(
+            businessId: 'missing-${fixture['Run']}',
+            businessName: 'QA unavailable listing',
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byType(TextField).last,
+      'Request submission failure validation',
+    );
+    await tester.tap(find.text('Submit request'));
+    await waitFor(
+      () => find
+          .text('Could not submit your request. Please try again.')
+          .evaluate()
+          .isNotEmpty,
+      'Failed service request did not show a recoverable error.',
+    );
+    expect(find.byType(ServiceRequestStatusScreen), findsNothing);
+
+    // Real customer scheduler: book the remaining slot through the API-backed UI.
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -260,7 +368,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextField).first,
-      'Cuttack local test address',
+      '${merchantFixture['City']} QA appointment address',
     );
     await tester.tap(
       find.byWidgetPredicate(

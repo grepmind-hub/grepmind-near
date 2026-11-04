@@ -47,20 +47,18 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      String? reqId;
-      try {
-        final res = await apiClient.post(
-          '/businesses/${widget.businessId}/requests',
-          data: {
-            'service_id': _selectedServiceId,
-            'description': _descController.text.trim(),
-            'requested_for': _requestedFor?.toIso8601String(),
-          },
-        );
-        final data = res.data as Map<String, dynamic>;
-        reqId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
-      } catch (e) {
-        debugPrint('API request fallback: $e');
+      final res = await apiClient.post(
+        '/businesses/${widget.businessId}/requests',
+        data: {
+          'service_id': _selectedServiceId,
+          'description': _descController.text.trim(),
+          'requested_for': _requestedFor?.toIso8601String(),
+        },
+      );
+      final data = res.data as Map<String, dynamic>;
+      final reqId = (data['data'] as Map<String, dynamic>?)?['id'] as String?;
+      if (reqId == null || reqId.isEmpty) {
+        throw const FormatException('Request response did not include an ID.');
       }
 
       if (mounted) {
@@ -84,7 +82,9 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit: $e')),
+          const SnackBar(
+            content: Text('Could not submit your request. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -165,23 +165,26 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.primary),
-              title: const Text('Preferred date & time'),
-              subtitle: Text(
-                _requestedFor == null ? 'Select when you need the service' : _requestedFor.toString(),
-                style: const TextStyle(color: AppTheme.secondaryText),
+            Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.primary),
+                title: const Text('Preferred date & time'),
+                subtitle: Text(
+                  _requestedFor == null ? 'Select when you need the service' : _requestedFor.toString(),
+                  style: const TextStyle(color: AppTheme.secondaryText),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.hintText),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                  );
+                  if (picked != null) setState(() => _requestedFor = picked);
+                },
               ),
-              trailing: const Icon(Icons.chevron_right, color: AppTheme.hintText),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 30)),
-                );
-                if (picked != null) setState(() => _requestedFor = picked);
-              },
             ),
             const SizedBox(height: 24),
             SizedBox(

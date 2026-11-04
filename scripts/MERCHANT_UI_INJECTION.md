@@ -31,6 +31,17 @@ Account/store setup uses parameterized local SQL because merchant onboarding is 
 
 The `Categories` scenario creates, edits and deletes one temporary merchant product per category through the mobile merchant UI, checks customer visibility and image metadata, then adds and removes each business from the QA customer's saved list. Run it with `-Action Run` so generated accounts, businesses, catalog entries, offers and media are removed automatically.
 
+## Merchant appointments and request lifecycle
+
+Run the appointment and request-flow validations against generated local merchants and a generated customer:
+
+```powershell
+.\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Availability -DeviceId emulator-5554 -AdbServerPort 5039
+.\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Workspace -DeviceId emulator-5554 -AdbServerPort 5039
+```
+
+`Availability` covers overlapping-slot rejection, business scoping, date-specific closures, closed-slot booking rejection, merchant-local time display, real customer scheduling, and failed-request recovery. `Workspace` submits a temporary customer request and exercises accept, start work, and complete through the merchant app in both Cuttack and Jajpur, then verifies persisted state and server rejection of an invalid transition. `-Action Run` removes the run's generated records and restores the normal debug APK. Rescheduling to a different slot is not covered because the current backend status endpoint does not accept a replacement slot.
+
 ## Customer discovery and OTP UI scenario
 
 Run the reversible end-to-end customer flow with:

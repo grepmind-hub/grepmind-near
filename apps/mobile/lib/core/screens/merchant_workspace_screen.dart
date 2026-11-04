@@ -583,7 +583,6 @@ class _MerchantWorkspaceScreenState
     required Color color,
   }) {
     return PremiumCard(
-      padding: const EdgeInsets.all(16),
       borderColor: color.withValues(alpha: 0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -861,6 +860,28 @@ class _MerchantWorkspaceScreenState
                       side: const BorderSide(color: AppTheme.error),
                     ),
                     child: const Text('Decline'),
+                  ),
+                ),
+              ] else if (r.status == 'accepted') ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: Key('merchant_start_request_${r.id}'),
+                    onPressed: () => _updateRequest(r.id, 'in_progress'),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Start work'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(color: AppTheme.primary),
+                    ),
+                  ),
+                ),
+              ] else if (r.status == 'in_progress') ...[
+                Expanded(
+                  child: ElevatedButton.icon(
+                    key: Key('merchant_complete_request_${r.id}'),
+                    onPressed: () => _updateRequest(r.id, 'completed'),
+                    icon: const Icon(Icons.check_rounded),
+                    label: const Text('Mark complete'),
                   ),
                 ),
               ] else
