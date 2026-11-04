@@ -356,6 +356,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                                 InkWell(
+                                  key: const Key('explore_location_selector'),
                                   onTap: _showLocationModal,
                                   borderRadius: BorderRadius.circular(8),
                                   child: Padding(
@@ -600,6 +601,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               : (isMore ? 'more' : category!.slug);
                           final isSel = _selectedCategory == slug;
                           return CategoryCircleItem(
+                            key: Key('explore_category_$slug'),
                             label: isAll
                                 ? 'All'
                                 : (isMore ? 'More' : category!.name),

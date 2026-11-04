@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
@@ -41,8 +41,13 @@ class AuthState {
 
 /// Auth notifier backed by Riverpod and secure storage.
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
-    _loadSession();
+  AuthNotifier() : this._(restoreSession: true);
+
+  @visibleForTesting
+  AuthNotifier.forTesting() : this._(restoreSession: false);
+
+  AuthNotifier._({required bool restoreSession}) : super(const AuthState()) {
+    if (restoreSession) _loadSession();
   }
 
   Future<void> _loadSession() async {

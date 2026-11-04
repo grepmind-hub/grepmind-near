@@ -21,7 +21,17 @@ Account IDs, phone numbers, business IDs, product names/prices and coordinates a
 
 The Android integration driver mounts the actual `MerchantCatalogScreen`, opens Add Product, enters the sample name, description, price and category image URL, and presses Create Product. It verifies persistence, image retrieval and city/category discovery results. It exercises merchant offer create/update/list/delete through authenticated API routes, checks merchant hours and public business profile data, opens the customer profile screen, verifies schedule rendering, and intercepts phone and WhatsApp intents. It also selects the real radar map category and checks the fixture marker. `Inject` retains records for review. `Run` opts into a create/delete cycle and removes the generated fixtures.
 
-Account/store setup uses parameterized local SQL because merchant onboarding is not yet connected. Login uses the real local OTP API and verifies merchant/customer roles. The automation does not drive the onboarding/login UI, does not mock HTTP responses, and does not overwrite the emulator user's saved authentication in secure storage. Addresses come from local approved city records; source category photos are copied into local MinIO; contact numbers are generated for OTP testing.
+Account/store setup uses parameterized local SQL because merchant onboarding is not yet connected. Existing merchant scenarios use the real local OTP API and verify merchant/customer roles without driving the onboarding/login UI. The Discovery scenario below drives the customer's onboarding and OTP UI. No scenario mocks HTTP responses or overwrites the emulator user's saved authentication in secure storage. Addresses come from local approved city records; source category photos are copied into local MinIO; contact numbers are generated for OTP testing.
+
+## Customer discovery and OTP UI scenario
+
+Run the reversible end-to-end customer flow with:
+
+```powershell
+& 'C:\Program Files\PowerShell\7\pwsh.exe' -NoProfile -ExecutionPolicy Bypass -File .\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Discovery -DeviceId emulator-5554
+```
+
+`Discovery` prepares a fresh OTP-only customer and temporary image-backed listings for every active category in Cuttack and Jajpur. On the Android emulator, it enters the generated customer's phone number in the real onboarding screen, requests and enters the local development OTP, and verifies the customer session through the real OTP API. It then uses Explore's city/category selectors, checks the listing image URL returns image content, opens a business/service profile, and exercises each category filter plus the image-backed result list in Nearby for both cities. The test keeps its session in memory and does not overwrite the emulator user's saved credentials. `-Action Run` removes only the generated run's users, listings and media, then restores the regular debug APK. It does not send SMS or touch production data.
 
 ## WSL and emulator support
 

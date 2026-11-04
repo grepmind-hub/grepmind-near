@@ -337,11 +337,15 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             ),
                                           ),
                                         ] else
-                                          const Text(
-                                            'No customer ratings yet',
-                                            style: TextStyle(
-                                              color: AppTheme.secondaryText,
-                                              fontSize: 12,
+                                          const Flexible(
+                                            child: Text(
+                                              'No customer ratings yet',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: AppTheme.secondaryText,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         const Spacer(),
@@ -360,7 +364,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             biz.acceptsRequests
                                                 ? 'Accepting requests'
                                                 : 'Unavailable',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: Color(0xFF15803D),
                                               fontWeight: FontWeight.w700,
                                               fontSize: 11,
