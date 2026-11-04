@@ -2,10 +2,11 @@ param(
     [ValidateSet('Run','Inject','Cleanup')][string]$Action = 'Inject',
     [string[]]$Cities = @('Cuttack','Jajpur'),
     [string]$DeviceId = '',
+    [ValidateRange(1024,65535)][int]$AdbServerPort = 5037,
     [string]$ApiBaseUrl = 'http://127.0.0.1:8080/api/v1',
     [string]$EmulatorApiBaseUrl = 'http://10.0.2.2:80',
     [string]$Manifest = 'ui-injection-run.json',
-    [ValidateSet('Products','Availability','Workspace','Analytics','Discovery')][string]$Scenario = 'Products',
+    [ValidateSet('Products','Categories','Availability','Workspace','Analytics','Discovery')][string]$Scenario = 'Products',
     [switch]$SkipAppRestore
 )
 $ErrorActionPreference = 'Stop'
@@ -35,11 +36,11 @@ $success = $false
 try {
     $adb = (Get-Command adb.exe -ErrorAction Stop).Source
     if (-not $DeviceId) {
-        $devices = @(& $adb devices | Select-String '^\S+\s+device$' | ForEach-Object {($_.Line -split '\s+')[0]})
+        $devices = @(& $adb -P $AdbServerPort devices | Select-String '^\S+\s+device$' | ForEach-Object {($_.Line -split '\s+')[0]})
         if ($devices.Count -ne 1) {throw 'Provide -DeviceId when zero or multiple Android devices are connected'}
         $DeviceId = $devices[0]
     }
-    $abi = (& $adb -s $DeviceId shell getprop ro.product.cpu.abi).Trim()
+    $abi = (& $adb -P $AdbServerPort -s $DeviceId shell getprop ro.product.cpu.abi).Trim()
     $androidTarget = switch ($abi) {'x86_64' {'android-x64'} 'arm64-v8a' {'android-arm64'} 'armeabi-v7a' {'android-arm'} default {throw "Unsupported Android ABI: $abi"}}
     $runMobile = Get-Content -Raw (Join-Path $repo 'run_mobile.sh')
     if ($runMobile -notmatch 'export PATH="([^:]+)') {throw 'Flutter path was not found in run_mobile.sh'}
@@ -52,12 +53,12 @@ try {
     $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop()
     $python = (Get-Command python -ErrorAction Stop).Source
     $bridgeScript = Join-Path $PSScriptRoot 'adb_bridge.py'
-    $bridge = Start-Process -FilePath $python -ArgumentList @("`"$bridgeScript`"",'--bind-ip',$gateway,'--bind-port',$port,'--stop-file',"`"$stopFile`"") -WindowStyle Hidden -PassThru
+    $bridge = Start-Process -FilePath $python -ArgumentList @("`"$bridgeScript`"",'--bind-ip',$gateway,'--bind-port',$port,'--target-port',"$AdbServerPort",'--stop-file',"`"$stopFile`"") -WindowStyle Hidden -PassThru
     $vmListener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
     $vmListener.Start(); $vmPort = $vmListener.LocalEndpoint.Port; $vmListener.Stop()
     # Reserve the Windows side before WSL listens on the same localhost port.
     # This prevents WSL localhost forwarding from taking ADB's listener port.
-    & $adb -s $DeviceId forward "tcp:$vmPort" tcp:1
+    & $adb -P $AdbServerPort -s $DeviceId forward "tcp:$vmPort" tcp:1
     if ($LASTEXITCODE -ne 0) {throw 'Unable to reserve the Windows ADB VM-service forward'}
     $gatewayListener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Parse($gateway),0)
     $gatewayListener.Start(); $vmGatewayPort = $gatewayListener.LocalEndpoint.Port; $gatewayListener.Stop()
@@ -105,14 +106,14 @@ try {
         Start-Sleep -Milliseconds 1500
         foreach ($process in @($bridge,$vmBridge,$linuxBridge)) {if ($process -and -not $process.HasExited) {Stop-Process -Id $process.Id}}
         if ($vmPort -and $adb) {
-            $forwards = & $adb -s $DeviceId forward --list
-            if ($forwards -match "tcp:$vmPort\s") { & $adb -s $DeviceId forward --remove "tcp:$vmPort" }
+            $forwards = & $adb -P $AdbServerPort -s $DeviceId forward --list
+            if ($forwards -match "tcp:$vmPort\s") { & $adb -P $AdbServerPort -s $DeviceId forward --remove "tcp:$vmPort" }
         }
         Remove-Item -LiteralPath $stopFile -ErrorAction SilentlyContinue
         if (-not $SkipAppRestore -and $flutterBin -and $DeviceId) {
             & wsl --cd "$wslRepo/apps/mobile" --exec env $pathEnv flutter build apk --debug "--target-platform=$androidTarget" "--dart-define=API_BASE_URL=$EmulatorApiBaseUrl"
             if ($LASTEXITCODE -ne 0) {throw 'Fixture cleanup ran, but the normal app rebuild failed'}
-            & $adb -s $DeviceId install -r (Join-Path $repo 'apps/mobile/build/app/outputs/flutter-apk/app-debug.apk')
+            & $adb -P $AdbServerPort -s $DeviceId install -r (Join-Path $repo 'apps/mobile/build/app/outputs/flutter-apk/app-debug.apk')
             if ($LASTEXITCODE -ne 0) {throw 'Fixture cleanup ran, but normal app reinstall failed'}
         }
     }

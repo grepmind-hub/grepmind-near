@@ -6,6 +6,12 @@ Run in Windows PowerShell with the Windows emulator and local Compose stack runn
 # Opt-in cycle: inject and delete through the product UI, then clean fixtures.
 .\scripts\merchant_ui_injection.ps1 -Action Run
 
+# Validate merchant CRUD and customer conversion flows across every category.
+.\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Categories
+
+# If the default ADB port 5037 is unavailable, use a dedicated port.
+.\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Categories -AdbServerPort 5039 -DeviceId emulator-5554
+
 # Default action: retain generated products/offers so you can inspect customer listings.
 .\scripts\merchant_ui_injection.ps1 -Action Inject
 
@@ -19,9 +25,11 @@ Account IDs, phone numbers, business IDs, product names/prices and coordinates a
 
 ## What runs through the UI
 
-The Android integration driver mounts the actual `MerchantCatalogScreen`, opens Add Product, enters the sample name, description, price and category image URL, and presses Create Product. It verifies persistence, image retrieval and city/category discovery results. It exercises merchant offer create/update/list/delete through authenticated API routes, checks merchant hours and public business profile data, opens the customer profile screen, verifies schedule rendering, and intercepts phone and WhatsApp intents. It also selects the real radar map category and checks the fixture marker. `Inject` retains records for review. `Run` opts into a create/delete cycle and removes the generated fixtures.
+The Android integration driver mounts the actual `MerchantCatalogScreen`, opens Add Product, enters the sample name, description, price and category image URL, and presses Create Product. It verifies persistence, image retrieval and city/category discovery results. It exercises merchant offer create/update/list/delete through authenticated API routes, checks merchant hours and public business profile data, and selects the real radar map category. The `Categories` scenario additionally opens every generated customer business profile in both cities and verifies category and image metadata, call and WhatsApp intents, save/unsave persistence through the favorites API, published catalog visibility, and operating schedule rendering. `Inject` retains records for review. `Run` opts into a create/delete cycle and removes the generated fixtures.
 
 Account/store setup uses parameterized local SQL because merchant onboarding is not yet connected. Existing merchant scenarios use the real local OTP API and verify merchant/customer roles without driving the onboarding/login UI. The Discovery scenario below drives the customer's onboarding and OTP UI. No scenario mocks HTTP responses or overwrites the emulator user's saved authentication in secure storage. Addresses come from local approved city records; source category photos are copied into local MinIO; contact numbers are generated for OTP testing.
+
+The `Categories` scenario creates, edits and deletes one temporary merchant product per category through the mobile merchant UI, checks customer visibility and image metadata, then adds and removes each business from the QA customer's saved list. Run it with `-Action Run` so generated accounts, businesses, catalog entries, offers and media are removed automatically.
 
 ## Customer discovery and OTP UI scenario
 

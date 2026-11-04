@@ -492,7 +492,6 @@ void main() {
                     child: MaterialApp(
                       key: UniqueKey(),
                       home: const NearbyMapScreen(
-                        useDeviceLocation: false,
                         initialRadarView: true,
                       ),
                     ),
@@ -554,6 +553,160 @@ void main() {
                   findsOneWidget,
                 );
               }
+            // Validate the customer-facing profile and conversion controls for
+            // every generated category in both cities, not just one example.
+            final customerToken = await login(
+              manifest['CustomerPhone'] as String,
+              expectedRole: 'customer',
+            );
+            apiClient.dio.options.headers['Authorization'] =
+                'Bearer $customerToken';
+            final categoryCustomerContainer = ProviderContainer(
+              overrides: [
+                appLocationProvider.overrideWith((ref) {
+                  final location = LocationNotifier();
+                  location.setLocation(
+                    AppLocation(
+                      cityName: entry['City'] as String,
+                      latitude: (entry['Latitude'] as num).toDouble(),
+                      longitude: (entry['Longitude'] as num).toDouble(),
+                    ),
+                  );
+                  return location;
+                }),
+                contactActionsProvider.overrideWith(
+                  (ref) => ContactActions(
+                    launcher: (uri) async {
+                      launchedUrls.add(uri.toString());
+                      return true;
+                    },
+                  ),
+                ),
+              ],
+            );
+            try {
+              await tester.pumpWidget(
+                UncontrolledProviderScope(
+                  container: categoryCustomerContainer,
+                  child: MaterialApp(
+                    key: UniqueKey(),
+                    home: BusinessDetailScreen(businessId: businessId),
+                  ),
+                ),
+              );
+              await waitFor(
+                () =>
+                    categoryCustomerContainer
+                            .read(businessDetailProvider)
+                            .detail !=
+                        null &&
+                    !categoryCustomerContainer
+                        .read(businessDetailProvider)
+                        .isLoading,
+                'Customer profile did not load for ${entry['CategorySlug']} in ${entry['City']}',
+              );
+              final profile = categoryCustomerContainer
+                  .read(businessDetailProvider)
+                  .detail!;
+              expect(profile.id, businessId);
+              expect(profile.categorySlug, entry['CategorySlug']);
+              expect(profile.coverPhotoUrl, entry['ImageURL']);
+
+              final callCount = launchedUrls.length;
+              await tester.tap(find.text('Call'));
+              await waitFor(
+                () => launchedUrls.length > callCount,
+                'Call action failed for ${entry['CategorySlug']} in ${entry['City']}',
+              );
+              expect(launchedUrls.last, 'tel:${entry['Phone']}');
+
+              final whatsappCount = launchedUrls.length;
+              await tester.tap(find.text('WhatsApp'));
+              await waitFor(
+                () => launchedUrls.length > whatsappCount,
+                'WhatsApp action failed for ${entry['CategorySlug']} in ${entry['City']}',
+              );
+              expect(
+                launchedUrls.last,
+                'https://wa.me/${(entry['Phone'] as String).replaceAll('+', '')}',
+              );
+
+              await tester.tap(find.text('Save'));
+              await waitFor(
+                () => categoryCustomerContainer
+                    .read(favoritesProvider)
+                    .items
+                    .any((business) => business.id == businessId),
+                'Save action did not update customer state for ${entry['CategorySlug']}',
+              );
+              final savedResponse = await apiClient.get('/favorites');
+              expect(
+                (savedResponse.data['data'] as List).any(
+                  (dynamic business) => business['id'] == businessId,
+                ),
+                isTrue,
+              );
+              await tester.tap(find.text('Save'));
+              await waitFor(
+                () => categoryCustomerContainer
+                    .read(favoritesProvider)
+                    .items
+                    .every((business) => business.id != businessId),
+                'Unsave action did not update customer state for ${entry['CategorySlug']}',
+              );
+              final unsavedResponse = await apiClient.get('/favorites');
+              expect(
+                (unsavedResponse.data['data'] as List).any(
+                  (dynamic business) => business['id'] == businessId,
+                ),
+                isFalse,
+              );
+
+              final catalogTab = switch (entry['CategorySlug']) {
+                'restaurant' => 'Menu & Food',
+                'hotel' => 'Rooms & Stays',
+                _ => 'Products',
+              };
+              await tester.tap(find.text(catalogTab));
+              await tester.pumpAndSettle();
+              await waitFor(
+                () => find.text(name).evaluate().isNotEmpty,
+                'Published catalog item was not visible from the ${entry['CategorySlug']} profile',
+              );
+              expect(
+                categoryCustomerContainer
+                    .read(businessDetailProvider)
+                    .products
+                    .any((product) => product.name == name),
+                isTrue,
+              );
+
+              await tester.tap(find.text('About'));
+              await tester.pumpAndSettle();
+              final scheduleHeading = find.text('Operating Schedule');
+              for (
+                var attempt = 0;
+                attempt < 10 && scheduleHeading.evaluate().isEmpty;
+                attempt++
+              ) {
+                await tester.drag(
+                  find.byType(Scrollable).last,
+                  const Offset(0, -420),
+                );
+                await tester.pumpAndSettle();
+              }
+              expect(scheduleHeading, findsOneWidget);
+              await tester.ensureVisible(scheduleHeading);
+              await tester.pumpAndSettle();
+              expect(find.textContaining('9:00 AM'), findsWidgets);
+              debugPrint(
+                'PASS customer category flow ${entry['City']} / ${entry['CategorySlug']}',
+              );
+            } finally {
+              await tester.pumpWidget(const SizedBox.shrink());
+              categoryCustomerContainer.dispose();
+            }
+            apiClient.dio.options.headers['Authorization'] = 'Bearer $token';
             } else if (phase == 'delete') {
               final product = container
                   .read(merchantCatalogProvider)

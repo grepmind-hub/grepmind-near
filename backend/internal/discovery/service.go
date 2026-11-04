@@ -999,7 +999,7 @@ func (s *Service) ListFavorites(authSvc *auth.Service, db *database.DB, w http.R
 	}
 	defer rows.Close()
 
-	var results []Business
+	results := make([]Business, 0)
 	for rows.Next() {
 		var b Business
 		var slug, locality, city, postal, phone, whatsapp sql.NullString
