@@ -321,6 +321,8 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("PATCH /api/v1/merchant/businesses/{bizId}/requests/{id}/status", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		merchantRequestStatus(authSvc, db, w, r, userID, notifHub)
 	}))
+	mux.HandleFunc("PATCH /api/v1/merchant/businesses/{bizId}/requests/{id}/reschedule", requireAuth(authSvc, merchantRescheduleRequest(notifHub)))
+	mux.HandleFunc("POST /api/v1/requests/{id}/confirm-reschedule", requireAuth(authSvc, confirmServiceRequestReschedule(notifHub)))
 	mux.HandleFunc("GET /api/v1/merchant/products", requireAuth(authSvc, merchantListProducts))
 	mux.HandleFunc("POST /api/v1/merchant/products", requireAuth(authSvc, merchantCreateProduct))
 	mux.HandleFunc("PATCH /api/v1/merchant/products/{id}", requireAuth(authSvc, merchantUpdateProduct))
@@ -797,22 +799,26 @@ func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWri
 
 	// Get service requests for this business
 	type reqItem struct {
-		ID            string  `json:"id"`
-		CustomerName  string  `json:"customer_name"`
-		CustomerPhone string  `json:"customer_phone"`
-		ServiceName   *string `json:"service_name"`
-		Description   string  `json:"description"`
-		RequestedFor  *string `json:"requested_for"`
-		Status        string  `json:"status"`
-		CreatedAt     string  `json:"created_at"`
-		UpdatedAt     string  `json:"updated_at"`
+		ID                 string  `json:"id"`
+		CustomerName       string  `json:"customer_name"`
+		CustomerPhone      string  `json:"customer_phone"`
+		ServiceName        *string `json:"service_name"`
+		Description        string  `json:"description"`
+		RequestedFor       *string `json:"requested_for"`
+		RequestedLocalDate *string `json:"requested_local_date"`
+		SlotID             *string `json:"slot_id"`
+		Status             string  `json:"status"`
+		CreatedAt          string  `json:"created_at"`
+		UpdatedAt          string  `json:"updated_at"`
 	}
 	var requests []reqItem
 	rRows, err := db.QueryxContext(r.Context(), `
 		SELECT sr.id, u.phone_e164 as customer_phone, u.display_name as customer_name,
-		       COALESCE(s.name, 'Service request'), sr.description, sr.requested_for, sr.status,
+		       COALESCE(s.name, 'Service request'), sr.description, sr.requested_for,
+		       to_char(sr.requested_for AT TIME ZONE b.time_zone, 'YYYY-MM-DD'), sr.slot_id, sr.status,
 		       sr.created_at, sr.updated_at
 		FROM service_requests sr
+		JOIN businesses b ON b.id = sr.business_id
 		JOIN users u ON u.id = sr.customer_user_id
 		LEFT JOIN services s ON s.id = sr.service_id AND s.business_id=sr.business_id
 		WHERE sr.business_id = $1
@@ -824,7 +830,7 @@ func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWri
 			var item reqItem
 			_ = rRows.Scan(&item.ID, &item.CustomerPhone, &item.CustomerName,
 				&item.ServiceName, &item.Description, &item.RequestedFor,
-				&item.Status, &item.CreatedAt, &item.UpdatedAt)
+				&item.RequestedLocalDate, &item.SlotID, &item.Status, &item.CreatedAt, &item.UpdatedAt)
 			requests = append(requests, item)
 		}
 		rRows.Close()
@@ -880,8 +886,8 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 
-	if reqBody.Status != "accepted" && reqBody.Status != "declined" && reqBody.Status != "in_progress" && reqBody.Status != "rescheduled" && reqBody.Status != "completed" && reqBody.Status != "cancelled" {
-		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid status. Use: accepted, in_progress, rescheduled, declined, completed, cancelled.")
+	if reqBody.Status != "accepted" && reqBody.Status != "declined" && reqBody.Status != "in_progress" && reqBody.Status != "completed" && reqBody.Status != "cancelled" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid status. Rescheduling requires the reschedule endpoint; use accepted, declined, in_progress, completed, or cancelled.")
 		return
 	}
 
@@ -945,8 +951,8 @@ func merchantRequestStatus(authSvc *auth.Service, db *database.DB, w http.Respon
 func validServiceRequestTransition(from, to string) bool {
 	allowed := map[string]map[string]bool{
 		"requested":   {"accepted": true, "declined": true, "cancelled": true},
-		"accepted":    {"in_progress": true, "rescheduled": true, "cancelled": true},
-		"rescheduled": {"accepted": true, "cancelled": true},
+		"accepted":    {"in_progress": true, "cancelled": true},
+		"rescheduled": {"cancelled": true},
 		"in_progress": {"completed": true, "cancelled": true},
 	}
 	return allowed[from][to]
@@ -1924,14 +1930,14 @@ func handleGetServiceRequest(authSvc *auth.Service, db *database.DB, w http.Resp
 	}
 
 	var id, bizID, bizName, desc, status string
-	var svcID, svcName, requestedFor, phone, customerName *string
+	var svcID, svcName, requestedFor, slotID, phone, customerName *string
 	var createdAt, updatedAt time.Time
 
 	var customerUserID string
 	err := db.QueryRowxContext(r.Context(), `
 			SELECT sr.id, sr.business_id, b.name as business_name,
 			       sr.service_id, s.name as service_name,
-			       sr.description, sr.requested_for, sr.status,
+			       sr.description, sr.requested_for, sr.slot_id, sr.status,
 			       u.display_name, u.phone_e164, sr.customer_user_id,
 			       sr.created_at, sr.updated_at
 			FROM service_requests sr
@@ -1939,8 +1945,8 @@ func handleGetServiceRequest(authSvc *auth.Service, db *database.DB, w http.Resp
 			JOIN users u ON u.id = sr.customer_user_id
 			LEFT JOIN services s ON s.id = sr.service_id
 			WHERE sr.id = $1
-		`, reqID).Scan(&id, &bizID, &bizName, &svcID, &svcName, &desc, &requestedFor, &status,
-		&customerName, &phone, &customerUserID, &createdAt, &updatedAt)
+		`, reqID).Scan(&id, &bizID, &bizName, &svcID, &svcName, &desc, &requestedFor, &slotID,
+		&status, &customerName, &phone, &customerUserID, &createdAt, &updatedAt)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Service request not found.")
 		return
@@ -1959,6 +1965,7 @@ func handleGetServiceRequest(authSvc *auth.Service, db *database.DB, w http.Resp
 			"service_name":   svcName,
 			"description":    desc,
 			"requested_for":  requestedFor,
+			"slot_id":        slotID,
 			"status":         status,
 			"customer_name":  customerName,
 			"customer_phone": phone,
@@ -1991,8 +1998,8 @@ func handleCancelServiceRequest(_ *auth.Service, db *database.DB, w http.Respons
 		writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this service request.")
 		return
 	}
-	if status != "requested" && status != "accepted" {
-		writeError(w, http.StatusConflict, "INVALID_STATE", "Only pending or accepted requests can be cancelled.")
+	if status != "requested" && status != "accepted" && status != "rescheduled" {
+		writeError(w, http.StatusConflict, "INVALID_STATE", "Only pending, accepted, or rescheduled requests can be cancelled.")
 		return
 	}
 	status = "cancelled"
@@ -2025,6 +2032,7 @@ func handleListCustomerRequests(_ *auth.Service, db *database.DB, w http.Respons
 		ServiceName  *string `json:"service_name"`
 		Description  string  `json:"description"`
 		RequestedFor *string `json:"requested_for"`
+		SlotID       *string `json:"slot_id"`
 		Status       string  `json:"status"`
 		CreatedAt    string  `json:"created_at"`
 	}
@@ -2035,7 +2043,7 @@ func handleListCustomerRequests(_ *auth.Service, db *database.DB, w http.Respons
 
 	rows, err = db.QueryxContext(r.Context(), `
 				SELECT sr.id, sr.business_id, b.name as business_name, s.name as service_name,
-				       sr.description, sr.requested_for, sr.status, sr.created_at
+				       sr.description, sr.requested_for, sr.slot_id, sr.status, sr.created_at
 				FROM service_requests sr
 				JOIN businesses b ON b.id = sr.business_id
 				LEFT JOIN services s ON s.id = sr.service_id
@@ -2049,7 +2057,7 @@ func handleListCustomerRequests(_ *auth.Service, db *database.DB, w http.Respons
 			var item reqItem
 			var createdAt time.Time
 			_ = rows.Scan(&item.ID, &item.BusinessID, &item.BusinessName, &item.ServiceName,
-				&item.Description, &item.RequestedFor, &item.Status, &createdAt)
+				&item.Description, &item.RequestedFor, &item.SlotID, &item.Status, &createdAt)
 			item.CreatedAt = createdAt.Format(time.RFC3339)
 			requests = append(requests, item)
 		}

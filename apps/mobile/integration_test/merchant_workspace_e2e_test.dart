@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/service_request_status_screen.dart';
 import 'package:integration_test/integration_test.dart';
 
 /// Exercises real merchant request/profile APIs and widgets using disposable
@@ -83,6 +85,45 @@ void main() {
         },
       );
       final serviceId = serviceResponse.data['data']['id'] as String;
+      await apiClient.put(
+        '/merchant/operating-hours',
+        data: {
+          'hours': List.generate(
+            7,
+            (weekday) => {
+              'weekday': weekday,
+              'opens_at': '00:00',
+              'closes_at': '23:59',
+              'is_closed': false,
+            },
+          ),
+        },
+      );
+      final businessLocalNow = DateTime.now().toUtc().add(
+        const Duration(hours: 5, minutes: 30),
+      );
+      final appointmentDate = DateTime(
+        businessLocalNow.year,
+        businessLocalNow.month,
+        businessLocalNow.day,
+      ).add(const Duration(days: 1));
+      final appointmentDateKey = DateFormat('yyyy-MM-dd')
+          .format(appointmentDate);
+      Future<String> createAppointmentSlot(String start, String end) async {
+        final response = await apiClient.post(
+          '/merchant/businesses/$businessId/availability-slots',
+          data: {
+            'date': appointmentDateKey,
+            'starts_at': start,
+            'ends_at': end,
+            'capacity': 1,
+          },
+        );
+        return response.data['data']['id'] as String;
+      }
+
+      final originalSlotId = await createAppointmentSlot('10:00', '10:30');
+      final replacementSlotId = await createAppointmentSlot('12:00', '12:30');
       final customerToken = await login(
         manifest['CustomerPhone'] as String,
         'customer',
@@ -91,7 +132,11 @@ void main() {
       final description = 'QA workspace request ${runId.substring(0, 8)} $city';
       await apiClient.post(
         '/businesses/$businessId/requests',
-        data: {'service_id': serviceId, 'description': description},
+        data: {
+          'service_id': serviceId,
+          'slot_id': originalSlotId,
+          'description': description,
+        },
       );
       apiClient.dio.options.headers['Authorization'] = 'Bearer $merchantToken';
 
@@ -152,7 +197,9 @@ void main() {
           rows.any(
             (item) =>
                 item['description'] == description &&
-                item['status'] == 'accepted',
+                item['status'] == 'accepted' &&
+                item['slot_id'] == originalSlotId &&
+                item['requested_local_date'] == appointmentDateKey,
           ),
           isTrue,
         );
@@ -160,8 +207,188 @@ void main() {
         final requestId =
             rows.singleWhere((item) => item['description'] == description)['id']
                 as String;
+        final initialAvailability = await apiClient.get(
+          '/merchant/businesses/$businessId/availability',
+          queryParameters: {
+            'from': appointmentDateKey,
+            'to': appointmentDateKey,
+          },
+        );
+        final initialSlots = (initialAvailability.data['data']['slots'] as List)
+            .cast<Map<String, dynamic>>();
+        expect(
+          initialSlots.any(
+            (slot) =>
+                slot['id'] == replacementSlotId &&
+                slot['remaining_capacity'] == 1,
+          ),
+          isTrue,
+          reason: 'Expected the replacement slot on $appointmentDateKey',
+        );
+        final reschedule = find.byKey(
+          Key('merchant_reschedule_request_$requestId'),
+        );
+        await tester.ensureVisible(reschedule);
+        await tester.tap(reschedule);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+        final replacementOption = find.byKey(
+          Key('merchant_reschedule_slot_$replacementSlotId'),
+        );
+        await tester.ensureVisible(replacementOption);
+        await tester.tap(replacementOption);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<Icon>(
+                find.byKey(
+                  Key('merchant_reschedule_selected_$replacementSlotId'),
+                ),
+              )
+              .icon,
+          Icons.radio_button_checked,
+          reason: 'Selecting the replacement appointment should enable it',
+        );
+        await tester.tap(find.byKey(const Key('merchant_reschedule_confirm')));
+        await tester.pumpAndSettle();
+        try {
+          await waitFor(
+            () => container
+                .read(merchantProvider)
+                .items
+                .any(
+                  (item) =>
+                      item.description == description &&
+                      item.status == 'rescheduled' &&
+                      item.slotId == replacementSlotId,
+                ),
+            '$city merchant could not propose the replacement appointment',
+          );
+        } catch (_) {
+          final latestRequests = await apiClient.get(
+            '/merchant/requests',
+            queryParameters: {'business_id': businessId},
+          );
+          final latestRows = (latestRequests.data['data']['requests'] as List)
+              .cast<Map<String, dynamic>>();
+          final latest = latestRows.singleWhere(
+            (item) => item['id'] == requestId,
+          );
+          final snackbars = tester
+              .widgetList<SnackBar>(find.byType(SnackBar))
+              .map(
+                (snack) => snack.content is Text
+                    ? (snack.content as Text).data
+                    : snack.content.runtimeType.toString(),
+              )
+              .toList();
+          debugPrint(
+            'RESCHEDULE_DIAGNOSTIC server=${latest['status']}/${latest['slot_id']} '
+            'local=${container.read(merchantProvider).items.where((item) => item.id == requestId).map((item) => '${item.status}/${item.slotId}').toList()} '
+            'snackbars=$snackbars',
+          );
+          rethrow;
+        }
+
+        final movedAvailability = await apiClient.get(
+          '/merchant/businesses/$businessId/availability',
+          queryParameters: {
+            'from': appointmentDateKey,
+            'to': appointmentDateKey,
+          },
+        );
+        final movedSlots = (movedAvailability.data['data']['slots'] as List)
+            .cast<Map<String, dynamic>>();
+        expect(
+          movedSlots.singleWhere(
+            (slot) => slot['id'] == originalSlotId,
+          )['booked_count'],
+          0,
+        );
+        expect(
+          movedSlots.singleWhere(
+            (slot) => slot['id'] == replacementSlotId,
+          )['booked_count'],
+          1,
+        );
+        await expectLater(
+          apiClient.patch(
+            '/merchant/requests/$requestId/status',
+            data: {'status': 'accepted'},
+          ),
+          throwsA(isA<DioException>()),
+        );
+
+        final otherMerchant = cases.firstWhere(
+          (candidate) => candidate['BusinessID'] != businessId,
+        );
+        final otherMerchantToken = await login(
+          otherMerchant['Phone'] as String,
+          'merchant',
+        );
+        apiClient.dio.options.headers['Authorization'] =
+            'Bearer $otherMerchantToken';
+        await expectLater(
+          apiClient.post('/requests/$requestId/confirm-reschedule'),
+          throwsA(isA<DioException>()),
+        );
+        apiClient.dio.options.headers['Authorization'] =
+            'Bearer $customerToken';
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: ServiceRequestStatusScreen(
+                requestId: requestId,
+                businessName: entry['BusinessName'] as String,
+                serviceName: 'QA plumbing service',
+                initialStatus: 'accepted',
+              ),
+            ),
+          ),
+        );
+        await waitFor(
+          () => find.text('RESCHEDULED').evaluate().isNotEmpty,
+          '$city customer did not receive the proposed time',
+        );
+        expect(find.text('New Time Proposed'), findsAtLeastNWidgets(1));
+        await tester.tap(find.byKey(const Key('customer_confirm_reschedule')));
+        await waitFor(
+          () => find.text('ACCEPTED').evaluate().isNotEmpty,
+          '$city customer could not confirm the replacement time',
+        );
+        final confirmedRequest = await apiClient.get('/requests/$requestId');
+        expect(confirmedRequest.data['data']['status'], 'accepted');
+        expect(confirmedRequest.data['data']['slot_id'], replacementSlotId);
+
+        apiClient.dio.options.headers['Authorization'] =
+            'Bearer $merchantToken';
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(home: MerchantWorkspaceScreen()),
+          ),
+        );
+        await container.read(merchantProvider.notifier).loadRequests();
+        await waitFor(
+          () => container
+              .read(merchantProvider)
+              .items
+              .any(
+                (item) =>
+                    item.description == description &&
+                    item.status == 'accepted',
+              ),
+          '$city merchant did not receive customer confirmation',
+        );
+        await tester.tap(find.text('Requests').first);
+        await waitFor(
+          () => find.text(description).evaluate().isNotEmpty,
+          '$city merchant could not reopen the confirmed request',
+        );
         final startWork = find.byKey(Key('merchant_start_request_$requestId'));
         await tester.ensureVisible(startWork);
+        await tester.pumpAndSettle();
         await tester.tap(startWork);
         await waitFor(
           () => container
@@ -178,6 +405,7 @@ void main() {
           Key('merchant_complete_request_$requestId'),
         );
         await tester.ensureVisible(completeWork);
+        await tester.pumpAndSettle();
         await tester.tap(completeWork);
         await waitFor(
           () => container

@@ -552,17 +552,18 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	}
 	bookingBody := `{"slot_id":"` + createdSlot.Data.ID + `","description":"Book appointment","requested_for":"2001-01-01T00:00:00Z"}`
 	type bookingResult struct {
-		status int
-		body   string
+		status     int
+		body       string
+		customerID string
 	}
 	results := make(chan bookingResult, 2)
 	for _, customer := range []string{customerA, customerB} {
 		go func(customerID string) {
 			result := request(http.MethodPost, "/api/v1/businesses/"+businessA+"/requests", token(customerID), bookingBody)
-			results <- bookingResult{status: result.Code, body: result.Body.String()}
+			results <- bookingResult{status: result.Code, body: result.Body.String(), customerID: customerID}
 		}(customer)
 	}
-	var winnerID string
+	var winnerID, winnerCustomerID string
 	createdCount, conflictCount := 0, 0
 	for range 2 {
 		result := <-results
@@ -578,6 +579,7 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 				t.Fatalf("decode booking result %s: %v", result.body, err)
 			}
 			winnerID = payload.Data.ID
+			winnerCustomerID = result.customerID
 			want := time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 10, 0, 0, 0, localNow.Location()).UTC()
 			if !payload.Data.RequestedAt.Equal(want) {
 				t.Errorf("booking trusted caller requested_for; got %s want slot start %s", payload.Data.RequestedAt, want)
@@ -609,12 +611,100 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("accept request status=%d body=%s", w.Code, w.Body.String())
 		}
+		if w = request(http.MethodPatch, merchantStatusPath, token(ownerA), `{"status":"rescheduled"}`); w.Code != http.StatusBadRequest {
+			t.Errorf("generic status endpoint must reject slotless reschedule status=%d body=%s", w.Code, w.Body.String())
+		}
+		replacementSlotID, closedReplacementID, fullReplacementID := uuid.NewString(), uuid.NewString(), uuid.NewString()
+		if _, err := db.Exec(`INSERT INTO availability_slots(id,business_id,starts_at,ends_at,capacity,booked_count,status) VALUES($1,$2,$3,$4,1,0,'open'),($5,$2,$6,$7,1,0,'closed'),($8,$2,$9,$10,1,1,'open')`, replacementSlotID, businessA, time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 12, 0, 0, 0, localNow.Location()).UTC(), time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 12, 30, 0, 0, localNow.Location()).UTC(), closedReplacementID, time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 14, 0, 0, 0, localNow.Location()).UTC(), time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 14, 30, 0, 0, localNow.Location()).UTC(), fullReplacementID, time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 16, 0, 0, 0, localNow.Location()).UTC(), time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 16, 30, 0, 0, localNow.Location()).UTC()); err != nil {
+			t.Fatal(err)
+		}
+		reschedulePath := "/api/v1/merchant/businesses/" + businessA + "/requests/" + winnerID + "/reschedule"
+		if w = request(http.MethodPatch, "/api/v1/merchant/businesses/"+businessB+"/requests/"+winnerID+"/reschedule", token(ownerA), `{"slot_id":"`+replacementSlotID+`"}`); w.Code != http.StatusNotFound {
+			t.Errorf("cross-business reschedule status=%d, want 404", w.Code)
+		}
+		if w = request(http.MethodPatch, reschedulePath, token(ownerA), `{"slot_id":"`+closedReplacementID+`"}`); w.Code != http.StatusConflict {
+			t.Errorf("closed replacement slot status=%d, want 409: %s", w.Code, w.Body.String())
+		}
+		if w = request(http.MethodPatch, reschedulePath, token(ownerA), `{"slot_id":"`+fullReplacementID+`"}`); w.Code != http.StatusConflict {
+			t.Errorf("full replacement slot status=%d, want 409: %s", w.Code, w.Body.String())
+		}
+		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, createdSlot.Data.ID); err != nil || bookedCount != 1 {
+			t.Errorf("failed reschedule changed original reservation: booked=%d err=%v", bookedCount, err)
+		}
+		if _, err := db.Exec(`UPDATE availability_slots SET booked_count=0 WHERE id=$1`, fullReplacementID); err != nil {
+			t.Fatal(err)
+		}
+		if w = request(http.MethodPatch, reschedulePath, token(ownerA), `{"slot_id":"`+replacementSlotID+`"}`); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"status":"rescheduled"`) {
+			t.Fatalf("atomic reschedule status=%d body=%s", w.Code, w.Body.String())
+		}
+		if w = request(http.MethodPatch, merchantStatusPath, token(ownerA), `{"status":"accepted"}`); w.Code != http.StatusConflict {
+			t.Errorf("merchant must not confirm its own reschedule status=%d, want 409", w.Code)
+		}
+		var movedStatus, movedSlotID string
+		var movedTime time.Time
+		if err := db.QueryRowx(`SELECT status,slot_id,requested_for FROM service_requests WHERE id=$1`, winnerID).Scan(&movedStatus, &movedSlotID, &movedTime); err != nil || movedStatus != "rescheduled" || movedSlotID != replacementSlotID || !movedTime.Equal(time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 12, 0, 0, 0, localNow.Location()).UTC()) {
+			t.Errorf("persisted reschedule status=%q slot=%q time=%s err=%v", movedStatus, movedSlotID, movedTime, err)
+		}
+		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, createdSlot.Data.ID); err != nil || bookedCount != 0 {
+			t.Errorf("reschedule did not release original slot: booked=%d err=%v", bookedCount, err)
+		}
+		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, replacementSlotID); err != nil || bookedCount != 1 {
+			t.Errorf("reschedule did not reserve replacement slot: booked=%d err=%v", bookedCount, err)
+		}
+		nonOwnerID := customerA
+		if winnerCustomerID == customerA {
+			nonOwnerID = customerB
+		}
+		if w = request(http.MethodPost, "/api/v1/requests/"+winnerID+"/confirm-reschedule", token(nonOwnerID), ""); w.Code != http.StatusForbidden {
+			t.Errorf("non-owner confirmed replacement time status=%d, want 403", w.Code)
+		}
+		if w = request(http.MethodPost, "/api/v1/requests/"+winnerID+"/confirm-reschedule", token(winnerCustomerID), ""); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"status":"accepted"`) {
+			t.Fatalf("customer confirmation status=%d body=%s", w.Code, w.Body.String())
+		}
+		var secondRequestID string
+		secondBooking := request(http.MethodPost, "/api/v1/businesses/"+businessA+"/requests", token(customerB), `{"slot_id":"`+createdSlot.Data.ID+`","description":"Customer cancellation after rescheduling"}`)
+		if secondBooking.Code != http.StatusCreated {
+			t.Fatalf("second request create status=%d body=%s", secondBooking.Code, secondBooking.Body.String())
+		}
+		var secondBookingResponse struct {
+			Data struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(secondBooking.Body.Bytes(), &secondBookingResponse); err != nil {
+			t.Fatal(err)
+		}
+		secondRequestID = secondBookingResponse.Data.ID
+		secondStatusPath := "/api/v1/merchant/requests/" + secondRequestID + "/status?business_id=" + businessA
+		if w = request(http.MethodPatch, secondStatusPath, token(ownerA), `{"status":"accepted"}`); w.Code != http.StatusOK {
+			t.Fatalf("second request accept status=%d body=%s", w.Code, w.Body.String())
+		}
+		secondReschedulePath := "/api/v1/merchant/businesses/" + businessA + "/requests/" + secondRequestID + "/reschedule"
+		if w = request(http.MethodPatch, secondReschedulePath, token(ownerA), `{"slot_id":"`+closedReplacementID+`"}`); w.Code != http.StatusConflict {
+			t.Errorf("second closed replacement slot status=%d, want 409", w.Code)
+		}
+		if _, err := db.Exec(`UPDATE availability_slots SET status='open' WHERE id=$1`, closedReplacementID); err != nil {
+			t.Fatal(err)
+		}
+		if w = request(http.MethodPatch, secondReschedulePath, token(ownerA), `{"slot_id":"`+closedReplacementID+`"}`); w.Code != http.StatusOK {
+			t.Fatalf("second request reschedule status=%d body=%s", w.Code, w.Body.String())
+		}
+		if w = request(http.MethodPost, "/api/v1/requests/"+secondRequestID+"/cancel", token(customerB), ""); w.Code != http.StatusOK {
+			t.Fatalf("customer cancel while rescheduled status=%d body=%s", w.Code, w.Body.String())
+		}
+		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, closedReplacementID); err != nil || bookedCount != 0 {
+			t.Errorf("customer cancellation did not release proposed slot: booked=%d err=%v", bookedCount, err)
+		}
 		w = request(http.MethodPatch, merchantStatusPath, token(ownerA), `{"status":"cancelled"}`)
 		if w.Code != http.StatusOK {
 			t.Fatalf("cancel accepted request status=%d body=%s", w.Code, w.Body.String())
 		}
-		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, createdSlot.Data.ID); err != nil || bookedCount != 0 {
-			t.Errorf("merchant cancellation did not release slot capacity: booked=%d err=%v", bookedCount, err)
+		if err := db.Get(&bookedCount, `SELECT booked_count FROM availability_slots WHERE id=$1`, replacementSlotID); err != nil || bookedCount != 0 {
+			t.Errorf("merchant cancellation did not release replacement slot: booked=%d err=%v", bookedCount, err)
+		}
+		var remainingBookings int
+		if err := db.Get(&remainingBookings, `SELECT COALESCE(SUM(booked_count),0) FROM availability_slots WHERE business_id=$1 AND starts_at >= $2 AND starts_at < $3`, businessA, time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 0, 0, 0, 0, localNow.Location()).UTC(), time.Date(dateTwo.Year(), dateTwo.Month(), dateTwo.Day(), 0, 0, 0, 0, localNow.Location()).AddDate(0, 0, 1).UTC()); err != nil || remainingBookings != 0 {
+			t.Errorf("all appointment reservations should be released before closing the date: booked=%d err=%v", remainingBookings, err)
 		}
 		w = request(http.MethodPut, merchantBase+businessA+"/availability-exceptions", token(ownerA), `{"date":"`+dateKey(dateTwo)+`","is_closed":true}`)
 		if w.Code != http.StatusOK {

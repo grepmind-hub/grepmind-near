@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
@@ -862,19 +863,39 @@ class _MerchantWorkspaceScreenState
                     child: const Text('Decline'),
                   ),
                 ),
-              ] else if (r.status == 'accepted') ...[
+              ] else if (r.status == 'accepted' ||
+                  r.status == 'rescheduled') ...[
                 Expanded(
                   child: OutlinedButton.icon(
-                    key: Key('merchant_start_request_${r.id}'),
-                    onPressed: () => _updateRequest(r.id, 'in_progress'),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Start work'),
+                    key: Key('merchant_reschedule_request_${r.id}'),
+                    onPressed: () => _rescheduleRequest(r),
+                    icon: const Icon(Icons.event_repeat_rounded),
+                    label: Text(
+                      r.status == 'rescheduled'
+                          ? 'Change proposed time'
+                          : 'Reschedule',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: const BorderSide(color: AppTheme.primary),
                     ),
                   ),
                 ),
+                if (r.status == 'accepted') ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: Key('merchant_start_request_${r.id}'),
+                      onPressed: () => _updateRequest(r.id, 'in_progress'),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: const Text('Start work'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.success,
+                        side: const BorderSide(color: AppTheme.success),
+                      ),
+                    ),
+                  ),
+                ],
               ] else if (r.status == 'in_progress') ...[
                 Expanded(
                   child: ElevatedButton.icon(
@@ -925,6 +946,207 @@ class _MerchantWorkspaceScreenState
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to update request status')),
+      );
+    }
+  }
+
+  Future<void> _rescheduleRequest(MerchantServiceRequest request) async {
+    String? businessId =
+        ref.read(merchantProfileProvider('')).profile?['id'] as String?;
+    if (businessId == null || businessId.isEmpty) {
+      try {
+        final response = await apiClient.get('/merchant/profile');
+        businessId =
+            (response.data['data'] as Map<String, dynamic>)['id'] as String?;
+      } catch (_) {
+        businessId = null;
+      }
+    }
+    if (businessId == null || businessId.isEmpty || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not load this business schedule.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final today = DateUtils.dateOnly(DateTime.now());
+    final earliest = today.add(const Duration(days: 1));
+    final currentDate = request.requestedLocalDate != null
+        ? DateTime.tryParse('${request.requestedLocalDate}T00:00:00')
+        : DateTime.tryParse(request.requestedFor ?? '')?.toLocal();
+    final initialDate = currentDate != null && !currentDate.isBefore(earliest)
+        ? DateUtils.dateOnly(currentDate)
+        : earliest;
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: earliest,
+      lastDate: today.add(const Duration(days: 180)),
+      helpText: 'Choose a new appointment date',
+    );
+    if (selectedDate == null || !mounted) return;
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+    List<Map<String, dynamic>> slots;
+    try {
+      final response = await apiClient.get(
+        '/merchant/businesses/$businessId/availability',
+        queryParameters: {'from': dateKey, 'to': dateKey},
+      );
+      final data = response.data['data'] as Map<String, dynamic>;
+      final allSlots = (data['slots'] as List<dynamic>? ?? const [])
+          .cast<Map<String, dynamic>>();
+      final now = DateTime.now().toUtc();
+      slots = allSlots.where((slot) {
+        final startsAt = DateTime.tryParse(slot['starts_at'] as String? ?? '');
+        return slot['status'] == 'open' &&
+            (slot['remaining_capacity'] as num? ?? 0) > 0 &&
+            slot['id'] != request.slotId &&
+            startsAt != null &&
+            startsAt.isAfter(now);
+      }).toList();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not load available times. Try again.'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (slots.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No available appointments on that date.'),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final chosenSlot = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        String? selectedSlotId;
+        return StatefulBuilder(
+          builder: (context, setSheetState) => SafeArea(
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Choose a new appointment time',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('EEEE, d MMMM').format(selectedDate),
+                    style: const TextStyle(color: AppTheme.secondaryText),
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: slots.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final slot = slots[index];
+                        final id = slot['id'] as String;
+                        final start = slot['local_starts_at'] as String? ?? '';
+                        final end = slot['local_ends_at'] as String? ?? '';
+                        final startLabel = DateFormat('h:mm a')
+                            .format(DateTime.parse('2000-01-01T$start:00'));
+                        final endLabel = DateFormat('h:mm a')
+                            .format(DateTime.parse('2000-01-01T$end:00'));
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            key: Key('merchant_reschedule_slot_$id'),
+                            leading: Icon(
+                              key: Key('merchant_reschedule_selected_$id'),
+                              selectedSlotId == id
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              color: selectedSlotId == id
+                                  ? AppTheme.primary
+                                  : AppTheme.secondaryText,
+                            ),
+                            title: Text('$startLabel – $endLabel'),
+                            subtitle: Text(
+                              '${slot['remaining_capacity']} appointments available',
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                            onTap: () =>
+                                setSheetState(() => selectedSlotId = id),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: const Key('merchant_reschedule_confirm'),
+                      onPressed: selectedSlotId == null
+                          ? null
+                          : () => Navigator.of(sheetContext).pop(
+                              slots.singleWhere(
+                                (slot) => slot['id'] == selectedSlotId,
+                              ),
+                            ),
+                      child: const Text('Send new time to customer'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (chosenSlot == null || !mounted) return;
+
+    final success = await ref
+        .read(merchantProvider.notifier)
+        .rescheduleRequest(businessId, request.id, chosenSlot['id'] as String);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'New appointment time sent to the customer.'
+                : 'Could not reschedule. The slot may no longer be available.',
+          ),
+        ),
       );
     }
   }

@@ -744,6 +744,8 @@ class MerchantServiceRequest {
   final String? serviceName;
   final String description;
   final String? requestedFor;
+  final String? requestedLocalDate;
+  final String? slotId;
   final String status;
   final String createdAt;
   final String updatedAt;
@@ -755,6 +757,8 @@ class MerchantServiceRequest {
     this.serviceName,
     required this.description,
     this.requestedFor,
+    this.requestedLocalDate,
+    this.slotId,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -768,6 +772,8 @@ class MerchantServiceRequest {
       serviceName: json['service_name'] as String?,
       description: json['description'] as String? ?? '',
       requestedFor: json['requested_for'] as String?,
+      requestedLocalDate: json['requested_local_date'] as String?,
+      slotId: json['slot_id'] as String?,
       status: json['status'] as String? ?? 'requested',
       createdAt: json['created_at'] as String? ?? '',
       updatedAt: json['updated_at'] as String? ?? '',
@@ -840,6 +846,8 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
               serviceName: r.serviceName,
               description: r.description,
               requestedFor: r.requestedFor,
+              requestedLocalDate: r.requestedLocalDate,
+              slotId: r.slotId,
               status: status,
               createdAt: r.createdAt,
               updatedAt: DateTime.now().toIso8601String(),
@@ -850,6 +858,23 @@ class MerchantNotifier extends StateNotifier<MerchantRequestState> {
       );
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> rescheduleRequest(
+    String businessId,
+    String requestId,
+    String slotId,
+  ) async {
+    try {
+      await apiClient.patch(
+        '/merchant/businesses/$businessId/requests/$requestId/reschedule',
+        data: {'slot_id': slotId},
+      );
+      await loadRequests();
+      return true;
+    } catch (_) {
       return false;
     }
   }

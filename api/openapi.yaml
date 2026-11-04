@@ -1539,12 +1539,48 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [accepted, declined, in_progress, rescheduled, completed, cancelled]
+                  enum: [accepted, declined, in_progress, completed, cancelled]
       responses:
         '200': {description: Request state updated; cancelled or declined requests release slot capacity}
-        '400': {description: Unsupported status}
+        '400': {description: Unsupported status; rescheduling requires a replacement slot}
         '404': {description: Request or business not found}
         '409': {description: Transition is not permitted from the current state}
+
+  /merchant/businesses/{bizId}/requests/{id}/reschedule:
+    patch:
+      summary: Atomically move an accepted request to another appointment slot
+      description: Reserves the replacement slot, releases the prior reservation, records a rescheduled state, and notifies the customer. The customer must confirm the proposed time before the request returns to accepted.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: bizId
+          required: true
+          schema: {type: string, format: uuid}
+        - $ref: '#/components/parameters/RequestIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RescheduleServiceRequestRequest'}
+      responses:
+        '200': {description: Replacement appointment reserved and awaiting customer confirmation}
+        '400': {description: Invalid request or replacement slot ID}
+        '404': {description: Business, request, or replacement slot not found in this business}
+        '409': {description: Request state is invalid or replacement slot is unavailable}
+
+  /requests/{id}/confirm-reschedule:
+    post:
+      summary: Confirm a merchant-proposed replacement appointment time
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200': {description: Proposed appointment confirmed and request returned to accepted}
+        '403': {description: Request is owned by another customer}
+        '404': {description: Request not found}
+        '409': {description: No proposed appointment time is awaiting confirmation}
 
   /merchant/requests/{id}/accept:
     post:
@@ -2394,7 +2430,7 @@ paths:
         '200': {description: Request cancelled}
         '403': {description: Request is owned by another customer}
         '404': {description: Request not found}
-        '409': {description: Request state cannot be cancelled}
+        '409': {description: Request state cannot be cancelled; requested, accepted, and rescheduled states are cancellable}
 
   /merchant/orders/{id}/status:
     patch:
@@ -3191,6 +3227,15 @@ components:
           description: Scheduled time; the server derives the stored value from slot_id and rejects time-only scheduling.
           nullable: true
 
+    RescheduleServiceRequestRequest:
+      type: object
+      required: [slot_id]
+      properties:
+        slot_id:
+          type: string
+          format: uuid
+          description: A different, open, future slot belonging to the request's business with available capacity.
+
     ServiceRequest:
       type: object
       properties:
@@ -3217,6 +3262,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        requested_local_date:
+          type: string
+          format: date
+          nullable: true
+          description: Appointment date in the merchant business time zone; returned by the merchant request listing.
         status:
           type: string
         created_at:

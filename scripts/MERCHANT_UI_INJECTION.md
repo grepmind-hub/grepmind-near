@@ -40,7 +40,7 @@ Run the appointment and request-flow validations against generated local merchan
 .\scripts\merchant_ui_injection.ps1 -Action Run -Scenario Workspace -DeviceId emulator-5554 -AdbServerPort 5039
 ```
 
-`Availability` covers overlapping-slot rejection, business scoping, date-specific closures, closed-slot booking rejection, merchant-local time display, real customer scheduling, and failed-request recovery. `Workspace` submits a temporary customer request and exercises accept, start work, and complete through the merchant app in both Cuttack and Jajpur, then verifies persisted state and server rejection of an invalid transition. `-Action Run` removes the run's generated records and restores the normal debug APK. Rescheduling to a different slot is not covered because the current backend status endpoint does not accept a replacement slot.
+`Availability` covers overlapping-slot rejection, business scoping, date-specific closures, closed-slot booking rejection, merchant-local time display, real customer scheduling, and failed-request recovery. `Workspace` submits a temporary customer request and exercises accept, replacement-slot proposal, customer confirmation, start work, and complete through the merchant app in both Cuttack and Jajpur. It verifies slot counters, business/customer ownership enforcement, persisted state, and rejection of invalid transitions. `-Action Run` removes the run's generated records and restores the normal debug APK.
 
 ## Customer discovery and OTP UI scenario
 

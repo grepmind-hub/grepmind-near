@@ -92,6 +92,35 @@ void main() {
     expect(find.text('Progress'), findsNothing);
   });
 
+  testWidgets('shows customer confirmation action for a proposed new time', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: ServiceRequestStatusScreen(
+            business: dummyBiz,
+            requestId: '#GN-4921',
+            initialStatus: 'rescheduled',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('New Time Proposed'), findsAtLeastNWidgets(1));
+    expect(
+      find.byKey(const Key('customer_confirm_reschedule')),
+      findsOneWidget,
+    );
+    expect(find.text('Confirm new time'), findsOneWidget);
+  });
+
   testWidgets('Cancel flow opens cancellation modal and allows selection', (
     WidgetTester tester,
   ) async {

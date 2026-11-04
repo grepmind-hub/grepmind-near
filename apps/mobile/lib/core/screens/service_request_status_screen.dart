@@ -39,7 +39,8 @@ class _ServiceRequestStatusScreenState
     extends ConsumerState<ServiceRequestStatusScreen> {
   late String _currentStatus;
   late final String _bookingId;
-  late final DateTime _scheduledTime;
+  late DateTime _scheduledTime;
+  bool _isConfirmingReschedule = false;
 
   Timer? _statusPollTimer;
 
@@ -49,7 +50,7 @@ class _ServiceRequestStatusScreenState
     _currentStatus =
         widget.initialStatus ?? widget.request?.status ?? 'requested';
     final requestID = widget.requestId ?? widget.request?.id;
-    _bookingId = requestID == null ? 'Unavailable' : requestID;
+    _bookingId = requestID ?? 'Unavailable';
     _scheduledTime =
         widget.appointmentTime ??
         widget.request?.requestedFor ??
@@ -83,9 +84,18 @@ class _ServiceRequestStatusScreenState
       if (reqData != null && reqData['status'] != null) {
         if (mounted) {
           final newStatus = reqData['status'] as String;
-          if (_currentStatus != newStatus) {
+          final rawRequestedFor = reqData['requested_for'] as String?;
+          final parsedRequestedFor = rawRequestedFor == null
+              ? null
+              : DateTime.tryParse(rawRequestedFor)?.toLocal();
+          if (_currentStatus != newStatus ||
+              (parsedRequestedFor != null &&
+                  parsedRequestedFor != _scheduledTime)) {
             setState(() {
               _currentStatus = newStatus;
+              if (parsedRequestedFor != null) {
+                _scheduledTime = parsedRequestedFor;
+              }
             });
           }
           if (newStatus == 'completed' ||
@@ -96,6 +106,32 @@ class _ServiceRequestStatusScreenState
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _confirmProposedTime() async {
+    final requestId = widget.requestId ?? widget.request?.id;
+    if (requestId == null || requestId.isEmpty || _isConfirmingReschedule) {
+      return;
+    }
+    setState(() => _isConfirmingReschedule = true);
+    try {
+      await apiClient.post('/requests/$requestId/confirm-reschedule');
+      if (!mounted) return;
+      setState(() => _currentStatus = 'accepted');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The new appointment time is confirmed.')),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not confirm the new time. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isConfirmingReschedule = false);
+    }
   }
 
   String get _providerName {
@@ -362,7 +398,6 @@ class _ServiceRequestStatusScreenState
                 style: TextStyle(fontSize: 12),
               ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              onTap: null,
             ),
             const Divider(height: 12),
             ListTile(
@@ -386,7 +421,6 @@ class _ServiceRequestStatusScreenState
                 style: TextStyle(fontSize: 12),
               ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              onTap: null,
             ),
           ],
         ),
@@ -509,6 +543,16 @@ class _ServiceRequestStatusScreenState
         statusDescription =
             '$_providerShortName accepted your request. Expected arrival on schedule.';
         statusIcon = Icons.thumb_up_alt_rounded;
+        break;
+      case 'rescheduled':
+        bgGradientStart = const Color(0xFF1E40AF);
+        bgGradientEnd = const Color(0xFF0F766E);
+        pillColor = const Color(0xFFECFEFF);
+        pillTextColor = const Color(0xFF0F766E);
+        statusTitle = 'New Time Proposed';
+        statusDescription =
+            '$_providerShortName suggested a new appointment time. Confirm it below or cancel the request.';
+        statusIcon = Icons.event_repeat_rounded;
         break;
       case 'en_route':
         bgGradientStart = const Color(0xFF0F766E);
@@ -666,6 +710,12 @@ class _ServiceRequestStatusScreenState
         'state': _getStepState('accepted'),
       },
       {
+        'title': 'New Time Proposed',
+        'subtitle': 'Review the replacement appointment time',
+        'time': _currentStatus == 'rescheduled' ? 'Updated' : '--:--',
+        'state': _getStepState('rescheduled'),
+      },
+      {
         'title': 'Professional En Route',
         'subtitle': 'Travel status reported by the provider',
         'time':
@@ -773,6 +823,7 @@ class _ServiceRequestStatusScreenState
     final order = [
       'requested',
       'accepted',
+      'rescheduled',
       'en_route',
       'in_progress',
       'completed',
@@ -1264,7 +1315,67 @@ class _ServiceRequestStatusScreenState
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Row(
             children: [
-              if (_currentStatus != 'completed' &&
+              if (_currentStatus == 'rescheduled') ...[
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        backgroundColor: const Color(0xFFFEF2F2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _showCancelConfirmationModal,
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      key: const Key('customer_confirm_reschedule'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _isConfirmingReschedule
+                          ? null
+                          : _confirmProposedTime,
+                      icon: _isConfirmingReschedule
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                            ),
+                      label: const Text(
+                        'Confirm new time',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else if (_currentStatus != 'completed' &&
                   _currentStatus != 'cancelled') ...[
                 // Cancel Request Action Button
                 Expanded(
