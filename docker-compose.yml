@@ -176,6 +176,8 @@ services:
     build:
       context: ./apps/admin-web
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MERCHANT_PORTAL_URL: ${NEXT_PUBLIC_MERCHANT_PORTAL_URL:-http://localhost:3001/}
     container_name: grepmind_admin_web
     depends_on:
       api:
@@ -196,6 +198,8 @@ services:
     build:
       context: ./apps/merchant-web
       dockerfile: Dockerfile
+      args:
+        API_PROXY_TARGET: ${MERCHANT_API_PROXY_TARGET:-http://api:8080/api/v1}
     container_name: grepmind_merchant_web
     depends_on:
       api:

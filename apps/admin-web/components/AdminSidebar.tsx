@@ -13,6 +13,7 @@ import {
   MapPin,
   ExternalLink,
   UserRoundCheck,
+  Activity,
 } from 'lucide-react';
 
 export type AdminTab =
@@ -23,6 +24,7 @@ export type AdminTab =
   | 'reports'
   | 'offers'
   | 'audit-logs'
+  | 'listing-activity'
   | 'admin-users';
 
 interface AdminSidebarProps {
@@ -43,8 +45,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const navItems = [
     {
       id: 'overview' as AdminTab,
-      label: 'Analytics & Trends',
-      description: 'Live operational totals',
+      label: 'Dashboard',
+      description: 'Live analytics & trends',
       icon: BarChart3,
       badge: null,
     },
@@ -94,6 +96,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: null,
     },
     {
+      id: 'listing-activity' as AdminTab,
+      label: 'Listing Activity',
+      description: 'Who submitted new listings',
+      icon: Activity,
+      badge: null,
+    },
+    {
       id: 'admin-users' as AdminTab,
       label: 'Admins & Access',
       description: 'Permissions & security',
@@ -101,6 +110,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: null,
     },
   ];
+  const merchantPortalUrl = process.env.NEXT_PUBLIC_MERCHANT_PORTAL_URL || '/merchant/';
 
   return (
     <aside className="w-64 shrink-0 border-r border-[#E4E7EC] bg-white flex flex-col justify-between py-4">
@@ -181,11 +191,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               <span>Counts</span>
               <span>See live registry</span>
             </div>
-            <div className="flex justify-between">
-            </div>
           </div>
           <a
-            href="/merchant/"
+            href={merchantPortalUrl}
             target="_blank"
             rel="noreferrer"
             className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[11px] font-medium text-[#344054] hover:bg-[#F9FAFB]"

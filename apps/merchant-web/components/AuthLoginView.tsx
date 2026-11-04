@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { MerchantSession } from '../lib/types';
+import { setMerchantTokens } from '../lib/api';
 
 interface AuthLoginViewProps {
   onLoginSuccess: (session: MerchantSession, isNewUser?: boolean) => void;
@@ -26,15 +27,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [activeAccountLabel, setActiveAccountLabel] = useState<string>('');
-
-  const DEMO_ACCOUNTS: {label:string;phone:string;role:'owner'|'manager'|'staff';name:string;desc:string;color:string;badge:string}[] = [];
-
-  const handleSelectDemo = (account: typeof DEMO_ACCOUNTS[0]) => {
-    setPhone(account.phone);
-    setActiveAccountLabel(account.label);
-    setErrorMessage('');
-  };
+  const [developmentOtp, setDevelopmentOtp] = useState('');
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +43,8 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
     try {
       const response = await fetch('/api/v1/auth/otp/request', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone_e164:cleanPhone.replace(/\s+/g,'')}) });
       if (!response.ok) throw new Error('Unable to request a verification code.');
+      const result = await response.json();
+      setDevelopmentOtp(typeof result?.data?.otp_code === 'string' ? result.data.otp_code : '');
       setStep('otp');
       setOtpDigits(['', '', '', '', '', '']);
     } catch (_) { setErrorMessage('Unable to request a verification code.'); }
@@ -87,13 +82,14 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
       const response=await fetch('/api/v1/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_e164:cleanPhone,otp_code:enteredCode})});
       if(!response.ok) throw new Error('Verification failed');
       const {data}=await response.json();
-      localStorage.setItem('grepmind_merchant_token',data.access_token);
+      setMerchantTokens(data.access_token, data.refresh_token);
       const session: MerchantSession = {
         userId: data.user.id,
         name: data.user.display_name || 'Merchant',
         phone: cleanPhone,
-        role: 'staff', // Backend ownership checks determine privileges.
+        role: 'merchant',
         token: data.access_token,
+        refreshToken: data.refresh_token,
       };
       onLoginSuccess(session);
     } catch (_) {setErrorMessage('Invalid or expired verification code.');}
@@ -201,40 +197,10 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
                 </button>
               </form>
 
-              {/* Demo Account Quick Switcher Chips */}
-              <div className="pt-4 border-t border-borderMuted space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slateText-muted uppercase tracking-wider">
-                    Quick-Fill Test Accounts:
-                  </span>
-                  <span className="text-[10px] text-slateText-muted">Click to select role</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {DEMO_ACCOUNTS.map((acc) => (
-                    <button
-                      key={acc.phone}
-                      type="button"
-                      onClick={() => handleSelectDemo(acc)}
-                      className={`text-left rounded-xl border p-2.5 transition-all text-xs ${acc.color} ${
-                        phone === acc.phone ? 'ring-2 ring-primary shadow-sm' : ''
-                      }`}
-                    >
-                      <div className="font-bold flex items-center justify-between">
-                        <span className="truncate">{acc.name}</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/80 border border-current">
-                          {acc.badge}
-                        </span>
-                      </div>
-                      <div className="text-[11px] opacity-80 font-mono mt-0.5">{acc.phone}</div>
-                      <div className="text-[10px] opacity-70 mt-1 line-clamp-1">{acc.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
             <div className="space-y-5">
+              {developmentOtp && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Local development OTP:</strong> <span className="font-mono font-bold tracking-widest">{developmentOtp}</span><p className="mt-1 text-xs">This code is provided only by the local development API.</p></div>}
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slateText-main">Enter 6-Digit OTP</h2>

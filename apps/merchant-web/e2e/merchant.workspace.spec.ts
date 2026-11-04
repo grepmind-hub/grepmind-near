@@ -1,50 +1,33 @@
-// Merchant Web Portal E2E Tests
 import { test, expect } from '@playwright/test';
 
-test.describe('Merchant Web Portal', () => {
-  test('Merchant login flow', async ({ page }) => {
-    await page.goto('http://localhost:3000/auth/login');
-    
-    // Enter phone number
-    await page.fill('input[placeholder*="phone"]', '+919876543210');
-    
-    // Send OTP
-    await page.click('button:has-text("Send OTP")');
-    await page.waitForTimeout(2000);
-    
-    // Enter OTP
-    await page.fill('input[placeholder*="OTP"]', '123456');
-    
-    // Verify OTP
-    await page.click('button:has-text("Verify")');
-    await page.waitForTimeout(2000);
-    
-    // Verify dashboard loads
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.locator('h1')).toContainText('Dashboard');
+test.describe('Merchant Portal entry and authentication', () => {
+  test('renders OTP login without demo credentials or fake account shortcuts', async ({ page }) => {
+    await page.goto('');
+
+    await expect(page.getByRole('heading', { name: 'Sign in to your Merchant Workspace' })).toBeVisible();
+    await expect(page.getByPlaceholder('+91 98765 43210')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Get Verification Code/i })).toBeVisible();
+    await expect(page.getByText(/Demo account|Sample merchant|123456/)).toHaveCount(0);
   });
 
-  test('Merchant dashboard loads', async ({ page }) => {
-    await page.goto('http://localhost:3000/dashboard');
-    
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.locator('h1')).toContainText('Dashboard');
-    await expect(page.locator('.request-table')).toBeVisible();
+  test('does not expose the merchant workspace without a valid session', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem('grepmind_merchant_session');
+      localStorage.removeItem('grepmind_merchant_token');
+      localStorage.removeItem('grepmind_merchant_refresh_token');
+    });
+    await page.goto('');
+
+    await expect(page.getByRole('heading', { name: 'Sign in to your Merchant Workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Workspace overview' })).toHaveCount(0);
   });
 
-  test('Service request management', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/requests');
-    
-    await expect(page).toHaveURL('/merchant/requests');
-    
-    // Verify request table loads
-    await expect(page.locator('.request-table')).toBeVisible();
-  });
-
-  test('Catalog management', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/catalog');
-    
-    await expect(page).toHaveURL('/merchant/catalog');
-    await expect(page.locator('.catalog-table')).toBeVisible();
+  test('API proxy requires authentication for the merchant business directory', async ({ page }) => {
+    await page.goto('');
+    const status = await page.evaluate(async () => {
+      const response = await fetch('/api/v1/merchant/businesses');
+      return response.status;
+    });
+    expect(status).toBe(401);
   });
 });

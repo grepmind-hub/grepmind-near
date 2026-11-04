@@ -3,35 +3,45 @@
 
 import React, { useState } from 'react';
 import { ProductItem, ServiceItem } from '../lib/types';
-import { Plus, Search, Tag, Check, X, Sparkles, Package, Wrench, IndianRupee, Layers, UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Plus, Search, Check, X, Package, Wrench, UploadCloud, Image as ImageIcon, Loader2, Pencil } from 'lucide-react';
 import { uploadMediaFile } from '../lib/api';
 
 interface CatalogManagerProps {
   products: ProductItem[];
   services: ServiceItem[];
-  onAddProduct: (product: Omit<ProductItem, 'id'>) => void;
-  onAddService: (service: Omit<ServiceItem, 'id'>) => void;
-  onToggleProductStock: (productId: string) => void;
+  onAddProduct: (product: { name: string; description: string; price: number; stock_status: string; is_published: boolean; image_url?: string }) => void;
+  onUpdateProduct: (product: ProductItem, input: { name: string; description: string; price: number; stock_status: string; is_published: boolean; image_url?: string }) => void;
+  onAddService: (service: { name: string; description: string; indicative_price_min: number; is_active: boolean }) => void;
+  onUpdateService: (service: ServiceItem, input: { name: string; description: string; indicative_price_min: number; is_active: boolean }) => void;
+  onToggleService: (service: ServiceItem) => void;
+  onToggleProductStock: (product: ProductItem) => void;
+  onDeleteProduct: (product: ProductItem) => void;
+  onDeleteService: (service: ServiceItem) => void;
 }
 
 export const CatalogManager: React.FC<CatalogManagerProps> = ({
   products,
   services,
   onAddProduct,
+  onUpdateProduct,
   onAddService,
+  onUpdateService,
+  onToggleService,
   onToggleProductStock,
+  onDeleteProduct,
+  onDeleteService,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
+  const [editingService, setEditingService] = useState<ServiceItem | null>(null);
 
   // New product form state
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
-  const [newProductDiscount, setNewProductDiscount] = useState('');
-  const [newProductCategory, setNewProductCategory] = useState('Hardware');
-  const [newProductStock, setNewProductStock] = useState('25');
+  const [newProductStock, setNewProductStock] = useState('in_stock');
   const [newProductDescription, setNewProductDescription] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -40,13 +50,11 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   // New service form state
   const [newServiceName, setNewServiceName] = useState('');
   const [newServicePrice, setNewServicePrice] = useState('');
-  const [newServiceDuration, setNewServiceDuration] = useState('45');
   const [newServiceDescription, setNewServiceDescription] = useState('');
 
   const filteredProducts = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredServices = services.filter((s) =>
@@ -56,20 +64,18 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   const handleCreateProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName || !newProductPrice) return;
-    onAddProduct({
-      businessId: products[0]?.businessId || 'a1111111-1111-1111-1111-111111111111',
+    const input = {
       name: newProductName,
       price: parseFloat(newProductPrice),
-      discountPrice: newProductDiscount ? parseFloat(newProductDiscount) : undefined,
-      category: newProductCategory,
-      stockCount: parseInt(newProductStock) || 0,
-      inStock: (parseInt(newProductStock) || 0) > 0,
+      stock_status: newProductStock,
+      is_published: editingProduct?.isPublished ?? true,
       description: newProductDescription,
-      imageUrl: uploadedImageUrl || 'http://localhost:9000/grepmind-media/shops/hardware_shop.png',
-    });
+      image_url: uploadedImageUrl || editingProduct?.imageUrl,
+    };
+    if (editingProduct) onUpdateProduct(editingProduct, input); else onAddProduct(input);
+    setEditingProduct(null);
     setNewProductName('');
     setNewProductPrice('');
-    setNewProductDiscount('');
     setNewProductDescription('');
     setUploadedImageUrl('');
     setUploadError(null);
@@ -79,14 +85,14 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
   const handleCreateService = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newServiceName || !newServicePrice) return;
-    onAddService({
-      businessId: services[0]?.businessId || 'a1111111-1111-1111-1111-111111111111',
+    const input = {
       name: newServiceName,
-      basePrice: parseFloat(newServicePrice),
-      durationMinutes: parseInt(newServiceDuration) || 45,
+      indicative_price_min: parseFloat(newServicePrice),
       description: newServiceDescription,
-      popular: true,
-    });
+      is_active: editingService?.isActive ?? true,
+    };
+    if (editingService) onUpdateService(editingService, input); else onAddService(input);
+    setEditingService(null);
     setNewServiceName('');
     setNewServicePrice('');
     setNewServiceDescription('');
@@ -138,7 +144,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
 
           {activeTab === 'products' ? (
             <button
-              onClick={() => setIsAddProductOpen(true)}
+              onClick={() => { setEditingProduct(null); setNewProductName(''); setNewProductPrice(''); setNewProductDescription(''); setUploadedImageUrl(''); setIsAddProductOpen(true); }}
               className="flex items-center space-x-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-primary-dark transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -146,7 +152,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
             </button>
           ) : (
             <button
-              onClick={() => setIsAddServiceOpen(true)}
+              onClick={() => { setEditingService(null); setNewServiceName(''); setNewServicePrice(''); setNewServiceDescription(''); setIsAddServiceOpen(true); }}
               className="flex items-center space-x-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-primary-dark transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -165,21 +171,22 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
               className="flex flex-col justify-between rounded-2xl border border-borderMuted bg-surface p-4 shadow-card hover:shadow-cardHover transition-all"
             >
               <div>
+                {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="mb-3 h-36 w-full rounded-xl object-cover"/>}
                 {/* Header: Category & Stock Switch */}
                 <div className="flex items-center justify-between">
                   <span className="rounded-lg bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slateText-secondary uppercase tracking-wider">
-                    {p.category}
+                    Product
                   </span>
                   <button
-                    onClick={() => onToggleProductStock(p.id)}
+                    onClick={() => onToggleProductStock(p)}
                     className={`flex items-center space-x-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-colors ${
-                      p.inStock
+                      p.stockStatus === 'in_stock'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-rose-50 text-rose-700 border border-rose-200'
                     }`}
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${p.inStock ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    <span>{p.inStock ? `In Stock (${p.stockCount})` : 'Out of Stock'}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${p.stockStatus === 'in_stock' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    <span>{p.stockStatus.replace('_', ' ')}</span>
                   </button>
                 </div>
 
@@ -195,25 +202,19 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 <div>
                   <div className="flex items-baseline space-x-2">
                     <span className="text-base font-black text-slateText-main">
-                      ₹{p.discountPrice || p.price}
+                      ₹{p.price}
                     </span>
-                    {p.discountPrice && (
-                      <span className="text-xs text-slateText-muted line-through">₹{p.price}</span>
-                    )}
                   </div>
-                  {p.discountPrice && (
-                    <span className="text-[10px] font-bold text-emerald-600">
-                      Save ₹{p.price - p.discountPrice}
-                    </span>
-                  )}
                 </div>
 
                 <button
-                  onClick={() => onToggleProductStock(p.id)}
+                  onClick={() => onToggleProductStock(p)}
                   className="rounded-lg border border-borderMuted px-2.5 py-1 text-[11px] font-semibold text-slateText-secondary hover:bg-slate-50 transition-colors"
                 >
-                  {p.inStock ? 'Mark Out of Stock' : 'Mark Available'}
+                  {p.stockStatus === 'in_stock' ? 'Mark Out of Stock' : 'Mark In Stock'}
                 </button>
+                <button aria-label={`Edit ${p.name}`} onClick={() => { setEditingProduct(p); setNewProductName(p.name); setNewProductPrice(String(p.price)); setNewProductDescription(p.description); setNewProductStock(p.stockStatus); setUploadedImageUrl(p.imageUrl || ''); setIsAddProductOpen(true); }} className="ml-2 rounded-lg border border-borderMuted p-2 text-slateText-secondary hover:bg-blue-50 hover:text-primary"><Pencil size={14}/></button>
+                <button onClick={() => onDeleteProduct(p)} className="ml-2 rounded-lg border border-rose-200 px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">Delete</button>
               </div>
             </div>
           ))}
@@ -232,13 +233,8 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 text-xs text-slateText-secondary font-semibold">
                     <Wrench className="h-3.5 w-3.5 text-primary" />
-                    <span>~{s.durationMinutes} mins estimated</span>
+                    <span>{s.isActive ? 'Active service' : 'Paused service'}</span>
                   </div>
-                  {s.popular && (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      Popular Service
-                    </span>
-                  )}
                 </div>
 
                 <h4 className="mt-2.5 text-sm font-bold text-slateText-main">{s.name}</h4>
@@ -250,11 +246,14 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
               <div className="mt-4 pt-3 border-t border-borderMuted flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-slateText-muted font-bold uppercase">Starting Rate</div>
-                  <div className="text-base font-black text-slateText-main">₹{s.basePrice}</div>
+                  <div className="text-base font-black text-slateText-main">From ₹{s.basePrice}</div>
                 </div>
                 <span className="rounded-xl bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                  Bookable Online
+                  {s.isActive ? 'Bookable Online' : 'Paused'}
                 </span>
+                <button onClick={() => onToggleService(s)} className="rounded-lg border border-borderMuted px-2.5 py-1 text-[11px] font-semibold text-slateText-secondary hover:bg-slate-50">{s.isActive ? 'Pause' : 'Activate'}</button>
+                <button aria-label={`Edit ${s.name}`} onClick={() => { setEditingService(s); setNewServiceName(s.name); setNewServicePrice(String(s.basePrice)); setNewServiceDescription(s.description); setIsAddServiceOpen(true); }} className="ml-2 rounded-lg border border-borderMuted p-2 text-slateText-secondary hover:bg-blue-50 hover:text-primary"><Pencil size={14}/></button>
+                <button onClick={() => onDeleteService(s)} className="ml-2 rounded-lg border border-rose-200 px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">Delete</button>
               </div>
             </div>
           ))}
@@ -266,9 +265,9 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl border border-borderMuted bg-surface p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-borderMuted pb-3">
-              <h3 className="text-sm font-bold text-slateText-main">Add Product to Store Catalog</h3>
+              <h3 className="text-sm font-bold text-slateText-main">{editingProduct ? 'Edit product' : 'Add Product to Store Catalog'}</h3>
               <button
-                onClick={() => setIsAddProductOpen(false)}
+                onClick={() => { setIsAddProductOpen(false); setEditingProduct(null); }}
                 className="rounded-lg p-1 text-slateText-muted hover:bg-slate-100"
               >
                 <X className="h-4 w-4" />
@@ -301,40 +300,16 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slateText-main">Discounted Price (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="210 (Optional)"
-                    value={newProductDiscount}
-                    onChange={(e) => setNewProductDiscount(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2 text-xs text-slateText-main focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slateText-main">Category</label>
+                  <label className="text-xs font-bold text-slateText-main">Stock availability</label>
                   <select
-                    value={newProductCategory}
-                    onChange={(e) => setNewProductCategory(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2 text-xs text-slateText-main focus:border-primary focus:outline-none"
-                  >
-                    <option value="Hardware">Hardware & Tools</option>
-                    <option value="Electrical">Electrical Switchgear</option>
-                    <option value="Lighting">Lighting & Fixtures</option>
-                    <option value="Wiring">Cables & Wiring</option>
-                    <option value="Pipes">Pipes & Plumbing</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slateText-main">Initial Stock Count</label>
-                  <input
-                    type="number"
                     value={newProductStock}
                     onChange={(e) => setNewProductStock(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2 text-xs text-slateText-main focus:border-primary focus:outline-none"
-                  />
+                  >
+                    <option value="in_stock">In stock</option>
+                    <option value="out_of_stock">Out of stock</option>
+                    <option value="unknown">Not specified</option>
+                  </select>
                 </div>
               </div>
 
@@ -412,7 +387,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
               <div className="flex items-center justify-end space-x-3 pt-3 border-t border-borderMuted">
                 <button
                   type="button"
-                  onClick={() => setIsAddProductOpen(false)}
+                  onClick={() => { setIsAddProductOpen(false); setEditingProduct(null); }}
                   className="rounded-xl px-4 py-2 text-xs font-semibold text-slateText-secondary hover:bg-slate-100"
                 >
                   Cancel
@@ -421,7 +396,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                   type="submit"
                   className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary-dark"
                 >
-                  Publish to Store
+                  {editingProduct ? 'Save product changes' : 'Publish to Store'}
                 </button>
               </div>
             </form>
@@ -434,9 +409,9 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl border border-borderMuted bg-surface p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-borderMuted pb-3">
-              <h3 className="text-sm font-bold text-slateText-main">Create Service Package</h3>
+              <h3 className="text-sm font-bold text-slateText-main">{editingService ? 'Edit service' : 'Create Service Package'}</h3>
               <button
-                onClick={() => setIsAddServiceOpen(false)}
+                onClick={() => { setIsAddServiceOpen(false); setEditingService(null); }}
                 className="rounded-lg p-1 text-slateText-muted hover:bg-slate-100"
               >
                 <X className="h-4 w-4" />
@@ -456,8 +431,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div>
                   <label className="text-xs font-bold text-slateText-main">Base Fee (₹)</label>
                   <input
                     type="number"
@@ -467,16 +441,6 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                     onChange={(e) => setNewServicePrice(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2 text-xs text-slateText-main focus:border-primary focus:outline-none"
                   />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slateText-main">Duration (Minutes)</label>
-                  <input
-                    type="number"
-                    value={newServiceDuration}
-                    onChange={(e) => setNewServiceDuration(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-borderMuted bg-background px-3.5 py-2 text-xs text-slateText-main focus:border-primary focus:outline-none"
-                  />
-                </div>
               </div>
 
               <div>
@@ -493,7 +457,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
               <div className="flex items-center justify-end space-x-3 pt-3 border-t border-borderMuted">
                 <button
                   type="button"
-                  onClick={() => setIsAddServiceOpen(false)}
+                  onClick={() => { setIsAddServiceOpen(false); setEditingService(null); }}
                   className="rounded-xl px-4 py-2 text-xs font-semibold text-slateText-secondary hover:bg-slate-100"
                 >
                   Cancel
@@ -502,7 +466,7 @@ export const CatalogManager: React.FC<CatalogManagerProps> = ({
                   type="submit"
                   className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary-dark"
                 >
-                  Publish Service
+                  {editingService ? 'Save service changes' : 'Publish Service'}
                 </button>
               </div>
             </form>

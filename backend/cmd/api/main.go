@@ -255,6 +255,7 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("PATCH /api/v1/merchant/catalog-categories/{id}", requireAuth(authSvc, merchantCatalogCategories))
 	mux.HandleFunc("DELETE /api/v1/merchant/catalog-categories/{id}", requireAuth(authSvc, merchantCatalogCategories))
 	mux.HandleFunc("GET /api/v1/merchant/profile", requireAuth(authSvc, merchantProfile))
+	mux.HandleFunc("GET /api/v1/merchant/businesses", requireAuth(authSvc, merchantListBusinesses))
 	mux.HandleFunc("PATCH /api/v1/merchant/profile", requireAuth(authSvc, merchantUpdateProfile))
 	mux.HandleFunc("GET /api/v1/merchant/requests", requireAuth(authSvc, merchantRequests))
 	mux.HandleFunc("PATCH /api/v1/merchant/requests/{id}/status", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
@@ -315,6 +316,12 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/admin/stats", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.GetStats(w, r, uid)
 	}))
+	mux.HandleFunc("GET /api/v1/admin/trends", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.GetTrends(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/listing-activity", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.ListListingActivity(w, r, uid)
+	}))
 	mux.HandleFunc("GET /api/v1/admin/businesses/pending", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.ListPendingBusinesses(w, r, uid)
 	}))
@@ -351,10 +358,16 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/admin/admins", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.ListAdmins(w, r, uid)
 	}))
-	mux.HandleFunc("POST /api/v1/admin/admins", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+	mux.HandleFunc("GET /api/v1/admin/user-access", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.ListUserAccess(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/user-access", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		modSvc.SetUserAccess(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/admins", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.AddAdmin(w, r, uid)
 	}))
-	mux.HandleFunc("DELETE /api/v1/admin/admins/{userId}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+	mux.HandleFunc("DELETE /api/v1/admin/admins/{userId}", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.RevokeAdmin(w, r, uid)
 	}))
 
@@ -518,20 +531,27 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 		return
 	}
 
-	// Get business profile for this user
-	var bizID, bizName, bizSlug string
-	var bizDesc, bizAddr, bizCity, bizPhone sql.NullString
+	// Resolve an owned or explicitly requested member business. The resolver
+	// enforces active business_members membership before any profile data loads.
+	bizID, _, err := resolveMerchantBusiness(r.Context(), db, userID, r.URL.Query().Get("business_id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+		return
+	}
+	var bizName, bizSlug string
+	var bizDesc, bizAddr, bizCity, bizPhone, bizLocality, bizCategorySlug, bizCategoryName sql.NullString
 	var bizCover sql.NullString
 	var bizStatus, bizVerify sql.NullString
 	var lat, lng sql.NullFloat64
 	err = db.QueryRowxContext(r.Context(), `
 		SELECT b.id, b.name, b.slug, b.description, b.address_text, b.city, b.phone_e164, b.cover_photo_url,
 		       b.status, b.verification_status, ST_Y(b.location::geometry), ST_X(b.location::geometry)
+		       , b.locality, b.category_slug, c.name
 		FROM businesses b
-		WHERE b.owner_user_id = $1 AND b.status != 'deleted'
-		LIMIT 1
-	`, userID).Scan(&bizID, &bizName, &bizSlug, &bizDesc, &bizAddr, &bizCity, &bizPhone, &bizCover,
-		&bizStatus, &bizVerify, &lat, &lng)
+		LEFT JOIN categories c ON c.slug=b.category_slug
+		WHERE b.id = $1 AND b.status != 'deleted'
+	`, bizID).Scan(&bizID, &bizName, &bizSlug, &bizDesc, &bizAddr, &bizCity, &bizPhone, &bizCover,
+		&bizStatus, &bizVerify, &lat, &lng, &bizLocality, &bizCategorySlug, &bizCategoryName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
 		return
@@ -581,6 +601,9 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 			"description":         nullableStringValue(bizDesc),
 			"address_text":        nullableStringValue(bizAddr),
 			"city":                nullableStringValue(bizCity),
+			"locality":            nullableStringValue(bizLocality),
+			"category_slug":       nullableStringValue(bizCategorySlug),
+			"category_name":       nullableStringValue(bizCategoryName),
 			"phone_e164":          nullableStringValue(bizPhone),
 			"cover_photo_url":     nullableStringValue(bizCover),
 			"status":              statusStr,
@@ -591,6 +614,44 @@ func merchantProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWrit
 		},
 		"meta": map[string]string{"request_id": "merchant-profile"},
 	})
+}
+
+func merchantListBusinesses(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+	rows, err := db.QueryxContext(r.Context(), `
+		SELECT b.id::text, b.name, b.category_slug, COALESCE(c.name,''), COALESCE(b.locality,''),
+		       COALESCE(b.city,''), COALESCE(b.phone_e164,''), COALESCE(b.address_text,''),
+		       COALESCE(b.cover_photo_url,''), b.status, b.verification_status,
+	       COALESCE(pp.accepts_requests,false), COALESCE(pp.service_radius_m,5000)
+		FROM businesses b
+		LEFT JOIN categories c ON c.slug=b.category_slug
+		LEFT JOIN professional_profiles pp ON pp.business_id=b.id
+		WHERE b.status!='deleted' AND (b.owner_user_id=$1 OR EXISTS (
+			SELECT 1 FROM business_members bm WHERE bm.business_id=b.id AND bm.user_id=$1 AND bm.status='active'
+		))
+		ORDER BY CASE WHEN b.owner_user_id=$1 THEN 0 ELSE 1 END, b.created_at DESC
+	`, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load accessible businesses.")
+		return
+	}
+	defer rows.Close()
+	items := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var id, name, categorySlug, categoryName, locality, city, phone, address, cover, status, verification string
+		var accepts bool
+		var radius int
+		if err := rows.Scan(&id, &name, &categorySlug, &categoryName, &locality, &city, &phone, &address, &cover, &status, &verification, &accepts, &radius); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read accessible businesses.")
+			return
+		}
+		items = append(items, map[string]interface{}{
+			"id": id, "name": name, "category_slug": categorySlug, "category_name": categoryName,
+			"locality": locality, "city": city, "phone_e164": phone, "address_text": address,
+			"cover_photo_url": cover, "status": status, "verification_status": verification,
+			"accepts_requests": accepts, "service_radius_m": radius,
+		})
+	}
+	writeJSON(w, http.StatusOK, envelope{"data": items, "meta": map[string]string{"request_id": "merchant-businesses"}})
 }
 
 func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
@@ -607,11 +668,8 @@ func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 
-	// Check business exists
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "owner")
+	if !ok {
 		return
 	}
 
@@ -661,7 +719,7 @@ func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 
 	query := fmt.Sprintf("UPDATE businesses SET %s WHERE id = $1", strings.Join(setParts, ", "))
-	_, err = db.ExecContext(r.Context(), query, args...)
+	_, err := db.ExecContext(r.Context(), query, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update business profile.")
 		return
@@ -674,11 +732,8 @@ func merchantUpdateProfile(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	// Get merchant's business ID
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+	if !ok {
 		return
 	}
 
@@ -697,10 +752,11 @@ func merchantRequests(authSvc *auth.Service, db *database.DB, w http.ResponseWri
 	var requests []reqItem
 	rRows, err := db.QueryxContext(r.Context(), `
 		SELECT sr.id, u.phone_e164 as customer_phone, u.display_name as customer_name,
-		       sr.service_id, sr.description, sr.requested_for, sr.status,
+		       COALESCE(s.name, 'Service request'), sr.description, sr.requested_for, sr.status,
 		       sr.created_at, sr.updated_at
 		FROM service_requests sr
 		JOIN users u ON u.id = sr.customer_user_id
+		LEFT JOIN services s ON s.id = sr.service_id AND s.business_id=sr.business_id
 		WHERE sr.business_id = $1
 		ORDER BY sr.created_at DESC
 		LIMIT 50
@@ -839,10 +895,8 @@ func validServiceRequestTransition(from, to string) bool {
 }
 
 func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+	if !ok {
 		return
 	}
 	rows, err := db.QueryxContext(r.Context(), `
@@ -885,10 +939,8 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 }
 
 func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	var req struct {
@@ -912,7 +964,7 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 	req.Name = strings.TrimSpace(req.Name)
 	var newID string
-	err = db.QueryRowxContext(r.Context(), `
+	err := db.QueryRowxContext(r.Context(), `
 		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, now())
 		RETURNING id
@@ -928,10 +980,8 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	prodID := r.PathValue("id")
@@ -1009,10 +1059,8 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantDeleteProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	prodID := r.PathValue("id")
@@ -1032,10 +1080,8 @@ func merchantDeleteProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantListServices(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+	if !ok {
 		return
 	}
 	rows, err := db.QueryxContext(r.Context(), `
@@ -1076,10 +1122,8 @@ func merchantListServices(authSvc *auth.Service, db *database.DB, w http.Respons
 }
 
 func merchantCreateService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	var req struct {
@@ -1094,7 +1138,7 @@ func merchantCreateService(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 	var newID string
-	err = db.QueryRowxContext(r.Context(), `
+	err := db.QueryRowxContext(r.Context(), `
 		INSERT INTO services (business_id, name, description, indicative_price_min, indicative_price_max, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
@@ -1110,10 +1154,8 @@ func merchantCreateService(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	srvID := r.PathValue("id")
@@ -1161,7 +1203,7 @@ func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 	query := fmt.Sprintf("UPDATE services SET %s WHERE id = $1 AND business_id = $2", strings.Join(setParts, ", "))
-	_, err = db.ExecContext(r.Context(), query, args...)
+	_, err := db.ExecContext(r.Context(), query, args...)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to update service.")
 		return
@@ -1173,14 +1215,12 @@ func merchantUpdateService(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantDeleteService(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	srvID := r.PathValue("id")
-	_, err = db.ExecContext(r.Context(), `DELETE FROM services WHERE id = $1 AND business_id = $2`, srvID, bizID)
+	_, err := db.ExecContext(r.Context(), `DELETE FROM services WHERE id = $1 AND business_id = $2`, srvID, bizID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to delete service.")
 		return
@@ -1192,10 +1232,8 @@ func merchantDeleteService(authSvc *auth.Service, db *database.DB, w http.Respon
 }
 
 func merchantGetOperatingHours(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+	if !ok {
 		return
 	}
 	rows, err := db.QueryxContext(r.Context(), `
@@ -1237,10 +1275,8 @@ func merchantGetOperatingHours(authSvc *auth.Service, db *database.DB, w http.Re
 }
 
 func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	var req struct {
@@ -1315,13 +1351,16 @@ func merchantUpdateOperatingHours(authSvc *auth.Service, db *database.DB, w http
 func merchantGetCoverage(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 	var bizID, name, address, locality, city string
 	var lat, lon sql.NullFloat64
+	requestedBizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+	if !ok {
+		return
+	}
 	err := db.QueryRowxContext(r.Context(), `
 		SELECT id, name, address_text, COALESCE(locality, ''), COALESCE(city, ''),
 		       ST_Y(location::geometry) as latitude, ST_X(location::geometry) as longitude
 		FROM businesses
-		WHERE owner_user_id = $1 AND status != 'deleted'
-		LIMIT 1
-	`, userID).Scan(&bizID, &name, &address, &locality, &city, &lat, &lon)
+		WHERE id = $1 AND status != 'deleted'
+	`, requestedBizID).Scan(&bizID, &name, &address, &locality, &city, &lat, &lon)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found: "+err.Error())
 		return
@@ -1356,10 +1395,8 @@ func merchantGetCoverage(authSvc *auth.Service, db *database.DB, w http.Response
 }
 
 func merchantUpdateCoverage(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
-	var bizID string
-	err := db.QueryRowxContext(r.Context(), `SELECT id FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1`, userID).Scan(&bizID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "NOT_FOUND", "Business profile not found.")
+	bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "manage")
+	if !ok {
 		return
 	}
 	var req struct {
@@ -1379,7 +1416,7 @@ func merchantUpdateCoverage(authSvc *auth.Service, db *database.DB, w http.Respo
 		req.ServiceRadiusM = 100000
 	}
 
-	_, err = db.ExecContext(r.Context(), `
+	_, err := db.ExecContext(r.Context(), `
 		INSERT INTO professional_profiles (business_id, service_radius_m, accepts_requests, experience_years, service_description, updated_at)
 		VALUES ($1, $2, $3, $4, $5, now())
 		ON CONFLICT (business_id)
@@ -1453,6 +1490,28 @@ func resolveMerchantBusiness(ctx context.Context, db *database.DB, userID string
 		SELECT id, 'owner' FROM businesses WHERE owner_user_id = $1 AND status != 'deleted' LIMIT 1
 	`, userID).Scan(&bizID, &role)
 	return bizID, role, err
+}
+
+// merchantWorkspaceBusiness applies a capability check after resolving the
+// requested business from the authenticated owner/member relationship.
+func merchantWorkspaceBusiness(w http.ResponseWriter, r *http.Request, db *database.DB, userID, capability string) (string, bool) {
+	bizID, role, err := resolveMerchantBusiness(r.Context(), db, userID, r.URL.Query().Get("business_id"))
+	if err != nil {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this business.")
+		return "", false
+	}
+	allowed := true
+	switch capability {
+	case "manage":
+		allowed = role == "owner" || role == "manager"
+	case "owner":
+		allowed = role == "owner"
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "Your business role cannot perform this action.")
+		return "", false
+	}
+	return bizID, true
 }
 
 func merchantListMembers(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
@@ -2112,6 +2171,19 @@ func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 		}
 		next(authSvc, authSvc.DB(), w, r, claims.Subject)
 	}
+}
+
+// requirePrimarySuperadmin protects high-impact platform role changes from
+// other administrator accounts while retaining the normal OTP/JWT session.
+func requirePrimarySuperadmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
+	return requireAdmin(authSvc, func(a *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		var phone string
+		if err := db.QueryRowContext(r.Context(), `SELECT phone_e164 FROM users WHERE id=$1 AND status='active'`, userID).Scan(&phone); err != nil || phone != "+910000000000" {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "Primary superadmin access is required to change platform roles.")
+			return
+		}
+		next(a, db, w, r, userID)
+	})
 }
 
 func jwtParse(token string, authSvc *auth.Service) (*jwt.RegisteredClaims, error) {

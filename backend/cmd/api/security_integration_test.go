@@ -15,6 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/discovery"
+	"grepmind-near/backend/internal/moderation"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
 	"grepmind-near/backend/pkg/config"
@@ -57,7 +58,7 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	db, ownerA, memberA, customerA, customerB, businessA, businessB, productB, requestB, notificationB, orderB := newAPISecurityFixture(t)
 	cfg := &config.Config{Env: "test", JWTSecret: "integration-test-secret-with-over-32-characters"}
 	authSvc := auth.NewService(db, cfg)
-	router := setupRouter(authSvc, discovery.NewService(db, cfg), nil, nil, notifications.NewHub(db.DB), operations.NewService(db))
+	router := setupRouter(authSvc, discovery.NewService(db, cfg), moderation.NewService(db, cfg), nil, notifications.NewHub(db.DB), operations.NewService(db))
 	token := func(subject string) string {
 		t.Helper()
 		tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
@@ -80,6 +81,21 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	}
 	var w *httptest.ResponseRecorder
 
+	// Merchant access resolves businesses from the authenticated owner/member
+	// relationship and rejects explicit cross-business IDs.
+	w = request(http.MethodGet, "/api/v1/merchant/businesses", token(memberA), "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), businessA) || strings.Contains(w.Body.String(), businessB) {
+		t.Fatalf("merchant business directory was not tenant-scoped: %d %s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/v1/merchant/profile?business_id="+businessA, token(memberA), "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("member profile access status=%d body=%s", w.Code, w.Body.String())
+	}
+	w = request(http.MethodGet, "/api/v1/merchant/products?business_id="+businessB, token(memberA), "")
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("cross-business catalog read status=%d, want 403: %s", w.Code, w.Body.String())
+	}
+
 	// A fresh authenticated customer can create a pending listing and receives
 	// merchant role atomically; caller-supplied approval state is rejected.
 	createBody := `{"name":"QA Merchant Fresh","description":"Local test listing","category_slug":"general","phone_e164":"+919876543219","whatsapp_e164":"+919876543219","address_text":"12 Test Road","locality":"Badambadi","city":"Cuttack","postal_code":"753001","latitude":20.46575,"longitude":85.879,"hours":[{"weekday":0,"is_closed":true},{"weekday":1,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":2,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":3,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":4,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":5,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":6,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"}]}`
@@ -101,9 +117,17 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	if err := db.Get(&merchantRole, `SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role='merchant')`, customerA); err != nil || !merchantRole {
 		t.Fatalf("merchant role not assigned transactionally: role=%v err=%v", merchantRole, err)
 	}
+	var ownerMembership string
+	if err := db.Get(&ownerMembership, `SELECT role FROM business_members WHERE business_id=$1 AND user_id=$2 AND status='active'`, createdBusiness.Data.ID, customerA); err != nil || ownerMembership != "owner" {
+		t.Fatalf("new business owner membership=%q err=%v", ownerMembership, err)
+	}
 	var savedHours int
 	if err := db.Get(&savedHours, `SELECT count(*) FROM business_hours WHERE business_id=$1`, createdBusiness.Data.ID); err != nil || savedHours != 7 {
 		t.Fatalf("business schedule rows=%d err=%v, want seven", savedHours, err)
+	}
+	var listingAuditEvents int
+	if err := db.Get(&listingAuditEvents, `SELECT count(*) FROM audit_logs WHERE actor_user_id=$1 AND action='create_business' AND target_type='business' AND target_id=$2`, customerA, createdBusiness.Data.ID); err != nil || listingAuditEvents != 1 {
+		t.Fatalf("listing creation audit events=%d err=%v, want exactly one actor-attributed event", listingAuditEvents, err)
 	}
 	w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerB), strings.Replace(createBody, `"city":"Cuttack"`, `"city":"Bhubaneswar"`, 1))
 	if w.Code != http.StatusBadRequest {
@@ -210,8 +234,8 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	// A member of A cannot mutate a product owned by B.
 	for _, tc := range []struct{ method, body string }{{http.MethodPatch, `{"name":"attacked"}`}, {http.MethodDelete, ""}} {
 		w := request(tc.method, "/api/v1/merchant/products/"+productB, token(memberA), tc.body)
-		if w.Code != http.StatusNotFound {
-			t.Errorf("cross-business product %s status=%d, want 404", tc.method, w.Code)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("staff cross-business product %s status=%d, want 403", tc.method, w.Code)
 		}
 	}
 	// Product create, update and delete persist their state for the authenticated owner's business.
@@ -518,6 +542,75 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	}
 }
 
+func TestAdminUserAccessRoleBoundaries(t *testing.T) {
+	db, _, memberA, _, _, _, _, _, _, _, _ := newAPISecurityFixture(t)
+	cfg := &config.Config{Env: "test", JWTSecret: "integration-test-secret-with-over-32-characters"}
+	authSvc := auth.NewService(db, cfg)
+	router := setupRouter(authSvc, discovery.NewService(db, cfg), moderation.NewService(db, cfg), nil, notifications.NewHub(db.DB), operations.NewService(db))
+	token := func(subject string) string {
+		t.Helper()
+		tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			Subject: subject, Issuer: "grepmind-near", IssuedAt: jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		}).SignedString([]byte(cfg.JWTSecret))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tok
+	}
+	rootID, targetID := uuid.NewString(), uuid.NewString()
+	if _, err := db.Exec(`INSERT INTO users(id,phone_e164,display_name) VALUES($1,$2,'Primary Superadmin')`, rootID, "+910000000000"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'admin'),($2,'admin')`, rootID, memberA); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO users(id,phone_e164,display_name) VALUES($1,'+919876543212','Role target')`, targetID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'customer')`, targetID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO sessions(id,user_id,refresh_token_hash,expires_at) VALUES($1,$2,'hash',now()+interval '1 day')`, uuid.NewString(), targetID); err != nil {
+		t.Fatal(err)
+	}
+	request := func(method, path, bearer, body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+bearer)
+		res := httptest.NewRecorder()
+		router.ServeHTTP(res, req)
+		return res
+	}
+	rootToken, adminToken := token(rootID), token(memberA)
+	rootList := request(http.MethodGet, "/api/v1/admin/user-access", rootToken, "")
+	if rootList.Code != http.StatusOK || !strings.Contains(rootList.Body.String(), `"can_manage_roles":true`) {
+		t.Fatalf("root role directory status=%d response=%s", rootList.Code, rootList.Body.String())
+	}
+	adminList := request(http.MethodGet, "/api/v1/admin/user-access", adminToken, "")
+	if adminList.Code != http.StatusOK || !strings.Contains(adminList.Body.String(), `"can_manage_roles":false`) {
+		t.Fatalf("admin role directory status=%d response=%s", adminList.Code, adminList.Body.String())
+	}
+	if got := request(http.MethodPost, "/api/v1/admin/user-access", adminToken, `{"phone_e164":"+919876543212","roles":["admin"]}`); got.Code != http.StatusForbidden {
+		t.Fatalf("non-root role change status=%d, want 403", got.Code)
+	}
+	if got := request(http.MethodPost, "/api/v1/admin/user-access", rootToken, `{"phone_e164":"+910000000000","roles":["customer"]}`); got.Code != http.StatusForbidden {
+		t.Fatalf("root account role change status=%d, want 403", got.Code)
+	}
+	updated := request(http.MethodPost, "/api/v1/admin/user-access", rootToken, `{"phone_e164":"+919876543212","display_name":"Role target","roles":["customer","merchant"]}`)
+	if updated.Code != http.StatusOK || !strings.Contains(updated.Body.String(), `"merchant"`) {
+		t.Fatalf("root role update status=%d response=%s", updated.Code, updated.Body.String())
+	}
+	var roles int
+	if err := db.Get(&roles, `SELECT count(*) FROM user_roles WHERE user_id=$1 AND role IN ('customer','merchant')`, targetID); err != nil || roles != 2 {
+		t.Fatalf("assigned roles=%d err=%v, want customer+merchant", roles, err)
+	}
+	var revoked bool
+	if err := db.Get(&revoked, `SELECT revoked_at IS NOT NULL FROM sessions WHERE user_id=$1`, targetID); err != nil || !revoked {
+		t.Fatalf("target session revoked=%v err=%v", revoked, err)
+	}
+}
+
 func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, string, string, string, string, string, string, string) {
 	t.Helper()
 	dsn := os.Getenv("GREPMIND_TEST_DATABASE_URL")
@@ -556,12 +649,14 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 	}
 	t.Cleanup(func() { _ = raw.Close(); _, _ = admin.Exec(`DROP SCHEMA ` + schema + ` CASCADE`); _ = admin.Close() })
 	for _, ddl := range []string{
-		`CREATE TABLE users(id UUID PRIMARY KEY, phone_e164 TEXT NOT NULL, display_name TEXT, avatar_url TEXT, status TEXT NOT NULL DEFAULT 'active', preferred_language TEXT NOT NULL DEFAULT 'en', notification_preferences JSONB NOT NULL DEFAULT '{"booking_updates":true,"offers":true,"service_updates":true}'::jsonb, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+		`CREATE TABLE users(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), phone_e164 TEXT NOT NULL UNIQUE, display_name TEXT, avatar_url TEXT, status TEXT NOT NULL DEFAULT 'active', preferred_language TEXT NOT NULL DEFAULT 'en', notification_preferences JSONB NOT NULL DEFAULT '{"booking_updates":true,"offers":true,"service_updates":true}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+		`CREATE TABLE sessions(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, refresh_token_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE media_uploads(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, purpose TEXT NOT NULL, object_key TEXT NOT NULL)`,
 		`CREATE TABLE user_roles(user_id UUID NOT NULL, role TEXT NOT NULL)`,
 		`CREATE TABLE categories(slug TEXT PRIMARY KEY, name TEXT NOT NULL, is_active BOOLEAN NOT NULL DEFAULT true)`,
+		`CREATE TABLE audit_logs(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_user_id UUID, action TEXT NOT NULL, target_type TEXT NOT NULL, target_id UUID NOT NULL, reason TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE businesses(id UUID PRIMARY KEY, owner_user_id UUID NOT NULL, name TEXT NOT NULL, slug TEXT, description TEXT, category_slug TEXT NOT NULL, address_text TEXT NOT NULL, locality TEXT, city TEXT, postal_code TEXT, phone_e164 TEXT, whatsapp_e164 TEXT, cover_photo_url TEXT, location GEOGRAPHY(POINT,4326), status TEXT NOT NULL, verification_status TEXT NOT NULL, time_zone TEXT NOT NULL DEFAULT 'Asia/Kolkata', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
-		`CREATE TABLE business_members(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, user_id UUID NOT NULL, status TEXT NOT NULL)`,
+		`CREATE TABLE business_members(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, user_id UUID NOT NULL, role TEXT NOT NULL DEFAULT 'staff', status TEXT NOT NULL)`,
 		`CREATE TABLE business_hours(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, weekday SMALLINT NOT NULL, opens_at TIME, closes_at TIME, is_closed BOOLEAN NOT NULL, UNIQUE(business_id,weekday))`,
 		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE services(id UUID PRIMARY KEY, business_id UUID, name TEXT, is_active BOOLEAN NOT NULL DEFAULT true)`,
@@ -569,7 +664,7 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 		`CREATE TABLE service_request_events(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), request_id UUID, status TEXT, actor_user_id UUID, created_at TIMESTAMPTZ DEFAULT now())`,
 		`CREATE TABLE availability_slots(id UUID PRIMARY KEY, business_id UUID NOT NULL, starts_at TIMESTAMPTZ NOT NULL, ends_at TIMESTAMPTZ NOT NULL, capacity INT NOT NULL, booked_count INT NOT NULL DEFAULT 0, status TEXT NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())`,
 		`CREATE TABLE business_availability_exceptions(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, local_date DATE NOT NULL, is_closed BOOLEAN NOT NULL DEFAULT false, opens_at TIME, closes_at TIME, note TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(business_id,local_date))`,
-		`CREATE TABLE professional_profiles(business_id UUID PRIMARY KEY, accepts_requests BOOLEAN NOT NULL DEFAULT false)`,
+		`CREATE TABLE professional_profiles(business_id UUID PRIMARY KEY, accepts_requests BOOLEAN NOT NULL DEFAULT false, service_radius_m INT NOT NULL DEFAULT 5000, experience_years INT, service_description TEXT)`,
 		`CREATE TABLE notifications(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, business_id UUID, title TEXT NOT NULL, body TEXT NOT NULL, event_type TEXT NOT NULL, reference_id TEXT, payload JSONB, is_read BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE customer_orders(id UUID PRIMARY KEY, customer_user_id UUID NOT NULL, business_id UUID NOT NULL, order_type TEXT NOT NULL, status TEXT NOT NULL, fulfillment_type TEXT, delivery_address TEXT, customer_notes TEXT, item_total NUMERIC NOT NULL, delivery_fee NUMERIC NOT NULL, tax_amount NUMERIC NOT NULL, grand_total NUMERIC NOT NULL, currency CHAR(3) NOT NULL DEFAULT 'INR', eta_minutes INT, reservation_at TIMESTAMPTZ, reservation_end_at TIMESTAMPTZ, guest_count INT, seating_area TEXT, room_product_id UUID, reference_code TEXT NOT NULL, cancelled_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now())`,
 		`CREATE TABLE customer_order_items(order_id UUID, product_id UUID, product_name TEXT, unit_price NUMERIC, quantity INT, dietary_type TEXT)`,
@@ -600,6 +695,9 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 	}
 	_, err = raw.Exec(`INSERT INTO business_members(business_id,user_id,status) VALUES($1,$2,'active')`, businessA, memberA)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'merchant')`, memberA); err != nil {
 		t.Fatal(err)
 	}
 	_, err = raw.Exec(`INSERT INTO products(id,business_id,name) VALUES($1,$2,'B product')`, productB, businessB)

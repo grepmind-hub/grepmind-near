@@ -22,13 +22,15 @@ import { Business, TeamMember } from '../lib/types';
 interface TeamManagerProps {
   business: Business;
   team: TeamMember[];
-  onAddMember: (member: Omit<TeamMember, 'id' | 'businessId' | 'createdAt'>) => void;
-  onRevokeMember: (memberId: string) => void;
+  canManageTeam: boolean;
+  onAddMember: (member: { displayName: string; phoneE164: string; role: 'manager' | 'staff' }) => void;
+  onRevokeMember: (member: TeamMember) => void;
 }
 
 export const TeamManager: React.FC<TeamManagerProps> = ({
   business,
   team,
+  canManageTeam,
   onAddMember,
   onRevokeMember,
 }) => {
@@ -71,20 +73,14 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
       return;
     }
 
-    onAddMember({
-      userId: `user-${Date.now()}`,
-      name: formName.trim(),
-      phone: cleanPhone,
-      role: formRole,
-      status: 'active',
-    });
+    onAddMember({ displayName: formName.trim(), phoneE164: cleanPhone.replace(/\s/g, ''), role: formRole });
 
     setIsAddModalOpen(false);
   };
 
   const handleConfirmRevoke = () => {
     if (memberToRevoke) {
-      onRevokeMember(memberToRevoke.id);
+      onRevokeMember(memberToRevoke);
       setMemberToRevoke(null);
     }
   };
@@ -107,7 +103,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
 
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center space-x-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98]"
+          disabled={!canManageTeam}
+          title={canManageTeam ? 'Invite a manager or staff member' : 'Only the store owner can change team access'}
+          className="inline-flex min-h-11 items-center space-x-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <UserPlus className="h-4 w-4" />
           <span>+ Add Team Member</span>
@@ -262,7 +260,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 <div className="mt-4 rounded-xl bg-background p-2.5 text-[11px] text-slateText-secondary space-y-1">
                   <div className="flex items-center justify-between text-slateText-muted">
                     <span>Access Granted</span>
-                    <span>{member.createdAt}</span>
+                    <span>{member.createdAt ? new Date(member.createdAt).toLocaleDateString() : '—'}</span>
                   </div>
                   <div className="text-slateText-main font-medium">
                     {isOwner
@@ -285,7 +283,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                     <ShieldCheck className="h-3.5 w-3.5" />
                     <span>Primary</span>
                   </span>
-                ) : (
+                ) : canManageTeam ? (
                   <button
                     onClick={() => setMemberToRevoke(member)}
                     className="inline-flex items-center space-x-1 text-xs font-semibold text-rose-600 hover:text-rose-700 transition-colors"
@@ -293,7 +291,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                     <Trash2 className="h-3.5 w-3.5" />
                     <span>Revoke</span>
                   </button>
-                )}
+                ) : <span className="text-xs text-slateText-muted">Owner access required</span>}
               </div>
             </div>
           );

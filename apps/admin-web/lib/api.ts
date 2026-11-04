@@ -170,6 +170,45 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface AdminTrendPoint {
+  date: string;
+  new_listings: number;
+  service_requests: number;
+  customer_orders: number;
+}
+
+export interface AdminCategoryVolume {
+  category: string;
+  count: number;
+}
+
+export interface AdminTrends {
+  series: AdminTrendPoint[];
+  categories: AdminCategoryVolume[];
+}
+
+export interface ListingActivity {
+  id: string;
+  user_id: string;
+  phone_e164: string;
+  display_name: string;
+  business_id: string;
+  business_name: string;
+  category: string;
+  city: string;
+  status: string;
+  created_at: string;
+}
+
+export interface UserAccessRecord {
+  id: string;
+  phone_e164: string;
+  display_name: string;
+  status: string;
+  roles: string[];
+  created_at: string;
+}
+
 // ---------- API client methods ----------
 
 export async function getStats(city: string, range: string): Promise<Stats> {
@@ -177,6 +216,29 @@ export async function getStats(city: string, range: string): Promise<Stats> {
   if (city !== 'All Cities') params.city = city;
   const res = await api.get<{ data: Stats }>('/admin/stats', { params });
   return res.data.data;
+}
+
+export async function getAdminTrends(city: string, range: string): Promise<AdminTrends> {
+  const params: Record<string, string> = { range };
+  if (city !== 'All Cities') params.city = city;
+  const res = await api.get<{ data: AdminTrends }>('/admin/trends', { params });
+  return res.data.data;
+}
+
+export async function getListingActivity(city: string, range: string): Promise<ListingActivity[]> {
+  const params: Record<string, string> = { range };
+  if (city !== 'All Cities') params.city = city;
+  const res = await api.get<{ data: ListingActivity[] }>('/admin/listing-activity', { params });
+  return res.data.data ?? [];
+}
+
+export async function getUserAccess(): Promise<{ users: UserAccessRecord[]; canManageRoles: boolean }> {
+  const res = await api.get<{ data: UserAccessRecord[]; meta?: { can_manage_roles?: boolean } }>('/admin/user-access');
+  return { users: res.data.data ?? [], canManageRoles: res.data.meta?.can_manage_roles === true };
+}
+
+export async function saveUserAccess(phone_e164: string, display_name: string, roles: string[]): Promise<void> {
+  await api.post('/admin/user-access', { phone_e164, display_name, roles });
 }
 
 export async function getPendingBusinesses(): Promise<Business[]> {

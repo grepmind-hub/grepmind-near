@@ -2,18 +2,20 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, Settings, HelpCircle, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, BadgePercent, ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   pendingRequestsCount: number;
+  verificationStatus: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
   pendingRequestsCount,
+  verificationStatus,
 }) => {
   const menuItems = [
     {
@@ -42,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Team & Staff',
       icon: Users,
     },
+    { id: 'offers', label: 'Offers & Promotions', icon: BadgePercent },
     {
       id: 'analytics',
       label: 'Store Analytics',
@@ -89,35 +92,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Verification Status Card */}
-        <div className="rounded-2xl border border-borderMuted bg-slate-50 p-4">
+        <div className="rounded-2xl border border-borderMuted bg-gradient-to-br from-blue-50 to-teal-50 p-4">
           <div className="flex items-center space-x-2 text-primary font-bold text-xs">
             <ShieldCheck className="h-4 w-4" />
-            <span>Verified Merchant</span>
+            <span>Listing review</span>
           </div>
           <p className="mt-1 text-[11px] text-slateText-secondary leading-relaxed">
-            Your storefront credentials and location are verified by Grepmind Near moderators.
+            Current status: <strong className="capitalize">{verificationStatus.replace('_', ' ')}</strong>.
           </p>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-slateText-muted">Audit Score</span>
-            <span className="text-xs font-bold text-emerald-600">98 / 100</span>
-          </div>
-          <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-200">
-            <div className="h-1.5 rounded-full bg-emerald-500 w-[98%]" />
-          </div>
         </div>
       </div>
 
-      {/* Footer Support & Settings */}
-      <div className="border-t border-borderMuted pt-4 space-y-1">
-        <button className="flex w-full items-center space-x-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slateText-secondary hover:bg-slate-50 hover:text-slateText-main">
-          <Settings className="h-4 w-4 text-slateText-muted" />
-          <span>Account Settings</span>
-        </button>
-        <button className="flex w-full items-center space-x-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slateText-secondary hover:bg-slate-50 hover:text-slateText-main">
-          <HelpCircle className="h-4 w-4 text-slateText-muted" />
-          <span>Merchant Support</span>
-        </button>
-      </div>
+      <p className="border-t border-borderMuted pt-4 px-3 text-[11px] text-slateText-muted">Secure merchant workspace</p>
     </aside>
   );
 };

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -89,13 +90,13 @@ func TestAdminModelsSerialization(t *testing.T) {
 
 	reason := "Spam report"
 	rep := AdminReport{
-		ID:               "rep-123",
-		ReporterPhone:    "+919876543210",
-		TargetType:       "business",
-		TargetID:         "biz-456",
-		Reason:           reason,
-		Status:           "open",
-		CreatedAt:        time.Now().Format(time.RFC3339),
+		ID:            "rep-123",
+		ReporterPhone: "+919876543210",
+		TargetType:    "business",
+		TargetID:      "biz-456",
+		Reason:        reason,
+		Status:        "open",
+		CreatedAt:     time.Now().Format(time.RFC3339),
 	}
 	repData, err := json.Marshal(rep)
 	if err != nil {
@@ -148,9 +149,9 @@ func TestAdminJWTTokenClaims(t *testing.T) {
 func TestParseStatsFilters(t *testing.T) {
 	tests := []struct {
 		name, city, period string
-		wantCity string
-		wantDays int
-		wantErr bool
+		wantCity           string
+		wantDays           int
+		wantErr            bool
 	}{
 		{name: "default", wantDays: 14},
 		{name: "Cuttack 7 days", city: "Cuttack", period: "7d", wantCity: "Cuttack", wantDays: 7},
@@ -168,5 +169,20 @@ func TestParseStatsFilters(t *testing.T) {
 				t.Fatalf("got (%q, %d), want (%q, %d)", city, days, tt.wantCity, tt.wantDays)
 			}
 		})
+	}
+}
+
+func TestNormalizeAssignableRoles(t *testing.T) {
+	roles, err := normalizeAssignableRoles([]string{"merchant", "customer", "merchant"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := strings.Join(roles, ","), "customer,merchant"; got != want {
+		t.Fatalf("roles = %q, want %q", got, want)
+	}
+	for _, input := range [][]string{nil, {}, {"superadmin"}, {"admin", "root"}} {
+		if _, err := normalizeAssignableRoles(input); err == nil {
+			t.Errorf("normalizeAssignableRoles(%v) unexpectedly succeeded", input)
+		}
 	}
 }

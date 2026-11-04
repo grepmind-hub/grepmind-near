@@ -113,7 +113,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <button
             onClick={onToggleStoreStatus}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+            disabled={!currentBusiness.isVerified}
+            aria-label={currentBusiness.isVerified ? 'Toggle service request availability' : 'Availability is disabled until listing approval'}
+            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
               currentBusiness.isOpen ? 'bg-emerald-500' : 'bg-slate-300'
             }`}
           >

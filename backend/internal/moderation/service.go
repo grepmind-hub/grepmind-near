@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"grepmind-near/backend/pkg/config"
@@ -40,18 +43,18 @@ type Stats struct {
 }
 
 type AdminBusiness struct {
-	ID                 string   `json:"id"`
-	Name               string   `json:"name"`
-	Slug               string   `json:"slug,omitempty"`
-	CategorySlug       string   `json:"category_slug"`
-	CategoryName       string   `json:"category_name,omitempty"`
-	AddressText        string   `json:"address_text"`
-	City               string   `json:"city,omitempty"`
-	Status             string   `json:"status"`
-	VerificationStatus string   `json:"verification_status"`
-	PhoneE164          string   `json:"phone_e164,omitempty"`
-	OwnerPhone         string   `json:"owner_phone,omitempty"`
-	CreatedAt          string   `json:"created_at"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	Slug               string `json:"slug,omitempty"`
+	CategorySlug       string `json:"category_slug"`
+	CategoryName       string `json:"category_name,omitempty"`
+	AddressText        string `json:"address_text"`
+	City               string `json:"city,omitempty"`
+	Status             string `json:"status"`
+	VerificationStatus string `json:"verification_status"`
+	PhoneE164          string `json:"phone_e164,omitempty"`
+	OwnerPhone         string `json:"owner_phone,omitempty"`
+	CreatedAt          string `json:"created_at"`
 }
 
 type AdminReport struct {
@@ -68,15 +71,15 @@ type AdminReport struct {
 }
 
 type AdminOffer struct {
-	ID              string  `json:"id"`
-	BusinessID      string  `json:"business_id"`
-	BusinessName    string  `json:"business_name"`
-	Title           string  `json:"title"`
-	Description     string  `json:"description,omitempty"`
-	StartsAt        string  `json:"starts_at"`
-	EndsAt          string  `json:"ends_at"`
-	Status          string  `json:"status"`
-	DiscountPercent *int    `json:"discount_percent,omitempty"`
+	ID              string `json:"id"`
+	BusinessID      string `json:"business_id"`
+	BusinessName    string `json:"business_name"`
+	Title           string `json:"title"`
+	Description     string `json:"description,omitempty"`
+	StartsAt        string `json:"starts_at"`
+	EndsAt          string `json:"ends_at"`
+	Status          string `json:"status"`
+	DiscountPercent *int   `json:"discount_percent,omitempty"`
 }
 
 type AdminAuditLog struct {
@@ -88,6 +91,42 @@ type AdminAuditLog struct {
 	Reason     *string `json:"reason,omitempty"`
 	CreatedAt  string  `json:"created_at"`
 }
+
+type AdminTrendPoint struct {
+	Date            string `json:"date"`
+	NewListings     int    `json:"new_listings"`
+	ServiceRequests int    `json:"service_requests"`
+	CustomerOrders  int    `json:"customer_orders"`
+}
+
+type AdminCategoryVolume struct {
+	Category string `json:"category"`
+	Count    int    `json:"count"`
+}
+
+type AdminListingActivity struct {
+	ID          string `json:"id"`
+	UserID      string `json:"user_id"`
+	PhoneE164   string `json:"phone_e164"`
+	DisplayName string `json:"display_name"`
+	BusinessID  string `json:"business_id"`
+	Business    string `json:"business_name"`
+	Category    string `json:"category"`
+	City        string `json:"city"`
+	Status      string `json:"status"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type AdminAccountAccess struct {
+	ID          string   `json:"id"`
+	PhoneE164   string   `json:"phone_e164"`
+	DisplayName string   `json:"display_name"`
+	Status      string   `json:"status"`
+	Roles       []string `json:"roles"`
+	CreatedAt   string   `json:"created_at"`
+}
+
+const primarySuperadminPhone = "+910000000000"
 
 // ---------- Helper functions ----------
 
@@ -153,6 +192,139 @@ func (s *Service) GetStats(w http.ResponseWriter, r *http.Request, adminUserID s
 		"data": stats,
 		"meta": map[string]string{"request_id": "admin-stats"},
 	})
+}
+
+// GetTrends returns date-bucketed operational data from PostgreSQL. All dates
+// are aligned to the platform's Odisha timezone, Asia/Kolkata.
+func (s *Service) GetTrends(w http.ResponseWriter, r *http.Request, _ string) {
+	city, days, err := parseStatsFilters(r.URL.Query().Get("city"), r.URL.Query().Get("range"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	rows, err := s.db.QueryxContext(r.Context(), `
+		WITH day_series AS (
+			SELECT generate_series((now() AT TIME ZONE 'Asia/Kolkata')::date - ($2::int - 1),
+			                       (now() AT TIME ZONE 'Asia/Kolkata')::date, interval '1 day')::date AS day
+		), listings AS (
+			SELECT (created_at AT TIME ZONE 'Asia/Kolkata')::date AS day, count(*) AS total
+			FROM businesses WHERE created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(city) = lower($1))
+			GROUP BY 1
+		), requests AS (
+			SELECT (sr.created_at AT TIME ZONE 'Asia/Kolkata')::date AS day, count(*) AS total
+			FROM service_requests sr JOIN businesses b ON b.id=sr.business_id
+			WHERE sr.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city) = lower($1))
+			GROUP BY 1
+		), orders AS (
+			SELECT (o.created_at AT TIME ZONE 'Asia/Kolkata')::date AS day, count(*) AS total
+			FROM customer_orders o JOIN businesses b ON b.id=o.business_id
+			WHERE o.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city) = lower($1))
+			GROUP BY 1
+		)
+		SELECT to_char(d.day, 'YYYY-MM-DD'), COALESCE(l.total,0), COALESCE(r.total,0), COALESCE(o.total,0)
+		FROM day_series d LEFT JOIN listings l USING(day) LEFT JOIN requests r USING(day) LEFT JOIN orders o USING(day)
+		ORDER BY d.day`, city, days)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load platform trends.")
+		return
+	}
+	defer rows.Close()
+	points := make([]AdminTrendPoint, 0, days)
+	for rows.Next() {
+		var point AdminTrendPoint
+		if err := rows.Scan(&point.Date, &point.NewListings, &point.ServiceRequests, &point.CustomerOrders); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse platform trend data.")
+			return
+		}
+		points = append(points, point)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read platform trend data.")
+		return
+	}
+
+	categoriesRows, err := s.db.QueryxContext(r.Context(), `
+		SELECT c.name, count(*)
+		FROM businesses b JOIN categories c ON c.slug=b.category_slug
+		WHERE b.created_at >= now() - ($2 * interval '1 day') AND ($1 = '' OR lower(b.city)=lower($1))
+		GROUP BY c.name ORDER BY count(*) DESC, c.name ASC LIMIT 8`, city, days)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load category trends.")
+		return
+	}
+	defer categoriesRows.Close()
+	categories := make([]AdminCategoryVolume, 0, 8)
+	for categoriesRows.Next() {
+		var item AdminCategoryVolume
+		if err := categoriesRows.Scan(&item.Category, &item.Count); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse category trend data.")
+			return
+		}
+		categories = append(categories, item)
+	}
+	if err := categoriesRows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read category trend data.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{
+		"data": map[string]interface{}{"series": points, "categories": categories},
+		"meta": map[string]string{"request_id": "admin-trends", "timezone": "Asia/Kolkata"},
+	})
+}
+
+// ListListingActivity reports confirmed create_business audit events. Legacy
+// business rows without such an event are intentionally omitted instead of
+// attributing them to a user whose account may have inherited ownership.
+func (s *Service) ListListingActivity(w http.ResponseWriter, r *http.Request, _ string) {
+	city := r.URL.Query().Get("city")
+	if city != "" && city != "Cuttack" && city != "Jajpur" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "city must be Cuttack or Jajpur.")
+		return
+	}
+	days := 30
+	switch r.URL.Query().Get("range") {
+	case "", "30d":
+	case "7d":
+		days = 7
+	case "14d":
+		days = 14
+	default:
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "range must be 7d, 14d, or 30d.")
+		return
+	}
+	rows, err := s.db.QueryxContext(r.Context(), `
+		SELECT al.id::text, al.actor_user_id::text, u.phone_e164, COALESCE(u.display_name,''),
+		       b.id::text, b.name, c.name, b.city, b.status, al.created_at
+		FROM audit_logs al
+		JOIN users u ON u.id=al.actor_user_id
+		JOIN businesses b ON b.id=al.target_id
+		JOIN categories c ON c.slug=b.category_slug
+		WHERE al.action='create_business' AND al.target_type='business'
+		  AND al.created_at >= now() - ($1 * interval '1 day')
+		  AND ($2='' OR lower(b.city)=lower($2))
+		ORDER BY al.created_at DESC LIMIT 200`, days, city)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load listing activity.")
+		return
+	}
+	defer rows.Close()
+	items := make([]AdminListingActivity, 0, 200)
+	for rows.Next() {
+		var item AdminListingActivity
+		var createdAt time.Time
+		if err := rows.Scan(&item.ID, &item.UserID, &item.PhoneE164, &item.DisplayName,
+			&item.BusinessID, &item.Business, &item.Category, &item.City, &item.Status, &createdAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse listing activity.")
+			return
+		}
+		item.CreatedAt = createdAt.Format(time.RFC3339)
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read listing activity.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{"data": items, "meta": map[string]interface{}{"request_id": "admin-listing-activity", "count": len(items)}})
 }
 
 func parseStatsFilters(city, period string) (string, int, error) {
@@ -638,6 +810,149 @@ type AdminUser struct {
 	CreatedAt   string `json:"created_at"`
 }
 
+var assignablePhonePattern = regexp.MustCompile(`^\+91[6-9][0-9]{9}$`)
+
+func normalizeAssignableRoles(roles []string) ([]string, error) {
+	allowed := map[string]bool{"admin": true, "merchant": true, "customer": true, "professional": true}
+	seen := make(map[string]bool, len(roles))
+	for _, role := range roles {
+		if !allowed[role] {
+			return nil, fmt.Errorf("role must be admin, merchant, customer, or professional")
+		}
+		seen[role] = true
+	}
+	if len(seen) == 0 {
+		return nil, fmt.Errorf("select at least one role")
+	}
+	result := make([]string, 0, len(seen))
+	for role := range seen {
+		result = append(result, role)
+	}
+	sort.Strings(result)
+	return result, nil
+}
+
+// ListUserAccess returns a bounded, searchable account and role directory.
+func (s *Service) ListUserAccess(w http.ResponseWriter, r *http.Request, adminUserID string) {
+	search := r.URL.Query().Get("search")
+	if len(search) > 120 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "search must be 120 characters or fewer.")
+		return
+	}
+	rows, err := s.db.QueryxContext(r.Context(), `
+		SELECT u.id::text, u.phone_e164, COALESCE(u.display_name,''), u.status,
+		       COALESCE(string_agg(ur.role, ',' ORDER BY ur.role),''), u.created_at
+		FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id
+		WHERE ($1='' OR u.phone_e164 ILIKE '%' || $1 || '%' OR COALESCE(u.display_name,'') ILIKE '%' || $1 || '%')
+		GROUP BY u.id ORDER BY u.updated_at DESC, u.created_at DESC LIMIT 200`, search)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load user access records.")
+		return
+	}
+	defer rows.Close()
+	items := make([]AdminAccountAccess, 0, 200)
+	for rows.Next() {
+		var item AdminAccountAccess
+		var roles string
+		var createdAt time.Time
+		if err := rows.Scan(&item.ID, &item.PhoneE164, &item.DisplayName, &item.Status, &roles, &createdAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse user access record.")
+			return
+		}
+		if roles != "" {
+			item.Roles = strings.Split(roles, ",")
+		} else {
+			item.Roles = []string{}
+		}
+		item.CreatedAt = createdAt.Format(time.RFC3339)
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read user access records.")
+		return
+	}
+	var canManage bool
+	if err := s.db.QueryRowContext(r.Context(), `SELECT phone_e164=$2 FROM users WHERE id=$1`, adminUserID, primarySuperadminPhone).Scan(&canManage); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to verify role management permissions.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{"data": items, "meta": map[string]interface{}{"request_id": "admin-user-access", "count": len(items), "can_manage_roles": canManage}})
+}
+
+// SetUserAccess creates or updates a user and replaces their role set atomically.
+// This handler is mounted behind the primary-superadmin-only middleware.
+func (s *Service) SetUserAccess(w http.ResponseWriter, r *http.Request, adminUserID string) {
+	var req struct {
+		PhoneE164   string   `json:"phone_e164"`
+		DisplayName string   `json:"display_name"`
+		Roles       []string `json:"roles"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_INPUT", "A valid phone number, display name, and role list are required.")
+		return
+	}
+	req.PhoneE164 = strings.TrimSpace(req.PhoneE164)
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	if req.PhoneE164 == primarySuperadminPhone {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "The primary superadmin account is protected from role changes.")
+		return
+	}
+	if !assignablePhonePattern.MatchString(req.PhoneE164) || len(req.DisplayName) > 120 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Use a valid Indian mobile number and a display name of at most 120 characters.")
+		return
+	}
+	roles, err := normalizeAssignableRoles(req.Roles)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+		return
+	}
+	tx, err := s.db.BeginTxx(r.Context(), nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to begin user access update.")
+		return
+	}
+	defer tx.Rollback()
+	var userID string
+	err = tx.QueryRowxContext(r.Context(), `
+		INSERT INTO users(phone_e164,display_name,status,preferred_language)
+		VALUES($1,NULLIF($2,''),'active','en')
+		ON CONFLICT(phone_e164) DO UPDATE SET
+		 display_name=CASE WHEN EXCLUDED.display_name IS NOT NULL THEN EXCLUDED.display_name ELSE users.display_name END,
+		 updated_at=now()
+		RETURNING id::text`, req.PhoneE164, req.DisplayName).Scan(&userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create or update the account.")
+		return
+	}
+	if _, err = tx.ExecContext(r.Context(), `DELETE FROM user_roles WHERE user_id=$1`, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to replace account roles.")
+		return
+	}
+	for _, role := range roles {
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO user_roles(user_id,role) VALUES($1,$2)`, userID, role); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to assign account roles.")
+			return
+		}
+	}
+	if _, err = tx.ExecContext(r.Context(), `UPDATE sessions SET revoked_at=COALESCE(revoked_at,now()) WHERE user_id=$1`, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to revoke existing sessions after role changes.")
+		return
+	}
+	if _, err = tx.ExecContext(r.Context(), `INSERT INTO audit_logs(actor_user_id,action,target_type,target_id,reason,created_at) VALUES($1,'set_user_roles','user',$2,$3,now())`, adminUserID, userID, fmt.Sprintf("Replaced roles for %s", req.PhoneE164)); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to record the role change audit event.")
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to commit account role changes.")
+		return
+	}
+	writeJSON(w, http.StatusOK, envelope{"data": map[string]interface{}{
+		"id": userID, "phone_e164": req.PhoneE164, "display_name": req.DisplayName, "roles": roles,
+	}, "meta": map[string]string{"request_id": "admin-user-access-updated"}})
+}
+
 // ListAdmins returns all platform administrator users.
 func (s *Service) ListAdmins(w http.ResponseWriter, r *http.Request, adminUserID string) {
 	rows, err := s.db.QueryxContext(r.Context(), `
@@ -678,8 +993,14 @@ func (s *Service) AddAdmin(w http.ResponseWriter, r *http.Request, adminUserID s
 		PhoneE164   string `json:"phone_e164"`
 		DisplayName string `json:"display_name"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PhoneE164 == "" {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8*1024))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_INPUT", "Phone number is required.")
+		return
+	}
+	if !assignablePhonePattern.MatchString(req.PhoneE164) || len(req.DisplayName) > 120 {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Use a valid Indian mobile number and a display name of at most 120 characters.")
 		return
 	}
 

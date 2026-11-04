@@ -17,12 +17,14 @@ import { AdminUser } from '@/lib/api';
 
 interface AdminUsersViewProps {
   admins: AdminUser[];
+  canManageRoles: boolean;
   onAddAdmin: (phone: string, name: string) => Promise<void>;
   onRevokeAdmin: (userId: string) => Promise<void>;
 }
 
 export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
   admins,
+  canManageRoles,
   onAddAdmin,
   onRevokeAdmin,
 }) => {
@@ -92,7 +94,9 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-[#2457D6] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#1E40AF] transition-all active:scale-95"
+          disabled={!canManageRoles}
+          title={canManageRoles ? 'Add a platform administrator' : 'Only the primary superadmin can change roles'}
+          className="flex items-center gap-1.5 rounded-xl bg-[#2457D6] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all active:scale-95 hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <UserPlus className="h-4 w-4" /> Add Platform Admin
         </button>
@@ -163,7 +167,7 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
                     ) : (
                       <button
                         onClick={() => handleRevoke(admin.id, admin.phone_e164)}
-                        disabled={actionLoadingId === admin.id}
+                        disabled={!canManageRoles || actionLoadingId === admin.id}
                         className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition-colors"
                       >
                         {actionLoadingId === admin.id ? 'Revoking...' : 'Revoke Admin'}

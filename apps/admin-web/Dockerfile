@@ -21,6 +21,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_MERCHANT_PORTAL_URL=http://localhost:3001/
+ENV NEXT_PUBLIC_MERCHANT_PORTAL_URL=${NEXT_PUBLIC_MERCHANT_PORTAL_URL}
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 

@@ -11,6 +11,9 @@ import { ReportsDisputesView } from '@/components/ReportsDisputesView';
 import { OffersModerationView } from '@/components/OffersModerationView';
 import { AuditLogsView } from '@/components/AuditLogsView';
 import { AdminUsersView } from '@/components/AdminUsersView';
+import { BusinessClaimsView } from '@/components/BusinessClaimsView';
+import { ListingActivityView } from '@/components/ListingActivityView';
+import { UserAccessView } from '@/components/UserAccessView';
 import {
   api,
   setAuthToken,
@@ -22,6 +25,12 @@ import {
   getOffers,
   getAuditLogs,
   getAdmins,
+  getAdminTrends,
+  getBusinessClaims,
+  decideBusinessClaim,
+  getListingActivity,
+  getUserAccess,
+  saveUserAccess,
   addAdmin,
   revokeAdmin,
   approveBusiness,
@@ -36,16 +45,33 @@ import {
   Offer,
   AuditLog,
   AdminUser,
+  AdminTrends,
+  BusinessClaim,
+  ListingActivity,
+  UserAccessRecord,
 } from '@/lib/api';
 
-export default function AdminPortalPage() {
+export default function AdminPortalPage({ initialTab = 'overview' }: { initialTab?: AdminTab }) {
   const router = useRouter();
-  const [currentTab, setCurrentTab] = useState<AdminTab>('overview');
+  const [currentTab, setCurrentTab] = useState<AdminTab>(initialTab);
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
   const [selectedRange, setSelectedRange] = useState<'7d' | '14d' | '30d'>('14d');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [metricsUpdatedAt, setMetricsUpdatedAt] = useState<Date | null>(null);
+  const [claims, setClaims] = useState<BusinessClaim[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(true);
+  const [claimsError, setClaimsError] = useState<string | null>(null);
+  const [claimActionId, setClaimActionId] = useState<string | null>(null);
+  const [listingActivity, setListingActivity] = useState<ListingActivity[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [userAccess, setUserAccess] = useState<UserAccessRecord[]>([]);
+  const [canManageRoles, setCanManageRoles] = useState(false);
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   // Live state from API
   const [stats, setStats] = useState<Stats | null>(null);
@@ -55,6 +81,7 @@ export default function AdminPortalPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [trends, setTrends] = useState<AdminTrends | null>(null);
 
   // Load only API-backed operational data; authentication is handled by OTP.
   const initSessionAndLoad = useCallback(async () => {
@@ -65,28 +92,68 @@ export default function AdminPortalPage() {
     setIsRefreshing(true);
     setLoadError(null);
     try {
-      const [s, p, b, r, o, l, a] = await Promise.all([
+      const [s, t, p, b, r, o, l, a, c, activity, access] = await Promise.all([
         getStats(selectedCity, selectedRange),
+        getAdminTrends(selectedCity, selectedRange),
         getPendingBusinesses(),
         getAllBusinesses('all'),
         getReports('all'),
         getOffers('all'),
         getAuditLogs(),
         getAdmins(),
+        getBusinessClaims(),
+        getListingActivity(selectedCity, selectedRange),
+        getUserAccess(),
       ]);
 
       setStats(s);
+      setTrends(t);
+      setMetricsUpdatedAt(new Date());
+      setMetricsError(null);
       setPendingBusinesses(p);
       setAllBusinesses(b);
       setReports(r);
       setOffers(o);
       setAuditLogs(l);
       setAdmins(a);
+      setClaims(c);
+      setClaimsError(null);
+      setClaimsLoading(false);
+      setListingActivity(activity);
+      setActivityError(null);
+      setActivityLoading(false);
+      setUserAccess(access.users);
+      setCanManageRoles(access.canManageRoles);
+      setAccessError(null);
+      setAccessLoading(false);
     } catch (err) {
       console.error('Data load error:', err);
       setLoadError('Live platform data could not be loaded. Check the API connection and refresh.');
+      setClaimsError('Claim review queue could not be loaded. Retry when the API is available.');
+      setActivityError('Listing activity could not be loaded from the API.');
+      setAccessError('User access could not be loaded from the API.');
     } finally {
+      setClaimsLoading(false);
+      setActivityLoading(false);
+      setAccessLoading(false);
       setIsRefreshing(false);
+    }
+  }, [selectedCity, selectedRange]);
+
+  const refreshMetrics = useCallback(async () => {
+    if (!hasAuthToken() || document.visibilityState !== 'visible') return;
+    try {
+      const [nextStats, nextTrends] = await Promise.all([
+        getStats(selectedCity, selectedRange),
+        getAdminTrends(selectedCity, selectedRange),
+      ]);
+      setStats(nextStats);
+      setTrends(nextTrends);
+      setMetricsUpdatedAt(new Date());
+      setMetricsError(null);
+    } catch (error) {
+      console.error('Dashboard metric refresh failed:', error);
+      setMetricsError('Auto refresh is temporarily unavailable.');
     }
   }, [selectedCity, selectedRange]);
 
@@ -97,6 +164,11 @@ export default function AdminPortalPage() {
     });
     return () => { active = false; };
   }, [initSessionAndLoad]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => void refreshMetrics(), 30_000);
+    return () => window.clearInterval(timer);
+  }, [refreshMetrics]);
 
   // Handlers for moderation actions
   async function handleApproveBusiness(id: string, reason = 'Approved via Admin business registry') {
@@ -179,6 +251,32 @@ export default function AdminPortalPage() {
     }
   }
 
+  async function handleClaimDecision(claim: BusinessClaim, decision: 'approve' | 'reject', note: string) {
+    setClaimActionId(claim.id);
+    try {
+      await decideBusinessClaim(claim.id, decision, note);
+      const [nextClaims, nextBusinesses, nextStats] = await Promise.all([
+        getBusinessClaims(), getAllBusinesses('all'), getStats(selectedCity, selectedRange),
+      ]);
+      setClaims(nextClaims);
+      setAllBusinesses(nextBusinesses);
+      setStats(nextStats);
+    } catch (error) {
+      console.error('Ownership claim decision failed:', error);
+      setActionError('Claim decision failed. No ownership change was confirmed.');
+    } finally {
+      setClaimActionId(null);
+    }
+  }
+
+  async function handleSaveUserAccess(phone: string, name: string, roles: string[]) {
+    await saveUserAccess(phone, name, roles);
+    const [nextAccess, nextAdmins] = await Promise.all([getUserAccess(), getAdmins()]);
+    setUserAccess(nextAccess.users);
+    setCanManageRoles(nextAccess.canManageRoles);
+    setAdmins(nextAdmins);
+  }
+
   function handleSignOut() {
     void api.post('/auth/logout').catch(() => undefined).finally(() => {
       setAuthToken(null);
@@ -208,6 +306,10 @@ export default function AdminPortalPage() {
               router.push('/dashboard/businesses');
               return;
             }
+            if (tab === 'overview' && initialTab === 'claims') {
+              router.push('/dashboard');
+              return;
+            }
             setCurrentTab(tab);
           }}
           pendingCount={stats?.pending_verifications ?? 0}
@@ -224,6 +326,9 @@ export default function AdminPortalPage() {
               stats={stats}
               selectedCity={selectedCity}
               selectedRange={selectedRange}
+              trends={trends}
+              updatedAt={metricsUpdatedAt}
+              metricsError={metricsError}
               onNavigateTab={(tab) => setCurrentTab(tab)}
             />
           )}
@@ -262,12 +367,29 @@ export default function AdminPortalPage() {
 
           {currentTab === 'audit-logs' && <AuditLogsView logs={auditLogs} />}
 
+          {currentTab === 'claims' && <BusinessClaimsView
+            claims={claims}
+            isLoading={claimsLoading}
+            error={claimsError}
+            actionId={claimActionId}
+            onRetry={() => void initSessionAndLoad()}
+            onDecision={handleClaimDecision}
+          />}
+
+          {currentTab === 'listing-activity' && <ListingActivityView
+            items={listingActivity}
+            range={selectedRange}
+            loading={activityLoading}
+            error={activityError}
+            updatedAt={metricsUpdatedAt}
+            onRefresh={() => void initSessionAndLoad()}
+          />}
+
           {currentTab === 'admin-users' && (
-            <AdminUsersView
-              admins={admins}
-              onAddAdmin={handleAddAdmin}
-              onRevokeAdmin={handleRevokeAdmin}
-            />
+            <div className="space-y-8">
+              <AdminUsersView admins={admins} canManageRoles={canManageRoles} onAddAdmin={handleAddAdmin} onRevokeAdmin={handleRevokeAdmin} />
+              <UserAccessView users={userAccess} canManageRoles={canManageRoles} loading={accessLoading} error={accessError} onRefresh={() => void initSessionAndLoad()} onSave={handleSaveUserAccess} />
+            </div>
           )}
         </main>
       </div>

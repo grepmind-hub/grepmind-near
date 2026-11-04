@@ -1289,6 +1289,46 @@ paths:
         '400': {description: Invalid profile fields}
         '404': {description: Business profile not found}
 
+  /merchant/businesses:
+    get:
+      summary: List businesses available to the authenticated merchant
+      description: Returns only businesses owned by the authenticated user or joined through an active membership.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Business directory scoped to owned businesses and active memberships
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, category_slug, category_name, locality, city, phone_e164, address_text, cover_photo_url, status, verification_status, accepts_requests, service_radius_m]
+                      properties:
+                        id: {type: string, format: uuid}
+                        name: {type: string}
+                        category_slug: {type: string}
+                        category_name: {type: string}
+                        locality: {type: string}
+                        city: {type: string, enum: [Cuttack, Jajpur]}
+                        phone_e164: {type: string}
+                        address_text: {type: string}
+                        cover_photo_url: {type: string}
+                        status: {type: string}
+                        verification_status: {type: string}
+                        accepts_requests: {type: boolean}
+                        service_radius_m: {type: integer, minimum: 100, maximum: 100000}
+                  meta:
+                    type: object
+                    properties:
+                      request_id: {type: string}
+        '401': {description: Authentication required}
+
   /merchant/operating-hours:
     get:
       summary: Get the authenticated merchant's weekly opening schedule
@@ -1688,6 +1728,87 @@ paths:
                     $ref: '#/components/schemas/AdminStats'
                   meta:
                     $ref: '#/components/schemas/Meta'
+
+  /admin/trends:
+    get:
+      summary: Daily operational trend series and category mix
+      description: Date buckets use Asia/Kolkata and are sourced from businesses, service_requests, customer_orders, and categories.
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: city
+          schema: { type: string, enum: [Cuttack, Jajpur] }
+        - in: query
+          name: range
+          schema: { type: string, enum: [7d, 14d, 30d], default: 14d }
+      responses:
+        '200':
+          description: Database-backed daily trends and listing category volumes
+
+  /admin/listing-activity:
+    get:
+      summary: List recorded business creation events by authenticated account
+      description: Only registrations with an explicit create_business audit event are returned; legacy owners are not assumed to be creators.
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: city
+          schema: { type: string, enum: [Cuttack, Jajpur] }
+        - in: query
+          name: range
+          schema: { type: string, enum: [7d, 14d, 30d], default: 30d }
+      responses:
+        '200':
+          description: Listing creation events with actor ID, phone, listing, city and timestamp
+
+  /admin/user-access:
+    get:
+      summary: List searchable user accounts and current roles
+      description: Returns at most 200 records; meta.can_manage_roles is true only for the protected primary superadmin.
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string, maxLength: 120 }
+      responses:
+        '200':
+          description: User access records and role management capability
+        '403':
+          description: Administrator privilege required
+    post:
+      summary: Create or replace a user's platform roles
+      description: Restricted to the primary superadmin. Existing sessions are revoked atomically with role changes; the primary superadmin account is protected.
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_e164, roles]
+              properties:
+                phone_e164: { type: string, pattern: '^\\+91[6-9][0-9]{9}$' }
+                display_name: { type: string, maxLength: 120 }
+                roles:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items: { type: string, enum: [admin, merchant, customer, professional] }
+      responses:
+        '200':
+          description: Account roles replaced and sessions revoked
+        '400':
+          description: Invalid phone number or role set
+        '403':
+          description: Primary superadmin access required
 
   /admin/businesses:
     get:

@@ -40,6 +40,15 @@ test.describe('Admin Web Portal access boundaries', () => {
     const statsRequest = page.waitForResponse((response) =>
       response.url().includes('/api/v1/admin/stats') && response.request().method() === 'GET',
     );
+    const trendsRequest = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/admin/trends') && response.request().method() === 'GET',
+    );
+    const listingActivityRequest = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/admin/listing-activity') && response.request().method() === 'GET',
+    );
+    const userAccessRequest = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/admin/user-access') && response.request().method() === 'GET',
+    );
     let accessTokenForCleanup: string | null = null;
     try {
       const verifyResponsePromise = page.waitForResponse((response) =>
@@ -52,8 +61,20 @@ test.describe('Admin Web Portal access boundaries', () => {
       expect(accessTokenForCleanup).toBeTruthy();
 
       await expect(page).toHaveURL(/\/admin\/dashboard$/);
-      await expect(page.getByText('Platform overview')).toBeVisible();
-      expect((await statsRequest).status()).toBe(200);
+      const statsResponse = await statsRequest;
+      const activityResponse = await listingActivityRequest;
+      const accessResponse = await userAccessRequest;
+      expect(statsResponse.status(), 'admin stats API').toBe(200);
+      const trendsResponse = await trendsRequest;
+      expect(trendsResponse.status(), 'admin trends API').toBe(200);
+      expect(activityResponse.status(), 'listing activity API').toBe(200);
+      expect(accessResponse.status(), 'user access API').toBe(200);
+      await expect(page.getByText('Executive command center')).toBeVisible();
+      await expect(page.getByText('Trend intelligence')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'New listings' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Service requests' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Customer orders' })).toBeVisible();
+      await expect(page.getByRole('link', { name: /Open Merchant Portal/ })).toHaveAttribute('href', 'http://localhost:3001/');
       await expect(page.getByText('Live platform data could not be loaded. Check the API connection and refresh.')).toHaveCount(0);
 
       const adminSections = [
@@ -62,6 +83,7 @@ test.describe('Admin Web Portal access boundaries', () => {
         { navigation: 'Reports & Disputes', heading: 'Consumer Reports & Disputes' },
         { navigation: 'Offers & Promos', heading: 'Promotions & Offer Moderation' },
         { navigation: 'Audit Trail', heading: 'Platform Audit Trail' },
+        { navigation: 'Listing Activity', heading: 'Team listing activity' },
         { navigation: 'Admins & Access', heading: 'Platform Administrators & Permissions' },
       ];
       for (const section of adminSections) {
@@ -69,11 +91,16 @@ test.describe('Admin Web Portal access boundaries', () => {
         await expect(page.getByRole('heading', { name: section.heading })).toBeVisible();
       }
 
+      await expect(page.getByRole('heading', { name: 'User access control' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Add account access' })).toBeEnabled();
+
       await page.getByRole('button', { name: /Ownership claims/ }).click();
       await expect(page).toHaveURL(/\/admin\/dashboard\/businesses$/);
-      await expect(page.getByRole('heading', { name: 'Businesses Moderation' })).toBeVisible();
-      await page.getByRole('link', { name: /Dashboard/ }).click();
+      await expect(page.getByRole('heading', { name: 'Ownership claims' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /Dashboard/ })).toBeVisible();
+      await page.getByRole('button', { name: /Dashboard/ }).click();
       await expect(page).toHaveURL(/\/admin\/dashboard$/);
+      await expect(page.getByText('Executive command center')).toBeVisible();
 
       const logoutRequest = page.waitForResponse((response) =>
         response.url().endsWith('/auth/logout') && response.request().method() === 'POST',

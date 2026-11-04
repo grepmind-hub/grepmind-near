@@ -7,10 +7,12 @@ export interface Business {
   locality: string;
   city: string;
   phone: string;
-  rating: number;
-  reviewCount: number;
+  rating?: number;
+  reviewCount?: number;
   isOpen: boolean;
   isVerified: boolean;
+  status?: string;
+  verificationStatus?: string;
   address: string;
   serviceRadiusKm: number;
   acceptsRequests: boolean;
@@ -26,7 +28,7 @@ export interface ServiceRequest {
   description: string;
   requestedFor: string;
   address: string;
-  status: 'requested' | 'accepted' | 'en_route' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'requested' | 'accepted' | 'in_progress' | 'rescheduled' | 'declined' | 'completed' | 'cancelled';
   priceEstimate?: number;
   createdAt: string;
 }
@@ -36,10 +38,8 @@ export interface ProductItem {
   businessId: string;
   name: string;
   price: number;
-  discountPrice?: number;
-  category: string;
-  stockCount: number;
-  inStock: boolean;
+  stockStatus: 'in_stock' | 'out_of_stock' | 'unknown';
+  isPublished: boolean;
   description: string;
   imageUrl?: string;
 }
@@ -49,9 +49,9 @@ export interface ServiceItem {
   businessId: string;
   name: string;
   basePrice: number;
-  durationMinutes: number;
+  maximumPrice?: number;
   description: string;
-  popular?: boolean;
+  isActive: boolean;
 }
 
 export interface OperatingHoursDay {
@@ -67,7 +67,7 @@ export interface TeamMember {
   userId: string;
   name: string;
   phone: string;
-  role: 'owner' | 'manager' | 'staff';
+  role: string;
   status: 'active' | 'suspended' | 'revoked';
   createdAt: string;
 }
@@ -76,7 +76,21 @@ export interface MerchantSession {
   userId: string;
   name: string;
   phone: string;
-  role: 'owner' | 'manager' | 'staff';
+  role: string;
   token: string;
+  refreshToken?: string;
+}
+
+export interface MerchantOffer {
+  id: string;
+  business_id: string;
+  title: string;
+  description?: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  discount_percent?: number;
+  terms?: string;
+  image_url?: string;
 }
 

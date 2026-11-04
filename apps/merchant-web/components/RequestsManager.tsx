@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { ServiceRequest } from '../lib/types';
-import { CalendarClock, Phone, MapPin, CheckCircle, Clock, XCircle, Search, Filter, AlertCircle, ArrowRight, Check } from 'lucide-react';
+import { CalendarClock, Phone, CheckCircle, Clock, XCircle, Search, AlertCircle, Check } from 'lucide-react';
 
 interface RequestsManagerProps {
   requests: ServiceRequest[];
@@ -42,13 +42,8 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
             <span>Booking Confirmed</span>
           </span>
         );
-      case 'en_route':
-        return (
-          <span className="inline-flex items-center space-x-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 border border-indigo-200">
-            <ArrowRight className="h-3.5 w-3.5" />
-            <span>Technician En Route</span>
-          </span>
-        );
+      case 'rescheduled':
+        return <span className="inline-flex items-center space-x-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 border border-indigo-200"><Clock className="h-3.5 w-3.5"/><span>Rescheduled</span></span>;
       case 'in_progress':
         return (
           <span className="inline-flex items-center space-x-1 rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700 border border-purple-200">
@@ -60,14 +55,16 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
         return (
           <span className="inline-flex items-center space-x-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
             <CheckCircle className="h-3.5 w-3.5" />
-            <span>Completed & Paid</span>
+            <span>Completed</span>
           </span>
         );
+      case 'declined':
+        return <span className="inline-flex items-center space-x-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 border border-rose-200"><XCircle className="h-3.5 w-3.5"/><span>Declined</span></span>;
       case 'cancelled':
         return (
           <span className="inline-flex items-center space-x-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 border border-rose-200">
             <XCircle className="h-3.5 w-3.5" />
-            <span>Declined / Cancelled</span>
+            <span>Cancelled</span>
           </span>
         );
     }
@@ -91,7 +88,7 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
 
         {/* Status Filter Chips */}
         <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
-          {['all', 'requested', 'accepted', 'in_progress', 'completed'].map((status) => (
+          {['all', 'requested', 'accepted', 'in_progress', 'rescheduled', 'declined', 'cancelled', 'completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
@@ -147,7 +144,7 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                       </div>
                       <div>
                         <div className="text-[10px] text-slateText-muted uppercase font-bold">Slot Requested</div>
-                        <div className="font-semibold">{req.requestedFor}</div>
+                        <div className="font-semibold">{req.requestedFor ? new Date(req.requestedFor).toLocaleString() : 'Not scheduled'}</div>
                       </div>
                     </div>
 
@@ -163,15 +160,6 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                        <MapPin className="h-3.5 w-3.5" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slateText-muted uppercase font-bold">Location Address</div>
-                        <div className="font-semibold truncate max-w-[220px]">{req.address}</div>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -180,7 +168,7 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                   <div className="text-left md:text-right">
                     <div className="text-[10px] font-bold text-slateText-muted uppercase">Estimated Fee</div>
                     <div className="text-lg font-black text-slateText-main">
-                      {req.priceEstimate ? `₹${req.priceEstimate}` : 'Custom Quote'}
+                      {typeof req.priceEstimate === 'number' ? `₹${req.priceEstimate}` : 'Not set'}
                     </div>
                   </div>
 
@@ -194,7 +182,7 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                           Accept Booking
                         </button>
                         <button
-                          onClick={() => onUpdateStatus(req.id, 'cancelled')}
+                          onClick={() => onUpdateStatus(req.id, 'declined')}
                           className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors"
                         >
                           Decline
@@ -203,15 +191,6 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                     )}
 
                     {req.status === 'accepted' && (
-                      <button
-                        onClick={() => onUpdateStatus(req.id, 'en_route')}
-                        className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors"
-                      >
-                        Mark En Route
-                      </button>
-                    )}
-
-                    {req.status === 'en_route' && (
                       <button
                         onClick={() => onUpdateStatus(req.id, 'in_progress')}
                         className="rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 transition-colors"
@@ -225,7 +204,7 @@ export const RequestsManager: React.FC<RequestsManagerProps> = ({
                         onClick={() => onUpdateStatus(req.id, 'completed')}
                         className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
                       >
-                        Complete Job & Collect ₹{req.priceEstimate}
+                          Complete Job
                       </button>
                     )}
 

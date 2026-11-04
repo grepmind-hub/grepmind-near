@@ -161,6 +161,10 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to activate merchant access.")
 		return
 	}
+	if _, err = tx.ExecContext(r.Context(), `INSERT INTO business_members(business_id,user_id,role,status) VALUES($1,$2,'owner','active')`, businessID, userID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to link the owner to the new business.")
+		return
+	}
 	for _, hour := range req.Hours {
 		var opensAt, closesAt interface{}
 		if hour.OpensAt != nil && *hour.OpensAt != "" {
@@ -173,6 +177,13 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to save operating hours.")
 			return
 		}
+	}
+	if _, err = tx.ExecContext(r.Context(), `
+		INSERT INTO audit_logs(actor_user_id,action,target_type,target_id,reason,created_at)
+		VALUES($1,'create_business','business',$2,'New listing submitted through merchant onboarding',now())
+	`, userID, businessID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to record listing activity.")
+		return
 	}
 	if err = tx.Commit(); err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to complete business registration.")
