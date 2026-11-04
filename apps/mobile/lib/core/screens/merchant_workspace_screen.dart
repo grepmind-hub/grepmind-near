@@ -32,6 +32,7 @@ class _MerchantWorkspaceScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(merchantProvider.notifier).loadRequests();
       ref.read(merchantProfileProvider('').notifier).load();
+      ref.read(merchantAnalyticsProvider.notifier).load();
     });
   }
 
@@ -45,6 +46,7 @@ class _MerchantWorkspaceScreenState
   Widget build(BuildContext context) {
     final merchantState = ref.watch(merchantProvider);
     final profileState = ref.watch(merchantProfileProvider(''));
+    final analyticsState = ref.watch(merchantAnalyticsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -64,6 +66,7 @@ class _MerchantWorkspaceScreenState
             onPressed: () {
               ref.read(merchantProvider.notifier).loadRequests();
               ref.read(merchantProfileProvider('').notifier).load();
+              ref.read(merchantAnalyticsProvider.notifier).load();
             },
             tooltip: 'Refresh',
           ),
@@ -72,7 +75,7 @@ class _MerchantWorkspaceScreenState
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildDashboardTab(merchantState),
+          _buildDashboardTab(merchantState, analyticsState),
           _buildRequestsTab(merchantState),
           _buildProfileTab(profileState),
         ],
@@ -80,7 +83,10 @@ class _MerchantWorkspaceScreenState
     );
   }
 
-  Widget _buildDashboardTab(MerchantRequestState state) {
+  Widget _buildDashboardTab(
+    MerchantRequestState state,
+    MerchantAnalyticsState analytics,
+  ) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -191,6 +197,53 @@ class _MerchantWorkspaceScreenState
               ),
             ],
           ),
+          const SizedBox(height: 20),
+
+          _sectionTitle('Customer views · Last 30 days'),
+          Row(
+            children: [
+              Expanded(
+                child: _viewMetricCard(
+                  title: 'Business profile',
+                  value: analytics.isLoading
+                      ? null
+                      : analytics.error == null
+                      ? analytics.profileViews30d
+                      : null,
+                  icon: Icons.storefront_outlined,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _viewMetricCard(
+                  title: 'Product catalog',
+                  value: analytics.isLoading
+                      ? null
+                      : analytics.error == null
+                      ? analytics.productCatalogViews30d
+                      : null,
+                  icon: Icons.inventory_2_outlined,
+                  color: AppTheme.secondary,
+                ),
+              ),
+            ],
+          ),
+          if (analytics.error != null) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () =>
+                  ref.read(merchantAnalyticsProvider.notifier).load(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Views unavailable · Retry'),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Unique signed-in customer views. Repeat visits count once per day.',
+              style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            ),
+          ],
           const SizedBox(height: 20),
 
           // Quick actions
@@ -516,6 +569,54 @@ class _MerchantWorkspaceScreenState
                   builder: (_) => const MerchantHoursCoverageScreen(),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _viewMetricCard({
+    required String title,
+    required int? value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return PremiumCard(
+      padding: const EdgeInsets.all(16),
+      borderColor: color.withValues(alpha: 0.2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value?.toString() ?? '—',
+            key: Key(
+              'merchant_view_metric_${title.toLowerCase().replaceAll(' ', '_')}',
+            ),
+            style: const TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.mainText,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.secondaryText,
             ),
           ),
         ],

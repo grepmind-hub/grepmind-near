@@ -20,6 +20,7 @@ import (
 	"grepmind-near/backend/internal/businessclaims"
 	"grepmind-near/backend/internal/discovery"
 	"grepmind-near/backend/internal/media"
+	"grepmind-near/backend/internal/merchantanalytics"
 	"grepmind-near/backend/internal/moderation"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
@@ -85,6 +86,7 @@ func main() {
 func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub, opsSvc *operations.Service) *http.ServeMux {
 	mux := http.NewServeMux()
 	claimsSvc := businessclaims.NewService(authSvc.DB())
+	analyticsSvc := merchantanalytics.NewService(authSvc.DB(), authSvc.ConfigSecret())
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{"status": "ok"})
@@ -241,6 +243,60 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/customer/requests", requireAuth(authSvc, handleListCustomerRequests))
 
 	// Analytics & unserved location demand tracking (Market expansion)
+	mux.HandleFunc("POST /api/v1/analytics/businesses/{id}/views", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		var req struct {
+			ViewType string `json:"view_type"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid view event.")
+			return
+		}
+		err := analyticsSvc.RecordCustomerView(r.Context(), userID, r.PathValue("id"), req.ViewType)
+		switch {
+		case errors.Is(err, merchantanalytics.ErrInvalid):
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid view event.")
+		case errors.Is(err, merchantanalytics.ErrForbidden):
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "Only customers may record public business views.")
+		case errors.Is(err, merchantanalytics.ErrNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "Public business or catalog not found.")
+		case err != nil:
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to record business view.")
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/analytics/summary", requireAuth(authSvc, func(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		bizID, ok := merchantWorkspaceBusiness(w, r, db, userID, "view")
+		if !ok {
+			return
+		}
+		views, err := analyticsSvc.Summary(r.Context(), bizID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load merchant analytics.")
+			return
+		}
+		var profileComplete, listingApproved bool
+		var activeOffers, incomingRequests int64
+		err = db.QueryRowxContext(r.Context(), `
+			SELECT (b.name <> '' AND b.address_text <> '' AND COALESCE(b.city, '') <> ''
+			        AND COALESCE(b.phone_e164, '') <> ''),
+			       (b.status = 'approved'),
+			       (SELECT count(*) FROM offers o WHERE o.business_id = b.id AND o.status = 'published'
+			          AND o.starts_at <= now() AND o.ends_at > now()),
+			       (SELECT count(*) FROM service_requests sr WHERE sr.business_id = b.id AND sr.status = 'requested')
+			FROM businesses b WHERE b.id = $1
+		`, bizID).Scan(&profileComplete, &listingApproved, &activeOffers, &incomingRequests)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load merchant analytics.")
+			return
+		}
+		writeJSON(w, http.StatusOK, envelope{"data": map[string]interface{}{
+			"profile_complete": profileComplete, "listing_approved": listingApproved,
+			"active_offers": activeOffers, "incoming_requests": incomingRequests,
+			"total_views": views.TotalViews30D, "profile_views_30d": views.ProfileViews30D,
+			"product_catalog_views_30d": views.CatalogViews30D, "views_period_days": views.PeriodDays,
+		}, "meta": map[string]string{"request_id": "merchant-analytics-summary"}})
+	}))
 	mux.HandleFunc("POST /api/v1/analytics/unserved-location", handleRecordUnservedLocation(authSvc, authSvc.DB()))
 	mux.HandleFunc("GET /api/v1/admin/unserved-locations", requireAdmin(authSvc, func(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
 		handleListUnservedLocations(db)(w, r)

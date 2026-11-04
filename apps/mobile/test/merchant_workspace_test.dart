@@ -15,6 +15,9 @@ void main() {
         overrides: [
           merchantProvider.overrideWith((ref) => merchant),
           merchantProfileProvider('').overrideWith((ref) => profile),
+          merchantAnalyticsProvider.overrideWith(
+            (ref) => _FakeMerchantAnalyticsNotifier(),
+          ),
         ],
         child: const MaterialApp(home: MerchantWorkspaceScreen()),
       ),
@@ -36,11 +39,20 @@ void main() {
         overrides: [
           merchantProvider.overrideWith((ref) => merchant),
           merchantProfileProvider('').overrideWith((ref) => profile),
+          merchantAnalyticsProvider.overrideWith(
+            (ref) => _FakeMerchantAnalyticsNotifier(),
+          ),
         ],
         child: const MaterialApp(home: MerchantWorkspaceScreen()),
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('merchant_view_metric_business_profile')),
+      findsOneWidget,
+    );
+    expect(find.text('7'), findsOneWidget);
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
 
@@ -117,5 +129,15 @@ class _FakeMerchantProfileNotifier extends MerchantProfileNotifier {
     _profile = {..._profile, ...updates};
     state = state.copyWith(profile: _profile, isLoading: false);
     return true;
+  }
+}
+
+class _FakeMerchantAnalyticsNotifier extends MerchantAnalyticsNotifier {
+  @override
+  Future<void> load() async {
+    state = const MerchantAnalyticsState(
+      profileViews30d: 7,
+      productCatalogViews30d: 3,
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/models/customer_order.dart';
@@ -24,6 +25,7 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
 class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _profileViewRecorded = false;
 
   // Cart State for Food & Multi-Item Ordering
   final Map<String, int> _cart = {};
@@ -61,6 +63,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       ref.read(businessDetailProvider.notifier).load(widget.businessId);
       ref.read(favoritesProvider.notifier).load();
     });
+  }
+
+  Future<void> _recordView(String viewType) async {
+    if (ref.read(authProvider).user?.isCustomer != true) return;
+    try {
+      await apiClient.post(
+        '/analytics/businesses/${widget.businessId}/views',
+        data: {'view_type': viewType},
+      );
+    } catch (_) {
+      // View telemetry is best-effort and must never block discovery.
+    }
   }
 
   Future<void> _toggleFavorite(String businessId) async {
@@ -132,6 +146,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<BusinessDetailState>(businessDetailProvider, (previous, next) {
+      if (!_profileViewRecorded &&
+          next.detail?.id == widget.businessId &&
+          previous?.detail?.id != widget.businessId) {
+        _profileViewRecorded = true;
+        _recordView('profile');
+      }
+    });
     final state = ref.watch(businessDetailProvider);
     final biz = state.detail;
     if (biz == null) {
@@ -554,6 +576,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               delegate: _TabBarDelegate(
                 TabBar(
                   controller: _tabController,
+                  onTap: (index) {
+                    if (index == 1) _recordView('catalog');
+                  },
                   labelColor: AppTheme.primary,
                   unselectedLabelColor: AppTheme.secondaryText,
                   indicatorColor: AppTheme.primary,
@@ -569,6 +594,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   tabs: [
                     const Tab(text: 'About'),
                     Tab(
+                      key: const Key('business_catalog_tab'),
                       text: isFood
                           ? 'Menu & Food'
                           : (isHotel ? 'Rooms & Stays' : 'Products'),

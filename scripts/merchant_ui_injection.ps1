@@ -5,7 +5,7 @@ param(
     [string]$ApiBaseUrl = 'http://127.0.0.1:8080/api/v1',
     [string]$EmulatorApiBaseUrl = 'http://10.0.2.2:80',
     [string]$Manifest = 'ui-injection-run.json',
-    [ValidateSet('Products','Availability','Workspace')][string]$Scenario = 'Products',
+    [ValidateSet('Products','Availability','Workspace','Analytics')][string]$Scenario = 'Products',
     [switch]$SkipAppRestore
 )
 $ErrorActionPreference = 'Stop'
@@ -79,9 +79,10 @@ try {
     $target = switch ($Scenario) {
         'Availability' {'integration_test/merchant_availability_e2e_test.dart'}
         'Workspace' {'integration_test/merchant_workspace_e2e_test.dart'}
+        'Analytics' {'integration_test/merchant_views_e2e_test.dart'}
         default {'integration_test/merchant_ui_injection_test.dart'}
     }
-    $mode = if ($Scenario -eq 'Availability') {'availability'} elseif ($Scenario -eq 'Workspace') {'workspace'} elseif ($Action -eq 'Inject') {'inject'} else {'cycle'}
+    $mode = if ($Scenario -eq 'Availability') {'availability'} elseif ($Scenario -eq 'Workspace') {'workspace'} elseif ($Scenario -eq 'Analytics') {'analytics'} elseif ($Action -eq 'Inject') {'inject'} else {'cycle'}
     try {
         # Flutter driver emits informational VM-service lines on stderr. In
         # PowerShell with Stop preference they become terminating native errors
@@ -117,5 +118,6 @@ try {
 }
 if ($Action -eq 'Inject') {
     if ($Scenario -eq 'Workspace') {Write-Output 'Workspace QA requests/profile changes retained for inspection. Remove generated fixture data with this script -Action Cleanup.'}
+    elseif ($Scenario -eq 'Analytics') {Write-Output 'View analytics QA fixtures retained for inspection. Remove generated fixture data with this script -Action Cleanup.'}
     else {Write-Output 'Injected products retained for inspection. Remove only these entries with this script -Action Cleanup.'}
 }

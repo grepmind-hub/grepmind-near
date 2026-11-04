@@ -1596,7 +1596,7 @@ paths:
 
   /merchant/analytics/summary:
     get:
-      summary: Basic listing and enquiry metrics
+      summary: Merchant listing, enquiry and customer view metrics
       tags: [merchant]
       security:
         - bearerAuth: []
@@ -1621,8 +1621,46 @@ paths:
                         type: integer
                       total_views:
                         type: integer
+                        description: Combined unique profile and product catalog views over the last 30 UTC dates.
+                      profile_views_30d:
+                        type: integer
+                      product_catalog_views_30d:
+                        type: integer
+                      views_period_days:
+                        type: integer
+                        enum: [30]
                   meta:
                     $ref: '#/components/schemas/Meta'
+
+  /analytics/businesses/{id}/views:
+    post:
+      summary: Record a signed-in customer's business profile or product catalog view
+      description: Counts a customer once per business, view type and UTC date. Viewer identity is stored as a keyed pseudonymous fingerprint and is never returned to merchants.
+      tags: [discovery]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [view_type]
+              properties:
+                view_type:
+                  type: string
+                  enum: [profile, catalog]
+      responses:
+        '204': {description: View recorded or already counted for this customer today}
+        '400': {description: Invalid view event}
+        '401': {description: Authentication required}
+        '403': {description: A customer account is required; own business views are excluded}
+        '404': {description: Public business or product catalog not found}
 
   # ---------------------------------------------------------------
   # Customer service requests

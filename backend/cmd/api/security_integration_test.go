@@ -15,6 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/discovery"
+	"grepmind-near/backend/internal/merchantanalytics"
 	"grepmind-near/backend/internal/moderation"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
@@ -80,6 +81,54 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 		return w
 	}
 	var w *httptest.ResponseRecorder
+
+	// View metrics count authenticated customer interest once per UTC day and
+	// remain isolated to the merchant's own business.
+	analyticsProductID := uuid.NewString()
+	if _, err := db.Exec(`INSERT INTO products(id,business_id,name,stock_status,is_published) VALUES($1,$2,'Published analytics product','in_stock',true)`, analyticsProductID, businessA); err != nil {
+		t.Fatal(err)
+	}
+	viewPath := "/api/v1/analytics/businesses/" + businessA + "/views"
+	if w = request(http.MethodPost, viewPath, "", `{"view_type":"profile"}`); w.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous view status=%d, want 401", w.Code)
+	}
+	for _, viewType := range []string{merchantanalytics.ViewProfile, merchantanalytics.ViewProfile, merchantanalytics.ViewCatalog, merchantanalytics.ViewCatalog} {
+		w = request(http.MethodPost, viewPath, token(customerA), `{"view_type":"`+viewType+`"}`)
+		if w.Code != http.StatusNoContent {
+			t.Fatalf("customer %s view status=%d body=%s", viewType, w.Code, w.Body.String())
+		}
+	}
+	if w = request(http.MethodPost, "/api/v1/analytics/businesses/"+businessB+"/views", token(customerA), `{"view_type":"catalog"}`); w.Code != http.StatusNotFound {
+		t.Fatalf("empty catalog view status=%d, want 404", w.Code)
+	}
+	if w = request(http.MethodPost, viewPath, token(ownerA), `{"view_type":"profile"}`); w.Code != http.StatusForbidden {
+		t.Fatalf("merchant view status=%d, want 403", w.Code)
+	}
+	if w = request(http.MethodPost, "/api/v1/analytics/businesses/"+businessB+"/views", token(customerB), `{"view_type":"profile"}`); w.Code != http.StatusForbidden {
+		t.Fatalf("own business view status=%d, want 403", w.Code)
+	}
+	if w = request(http.MethodPost, viewPath, token(customerA), `{"view_type":"invalid"}`); w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid view type status=%d, want 400", w.Code)
+	}
+	if w = request(http.MethodGet, "/api/v1/merchant/analytics/summary?business_id="+businessB, token(memberA), ""); w.Code != http.StatusForbidden {
+		t.Fatalf("cross-business view analytics status=%d, want 403", w.Code)
+	}
+	w = request(http.MethodGet, "/api/v1/merchant/analytics/summary?business_id="+businessA, token(ownerA), "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("merchant analytics summary status=%d body=%s", w.Code, w.Body.String())
+	}
+	var analyticsResponse struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &analyticsResponse); err != nil {
+		t.Fatal(err)
+	}
+	if analyticsResponse.Data["profile_views_30d"] != float64(1) || analyticsResponse.Data["product_catalog_views_30d"] != float64(1) {
+		t.Fatalf("daily dedupe/summary failed: %s", w.Body.String())
+	}
+	if _, err := db.Exec(`DELETE FROM products WHERE id=$1`, analyticsProductID); err != nil {
+		t.Fatal(err)
+	}
 
 	// Merchant access resolves businesses from the authenticated owner/member
 	// relationship and rejects explicit cross-business IDs.
@@ -694,6 +743,7 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 		`CREATE TABLE categories(slug TEXT PRIMARY KEY, name TEXT NOT NULL, is_active BOOLEAN NOT NULL DEFAULT true)`,
 		`CREATE TABLE audit_logs(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), actor_user_id UUID, action TEXT NOT NULL, target_type TEXT NOT NULL, target_id UUID NOT NULL, reason TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE businesses(id UUID PRIMARY KEY, owner_user_id UUID NOT NULL, name TEXT NOT NULL, slug TEXT, description TEXT, category_slug TEXT NOT NULL, address_text TEXT NOT NULL, locality TEXT, city TEXT, postal_code TEXT, phone_e164 TEXT, whatsapp_e164 TEXT, cover_photo_url TEXT, location GEOGRAPHY(POINT,4326), status TEXT NOT NULL, verification_status TEXT NOT NULL, time_zone TEXT NOT NULL DEFAULT 'Asia/Kolkata', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+		`CREATE TABLE merchant_view_events(business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE, view_type TEXT NOT NULL CHECK(view_type IN ('profile','catalog')), view_date DATE NOT NULL, viewer_fingerprint BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(business_id,view_type,view_date,viewer_fingerprint))`,
 		`CREATE TABLE business_members(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, user_id UUID NOT NULL, role TEXT NOT NULL DEFAULT 'staff', status TEXT NOT NULL)`,
 		`CREATE TABLE business_hours(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, weekday SMALLINT NOT NULL, opens_at TIME, closes_at TIME, is_closed BOOLEAN NOT NULL, UNIQUE(business_id,weekday))`,
 		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), published_at TIMESTAMPTZ)`,
@@ -722,6 +772,9 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 	_, _ = raw.Exec(`INSERT INTO categories(slug,name) VALUES('general','General')`)
 	_, err = raw.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'merchant')`, ownerA)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'customer'),($2,'customer')`, customerA, customerB); err != nil {
 		t.Fatal(err)
 	}
 	_, err = raw.Exec(`INSERT INTO businesses(id,owner_user_id,name,slug,description,category_slug,address_text,city,phone_e164,cover_photo_url,location,status,verification_status) VALUES($1,$2,'A','business-a','Test business','general','A','Cuttack','+919876543210','https://assets.example/storefront.jpg',ST_SetSRID(ST_MakePoint(85.9,20.5),4326)::geography,'approved','verified'),($3,$4,'B','business-b','Test business','general','B','Jajpur','+919876543211',NULL,ST_SetSRID(ST_MakePoint(86.3,20.8),4326)::geography,'approved','verified')`, businessA, ownerA, businessB, customerB)

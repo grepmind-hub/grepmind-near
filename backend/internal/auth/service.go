@@ -65,7 +65,12 @@ func NewServiceWithOTPProvider(db *database.DB, cfg *config.Config, provider OTP
 }
 
 // ConfigSecret returns the JWT secret for middleware use.
-func (s *Service) ConfigSecret() string { return s.cfg.JWTSecret }
+func (s *Service) ConfigSecret() string {
+	if s == nil || s.cfg == nil {
+		return ""
+	}
+	return s.cfg.JWTSecret
+}
 
 // DB returns the underlying database connection.
 func (s *Service) DB() *database.DB { return s.db }

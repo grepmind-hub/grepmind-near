@@ -161,9 +161,9 @@ function Invoke-WslFlutter {
 switch ($Action) {
     'Status' {
         try { $state = Get-EmulatorState }
-        catch { $state = "ADB unavailable — $($_.Exception.Message)" }
+        catch { $state = "ADB unavailable - $($_.Exception.Message)" }
         Write-Host "Repository: $repoRoot"
-        Write-Host "AVD: $AvdName ($DeviceId) — $state"
+        Write-Host "AVD: $AvdName ($DeviceId) - $state"
         Write-Host "Windows ADB: $adb (server port $AdbServerPort)"
         Write-Host "WSL Flutter: $WslFlutter"
         Write-Host "API base URL: $ApiBaseUrl"

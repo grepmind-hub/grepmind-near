@@ -894,6 +894,60 @@ class MerchantProfileNotifier extends StateNotifier<MerchantProfileState> {
   }
 }
 
+class MerchantAnalyticsState {
+  final int profileViews30d;
+  final int productCatalogViews30d;
+  final bool isLoading;
+  final String? error;
+
+  const MerchantAnalyticsState({
+    this.profileViews30d = 0,
+    this.productCatalogViews30d = 0,
+    this.isLoading = false,
+    this.error,
+  });
+
+  MerchantAnalyticsState copyWith({
+    int? profileViews30d,
+    int? productCatalogViews30d,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) => MerchantAnalyticsState(
+    profileViews30d: profileViews30d ?? this.profileViews30d,
+    productCatalogViews30d:
+        productCatalogViews30d ?? this.productCatalogViews30d,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
+}
+
+final merchantAnalyticsProvider =
+    StateNotifierProvider<MerchantAnalyticsNotifier, MerchantAnalyticsState>(
+      (ref) => MerchantAnalyticsNotifier(),
+    );
+
+class MerchantAnalyticsNotifier extends StateNotifier<MerchantAnalyticsState> {
+  MerchantAnalyticsNotifier() : super(const MerchantAnalyticsState());
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final response = await apiClient.get('/merchant/analytics/summary');
+      final data =
+          (response.data as Map<String, dynamic>)['data']
+              as Map<String, dynamic>;
+      state = MerchantAnalyticsState(
+        profileViews30d: (data['profile_views_30d'] as num?)?.toInt() ?? 0,
+        productCatalogViews30d:
+            (data['product_catalog_views_30d'] as num?)?.toInt() ?? 0,
+      );
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: error.toString());
+    }
+  }
+}
+
 /// Merchant catalog state.
 class MerchantCatalogState {
   final List<Product> products;

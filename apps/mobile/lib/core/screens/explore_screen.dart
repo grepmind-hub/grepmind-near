@@ -324,580 +324,636 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Explore is a task-focused search surface; Home owns promotional discovery.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                kScreenPadding,
-                10,
-                kScreenPadding,
-                8,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Explore',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        InkWell(
-                          onTap: _showLocationModal,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.location_on_rounded,
-                                  color: AppTheme.secondary,
-                                  size: 17,
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    appLocation.displayName.isEmpty
-                                        ? 'Choose Cuttack or Jajpur'
-                                        : appLocation.displayName,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: AppTheme.secondaryText,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  color: AppTheme.secondaryText,
-                                  size: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: 'Nearby map',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NearbyMapScreen(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.map_outlined),
-                  ),
-                ],
-              ),
-            ),
-
-            // Screen 7 Search Bar with QR scanner icon
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE4E7EC)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  onSubmitted: (_) => _search(),
-                  decoration: InputDecoration(
-                    hintText: 'Search shops, services, products...',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF9AA5B1),
-                      fontSize: 14,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF9AA5B1),
-                      size: 22,
-                    ),
-                    suffixIcon: _isSearching
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.clear_rounded,
-                              color: Color(0xFF9AA5B1),
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _isSearching = false);
-                              _onFiltersChanged();
-                            },
-                          )
-                        : IconButton(
-                            tooltip: 'Search',
-                            icon: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: AppTheme.primary,
-                              size: 20,
-                            ),
-                            onPressed: _search,
-                          ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: const Text('Open now'),
-                    avatar: const Icon(Icons.schedule_rounded, size: 17),
-                    selected: _isOpenNow,
-                    onSelected: (selected) {
-                      setState(() => _isOpenNow = selected);
-                      _onFiltersChanged();
-                    },
-                    showCheckmark: false,
-                    materialTapTargetSize: MaterialTapTargetSize.padded,
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NearbyMapScreen(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.map_outlined, size: 18),
-                    label: const Text('Map'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(88, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${state.items.length} results',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Screen 7 Circular Category Buttons Row Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Categories',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.mainText,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CategoriesScreen(),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Text(
-                        'View All',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Screen 7 Circular Category Buttons Row
-            SizedBox(
-              height: 92,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-                itemCount: categoryState.isLoading
-                    ? 6
-                    : categoryItems.length + 2,
-                separatorBuilder: (_, _) => const SizedBox(width: 4),
-                itemBuilder: (_, i) {
-                  if (categoryState.isLoading) {
-                    return const SizedBox(
-                      width: 68,
-                      child: SkeletonLoader(height: 68, radius: 34),
-                    );
-                  }
-                  final isAll = i == 0;
-                  final isMore = i == categoryItems.length + 1;
-                  final category = isAll || isMore
-                      ? null
-                      : categoryItems[i - 1];
-                  final slug = isAll
-                      ? 'all'
-                      : (isMore ? 'more' : category!.slug);
-                  final isSel = _selectedCategory == slug;
-                  return CategoryCircleItem(
-                    label: isAll ? 'All' : (isMore ? 'More' : category!.name),
-                    icon: isAll
-                        ? Icons.apps_rounded
-                        : (isMore
-                              ? Icons.grid_view_rounded
-                              : CategoriesScreen.getCategoryIcon(
-                                  category!.slug,
-                                )),
-                    backgroundColor: isAll
-                        ? const Color(0xFFEEF2FF)
-                        : (isMore
-                              ? const Color(0xFFEDE9FE)
-                              : CategoriesScreen.getCategoryColor(
-                                  category!.slug,
-                                ).withOpacity(0.13)),
-                    iconColor: isAll
-                        ? const Color(0xFF4F46E5)
-                        : (isMore
-                              ? const Color(0xFF7C3AED)
-                              : CategoriesScreen.getCategoryColor(
-                                  category!.slug,
-                                )),
-                    isSelected: isSel,
-                    onTap: () {
-                      if (isMore) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CategoriesScreen(),
-                          ),
-                        );
-                      } else {
-                        setState(() => _selectedCategory = slug);
-                        _onFiltersChanged();
-                      }
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Search results are the main Explore content, distinct from Home's feed.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _isSearching ? 'Search results' : 'Nearby Shops & Services',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.mainText,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SearchResultsScreen(),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Text(
-                        'View All',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            if (recentBusinesses.isLoading ||
-                (recentBusinesses.valueOrNull?.isNotEmpty ?? false)) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  kScreenPadding,
-                  0,
-                  kScreenPadding,
-                  8,
-                ),
-                child: Row(
+        child: RefreshIndicator(
+          onRefresh: () async => _onFiltersChanged(),
+          child: CustomScrollView(
+            key: const Key('explore_screen_scroll_view'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Recently added',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          Text(
-                            'Newly approved businesses in ${appLocation.cityName}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppTheme.secondaryText),
-                          ),
-                        ],
+                    // Explore is a task-focused search surface; Home owns promotional discovery.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        kScreenPadding,
+                        10,
+                        kScreenPadding,
+                        8,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 114,
-                child: recentBusinesses.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  error: (_, _) => const SizedBox.shrink(),
-                  data: (items) => ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: kScreenPadding,
-                    ),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final business = items[index];
-                      return SizedBox(
-                        width: 270,
-                        child: Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BusinessDetailScreen(
-                                  businessId: business.id,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Explore',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(9),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: SizedBox(
-                                      width: 86,
-                                      height: 86,
-                                      child:
-                                          business.coverPhotoUrl?.isNotEmpty ==
-                                              true
-                                          ? Image.network(
-                                              business.coverPhotoUrl!,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) =>
-                                                  const _RecentBusinessPlaceholder(),
-                                            )
-                                          : const _RecentBusinessPlaceholder(),
+                                InkWell(
+                                  onTap: _showLocationModal,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2,
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryContainer,
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'NEW LISTING',
-                                            style: TextStyle(
-                                              color: AppTheme.primary,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w800,
-                                            ),
+                                        const Icon(
+                                          Icons.location_on_rounded,
+                                          color: AppTheme.secondary,
+                                          size: 17,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            appLocation.displayName.isEmpty
+                                                ? 'Choose Cuttack or Jajpur'
+                                                : appLocation.displayName,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelLarge
+                                                ?.copyWith(
+                                                  color: AppTheme.secondaryText,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          business.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                        ),
-                                        Text(
-                                          '${business.categoryName ?? business.categorySlug} · ${business.locality ?? business.city ?? ''}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: AppTheme.secondaryText,
-                                              ),
+                                        const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: AppTheme.secondaryText,
+                                          size: 18,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppTheme.secondaryText,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            tooltip: 'Nearby map',
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NearbyMapScreen(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.map_outlined),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Screen 7 Search Bar with QR scanner icon
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE4E7EC)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
+                          onSubmitted: (_) => _search(),
+                          decoration: InputDecoration(
+                            hintText: 'Search shops, services, products...',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9AA5B1),
+                              fontSize: 14,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF9AA5B1),
+                              size: 22,
+                            ),
+                            suffixIcon: _isSearching
+                                ? IconButton(
+                                    icon: const Icon(
+                                      Icons.clear_rounded,
+                                      color: Color(0xFF9AA5B1),
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _isSearching = false);
+                                      _onFiltersChanged();
+                                    },
+                                  )
+                                : IconButton(
+                                    tooltip: 'Search',
+                                    icon: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: AppTheme.primary,
+                                      size: 20,
+                                    ),
+                                    onPressed: _search,
+                                  ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          FilterChip(
+                            label: const Text('Open now'),
+                            avatar: const Icon(
+                              Icons.schedule_rounded,
+                              size: 17,
+                            ),
+                            selected: _isOpenNow,
+                            onSelected: (selected) {
+                              setState(() => _isOpenNow = selected);
+                              _onFiltersChanged();
+                            },
+                            showCheckmark: false,
+                            materialTapTargetSize: MaterialTapTargetSize.padded,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NearbyMapScreen(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.map_outlined, size: 18),
+                            label: const Text('Map'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(88, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${state.items.length} results',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Screen 7 Circular Category Buttons Row Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Categories',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CategoriesScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              child: Text(
+                                'View All',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Screen 7 Circular Category Buttons Row
+                    SizedBox(
+                      height: 92,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: kScreenPadding,
+                        ),
+                        itemCount: categoryState.isLoading
+                            ? 6
+                            : categoryItems.length + 2,
+                        separatorBuilder: (_, _) => const SizedBox(width: 4),
+                        itemBuilder: (_, i) {
+                          if (categoryState.isLoading) {
+                            return const SizedBox(
+                              width: 68,
+                              child: SkeletonLoader(height: 68, radius: 34),
+                            );
+                          }
+                          final isAll = i == 0;
+                          final isMore = i == categoryItems.length + 1;
+                          final category = isAll || isMore
+                              ? null
+                              : categoryItems[i - 1];
+                          final slug = isAll
+                              ? 'all'
+                              : (isMore ? 'more' : category!.slug);
+                          final isSel = _selectedCategory == slug;
+                          return CategoryCircleItem(
+                            label: isAll
+                                ? 'All'
+                                : (isMore ? 'More' : category!.name),
+                            icon: isAll
+                                ? Icons.apps_rounded
+                                : (isMore
+                                      ? Icons.grid_view_rounded
+                                      : CategoriesScreen.getCategoryIcon(
+                                          category!.slug,
+                                        )),
+                            backgroundColor: isAll
+                                ? const Color(0xFFEEF2FF)
+                                : (isMore
+                                      ? const Color(0xFFEDE9FE)
+                                      : CategoriesScreen.getCategoryColor(
+                                          category!.slug,
+                                        ).withOpacity(0.13)),
+                            iconColor: isAll
+                                ? const Color(0xFF4F46E5)
+                                : (isMore
+                                      ? const Color(0xFF7C3AED)
+                                      : CategoriesScreen.getCategoryColor(
+                                          category!.slug,
+                                        )),
+                            isSelected: isSel,
+                            onTap: () {
+                              if (isMore) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CategoriesScreen(),
+                                  ),
+                                );
+                              } else {
+                                setState(() => _selectedCategory = slug);
+                                _onFiltersChanged();
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Search results are the main Explore content, distinct from Home's feed.
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _isSearching
+                                ? 'Search results'
+                                : 'Nearby Shops & Services',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.mainText,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SearchResultsScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              child: Text(
+                                'View All',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (recentBusinesses.isLoading ||
+                        (recentBusinesses.valueOrNull?.isNotEmpty ??
+                            false)) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          kScreenPadding,
+                          0,
+                          kScreenPadding,
+                          8,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Recently added',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                  Text(
+                                    'Newly approved businesses in ${appLocation.cityName}',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.secondaryText,
+                                        ),
                                   ),
                                 ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 114,
+                        child: recentBusinesses.when(
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          error: (_, _) => const SizedBox.shrink(),
+                          data: (items) => ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: kScreenPadding,
+                            ),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final business = items[index];
+                              return SizedBox(
+                                width: 270,
+                                child: Material(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => BusinessDetailScreen(
+                                          businessId: business.id,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(9),
+                                      child: Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: SizedBox(
+                                              width: 86,
+                                              height: 86,
+                                              child:
+                                                  business
+                                                          .coverPhotoUrl
+                                                          ?.isNotEmpty ==
+                                                      true
+                                                  ? Image.network(
+                                                      business.coverPhotoUrl!,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, _, _) =>
+                                                          const _RecentBusinessPlaceholder(),
+                                                    )
+                                                  : const _RecentBusinessPlaceholder(),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppTheme
+                                                        .primaryContainer,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                  ),
+                                                  child: const Text(
+                                                    'NEW LISTING',
+                                                    style: TextStyle(
+                                                      color: AppTheme.primary,
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 5),
+                                                Text(
+                                                  business.name,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleSmall
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                ),
+                                                Text(
+                                                  '${business.categoryName ?? business.categorySlug} · ${business.locality ?? business.city ?? ''}',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: AppTheme
+                                                            .secondaryText,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                            color: AppTheme.secondaryText,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Business list follows the same vertical scroll as the header
+              // and recent listings, keeping a usable viewport on short screens.
+              if (state.isLoading && state.items.isEmpty)
+                _buildSkeletonSliver()
+              else if (state.error != null && state.items.isEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 280,
+                    child: _buildEmpty(
+                      'Unable to load nearby businesses. Please check your connection and try again.',
+                    ),
+                  ),
+                )
+              else if (state.items.isEmpty)
+                SliverToBoxAdapter(
+                  child: _buildUnservedOrEmptyState(appLocation),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    kScreenPadding,
+                    0,
+                    kScreenPadding,
+                    32,
+                  ),
+                  sliver: SliverList.separated(
+                    itemCount: state.items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) {
+                      final b = state.items[i];
+                      return BusinessCard(
+                        business: b,
+                        onTap: () {
+                          final serviceCategories = [
+                            'electrician',
+                            'plumber',
+                            'carpenter',
+                            'tailor',
+                          ];
+                          if (serviceCategories.contains(b.categorySlug) ||
+                              b.acceptsRequests) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ServiceProScreen(business: b),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    BusinessDetailScreen(businessId: b.id),
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
             ],
-
-            // Business list.
-            Expanded(
-              child: state.isLoading && state.items.isEmpty
-                  ? _buildSkeletonList()
-                  : state.error != null && state.items.isEmpty
-                  ? _buildEmpty(
-                      'Unable to load nearby businesses. Please check your connection and try again.',
-                    )
-                  : state.items.isEmpty
-                  ? _buildUnservedOrEmptyState(appLocation)
-                  : RefreshIndicator(
-                      onRefresh: () async {
-                        _onFiltersChanged();
-                      },
-                      child: SafeArea(
-                        top: false,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(
-                            kScreenPadding,
-                            0,
-                            kScreenPadding,
-                            32,
-                          ),
-                          itemCount: state.items.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (_, i) {
-                            final b = state.items[i];
-                            return BusinessCard(
-                              business: b,
-                              onTap: () {
-                                final serviceCategories = [
-                                  'electrician',
-                                  'plumber',
-                                  'carpenter',
-                                  'tailor',
-                                ];
-                                if (serviceCategories.contains(
-                                      b.categorySlug,
-                                    ) ||
-                                    b.acceptsRequests) {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          ServiceProScreen(business: b),
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => BusinessDetailScreen(
-                                        businessId: b.id,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSkeletonList() {
-    return ListView.builder(
+  Widget _buildSkeletonSliver() {
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: kScreenPadding),
-      itemCount: 6,
-      itemBuilder: (_, i) => const PremiumCard(
-        padding: EdgeInsets.all(14),
-        margin: EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SkeletonLoader(width: 72, height: 72, radius: 10),
-            SizedBox(height: 12),
-            SkeletonLine(),
-            SizedBox(height: 10),
-            SkeletonLoader(width: 120, height: 14, radius: 7),
-            SizedBox(height: 6),
-            SkeletonLoader(width: 80, height: 14, radius: 7),
-          ],
+      sliver: SliverList.builder(
+        itemCount: 6,
+        itemBuilder: (_, i) => const PremiumCard(
+          padding: EdgeInsets.all(14),
+          margin: EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonLoader(width: 72, height: 72, radius: 10),
+              SizedBox(height: 12),
+              SkeletonLine(),
+              SizedBox(height: 10),
+              SkeletonLoader(width: 120, height: 14, radius: 7),
+              SizedBox(height: 6),
+              SkeletonLoader(width: 80, height: 14, radius: 7),
+            ],
+          ),
         ),
       ),
     );
