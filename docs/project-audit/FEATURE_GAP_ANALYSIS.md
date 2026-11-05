@@ -1,67 +1,64 @@
-# Feature Gap Analysis
+# Grepmind Near — Current Feature Gap Analysis
 
-Audit date: 3 November 2026. This report reflects the current source tree, not the historic milestone language.
+Audit date: 5 November 2026. This report supersedes the 3 November baseline where current code or executed checks show that work has since landed. It records production risks, not merely missing UI.
 
-## Release blockers (P0)
+## P0 — Public-launch blockers
 
-1. **Production authentication is unavailable.** `backend/internal/auth/handlers.go` intentionally returns 503 outside local mode because no SMS adapter exists. Local OTP is echoed in the response. A supported SMS OTP provider, delivery monitoring, abuse controls and verified production configuration are launch prerequisites.
-2. **JWT/session revocation is incomplete.** Access tokens are stateless and not checked against session state. Logout attempts to revoke by hashing the access token even though stored session hashes represent refresh tokens. Refresh token hash storage uses bcrypt output as a lookup key, which is nondeterministic and unsuitable for exact indexed equality. Rotation/reuse handling needs a secure design and tests.
-3. **Merchant registration and claim do not persist.** The mobile form deliberately reports submission unavailable; claim UI sets local success state. The merchant desktop's New Store modal also mutates in-memory state. No reliable merchant onboarding journey can create/claim a real listing and enter KYC review.
-4. **Merchant workspace is still mock-backed.** `apps/merchant-web/app/page.tsx` imports `INITIAL_BUSINESSES`, requests, products, services, hours and team. Browser local storage is not authoritative tenant isolation. The real API must be the source for IDs, memberships, updates and branch selection.
-5. **Billing is absent.** No merchant registration fee, plan, subscription, payment attempt, webhook, renewal, invoice, reminder or admin billing endpoint/table/UI exists.
-6. **Android release configuration is development-only.** `apps/mobile/android/app/build.gradle.kts` release uses debug signing. `AndroidManifest.xml` contains `YOUR_GOOGLE_MAPS_API_KEY_HERE`; app label/application ID remain development values. No Crashlytics/Sentry integration was found.
-7. **Privacy/account deletion is incomplete.** Profile has privacy/delete-style UI but no matching account deletion API. Customer location, phone, requests, uploads and analytics retention/deletion rules need product and legal review.
-8. **No full production migration process.** Compose's init directory does not migrate existing persistent DBs. Migration tracking, deployment ordering, backups, rollback/forward-fix policy and restore drills are absent.
-
-## High-impact partial features
-
-| Gap | Evidence | Required outcome |
+| Gap | Current evidence | Risk and required outcome |
 |---|---|---|
-| Availability management | Slots exist and customer booking increments them; merchant endpoints to create/update/close slots are absent | Merchant can publish availability; API validates timezone, overlap, ownership and capacity; tests race concurrent booking. |
-| Table reservations | Reservation date and guest count persist; no table capacity or time-slot inventory | Define business-configured reservation windows/capacity, prevent overbooking, merchant accept/decline workflow. |
-| Hotel bookings | Room product price is persisted and total calculated; no room inventory, date-overlap or booking state lifecycle | Add room inventory/availability constraints and merchant confirmation/refund policy before representing “confirmed.” |
-| Food fulfillment | Order rows and merchant status API exist; no payment collection, courier assignment, address geocoding, FCM or stock reservation | Keep payment state explicit; define acceptance/out-of-stock/cancellation; show tracking only with actual provider data. |
-| Customer service timeline | `service_request_events` added/backfilled, but GET response does not return events and merchant updates have limited event coverage | Return event timeline, insert every transition transactionally, avoid fabricated stage times. |
-| Reviews | No review schema/API found; UI now shows no ratings/reviews when absent | Verified completed-request review flow, moderation/reporting, aggregate calculation, anti-abuse limits. |
-| Offers | Backend offer moderation exists; merchant API/desktop authoring and audience rules are partial | Add merchant offer CRUD, validation and published display lifecycle. |
-| Admin analytics | Backend offers aggregate counts; no full reporting endpoints; admin chart constants empty | Use bounded DB queries, city/category filters, clear period/timezone and unavailable state on failure. |
-| Notifications | SSE and DB notification records exist; native FCM absent; request/customer scoping and reconnect/mobile background behavior need tests | Use FCM for background mobile notifications; keep SSE for active web; prove authorization per user/business. |
-| Error observability | API handlers sometimes leak raw DB error details; frontend fallbacks can suppress errors | Structured logs with request IDs, redaction, safe client errors, health/readiness/metrics, crash reporting. |
-| City/location accuracy | Cuttack/Jajpur filters and radius tests exist; no municipality boundary dataset/proof; map API key absent | Clarify city selection vs administrative boundary; validate GPS permission UX, geocoding and no-location paths on device. |
-| Web session security | Merchant and admin bearer tokens are stored in `localStorage` | Evaluate secure HttpOnly same-site cookie/BFF or document threat tradeoff; add CSP and XSS controls. |
-| Role model | General user roles plus business membership; web local session can diverge from backend authority | Require backend membership for every tenant call; test owner/manager/staff permissions endpoint by endpoint. |
+| Production OTP delivery | Auth has a provider interface, local stub and OTP request/verify throttles; no production SMS adapter or credentials/configuration are selected. Non-local config fails closed. | Customers and merchants cannot authenticate in production. Select a compliant SMS provider, implement delivery/receipt/error handling, verify abuse controls across multiple API instances, and validate staging without exposing OTPs. |
+| Database migration operations | `backend/migrations/001`–`016` exist; Compose only mounts files into `/docker-entrypoint-initdb.d`. No migration ledger/runner or rollout verification exists. | Existing-volume deployments silently miss new schema. Add an ordered, checksummed runner and a fresh/existing database upgrade test; preserve migration history and specifically review migration 010. |
+| Backups and restore | No backup/restore script, scheduled job, Compose service, or restore evidence found. A named PostgreSQL volume is not a backup. | Data loss can be permanent. Define retention/encryption/offsite policy, automated backups, monitoring, and a tested restore runbook before real users. External cloud backup status requires operator confirmation. |
+| Android release configuration and privacy | Release variant uses debug signing; Maps key is a placeholder. Profile explicitly says account deletion is unavailable. No complete Play Data Safety / retention evidence is in code. | App cannot ship as a production release and fails important trust/compliance readiness. Configure protected release signing, restrict Maps key, provide deletion/retention workflows and accurate disclosures with professional policy review. |
+| Authenticated cross-platform E2E | Go and Flutter unit coverage is substantial; Admin E2E's authenticated case requires `E2E_ADMIN_PHONE_E164`; Merchant E2E covers only entry/unauthenticated access. Local browser run failed before assertions because Chromium is absent. | Most customer/merchant/admin operations are not regression-protected through the same UI and live API. Provide a dedicated disposable E2E environment, browser install, dynamic OTP fixtures, and deterministic cleanup. |
 
-## Security and privacy gaps
+## P1 — High-impact product and reliability gaps
 
-- **Rate limiting:** configuration exposes `RATE_LIMIT_AUTH`/`RATE_LIMIT_API`, but no HTTP rate-limiter middleware was found. OTP has per-phone resend/attempt checks, not robust per-IP/device throttling, concurrency-safe attempt updates, bot controls or carrier abuse detection.
-- **OTP concurrency:** OTP attempt increment and verification marking are separate ignored-error updates. Concurrent verification can race; request should atomically lock/increment/consume and use constant, generic errors.
-- **JWT:** enforce algorithm, issuer, subject, `iat`/`exp` and bounded clocks; production secret must be mandatory/strong. Access revocation should use short TTL or session version/denylist. Refresh tokens should be opaque random secrets stored as SHA-256/HMAC digest, rotated transactionally, and reuse detected.
-- **Authorization:** many merchant handlers resolve only the primary owner via `businesses.owner_user_id`; ensure member role rules are consistently enforced. Audit object-level checks for every path and body business ID. Keep root superadmin protection, then test it at API level rather than only UI.
-- **Sensitive errors/logs:** inspect `backend/cmd/api/main.go` for responses embedding `err.Error()` and remove SQL/error details from external responses. Avoid phone, OTP, tokens and precise location in logs.
-- **Storage:** local migration/service historically creates a public bucket policy. Verify current local-only guard and production provider configuration; production KYC/media should be private by default with short-lived presigned URLs and retention controls. No malware/content scanning or image re-encoding was verified.
-- **Transport/config:** local Compose uses HTTP and insecure defaults; staging Compose uses HTTP MinIO, `sslmode=disable`, ports exposed and empty-env interpolation. Production TLS termination, secure headers, secret manager, network ACLs and restricted admin endpoints are not present in repository evidence.
-- **SSE:** verify stream filtering for customer `request_id`, business membership for merchant streams, connection limits, backpressure and token expiry. The test broadcast endpoint should be disabled outside local/test.
-- **Database:** backups/restore not documented/automated; use least-privilege DB roles, production TLS, encrypted backups, retention and restore drills. No evidence of PITR.
-- **Mobile:** secure storage dependency is present; verify access and refresh tokens are only stored there. Debug logging and release obfuscation/crash capture need review. No signing secret should be in repo.
-- **Compliance:** determine personal-data roles, lawful purposes, notices, consent, retention, user rights and grievance process under applicable Indian data protection law with qualified counsel. The app's location, phone, merchant KYC and booking data raise material privacy obligations. Confirm current effective rules and implementation obligations before release; this audit is not a legal determination.
+### Order and reservation operations
 
-## Engineering debt
+- Customer food ordering and order history/cancel are persisted, and the server computes totals. The merchant portal source does not include a merchant orders pipeline/UI, although a merchant order status endpoint exists. Add merchant review, accept/decline, preparation, ready/fulfilled/cancel transitions and customer-visible errors before marketing order fulfillment.
+- Table reservation stores date/time and guest count but does not reserve a configured table capacity or enforce an overlapping reservation window. Hotels store check-in/out and room product but lack room inventory and overlapping-stay checks. Until those rules exist, avoid presenting these as guaranteed confirmed reservations.
+- Delivery tracking has no courier assignment/location service; do not present live courier progress. Customer online payment remains intentionally deferred.
 
-- API contract drift: registered routes and OpenAPI paths differ in naming. Recent order additions document one route shape; service request contract uses `/service-requests` while router uses `/requests` and `/businesses/{id}/requests`. Validate contract against a route snapshot in CI.
-- `AGENTS.md` and changelog say GoRouter, complete screens, FCM, complete web/API integration and passing E2E; actual `main.dart` uses `MaterialApp`/manual `IndexedStack`, FCM delivery absent, merchant state mocked, and CI/test environment incomplete.
-- `docker-compose.yml` and CI have obsolete Compose `version` keys. `docker-compose.test.yml` has no healthcheck parity for services; CI service definitions and migration bootstrap need validation.
-- `ci.yml` runs only `go test ./tests/...` in backend job, missing `./...`; web tests use Playwright without setup/install browser step; Flutter integration workflow combines emulator service syntax incorrectly for GitHub Actions service containers; deployment image publishing is not present in workflow although deploy pulls images.
-- Staging/deploy workflow includes production health-check placeholder and is not production deployment automation. Do not treat its presence as a release gate passed.
-- Seed/demo records in immutable historical migrations and stub assets mean fresh DB can contain nonproduction content; migrations must be reviewed/cleanly seeded for test and production profiles.
-- `RateLimit*` config values are currently declarative only; choose and test in-memory single-instance rate limit for MVP or edge proxy protection, then reassess if horizontally scaled.
+### Category capability model
 
-## Required before public launch
+- The active taxonomy is present at 19 categories and confirmed by local DB count. This does not yet constitute the proposed 19-category Capability Engine: category-specific fields, permitted actions, validation, workflow, and merchant configuration are not driven by a capability registry. Existing code has select hospitality-specific branches (restaurant/hotel) and generic service/catalog behavior.
+- Define an explicit capability matrix before implementing a generic engine. Keep category-specific experiences limited to verified backend support, and do not expose fake availability, inventory, ratings or fulfillment.
 
-1. Production SMS OTP, throttle/abuse controls, refresh rotation/revocation, secret management, authorization matrix tests.
-2. Real merchant create/claim, verification/KYC storage/private media and account state transitions.
-3. Merchant API-backed web workspace and mobile workspace with tenant isolation tests.
-4. Decide first-launch scope: discovery + inquiry may launch before food/hotel operations only if hidden/unavailable operational claims are removed; otherwise implement and test the full operational lifecycles.
-5. Billing design and payment provider/webhook reconciliation for merchant fees/subscriptions; do not collect marketplace customer money.
-6. Play signing, package identity, privacy policy, Data safety, account deletion, location disclosure, screenshots/listing, support contact and crash handling.
-7. Versioned migration runner, backup restore test, HTTPS staging deployment, smoke tests and security scan review.
-8. Fix/complete CI so Go, Flutter, web builds/E2E, OpenAPI route validation and migration boot all run reproducibly.
+### Real acceptance gaps
+
+- Admin: dashboard, KYC, moderation, claims, reports, offers, audit, activity and access controls now call API-backed helpers and surface fetch errors. Current source has improved since the previous mock/empty-data finding. Authenticated tab actions, role changes, claim transfer, and API failure UI still need browser E2E against disposable records.
+- Merchant: current workspace loads authorized directory/snapshot data and uses authenticated API calls for product/service CRUD, media, hours, coverage, offers, members, requests, notifications and SSE. This supersedes the old `mockData.ts` finding. End-to-end authenticated web CRUD, tenant-switching and all role permissions remain unverified.
+- Onboarding/claim: new business creation and secure claim submission/review persistence exist. Admin approval changes ownership/member role in a transaction. KYC document handling and the whole mobile-to-admin approval path require a real acceptance run and private object-storage review.
+- Catalog/images: APIs and screens exist, with previous category automation documented. This audit ran widget tests but did not re-run emulator/browser persistence and deletion assertions.
+- Search/location: the two-city active category data exists. City boundary accuracy, GPS permission behavior and map SDK key/configuration are not certified by current API/unit test evidence.
+
+### Observability and API reliability
+
+- There is health reporting and basic structured logging, but this audit did not find a complete production alerting, tracing, crash-reporting or SLO setup.
+- Admin UI now distinguishes global load failure from zero-valued data, but API-client helpers often normalize absent `data` to an empty list. Preserve and test explicit service errors rather than allow malformed success envelopes to become empty states.
+- Verify body limits, timeouts, rate limits and safe error messages consistently across every mutation; local-only API error tests are not a production penetration test.
+- SSE authorization is tested at API level, but multi-instance fanout is not implemented. Current in-process SSE only reaches clients attached to the same API process; this is acceptable for a single-instance MVP, but must be explicit before horizontal scaling.
+
+## P2 — Deferred trust and growth features
+
+- Verified reviews and ratings: absent schema/API and anti-abuse moderation workflow.
+- Native FCM: not integrated; active web SSE is not a background notification solution.
+- Merchant fee/subscription billing using UPI: entirely absent. Define fees, tax/invoice, refunds, grace periods, entitlement states, gateway and webhook rules after identity and migration controls. Do not add customer checkout payments to this feature.
+- Google Sign-In: remains a backlog item; no client token flow is implemented.
+- Support/dispute intake and operational service levels: admin report moderation exists, but full customer support intake, assignment and response tracking are incomplete.
+
+## Superseded findings from the November 3 audit
+
+The following historical statements must no longer be repeated as current facts without new contrary evidence:
+
+1. Refresh-token lookup, rotation and logout/session revocation were subsequently hardened and now have unit tests; the fresh Go suite passed.
+2. Merchant web state is no longer initialized from `INITIAL_*` mock fixtures; the main workspace reads authenticated API snapshots and mutations.
+3. Merchant new-business registration and existing-listing claim are no longer UI-only. Their persistence-backed API and claim decision service exist, but full UI acceptance remains outstanding.
+4. Merchant slot creation/date exceptions and customer rescheduling are now present. Atomic rescheduling has fresh PostgreSQL integration coverage and a previous Cuttack/Jajpur emulator pass.
+5. Admin dashboard/API has live stats/trends, listing activity and API-backed operations with visible global/section errors. It is not yet browser-verified in this audit.
+6. The active category set is 19 in the current local database, rather than the old 18-category note.
+
+## Verification boundaries
+
+This audit did not access production, send SMS, make payments, deploy, run destructive migrations, or mutate persistent production data. The isolated database test created and removed a temporary schema. The local Compose data itself is development data. Browser authenticated paths, mobile device flows, backups and provider configuration remain unverified as detailed in `AUDIT_TEST_RESULTS.md` and `CROSS_PLATFORM_ACCEPTANCE_MATRIX.md`.

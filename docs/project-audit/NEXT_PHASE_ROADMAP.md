@@ -1,68 +1,54 @@
-# Next Phase Roadmap
+# Grepmind Near — Updated Next Phase Roadmap
 
-Audit date: 3 November 2026. Estimates are solo-developer effort ranges for implementation plus focused tests; they exclude provider onboarding/approval delays and external legal/accounting decisions.
+Audit date: 5 November 2026. Priorities account for work completed since the November 3 audit. Effort is a solo-developer estimate for code plus focused tests and excludes provider/legal lead times.
 
-## Ranked top 10
+## Ranked next 10 items
 
-| Rank | Feature | Current status | Value | Dependencies | Security implications | Complexity | Priority/reason |
-|---:|---|---|---|---|---|---|---|
-| 1 | Production auth, OTP abuse controls, token lifecycle | PARTIALLY IMPLEMENTED | Enables real accounts and reduces account takeover/OTP abuse | Select SMS provider, production secrets, account/session policy | Very high: OTP brute force, SIM swap, refresh replay, PII | L (2–3 weeks) | P0. Every real customer, merchant, billing and support flow depends on it. |
-| 2 | Merchant onboarding/claim + KYC persistence | UI ONLY / MOCKED | Converts merchant interest to usable supply and approved listings | Auth, city/category API, private media upload, moderation rules | Very high: ownership fraud, KYC PII/document access | L (2–4 weeks) | P0. Current merchant product cannot acquire/manage trustworthy businesses end to end. |
-| 3 | Merchant billing: registration fee + plans + UPI gateway | NOT IMPLEMENTED | Monetization and predictable recurring revenue | Approved pricing/tax/refund policy; onboarding/account model; provider contract | Very high: webhook fraud, amount tampering, payment PII, entitlement errors | XL (4–6 weeks) | P0 after auth/onboarding contract. Must precede paid launch. |
-| 4 | Replace merchant-web fixture state with API-backed tenant workspace | UI ONLY / MOCKED | Keeps operations and tenant isolation consistent across desktop/mobile | Auth/onboarding, consistent `/merchant/businesses` APIs | Very high: cross-tenant IDOR and XSS/token theft | L (2–3 weeks) | P0. Existing UI is misleading and not durable. |
-| 5 | Migration system, backup/restore, staging and CI repair | PARTIALLY IMPLEMENTED | Prevents deploy drift/data loss and catches regressions | Choose migration tool/ledger, CI secrets/test data | High: destructive migration, leaked CI credentials | M (1–2 weeks) | P0. Needed before any schema/payment rollout. |
-| 6 | Reviews and rating integrity | NOT IMPLEMENTED | Trust and discovery conversion | Completed job/order model, moderation/report flow, identity | High: fake reviews, harassment, personal data | M (2–3 weeks) | P1. Important after the first stable transaction/request cycle. |
-| 7 | Booking/reservation operational lifecycles | PARTIALLY IMPLEMENTED | Makes service, table, hotel and food requests dependable | Slot management UI, overlap/capacity rules, merchant acceptance, cancellation policy | High: overbooking, unsafe contact/location exposure | L (2–4 weeks) | P1. Current order rows are persistent, but slots/inventory/merchant lifecycle gaps remain. |
-| 8 | Native Android FCM notifications | NOT IMPLEMENTED | Re-engagement and timely service status | FCM credentials, consent/preferences, device token lifecycle | High: token exposure, notification privacy leakage | M (1–2 weeks) | P1. SSE serves active browser sessions only; background mobile users need push. |
-| 9 | Search/location accuracy and performance | PARTIALLY IMPLEMENTED | Core local relevance and lower latency | Geocoding/map provider selection, city boundary policy, privacy review | High: precise location handling/API key limits | M (1–2 weeks) | P1. Validate the two-city product with real devices and coverage data. |
-| 10 | Customer support, dispute handling, production observability | PARTIALLY IMPLEMENTED | Resolution and operational confidence | Support owner/process, privacy policy, log/alert provider | High: sensitive messages, audit integrity | M (2–3 weeks) | P1. Required for public operations; some admin report endpoints exist, user support channels do not. |
+| Rank | Feature | Current status | Value / why now | Dependencies and security | Effort |
+|---:|---|---|---|---|---|
+| 1 | Migration runner, backup and restore drill | NOT IMPLEMENTED operationally | Prevent schema drift and irreversible data loss before real customer/merchant records. | Preserve SQL history; validate upgrade from existing schema and fresh bootstrap; encrypt/offsite backups; restore into isolated DB. | M (1–2 weeks) |
+| 2 | Production SMS OTP | PARTIALLY IMPLEMENTED | Needed for real customer, merchant and admin sign-in. | Choose India-supported provider; secrets outside repo; delivery observability, abuse controls and no production OTP echo. | M/L (2–3 weeks plus vendor setup) |
+| 3 | Authenticated cross-platform acceptance harness | PARTIALLY IMPLEMENTED | Converts existing API/UI features into reliable release checks and prevents fake success. | Disposable PostgreSQL/MinIO/browser/emulator, generated identities/OTP, cleanup manifests, session revocation, no production target. | M (1–2 weeks) |
+| 4 | Complete merchant order/reservation operations | PARTIALLY IMPLEMENTED | Food orders and hospitality bookings exist on customer side but lack complete merchant workflow and capacity policies. | Design order state machine; table/room inventory; server-side transition/tenant controls; cancellation and customer communication. | L (2–4 weeks) |
+| 5 | Public launch security and Android release readiness | NOT READY | Debug signing, placeholder Maps key, account deletion and privacy evidence block Play release. | Protected signing secrets, Play policy review, data deletion/retention design, app/API domain and key restriction. | M/L (2–3 weeks plus review) |
+| 6 | Merchant KYC/private media acceptance | PARTIALLY IMPLEMENTED | Builds trust and limits fraudulent business claims. | Verify authorization, private document access, retention/deletion, admin decision audit and full claim transfer E2E. | M (1–2 weeks) |
+| 7 | 19-category capability matrix | PARTIALLY IMPLEMENTED | Current taxonomy is complete, but workflows and requirements are not data-driven per category. | Define product/service/booking/contact capabilities and required fields from validated launch categories; avoid premature generic engine. | M (1–2 weeks design + implementation slice) |
+| 8 | Support and operational observability | PARTIALLY IMPLEMENTED | Needed to detect and resolve failed login, catalog, booking and moderation operations. | Request IDs, redacted logs, alert thresholds, crash reports, support intake/privacy policy. | M (1–2 weeks) |
+| 9 | Native Android push notifications | NOT IMPLEMENTED | Reaches customers/merchants when app is backgrounded; SSE only serves live sessions. | FCM credentials, consent/preferences, device token lifecycle, notification privacy and deduplication. | M (1–2 weeks) |
+| 10 | Verified reviews/ratings | NOT IMPLEMENTED | Adds trust after fulfilled transactions are real and verifiable. | Completed service/order model, eligibility, moderation/reporting and anti-abuse/rate limits. | M (2–3 weeks) |
 
-Google Play production readiness is a release gate across all ranks, not a standalone feature sprint. Signing, package identity, privacy/account deletion, Data safety, store listing and release monitoring must be complete before rollout.
+Merchant registration fee and monthly/annual UPI subscriptions remain a high business priority, but should follow the account/onboarding and migration/backup foundations. Do not implement customer marketplace payments in that billing feature.
 
-## Recommended next three phases
+## Recommended phase sequence
 
-### Phase 1 — Production foundations and merchant onboarding (about 4–6 weeks)
+### Phase A — Operational safety and release testability
 
-1. Fix auth/session lifecycle and add rate limiting; configure real SMS OTP in staging.
-2. Add route/tenant authorization tests and migration runner/restore procedure.
-3. Implement merchant create/claim, private KYC media and admin review end to end.
-4. Make merchant workspace API-backed and enforce owner/member role rules.
+1. Introduce a versioned migration runner/ledger for existing databases and make deployments fail on migration error.
+2. Add scheduled PostgreSQL backups and a restore verification procedure; document RPO/RTO and credentials.
+3. Repair CI so it runs all Go packages, applies migrations to a fresh database, runs web E2E with browsers, and does not silently skip authenticated tests.
+4. Build generated local fixtures and browser/emulator test flows with reversible cleanup for OTP, merchant, admin, claims, catalog, orders, and slot workflows.
 
-Dependency order: merchant billing cannot safely bind payments/entitlements until identity, billing-account ownership and active business state are authoritative.
+### Phase B — Production authentication and merchant trust
 
-### Phase 2 — Merchant UPI billing (about 4–6 weeks after decisions)
+1. Select and implement a real SMS OTP provider for staging; verify rate controls under multi-instance assumptions and ensure OTP disclosure is local-only.
+2. Run onboarding and claim review end to end, including KYC storage visibility and admin transfer audit.
+3. Validate role/member scoping for every merchant endpoint and cross-business request/notification path.
 
-1. Approve fee, monthly/annual prices, tax display, refund/grace/cancellation rules.
-2. Select gateway and complete merchant account activation/test environment.
-3. Add plans, billing accounts, payments, webhook events, subscriptions, invoices and audit tables in a new migration.
-4. Implement server-created checkout, signed webhook verification, idempotent activation, history/invoices, renewal jobs/reminders and admin monitoring.
-5. Verify payment success/failure/duplicate/delayed webhook/refund paths in provider sandbox.
+### Phase C — Define supported commercial operations
 
-### Phase 3 — Trust and operational completion (about 4–7 weeks)
+1. Finish merchant food order workflow and table/room capacity before asserting confirmed fulfillment.
+2. Define the 19-category capability matrix based on launch scope and actual service business rules.
+3. Design merchant billing (registration fee + subscription through UPI) with professional tax/refund review and idempotent signed webhooks. Customer payments remain deferred.
+4. Add support intake, monitoring, FCM and verified reviews in dependency order.
 
-1. Add merchant availability management and concurrency/overbooking tests.
-2. Decide operational launch scope; complete food/table/hotel status, cancellation and inventory rules or hide unsupported actions.
-3. Add verified review flow and moderation.
-4. Add FCM, customer support/dispute intake, analytics and observability.
-5. Run release candidate on representative low-end Android devices and closed Play testing.
+## Five small implementation tasks for the next phase
 
-## Solo-developer execution plan
+1. Add a migration ledger and `migrate up/status` command; test fresh schema and upgrade from the current local schema in disposable databases.
+2. Add a local backup/restore script with integrity check and a documented restore drill; do not overwrite the working Compose volume.
+3. Fix CI backend test command to run `go test ./...` and provision a migrated disposable DB for integration tests.
+4. Provision deterministic E2E fixtures for admin and merchant; ensure OTP/session and generated business/catalog/request rows are always revoked/removed in cleanup.
+5. Add merchant order pipeline requirements and state-transition matrix, including table/room inventory and cancellation; do not collect customer payments.
 
-- Work in 1–3 day slices; finish one API-to-screen flow, tests, docs and review before starting another.
-- Cap the active work-in-progress at one feature plus one blocker. Keep billing provider/legal decisions in a short decision log.
-- Reserve roughly one day per week for regression, dependency updates, backups and release hygiene; do not defer all QA to launch.
-- Use generated test identities and disposable local/test data. Never use production records for injection tests.
-- Keep core first public launch narrow: free customer discovery plus real merchant listings/contacts/inquiries, if paid billing or complex hospitality paths are not ready. Avoid exposing UI for workflows that imply confirmed availability, payment or courier tracking when those systems do not exist.
+## Recommended next single development task
 
-## Evaluation of requested areas
-
-- **Production security/reliability:** first; foundational and launch blocking.
-- **UPI registration payment:** high business value, after account and merchant onboarding rules.
-- **Subscription management:** implement with first billing module, but begin with manual renewal payment and server-verified activation; postpone auto-debit mandates.
-- **Verified reviews:** high trust value, after completed service/order verification exists.
-- **Merchant onboarding/verification:** immediate supply-side blocker, before payment entitlement enforcement.
-- **Native FCM:** useful after state transitions and notification preferences are stable.
-- **Search/location accuracy:** validate current two-city filters/permission UX; avoid investing in larger city expansion before precision/privacy checks.
-- **Support/disputes:** create minimum contact and ticket intake before public launch; expand admin workflows after merchant operations stabilize.
-- **Performance/observability:** add request IDs, health metrics, crash monitoring and query checks before increasing acquisition.
-- **Google Play readiness:** cross-cutting final gate, begin privacy, signing and package identity work early because approvals and policy review can take time.
+**Implement the migration ledger/runner and verify a safe upgrade of a disposable database.** It addresses a confirmed operational gap, is bounded, prevents new features from silently diverging between installations, and can be validated without production data. Backups should immediately follow; do not run migrations against production until there is a reviewed rollout/backup plan.
