@@ -87,6 +87,17 @@ These images define the premium 2026 visual direction: light-first interface, de
 
 Do not claim success unless checks were actually executed. If a check cannot run, report it clearly.
 
+## Phase execution and approval gates
+
+- Phase records and current approval boundaries are maintained in `docs/phases/README.md`; phase evidence must distinguish implemented, tested, blocked, and planned work.
+- Phase 0 repository audit and Phase 0B runtime baseline are historical records. Recheck current source and runtime before reusing any finding.
+- Phase 1 Unified Customer/Merchant/Rider navigation passed its documented validation on 6 November 2026. This does not imply that every historic screen inventory workflow is production-ready.
+- **Current scope: Phase 2A — existing commerce audit and contract design only.** Complete its documentation deliverable, then stop and wait for explicit approval before Phase 2B or any commerce source/API/schema implementation.
+- Preserve the existing `customer_orders` / `customer_order_items` workflows for food delivery, table reservations, and hotel bookings. Extend them compatibly; do not create a parallel incompatible order system.
+- Customer online payment collection, payment gateway integration, and claims that an order is paid are out of scope through Phase 2. Payment integration is scheduled for Phase 6 and may only confirm payment after server-side provider verification.
+- Keep each Phase 2 subphase independently reviewable and validated. Stop at each stated gate; do not start a later subphase automatically.
+- Never treat older changelog claims, design mockups, QA fixtures, or local database counts as proof of current behavior. Cite the actual files, executed commands, and runtime evidence.
+
 ## Implementation task template
 
 Implement the following task for Grepmind Near:
@@ -139,7 +150,7 @@ Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
 | **5** | City / Locality Selection | ✅ Complete | Integrated in Location sheet modal |
 | **6** | Location Permission Welcome | ✅ Complete | Modal permission primer in onboarding |
 | **7** | Home / Explore Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/explore_screen.dart` (Hero banner, category chips, nearby business cards) |
-| **8** | Categories Directory | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/categories_screen.dart` (18 categories, search, section filter tabs) |
+| **8** | Categories Directory | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/categories_screen.dart` (19 taxonomy entries in the audited local database, search, section filter tabs) |
 | **9** | Search & Filter Results | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/search_results_screen.dart` (radius sheet, sort sheet, verified/open chips, empty recovery) |
 | **10** | Nearby Interactive Map | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/nearby_map_screen.dart` (Category chips, interactive radar canvas with concentric rings, interactive marker selection, bottom preview card with directions & view profile) |
 | **11** | Business Profile & Tabs | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover, About, Products, Offers, Reviews) |
@@ -156,7 +167,7 @@ Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
 | **22** | Merchant Hours & Coverage Setup| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_hours_coverage_screen.dart` (7-day schedule, time pickers, radius slider, localities tags, on-demand toggle) |
 
 ### UI Showcase Milestone
-- **All 22 screens** from the authoritative `Grepmind Near UI_UX App Showcase.png` are 100% implemented and verified end-to-end with the Go REST API backend and Android emulator!
+- The 22 rows above are the showcase screen inventory, not blanket proof that every workflow is production-complete. Verify current source, API, database behavior, tests, and runtime evidence before describing an item as complete or verified. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:
