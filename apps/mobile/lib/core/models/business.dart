@@ -640,6 +640,7 @@ class AppUser extends Equatable {
   bool get isAdmin => roles.contains('admin');
   bool get isMerchant => roles.contains('merchant');
   bool get isCustomer => roles.contains('customer');
+  bool get isRider => roles.contains('rider');
 
   Map<String, dynamic> toJson() {
     return {

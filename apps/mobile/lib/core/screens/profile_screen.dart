@@ -14,6 +14,7 @@ import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
+import 'package:grepmind_mobile/core/screens/saved_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -81,7 +82,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               authState.activeRole ?? 'customer',
             ),
             const SizedBox(height: 24),
-            _buildAccountSection(context, authState.activeRole ?? 'customer'),
+            _buildAccountSection(
+              context,
+              authState.activeRole ?? 'customer',
+              authState.user!,
+            ),
             const SizedBox(height: 24),
             _buildActions(context, ref),
           ],
@@ -370,9 +375,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return 'Add your name';
   }
 
-  Widget _buildAccountSection(BuildContext context, String activeRole) {
+  Widget _buildAccountSection(
+    BuildContext context,
+    String activeRole,
+    AppUser user,
+  ) {
     final isMerchantRole = activeRole == 'merchant';
     final isAdminRole = activeRole == 'admin';
+    final availableRoles = <String>[
+      if (user.roles.contains('customer')) 'Customer',
+      if (user.roles.contains('merchant') ||
+          user.roles.contains('professional'))
+        'Merchant',
+      if (user.roles.contains('rider')) 'Rider',
+      if (user.roles.contains('admin')) 'Admin',
+    ];
 
     return PremiumCard(
       padding: const EdgeInsets.all(20),
@@ -401,12 +418,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const Divider(),
 
+          if (activeRole == 'customer') ...[
+            _buildAccountOption(
+              key: const ValueKey('profile_saved_businesses'),
+              icon: Icons.favorite_border_rounded,
+              title: 'Saved businesses',
+              subtitle: 'Open your bookmarked shops and services',
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const SavedScreen())),
+            ),
+            const Divider(),
+          ],
+
           // Portal / Role Switcher Tile
           _buildAccountOption(
             icon: Icons.swap_horiz_rounded,
             title: 'Switch Portal / Experience',
             subtitle:
-                'Current mode: ${activeRole.toUpperCase()} (Customer, Merchant, Admin)',
+                'Current mode: ${activeRole.toUpperCase()} · Available: ${availableRoles.join(', ')}',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const RoleSelectionScreen(isSwitching: true),
@@ -488,12 +517,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildAccountOption({
+    Key? key,
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),

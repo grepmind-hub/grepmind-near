@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/home_screen.dart';
@@ -11,6 +13,54 @@ class _QuietCategoriesNotifier extends CategoriesNotifier {
 }
 
 void main() {
+  setUpAll(() => apiClient.init());
+  setUp(() => apiClient.dio.interceptors.clear());
+
+  testWidgets('Home loads the default city without mounting Explore', (
+    tester,
+  ) async {
+    apiClient.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (request, handler) {
+          expect(request.path, '/locations');
+          handler.resolve(
+            Response(
+              requestOptions: request,
+              statusCode: 200,
+              data: {
+                'data': [
+                  {
+                    'city': 'Cuttack',
+                    'locality': 'Badambadi',
+                    'latitude': 20.4625,
+                    'longitude': 85.883,
+                    'count': 0,
+                  },
+                ],
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          homeFeedProvider('').overrideWith((ref) async => const HomeFeed()),
+          homeFeedProvider('Cuttack')
+              .overrideWith((ref) async => const HomeFeed()),
+          categoriesProvider.overrideWith((ref) => _QuietCategoriesNotifier()),
+        ],
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Cuttack'), findsWidgets);
+    expect(find.text('Choose your city'), findsNothing);
+  });
+
   testWidgets(
     'Home presents live empty states and keeps recent businesses off Home',
     (tester) async {

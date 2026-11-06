@@ -1894,7 +1894,7 @@ paths:
           description: Administrator privilege required
     post:
       summary: Create or replace a user's platform roles
-      description: Restricted to the primary superadmin. Existing sessions are revoked atomically with role changes; the primary superadmin account is protected.
+      description: Restricted to the primary superadmin. Assigning the rider role is the approval gate for Rider Mode; it does not provision dispatch or tracking. Existing sessions are revoked atomically with role changes; the primary superadmin account is protected.
       tags: [admin]
       security:
         - bearerAuth: []
@@ -1912,7 +1912,7 @@ paths:
                   type: array
                   minItems: 1
                   uniqueItems: true
-                  items: { type: string, enum: [admin, merchant, customer, professional] }
+                  items: { type: string, enum: [admin, merchant, customer, professional, rider] }
       responses:
         '200':
           description: Account roles replaced and sessions revoked
@@ -2784,6 +2784,7 @@ components:
           type: array
           items:
             type: string
+            enum: [customer, merchant, professional, admin, rider]
         created_at:
           type: string
           format: date-time

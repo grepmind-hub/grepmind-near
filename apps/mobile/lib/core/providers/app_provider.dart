@@ -14,7 +14,7 @@ class AuthState {
   final String? accessToken;
   final bool isLoading;
   final bool isAuthenticated;
-  final String? activeRole; // 'customer', 'merchant', or 'admin'
+  final String? activeRole; // customer, merchant, rider, or admin
 
   const AuthState({
     this.user,
@@ -58,13 +58,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final savedRole = await storage.read(key: AppConstants.activeRoleKey);
     if (token != null && userJson != null) {
       try {
-        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
-        state = state.copyWith(
-          user: AppUser.fromJson(userMap),
-          accessToken: token,
-          activeRole: savedRole,
-          isLoading: false,
+        final cachedUser = AppUser.fromJson(
+          jsonDecode(userJson) as Map<String, dynamic>,
         );
+        state = state.copyWith(
+          user: cachedUser,
+          accessToken: token,
+          isLoading: true,
+        );
+
+        // A saved workspace is only a preference. Re-read current roles from
+        // the API before restoring privileged merchant, rider, or admin mode.
+        try {
+          final response = await apiClient.get('/me');
+          final data =
+              (response.data as Map<String, dynamic>)['data']
+                  as Map<String, dynamic>;
+          final verifiedUser = AppUser.fromJson(data);
+          final restoredRole =
+              savedRole != null && _userCanUseRole(verifiedUser, savedRole)
+              ? savedRole
+              : null;
+          await storage.write(
+            key: AppConstants.userKey,
+            value: jsonEncode(verifiedUser.toJson()),
+          );
+          if (restoredRole == null && savedRole != null) {
+            await storage.delete(key: AppConstants.activeRoleKey);
+          }
+          state = state.copyWith(
+            user: verifiedUser,
+            activeRole: restoredRole,
+            clearActiveRole: restoredRole == null,
+            isLoading: false,
+          );
+        } catch (_) {
+          // Offline fallback is customer-only. Never restore a cached
+          // merchant, rider, or admin role without a fresh backend check.
+          final allowCustomerFallback =
+              savedRole == 'customer' && cachedUser.roles.contains('customer');
+          if (!allowCustomerFallback && savedRole != null) {
+            await storage.delete(key: AppConstants.activeRoleKey);
+          }
+          state = state.copyWith(
+            user: cachedUser,
+            activeRole: allowCustomerFallback ? 'customer' : null,
+            clearActiveRole: !allowCustomerFallback,
+            isLoading: false,
+          );
+        }
       } catch (_) {
         state = state.copyWith(isLoading: false);
       }
@@ -73,10 +115,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> setActiveRole(String role) async {
+  Future<AppUser?> refreshCurrentUser() async {
+    if (!state.isAuthenticated) return null;
+    try {
+      final response = await apiClient.get('/me');
+      final data =
+          (response.data as Map<String, dynamic>)['data']
+              as Map<String, dynamic>;
+      final user = AppUser.fromJson(data);
+      await const FlutterSecureStorage().write(
+        key: AppConstants.userKey,
+        value: jsonEncode(user.toJson()),
+      );
+      state = state.copyWith(user: user);
+      return user;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> setActiveRole(String role) async {
+    if (!const {'customer', 'merchant', 'rider', 'admin'}.contains(role)) {
+      return false;
+    }
+    final user = await refreshCurrentUser();
+    if (user == null || !_userCanUseRole(user, role)) return false;
+
     final storage = const FlutterSecureStorage();
     await storage.write(key: AppConstants.activeRoleKey, value: role);
     state = state.copyWith(activeRole: role);
+    return true;
+  }
+
+  bool _userCanUseRole(AppUser user, String role) {
+    switch (role) {
+      case 'customer':
+        return user.roles.contains('customer');
+      case 'merchant':
+        return user.roles.contains('merchant') ||
+            user.roles.contains('professional');
+      case 'rider':
+      case 'admin':
+        return user.roles.contains(role);
+      default:
+        return false;
+    }
   }
 
   Future<void> clearActiveRole() async {
@@ -250,6 +333,36 @@ class LocationNotifier extends StateNotifier<AppLocation> {
           activeBusinessCount: 0,
         ),
       );
+  Future<void>? _defaultLocationLoad;
+
+  Future<void> loadDefaultLocation() {
+    if (state.cityName.isNotEmpty) return Future<void>.value();
+    return _defaultLocationLoad ??= _fetchDefaultLocation().whenComplete(() {
+      _defaultLocationLoad = null;
+    });
+  }
+
+  Future<void> _fetchDefaultLocation() async {
+    try {
+      final response = await apiClient.get('/locations');
+      final data = response.data as Map<String, dynamic>;
+      final locations = data['data'] as List<dynamic>? ?? const [];
+      if (locations.isEmpty || state.cityName.isNotEmpty) return;
+
+      final location = locations.first as Map<String, dynamic>;
+      setLocation(
+        AppLocation(
+          cityName: location['city'] as String,
+          localityName: location['locality'] as String? ?? '',
+          latitude: (location['latitude'] as num).toDouble(),
+          longitude: (location['longitude'] as num).toDouble(),
+          activeBusinessCount: (location['count'] as num?)?.toInt() ?? 0,
+        ),
+      );
+    } catch (_) {
+      // Keep discovery usable; the location picker can retry explicitly.
+    }
+  }
 
   void setLocation(AppLocation loc) {
     state = loc;

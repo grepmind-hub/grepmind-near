@@ -813,11 +813,11 @@ type AdminUser struct {
 var assignablePhonePattern = regexp.MustCompile(`^\+91[6-9][0-9]{9}$`)
 
 func normalizeAssignableRoles(roles []string) ([]string, error) {
-	allowed := map[string]bool{"admin": true, "merchant": true, "customer": true, "professional": true}
+	allowed := map[string]bool{"admin": true, "merchant": true, "customer": true, "professional": true, "rider": true}
 	seen := make(map[string]bool, len(roles))
 	for _, role := range roles {
 		if !allowed[role] {
-			return nil, fmt.Errorf("role must be admin, merchant, customer, or professional")
+			return nil, fmt.Errorf("role must be admin, merchant, customer, professional, or rider")
 		}
 		seen[role] = true
 	}

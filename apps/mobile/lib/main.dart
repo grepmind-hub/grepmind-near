@@ -3,12 +3,13 @@ import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/screens/explore_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_screen.dart';
-import 'package:grepmind_mobile/core/screens/saved_screen.dart';
 import 'package:grepmind_mobile/core/screens/profile_screen.dart';
 import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
 import 'package:grepmind_mobile/core/screens/splash_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
+import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -39,14 +40,19 @@ class GrepmindNearApp extends ConsumerWidget {
                 ? const RoleSelectionScreen()
                 : authState.activeRole == 'admin'
                 ? const AdminPortalScreen()
-                : const MainNavigator())
+                : MainNavigator(
+                    key: ValueKey('workspace-${authState.activeRole}'),
+                    activeRole: authState.activeRole ?? 'customer',
+                  ))
           : const OnboardingScreen(),
     );
   }
 }
 
 class MainNavigator extends ConsumerStatefulWidget {
-  const MainNavigator({super.key});
+  final String activeRole;
+
+  const MainNavigator({super.key, required this.activeRole});
 
   @override
   ConsumerState<MainNavigator> createState() => _MainNavigatorState();
@@ -54,93 +60,243 @@ class MainNavigator extends ConsumerStatefulWidget {
 
 class _MainNavigatorState extends ConsumerState<MainNavigator> {
   int _selectedIndex = 0;
+  final Set<int> _mountedPageIndices = {0};
+
+  @override
+  void didUpdateWidget(covariant MainNavigator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeRole != widget.activeRole) {
+      _selectedIndex = 0;
+      _mountedPageIndices
+        ..clear()
+        ..add(0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final activeRole = authState.activeRole ?? 'customer';
-
-    if (activeRole == 'merchant') {
-      // Merchant Experience: dedicated workspace & profile
-      final merchantScreens = [
-        const MerchantWorkspaceScreen(),
-        const ProfileScreen(),
-      ];
-      final maxIndex = merchantScreens.length - 1;
-      if (_selectedIndex > maxIndex) {
-        _selectedIndex = maxIndex;
-      }
-
-      return Scaffold(
-        body: IndexedStack(index: _selectedIndex, children: merchantScreens),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (i) => setState(() => _selectedIndex = i),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.storefront_outlined),
-              activeIcon: Icon(Icons.storefront),
-              label: 'Workspace',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Account',
-            ),
+    final pages = _pagesForRole(widget.activeRole);
+    final selectedIndex = _selectedIndex.clamp(0, pages.length - 1);
+    return PopScope<Object?>(
+      canPop: selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
+      child: Scaffold(
+        key: const ValueKey('workspace_scaffold'),
+        body: IndexedStack(
+          index: selectedIndex,
+          children: [
+            for (var index = 0; index < pages.length; index++)
+              _mountedPageIndices.contains(index)
+                  ? TickerMode(
+                      enabled: index == selectedIndex,
+                      child: pages[index],
+                    )
+                  : const SizedBox.shrink(),
           ],
         ),
-      );
+        bottomNavigationBar: BottomNavigationBar(
+          key: const ValueKey('workspace_bottom_navigation'),
+          type: BottomNavigationBarType.fixed,
+          currentIndex: selectedIndex,
+          onTap: (i) => setState(() {
+            _mountedPageIndices.add(i);
+            _selectedIndex = i;
+          }),
+          items: _itemsForRole(widget.activeRole),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _pagesForRole(String role) {
+    switch (role) {
+      case 'merchant':
+        return const [
+          MerchantWorkspaceScreen(),
+          _WorkspacePlaceholder(
+            title: 'Merchant orders',
+            description: 'Merchant order inbox is not available yet. Service requests remain available in Dashboard.',
+            icon: Icons.receipt_long_outlined,
+          ),
+          MerchantCatalogScreen(),
+          _WorkspacePlaceholder(
+            title: 'Earnings',
+            description: 'Earnings and payouts are not available yet. No financial totals are shown here.',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+          ProfileScreen(),
+        ];
+      case 'rider':
+        return const [
+          _WorkspacePlaceholder(
+            title: 'Rider dashboard',
+            description: 'Dispatch is not available yet. This workspace is shown only after backend rider approval.',
+            icon: Icons.dashboard_outlined,
+          ),
+          _WorkspacePlaceholder(
+            title: 'Deliveries',
+            description: 'Assigned deliveries are not available yet.',
+            icon: Icons.delivery_dining_outlined,
+          ),
+          _WorkspacePlaceholder(
+            title: 'Rider map',
+            description:
+                'Rider location tracking is not available in this phase.',
+            icon: Icons.map_outlined,
+          ),
+          _WorkspacePlaceholder(
+            title: 'Earnings',
+            description: 'Rider earnings are not available yet.',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+          ProfileScreen(),
+        ];
+      default:
+        return [
+          const HomeScreen(),
+          const ExploreScreen(),
+          const NearbyMapScreen(),
+          const OrderHistoryScreen(),
+          const ProfileScreen(),
+        ];
     }
+  }
 
-    // Customer Experience: Home feed, Explore, Nearby, Saved, Profile
-    final customerScreens = [
-      HomeScreen(key: ValueKey(_selectedIndex == 0)),
-      const ExploreScreen(),
-      _selectedIndex == 2 ? const NearbyMapScreen() : const SizedBox.shrink(),
-      const SavedScreen(),
-      const ProfileScreen(),
-    ];
-
-    // Clamp selectedIndex to valid range
-    final maxIndex = customerScreens.length - 1;
-    if (_selectedIndex > maxIndex) {
-      _selectedIndex = maxIndex;
+  List<BottomNavigationBarItem> _itemsForRole(String role) {
+    switch (role) {
+      case 'merchant':
+        return const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard_rounded),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long_rounded),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.inventory_2_outlined),
+            activeIcon: Icon(Icons.inventory_2_rounded),
+            label: 'Catalog',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Earnings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ];
+      case 'rider':
+        return const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard_rounded),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.delivery_dining_outlined),
+            activeIcon: Icon(Icons.delivery_dining_rounded),
+            label: 'Deliveries',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map_rounded),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Earnings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ];
+      default:
+        return const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search_rounded),
+            activeIcon: Icon(Icons.manage_search_rounded),
+            label: 'Explore',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Nearby',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long_rounded),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ];
     }
+  }
+}
 
-    final navItems = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home_outlined),
-        activeIcon: Icon(Icons.home_rounded),
-        label: 'Home',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.search_rounded),
-        activeIcon: Icon(Icons.manage_search_rounded),
-        label: 'Explore',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.map_outlined),
-        activeIcon: Icon(Icons.map),
-        label: 'Nearby',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.favorite_outline),
-        activeIcon: Icon(Icons.favorite),
-        label: 'Saved',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person_outline),
-        activeIcon: Icon(Icons.person),
-        label: 'Profile',
-      ),
-    ];
+class _WorkspacePlaceholder extends StatelessWidget {
+  final String title;
+  final String description;
+  final IconData icon;
 
+  const _WorkspacePlaceholder({
+    required this.title,
+    required this.description,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: customerScreens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        items: navItems,
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 52, color: AppTheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: AppTheme.secondaryText, height: 1.45),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

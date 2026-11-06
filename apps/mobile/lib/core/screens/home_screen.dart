@@ -26,9 +26,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.invalidate(
-          homeFeedProvider(ref.read(appLocationProvider).cityName),
-        );
+        ref.read(appLocationProvider.notifier).loadDefaultLocation();
       }
     });
   }

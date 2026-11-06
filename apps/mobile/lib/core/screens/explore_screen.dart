@@ -41,28 +41,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Future<void> _loadInitialLocation() async {
-    if (ref.read(appLocationProvider).cityName.isEmpty) {
-      try {
-        final response = await apiClient.get('/locations');
-        final locations = response.data['data'] as List;
-        if (!mounted) return;
-        if (locations.isNotEmpty) {
-          final location = locations.first as Map<String, dynamic>;
-          ref
-              .read(appLocationProvider.notifier)
-              .setLocation(
-                AppLocation(
-                  cityName: location['city'] as String,
-                  latitude: (location['latitude'] as num).toDouble(),
-                  longitude: (location['longitude'] as num).toDouble(),
-                  activeBusinessCount: location['count'] as int,
-                ),
-              );
-        }
-      } catch (_) {
-        /* Location picker provides an explicit retry. */
-      }
-    }
+    await ref.read(appLocationProvider.notifier).loadDefaultLocation();
     if (mounted) _onFiltersChanged();
   }
 

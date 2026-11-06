@@ -9,6 +9,7 @@ const roleOptions = [
   { id: 'merchant', label: 'Merchant', hint: 'Business workspace' },
   { id: 'customer', label: 'Customer', hint: 'Discovery and bookings' },
   { id: 'professional', label: 'Professional', hint: 'Service provider profile' },
+  { id: 'rider', label: 'Rider', hint: 'Approve rider workspace access' },
 ] as const;
 
 interface UserAccessViewProps {
