@@ -173,11 +173,11 @@ func TestParseStatsFilters(t *testing.T) {
 }
 
 func TestNormalizeAssignableRoles(t *testing.T) {
-	roles, err := normalizeAssignableRoles([]string{"merchant", "customer", "rider", "merchant"})
+	roles, err := normalizeAssignableRoles([]string{"merchant", "customer", "rider", "delivery_operator", "merchant"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := strings.Join(roles, ","), "customer,merchant,rider"; got != want {
+	if got, want := strings.Join(roles, ","), "customer,delivery_operator,merchant,rider"; got != want {
 		t.Fatalf("roles = %q, want %q", got, want)
 	}
 	for _, input := range [][]string{nil, {}, {"superadmin"}, {"admin", "root"}} {

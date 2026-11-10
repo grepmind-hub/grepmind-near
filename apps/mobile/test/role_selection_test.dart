@@ -50,7 +50,7 @@ void main() {
       expect(find.byKey(const ValueKey('role_card_merchant')), findsOneWidget);
       expect(find.byKey(const ValueKey('role_card_rider')), findsOneWidget);
       expect(find.byKey(const ValueKey('role_card_admin')), findsOneWidget);
-      expect(find.text('Requires backend approval'), findsOneWidget);
+      expect(find.text('Application required'), findsOneWidget);
       expect(find.byKey(const ValueKey('continue_role_btn')), findsOneWidget);
       container.dispose();
     },
@@ -103,6 +103,48 @@ void main() {
 
     expect(container.read(authProvider).activeRole, 'customer');
     expect(find.textContaining('not authorized'), findsNothing);
+    container.dispose();
+  });
+
+  testWidgets('A rider role without an approved profile remains locked', (
+    tester,
+  ) async {
+    const roleOnly = AppUser(
+      id: 'role-only-rider',
+      phoneE164: '+919876543211',
+      status: 'active',
+      preferredLanguage: 'en',
+      roles: ['customer', 'rider'],
+      riderStatus: 'submitted',
+    );
+    final container = ProviderContainer(
+      overrides: [
+        authProvider.overrideWith(
+          (ref) => _MemoryAuthNotifier(
+            const AuthState(
+              user: roleOnly,
+              accessToken: 'test-token',
+              activeRole: 'customer',
+            ),
+          ),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: RoleSelectionScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Application: submitted'), findsOneWidget);
+    final riderCard = find.byKey(const ValueKey('role_card_rider'));
+    await tester.ensureVisible(riderCard);
+    await tester.tap(riderCard);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('continue_role_btn')));
+    await tester.pumpAndSettle();
+    expect(container.read(authProvider).activeRole, 'customer');
     container.dispose();
   });
 
@@ -198,7 +240,9 @@ class _MemoryAuthNotifier extends AuthNotifier {
         user != null &&
             (user.roles.contains('merchant') ||
                 user.roles.contains('professional')),
-      'rider' => user?.roles.contains('rider') ?? false,
+      'rider' =>
+        user?.roles.contains('rider') == true &&
+            user?.riderStatus == 'approved',
       'admin' => user?.roles.contains('admin') ?? false,
       _ => false,
     };

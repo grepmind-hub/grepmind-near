@@ -134,7 +134,7 @@ void main() {
       categorySlug.replaceAll('_', ' '),
     );
     await tester.pumpAndSettle();
-    final category = find.byKey(ValueKey('merchant_category_$categorySlug'));
+    final category = find.byKey(const ValueKey('merchant_category_$categorySlug'));
     expect(category, findsOneWidget);
     tester.binding.focusManager.primaryFocus?.unfocus();
     await tester.pumpAndSettle();

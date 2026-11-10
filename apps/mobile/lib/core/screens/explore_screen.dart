@@ -882,14 +882,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       return BusinessCard(
                         business: b,
                         onTap: () {
-                          final serviceCategories = [
-                            'electrician',
-                            'plumber',
-                            'carpenter',
-                            'tailor',
-                          ];
-                          if (serviceCategories.contains(b.categorySlug) ||
-                              b.acceptsRequests) {
+                          if (b.shouldOpenServiceProfile) {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => ServiceProScreen(business: b),

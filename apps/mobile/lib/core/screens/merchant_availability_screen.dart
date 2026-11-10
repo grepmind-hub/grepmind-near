@@ -200,8 +200,9 @@ class _MerchantAvailabilityScreenState
                             context: context,
                             initialTime: start,
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setSheetState(() => start = picked);
+                          }
                         },
                         icon: const Icon(Icons.login_outlined),
                         label: Text('Start  ${start.format(context)}'),
@@ -368,8 +369,9 @@ class _MerchantAvailabilityScreenState
                                 context: context,
                                 initialTime: start,
                               );
-                              if (picked != null)
+                              if (picked != null) {
                                 setSheetState(() => start = picked);
+                              }
                             },
                             child: Text('Open  ${start.format(context)}'),
                           ),
@@ -382,8 +384,9 @@ class _MerchantAvailabilityScreenState
                                 context: context,
                                 initialTime: end,
                               );
-                              if (picked != null)
+                              if (picked != null) {
                                 setSheetState(() => end = picked);
+                              }
                             },
                             child: Text('Close  ${end.format(context)}'),
                           ),
@@ -424,8 +427,9 @@ class _MerchantAvailabilityScreenState
                                 },
                               );
                             });
-                            if (succeeded && mounted)
+                            if (succeeded && mounted) {
                               Navigator.of(sheetContext).pop();
+                            }
                           },
                     child: const Text('Save date settings'),
                   ),
@@ -489,7 +493,6 @@ class _MerchantAvailabilityScreenState
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
                   PremiumCard(
-                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

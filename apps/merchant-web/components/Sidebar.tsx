@@ -2,12 +2,13 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, BadgePercent, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, BadgePercent, ShieldCheck, PackageCheck } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   pendingRequestsCount: number;
+  pendingPlatformOrdersCount?: number;
   verificationStatus: string;
 }
 
@@ -15,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onTabChange,
   pendingRequestsCount,
+  pendingPlatformOrdersCount = 0,
   verificationStatus,
 }) => {
   const menuItems = [
@@ -28,6 +30,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Service Requests',
       icon: CalendarClock,
       badge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+    },
+    {
+      id: 'platformOrders',
+      label: 'Platform Orders',
+      icon: PackageCheck,
+      badge: pendingPlatformOrdersCount > 0 ? pendingPlatformOrdersCount : undefined,
     },
     {
       id: 'catalog',

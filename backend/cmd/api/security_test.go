@@ -5,6 +5,7 @@ import (
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
+	"grepmind-near/backend/internal/platformcommerce"
 	"grepmind-near/backend/pkg/config"
 	"net/http"
 	"net/http/httptest"
@@ -45,7 +46,7 @@ func TestAccessTokenClockBoundaries(t *testing.T) {
 }
 
 func TestSensitiveRoutesRejectAnonymousRequests(t *testing.T) {
-	router := setupRouter(auth.NewService(nil, nil), nil, nil, nil, notifications.NewHub(nil), operations.NewService(nil))
+	router := setupRouter(auth.NewService(nil, nil), nil, nil, nil, notifications.NewHub(nil), operations.NewService(nil), platformcommerce.NewService(nil))
 	for _, test := range []struct{ method, path string }{
 		{"GET", "/api/v1/events?business_id=00000000-0000-0000-0000-000000000001"},
 		{"GET", "/api/v1/notifications"},
@@ -64,6 +65,14 @@ func TestSensitiveRoutesRejectAnonymousRequests(t *testing.T) {
 		{"POST", "/api/v1/merchant/catalog-categories"},
 		{"PATCH", "/api/v1/merchant/catalog-categories/00000000-0000-0000-0000-000000000001"},
 		{"DELETE", "/api/v1/merchant/catalog-categories/00000000-0000-0000-0000-000000000001"},
+		{"GET", "/api/v1/rider/earnings/summary"},
+		{"GET", "/api/v1/rider/earnings"},
+		{"GET", "/api/v1/rider/earnings/00000000-0000-0000-0000-000000000001"},
+		{"GET", "/api/v1/admin/rider-earnings/overview"},
+		{"GET", "/api/v1/admin/rider-earnings/entries"},
+		{"GET", "/api/v1/admin/rider-earnings/policies"},
+		{"POST", "/api/v1/admin/rider-earnings/adjustments"},
+		{"POST", "/api/v1/admin/rider-earnings/entries/00000000-0000-0000-0000-000000000001/reverse"},
 	} {
 		t.Run(test.method+test.path, func(t *testing.T) {
 			response := httptest.NewRecorder()

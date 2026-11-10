@@ -139,6 +139,18 @@ func (s *Service) Upload(w http.ResponseWriter, r *http.Request, userID string) 
 		writeError(w, http.StatusBadRequest, "FILE_TOO_LARGE", "Maximum file size is 10 MB.")
 		return
 	}
+	purpose := r.FormValue("purpose")
+	if purpose == "" {
+		purpose = "general"
+	}
+	purpose = strings.ToLower(strings.TrimSpace(purpose))
+	if purpose == "platform-catalog" {
+		var isAdmin bool
+		if err := s.db.GetContext(r.Context(), &isAdmin, `SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role='admin')`, userID); err != nil || !isAdmin {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "Platform catalog images require administrator access.")
+			return
+		}
+	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -164,13 +176,6 @@ func (s *Service) Upload(w http.ResponseWriter, r *http.Request, userID string) 
 			"Unsupported image format. Allowed formats: JPEG, PNG, WebP.")
 		return
 	}
-
-	// Purpose routing (storefront, product, kyc, avatar, general)
-	purpose := r.FormValue("purpose")
-	if purpose == "" {
-		purpose = "general"
-	}
-	purpose = strings.ToLower(strings.TrimSpace(purpose))
 
 	// Generate safe, unique object key
 	randomID := generateRandomHex(8)

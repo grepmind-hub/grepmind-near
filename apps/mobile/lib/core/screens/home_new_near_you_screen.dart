@@ -145,13 +145,14 @@ class _HomeNewNearYouScreenState extends State<HomeNewNearYouScreen> {
                       itemCount: _items.length + (_loadingMore ? 1 : 0),
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        if (index == _items.length)
+                        if (index == _items.length) {
                           return const Padding(
                             padding: EdgeInsets.all(16),
                             child: Center(
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           );
+                        }
                         final item = _items[index];
                         return _CatalogArrivalTile(
                           item: item,
@@ -213,7 +214,7 @@ class _HomeNewNearYouScreenState extends State<HomeNewNearYouScreen> {
               style: const TextStyle(color: AppTheme.secondaryText),
             ),
           ],
-          if (action != null) action,
+          ?action,
         ],
       ),
     ),

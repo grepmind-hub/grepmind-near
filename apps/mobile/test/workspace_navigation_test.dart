@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
+import 'package:grepmind_mobile/core/screens/orders_tab_navigator.dart';
+import 'package:grepmind_mobile/core/screens/order_shopping_hub_screen.dart';
 import 'package:grepmind_mobile/main.dart';
 
 void main() {
@@ -65,7 +67,31 @@ void main() {
       find.descendant(of: navigation, matching: find.text('Orders')),
     );
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('My Orders & Bookings'), findsOneWidget);
+    expect(find.byType(OrderShoppingHubScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('orders_food_catalog')), findsOneWidget);
+    final ordersEntry = find.byKey(const ValueKey('orders_history_entry'));
+    await tester.drag(
+      find.byKey(const ValueKey('orders_shopping_hub_scroll')),
+      const Offset(0, -250),
+    );
+    await tester.pumpAndSettle();
+    expect(ordersEntry, findsOneWidget);
+    final myOrders = find.text('My Orders');
+    await tester.ensureVisible(myOrders);
+    await tester.tap(myOrders);
+    await tester.pumpAndSettle();
+    expect(find.text('Orders & bookings'), findsOneWidget);
+    final nestedOrdersNavigator = find.descendant(
+      of: find.byType(OrdersTabNavigator),
+      matching: find.byType(Navigator),
+    );
+    expect(
+      tester.state<NavigatorState>(nestedOrdersNavigator).canPop(),
+      isTrue,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(OrderShoppingHubScreen), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await tester.pump(const Duration(milliseconds: 500));
@@ -136,10 +162,7 @@ void main() {
       find.descendant(of: navigation, matching: find.text('Orders')),
     );
     await tester.pump(const Duration(milliseconds: 500));
-    expect(
-      find.textContaining('Merchant order inbox is not available yet'),
-      findsOneWidget,
-    );
+    expect(find.text('Partner Orders'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();
   });

@@ -139,10 +139,10 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
 
   Widget _buildApprovalsTab() {
     if (_pendingBusinesses.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.check_circle_outline, size: 56, color: Color(0xFF10B981)),
             SizedBox(height: 12),
             Text(
@@ -163,7 +163,6 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
         final biz = _pendingBusinesses[index];
         return PremiumCard(
           margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -275,10 +274,10 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
 
   Widget _buildClaimsTab() {
     if (_pendingClaims.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.verified_user_outlined, size: 56, color: Color(0xFF10B981)),
             SizedBox(height: 12),
             Text(
@@ -299,7 +298,6 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
         final claim = _pendingClaims[index];
         return PremiumCard(
           margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -95,6 +95,8 @@ type Product struct {
 	Price              *float64 `json:"price,omitempty"`
 	Currency           string   `json:"currency"`
 	StockStatus        string   `json:"stock_status"`
+	InventoryMode      string   `json:"inventory_mode"`
+	AvailableQuantity  *int     `json:"available_quantity,omitempty"`
 	IsPublished        bool     `json:"is_published"`
 	ImageURL           string   `json:"image_url,omitempty"`
 	DietaryType        string   `json:"dietary_type,omitempty"`
@@ -333,7 +335,8 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
 		       b.cover_photo_url, ` + businessOpenNowSQL + ` AS is_open_now,
-		       EXISTS (SELECT 1 FROM professional_profiles pp WHERE pp.business_id = b.id AND pp.accepts_requests = true) AS accepts_requests`
+		       EXISTS (SELECT 1 FROM professional_profiles pp WHERE pp.business_id = b.id AND pp.accepts_requests = true) AS accepts_requests,
+		       COALESCE(b.delivery_enabled, false) AS delivery_enabled`
 	if hasLoc {
 		query += fmt.Sprintf(`, ST_Distance(b.location, ST_SetSRID(ST_MakePoint($%d, $%d)::geography, 4326)) AS distance_m`,
 			argIdx, argIdx+1)
@@ -371,7 +374,8 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 		var dist, lat, lng sql.NullFloat64
 		err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 			&b.AddressText, &locality, &city, &postal, &b.Status, &b.VerificationStatus,
-			&phone, &whatsapp, &lat, &lng, &cover, &b.IsOpenNow, &b.AcceptsRequests, &dist)
+			&phone, &whatsapp, &lat, &lng, &cover, &b.IsOpenNow, &b.AcceptsRequests,
+			&b.DeliveryEnabled, &dist)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read results.")
 			return
@@ -538,7 +542,7 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, price, currency, stock_status, is_published, image_url, updated_at,
+		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at,
 		       COALESCE(dietary_type, ''), COALESCE(food_category, ''), COALESCE(preparation_time_min, 20)
 		FROM products
 		WHERE business_id = $1 AND is_published = true
@@ -558,13 +562,18 @@ func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 		var updated sql.NullTime
 		var dietary, foodCategory string
 		var prepTime int
+		var available sql.NullInt64
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
-			&p.StockStatus, &p.IsPublished, &image, &updated,
+			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated,
 			&dietary, &foodCategory, &prepTime); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read products.")
 			return
 		}
 		p.DietaryType = dietary
+		if available.Valid {
+			quantity := int(available.Int64)
+			p.AvailableQuantity = &quantity
+		}
 		p.FoodCategory = foodCategory
 		p.PreparationTimeMin = prepTime
 		if desc.Valid {

@@ -89,7 +89,7 @@ void main() {
   testWidgets(
     'MerchantRegistrationScreen renders wizard and switches steps cleanly',
     (tester) async {
-      await tester.pumpWidget(createTestWidget(initialMode: 0));
+      await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       // Verify AppBar & Stepper Header
@@ -260,7 +260,7 @@ void main() {
   testWidgets(
     'Switching between Register New and Claim Existing modes works dynamically',
     (tester) async {
-      await tester.pumpWidget(createTestWidget(initialMode: 0));
+      await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       expect(find.text('Select Enterprise Classification'), findsOneWidget);
@@ -287,7 +287,7 @@ void main() {
   testWidgets(
     'Selecting business models (Enterprise Classifications) updates selection cleanly',
     (tester) async {
-      await tester.pumpWidget(createTestWidget(initialMode: 0));
+      await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       // Default selection is Retail Shop & Showroom

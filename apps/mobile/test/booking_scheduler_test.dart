@@ -77,9 +77,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: BookingSchedulerScreen(
+      const ProviderScope(
+        child: const MaterialApp(
+          home: const BookingSchedulerScreen(
             business: dummyBiz,
             businessName:
                 'Generated Cuttack Business With A Very Long Validation Name',

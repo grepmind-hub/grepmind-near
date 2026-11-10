@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
 
 /// Screen allowing users to choose their active portal experience (RBAC):
 /// - Customer / Explorer
@@ -63,6 +64,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
         return user.roles.contains('merchant') ||
             user.roles.contains('professional');
       case 'rider':
+        return user.roles.contains('rider') && user.riderStatus == 'approved';
       case 'admin':
         return user.roles.contains(role);
       default:
@@ -260,9 +262,11 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                 subtitle: 'Delivery workspace for approved rider accounts. Dispatch and tracking tools are not available yet.',
                 badgeText: _checkingPermissions
                     ? 'Checking authorization'
-                    : user?.roles.contains('rider') == true
-                    ? 'Backend approved'
-                    : 'Requires backend approval',
+                    : user?.riderStatus == 'approved'
+                    ? 'Approved rider'
+                    : user?.riderStatus == null
+                    ? 'Application required'
+                    : 'Application: ${user!.riderStatus}',
                 themeColor: const Color(0xFF334155),
                 icon: Icons.pedal_bike_outlined,
                 features: const [],
@@ -270,6 +274,23 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     !_checkingPermissions &&
                     user != null &&
                     _canUseRole(user, 'rider'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const ValueKey('rider_application_entry'),
+                onPressed: _checkingPermissions || user == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const RiderApplicationScreen(),
+                        ),
+                      ),
+                icon: const Icon(Icons.assignment_ind_outlined),
+                label: Text(
+                  user?.riderStatus == null
+                      ? 'Apply to become a rider'
+                      : 'View rider application',
+                ),
               ),
               const SizedBox(height: 16),
 

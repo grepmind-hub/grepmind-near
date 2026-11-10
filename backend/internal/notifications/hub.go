@@ -32,11 +32,21 @@ type Client struct {
 	events     chan Event
 	businessID string
 	requestID  string
+	orderID    string
 	userID     string
 }
 
 // Matches checks if the client is interested in this event
 func (c *Client) Matches(e Event) bool {
+	// Order subscriptions are deliberately narrow: they do not also receive the
+	// customer's other notifications, even when the event targets that user.
+	if c.orderID != "" {
+		if e.Payload == nil || (c.userID != "" && e.UserID != c.userID) {
+			return false
+		}
+		orderID, ok := e.Payload["order_id"].(string)
+		return ok && orderID == c.orderID
+	}
 	// If the client specified a business filter, check business match
 	if c.businessID != "" && e.BusinessID != "" && c.businessID == e.BusinessID {
 		return true
@@ -58,22 +68,24 @@ func (c *Client) Matches(e Event) bool {
 
 // Hub manages active SSE connections and broadcasts events
 type Hub struct {
-	db         *sqlx.DB
-	clients    map[*Client]bool
-	broadcast  chan Event
-	register   chan *Client
-	unregister chan *Client
-	mu         sync.RWMutex
+	db                *sqlx.DB
+	clients           map[*Client]bool
+	broadcast         chan Event
+	register          chan *Client
+	unregister        chan *Client
+	mu                sync.RWMutex
+	heartbeatInterval time.Duration
 }
 
 // NewHub creates and starts a new Event Hub
 func NewHub(db *sqlx.DB) *Hub {
 	h := &Hub{
-		db:         db,
-		clients:    make(map[*Client]bool),
-		broadcast:  make(chan Event, 256),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		db:                db,
+		clients:           make(map[*Client]bool),
+		broadcast:         make(chan Event, 256),
+		register:          make(chan *Client),
+		unregister:        make(chan *Client),
+		heartbeatInterval: 15 * time.Second,
 	}
 	go h.run()
 	return h
@@ -157,7 +169,7 @@ func (h *Hub) Publish(ctx context.Context, event Event) {
 }
 
 // ServeSSE handles the streaming HTTP request
-func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
+func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request, authenticatedUserID string, authorize func(context.Context) bool) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
@@ -169,17 +181,21 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	bizID := r.URL.Query().Get("business_id")
 	reqID := r.URL.Query().Get("request_id")
+	orderID := r.URL.Query().Get("order_id")
 	userID := r.URL.Query().Get("user_id")
+	if orderID != "" {
+		userID = authenticatedUserID
+	}
 
 	client := &Client{
 		id:         uuid.NewString(),
 		events:     make(chan Event, 32),
 		businessID: bizID,
 		requestID:  reqID,
+		orderID:    orderID,
 		userID:     userID,
 	}
 
@@ -194,6 +210,7 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 		"client_id":   client.id,
 		"business_id": bizID,
 		"request_id":  reqID,
+		"order_id":    orderID,
 		"user_id":     userID,
 		"server_time": time.Now().UTC().Format(time.RFC3339),
 	})
@@ -201,7 +218,7 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 
 	// Heartbeat ticker to keep connection alive through Nginx
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(h.heartbeatInterval)
 	defer ticker.Stop()
 
 	for {
@@ -210,6 +227,9 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case <-ticker.C:
+			if authorize != nil && !authorize(r.Context()) {
+				return
+			}
 			fmt.Fprintf(w, ": ping %d\n\n", time.Now().Unix())
 			flusher.Flush()
 
@@ -217,11 +237,14 @@ func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
+			if authorize != nil && !authorize(r.Context()) {
+				return
+			}
 			eventData, err := json.Marshal(event)
 			if err != nil {
 				continue
 			}
-			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, eventData)
+			fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", event.ID, event.Type, eventData)
 			flusher.Flush()
 		}
 	}

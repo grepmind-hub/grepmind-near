@@ -165,7 +165,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 0
-                                ? AppTheme.primary.withOpacity(0.12)
+                                ? AppTheme.primary.withValues(alpha: 0.12)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -201,7 +201,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 1
-                                ? AppTheme.primary.withOpacity(0.12)
+                                ? AppTheme.primary.withValues(alpha: 0.12)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -332,7 +332,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
                     itemCount: prods.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final p = prods[index];
                       return _buildProductCard(p);
@@ -358,7 +358,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.08),
+                  color: AppTheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
@@ -367,7 +367,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         child: Image.network(
                           p.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.inventory_2_outlined,
                             color: AppTheme.primary,
                             size: 30,
@@ -602,7 +602,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
                     itemCount: srvs.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final s = srvs[index];
                       return _buildServiceCard(s);
@@ -635,7 +635,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F766E).withOpacity(0.1),
+                  color: const Color(0xFF0F766E).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -797,7 +797,6 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? AppTheme.primary : const Color(0xFFCBD5E1),
-            width: 1,
           ),
         ),
         child: Text(
@@ -902,7 +901,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
+                color: AppTheme.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -969,6 +968,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     );
     final imageCtrl = TextEditingController(text: product?.imageUrl ?? '');
     String stockStatus = product?.stockStatus ?? 'in_stock';
+    String inventoryMode = product?.inventoryMode ?? 'untracked';
+    final quantityCtrl = TextEditingController(
+      text: product?.availableQuantity?.toString() ?? '',
+    );
     bool isPublished = product?.isPublished ?? true;
     bool isUploadingImage = false;
     Uint8List? selectedSampleBytes;
@@ -1063,7 +1066,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: stockStatus,
+                    initialValue: stockStatus,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
@@ -1090,6 +1093,65 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       if (val != null) setModalState(() => stockStatus = val);
                     },
                   ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Quantity tracking',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: inventoryMode,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'untracked',
+                        child: Text('Not tracked'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'finite',
+                        child: Text('Track quantity'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setModalState(() => inventoryMode = value);
+                      }
+                    },
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Use not tracked for made-to-order items. Finite stock is reduced after an order is created.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                  ),
+                  if (inventoryMode == 'finite') ...[
+                    const SizedBox(height: 10),
+                    TextField(
+                      key: const Key('modal_product_quantity'),
+                      controller: quantityCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Available quantity',
+                        hintText: 'Enter current stock',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
 
                   // Description
@@ -1380,6 +1442,21 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           );
                           return;
                         }
+                        final availableQuantity = inventoryMode == 'finite'
+                            ? int.tryParse(quantityCtrl.text.trim())
+                            : null;
+                        if (inventoryMode == 'finite' &&
+                            (availableQuantity == null ||
+                                availableQuantity < 0)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Enter a valid available quantity.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
                         var imageUrl = imageCtrl.text.trim();
                         if (selectedSampleBytes != null) {
                           setModalState(() => isUploadingImage = true);
@@ -1419,6 +1496,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                     'description': descCtrl.text.trim(),
                                     'price': price,
                                     'stock_status': stockStatus,
+                                    'inventory_mode': inventoryMode,
+                                    'available_quantity': availableQuantity,
                                     'is_published': isPublished,
                                     'image_url': imageUrl,
                                   })
@@ -1429,6 +1508,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                     description: descCtrl.text.trim(),
                                     price: price,
                                     stockStatus: stockStatus,
+                                    inventoryMode: inventoryMode,
+                                    availableQuantity: availableQuantity,
                                     isPublished: isPublished,
                                     imageUrl: imageUrl,
                                   );

@@ -15,6 +15,8 @@ import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
 import 'package:grepmind_mobile/core/screens/saved_screen.dart';
+import 'package:grepmind_mobile/core/screens/customer_addresses_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -387,7 +389,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (user.roles.contains('merchant') ||
           user.roles.contains('professional'))
         'Merchant',
-      if (user.roles.contains('rider')) 'Rider',
+      if (user.roles.contains('rider') && user.riderStatus == 'approved')
+        'Rider',
       if (user.roles.contains('admin')) 'Admin',
     ];
 
@@ -419,6 +422,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const Divider(),
 
           if (activeRole == 'customer') ...[
+            _buildAccountOption(
+              icon: Icons.pedal_bike_outlined,
+              title: user.riderStatus == null
+                  ? 'Become a delivery partner'
+                  : 'Rider application',
+              subtitle: user.riderStatus == null
+                  ? 'Apply to join the Grepmind rider network'
+                  : 'Application status: ${user.riderStatus!.replaceAll('_', ' ')}',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const RiderApplicationScreen(),
+                ),
+              ),
+            ),
+            const Divider(),
+            _buildAccountOption(
+              icon: Icons.location_on_outlined,
+              title: 'Saved addresses',
+              subtitle: 'Manage delivery locations and contact details',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CustomerAddressesScreen(),
+                ),
+              ),
+            ),
+            const Divider(),
             _buildAccountOption(
               key: const ValueKey('profile_saved_businesses'),
               icon: Icons.favorite_border_rounded,

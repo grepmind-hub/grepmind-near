@@ -10,6 +10,7 @@ const roleOptions = [
   { id: 'customer', label: 'Customer', hint: 'Discovery and bookings' },
   { id: 'professional', label: 'Professional', hint: 'Service provider profile' },
   { id: 'rider', label: 'Rider', hint: 'Approve rider workspace access' },
+  { id: 'delivery_operator', label: 'Delivery operator', hint: 'Review and resolve audited delivery recovery cases' },
 ] as const;
 
 interface UserAccessViewProps {

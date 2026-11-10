@@ -1,7 +1,5 @@
-'use client';
+import { AdminPortalClient } from '@/components/AdminPortalClient';
 
-import AdminPortalPage from '../page';
-
-export default function DashboardPage() {
-  return <AdminPortalPage />;
+export default function DashboardRoute() {
+  return <AdminPortalClient />;
 }

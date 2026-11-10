@@ -32,14 +32,22 @@ type Config struct {
 	OTPProvider       string
 	OTPFrom           string
 
-	S3Endpoint  string
-	S3Region    string
-	S3Bucket    string
-	S3AccessKey string
-	S3SecretKey string
-	S3UseSSL    bool
+	S3Endpoint      string
+	S3Region        string
+	S3Bucket        string
+	S3PrivateBucket string
+	S3AccessKey     string
+	S3SecretKey     string
+	S3UseSSL        bool
 
 	FCMProjectID string
+
+	RiderDispatchEnabled        bool
+	RiderOfferTimeout           time.Duration
+	RiderAvailabilityLease      time.Duration
+	RiderEarningsPostingEnabled bool
+	RiderEarningsAllowSynthetic bool
+	RiderEarningsPolicyApproved bool
 
 	RateLimitAuth string
 	RateLimitAPI  string
@@ -49,10 +57,15 @@ type Config struct {
 }
 
 func Load() *Config {
+	appEnv := getenv("APP_ENV", "production")
+	syntheticRequested := strings.EqualFold(getenv("RIDER_EARNINGS_ALLOW_SYNTHETIC", "false"), "true")
+	syntheticAllowed := syntheticRequested && (strings.EqualFold(appEnv, "qa") || strings.EqualFold(appEnv, "test"))
+	policyApproved := strings.EqualFold(getenv("RIDER_EARNINGS_POLICY_APPROVED", "false"), "true")
+	postingRequested := strings.EqualFold(getenv("RIDER_EARNINGS_POSTING_ENABLED", "false"), "true")
 	return &Config{
 		// Fail closed when the environment is not explicitly marked local. The
 		// local Docker Compose stack sets APP_ENV=local by default.
-		Env:      getenv("APP_ENV", "production"),
+		Env:      appEnv,
 		Port:     getenv("APP_PORT", "8080"),
 		BaseURL:  getenv("APP_BASE_URL", "http://localhost:8080"),
 		LogLevel: getenv("LOG_LEVEL", "info"),
@@ -74,14 +87,26 @@ func Load() *Config {
 		OTPProvider:       getenv("OTP_PROVIDER", "stub"),
 		OTPFrom:           getenv("OTP_FROM", "Grepmind Near"),
 
-		S3Endpoint:  getenv("S3_ENDPOINT", "http://localhost:9000"),
-		S3Region:    getenv("S3_REGION", "us-east-1"),
-		S3Bucket:    getenv("S3_BUCKET", "grepmind-near"),
-		S3AccessKey: getenv("S3_ACCESS_KEY", "minioadmin"),
-		S3SecretKey: getenv("S3_SECRET_KEY", "minioadmin"),
-		S3UseSSL:    getenv("S3_USE_SSL", "false") == "true",
+		S3Endpoint:      getenv("S3_ENDPOINT", "http://localhost:9000"),
+		S3Region:        getenv("S3_REGION", "us-east-1"),
+		S3Bucket:        getenv("S3_BUCKET", "grepmind-near"),
+		S3PrivateBucket: getenv("S3_PRIVATE_BUCKET", "grepmind-near-private"),
+		S3AccessKey:     getenv("S3_ACCESS_KEY", "minioadmin"),
+		S3SecretKey:     getenv("S3_SECRET_KEY", "minioadmin"),
+		S3UseSSL:        getenv("S3_USE_SSL", "false") == "true",
 
 		FCMProjectID: getenv("FCM_PROJECT_ID", "grepmind-near-dev"),
+
+		// Dispatch is an explicit feature gate. It remains disabled in shared
+		// development/production unless an isolated QA operator opts in.
+		RiderDispatchEnabled:   strings.EqualFold(getenv("RIDER_DISPATCH_ENABLED", "false"), "true"),
+		RiderOfferTimeout:      parseDuration(getenv("RIDER_OFFER_TIMEOUT", "60s")),
+		RiderAvailabilityLease: parseDuration(getenv("RIDER_AVAILABILITY_LEASE", "90s")),
+		// Compensation is fail-closed until Grepmind approves a commercial policy.
+		// Synthetic policies are accepted only in explicitly isolated QA stacks.
+		RiderEarningsPostingEnabled: postingRequested && (syntheticAllowed || policyApproved),
+		RiderEarningsAllowSynthetic: syntheticAllowed,
+		RiderEarningsPolicyApproved: policyApproved,
 
 		RateLimitAuth: getenv("RATE_LIMIT_AUTH", "5/min"),
 		RateLimitAPI:  getenv("RATE_LIMIT_API", "100/min"),

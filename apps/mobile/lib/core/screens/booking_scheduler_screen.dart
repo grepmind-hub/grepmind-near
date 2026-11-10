@@ -100,8 +100,9 @@ class _BookingSchedulerScreenState
         return _currentService!.indicativePriceMin!.round();
       }
     }
-    if (_scopeOptions.isNotEmpty)
+    if (_scopeOptions.isNotEmpty) {
       return _scopeOptions[_selectedScopeIndex]['price'] as int;
+    }
     return 0;
   }
 
@@ -187,19 +188,21 @@ class _BookingSchedulerScreenState
               },
             ),
           );
-        if (_currentService == null && services.isNotEmpty)
+        if (_currentService == null && services.isNotEmpty) {
           _currentService = services.first;
+        }
         _availability = slots;
         _selectedSlotId = null;
         _selectedSlotTime = null;
         _loadingAvailability = false;
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _availability = [];
           _loadingAvailability = false;
         });
+      }
     }
   }
 
@@ -248,8 +251,9 @@ class _BookingSchedulerScreenState
       } catch (_) {
         rethrow;
       }
-      if (createdId == null || createdId.isEmpty)
+      if (createdId == null || createdId.isEmpty) {
         throw StateError('Booking was not persisted');
+      }
 
       await Future.delayed(const Duration(milliseconds: 400));
 
@@ -1106,10 +1110,10 @@ class _BookingSchedulerScreenState
                   _loadingAvailability
                       ? 'Loading…'
                       : '${_availability.length} available',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF059669),
+                    color: const Color(0xFF059669),
                   ),
                 ),
               ),
@@ -1497,16 +1501,16 @@ class _BookingSchedulerScreenState
                             strokeWidth: 2,
                           ),
                         )
-                      : Row(
+                      : const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.check_rounded,
                               color: Colors.white,
                               size: 18,
                             ),
-                            const SizedBox(width: 6),
-                            const Text(
+                            SizedBox(width: 6),
+                            Text(
                               'Book now',
                               style: TextStyle(
                                 fontSize: 15,

@@ -111,6 +111,60 @@ export interface Business {
   created_at: string;
 }
 
+export interface PlatformCatalogCategory {
+  id: string; vertical: 'food' | 'grocery'; slug: string; name: string;
+  parent_id: string | null; is_active: boolean; is_system: boolean; sort_order: number;
+}
+export interface PlatformCatalogVariant {
+  id: string; product_id: string; sku: string; name: string; unit_label: string;
+  price_minor: number; currency: string; price_revision: number; is_active: boolean;
+}
+export interface PlatformCatalogProduct {
+  id: string; sku: string; category_id: string; category_slug: string; category_name: string;
+  vertical: 'food' | 'grocery'; name: string; description: string; image_urls: string[];
+  tax_classification?: string; status: 'draft' | 'active' | 'inactive'; variants: PlatformCatalogVariant[];
+  areas: { city: 'Cuttack' | 'Jajpur'; locality?: string }[];
+}
+export interface PlatformPartnerMapping {
+  id: string; business_id: string; business_name: string; business_city?: string; variant_id: string;
+  product_name: string; variant_name: string; unit_label: string; vertical: 'food' | 'grocery';
+  status: 'pending' | 'approved' | 'rejected' | 'inactive'; inventory_mode: 'finite' | 'capacity' | 'untracked';
+  available_quantity?: number; capacity_per_day?: number; preparation_minutes?: number; supply_price_minor?: number;
+}
+
+export async function getPlatformCategories(): Promise<PlatformCatalogCategory[]> {
+  const res = await api.get<{ data: PlatformCatalogCategory[] }>('/admin/catalog/categories'); return res.data.data ?? [];
+}
+export async function createPlatformCategory(input: Pick<PlatformCatalogCategory, 'vertical'|'slug'|'name'> & { sort_order?: number }) {
+  return api.post('/admin/catalog/categories', input);
+}
+export async function updatePlatformCategory(id: string, input: Partial<Pick<PlatformCatalogCategory, 'name'|'is_active'|'sort_order'>>) {
+  return api.patch(`/admin/catalog/categories/${id}`, input);
+}
+export async function getPlatformProducts(): Promise<PlatformCatalogProduct[]> {
+  const res = await api.get<{ data: PlatformCatalogProduct[] }>('/admin/catalog/products', { params: { limit: 100 } }); return res.data.data ?? [];
+}
+export async function createPlatformProduct(input: Record<string, unknown>) { return api.post('/admin/catalog/products', input); }
+export async function uploadPlatformCatalogImage(file: File): Promise<string> {
+  const form = new FormData(); form.append('file', file); form.append('purpose', 'platform-catalog');
+  const response = await api.post<{ data: { url: string } }>('/media/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return response.data.data.url;
+}
+export async function updatePlatformProduct(id: string, input: Record<string, unknown>) { return api.patch(`/admin/catalog/products/${id}`, input); }
+export async function deactivatePlatformProduct(id: string) { return api.delete(`/admin/catalog/products/${id}`); }
+export async function createPlatformVariant(id: string, input: Record<string, unknown>) { return api.post(`/admin/catalog/products/${id}/variants`, input); }
+export async function updatePlatformVariant(id: string, input: Record<string, unknown>) { return api.patch(`/admin/catalog/variants/${id}`, input); }
+export async function getPlatformMappings(): Promise<PlatformPartnerMapping[]> {
+  const res = await api.get<{ data: PlatformPartnerMapping[] }>('/admin/catalog/partner-mappings'); return res.data.data ?? [];
+}
+export async function createPlatformMapping(input: Record<string, unknown>) { return api.post('/admin/catalog/partner-mappings', input); }
+export async function updatePlatformMapping(id: string, input: Record<string, unknown>) { return api.patch(`/admin/catalog/partner-mappings/${id}`, input); }
+export async function getPartnerCoverage(id: string): Promise<Record<string, unknown>[]> {
+  const res = await api.get<{ data: Record<string, unknown>[] }>(`/admin/catalog/partners/${id}/coverage`); return res.data.data ?? [];
+}
+export async function addPartnerCoverage(id: string, input: { city: string; locality?: string }) { return api.post(`/admin/catalog/partners/${id}/coverage`, input); }
+export async function deletePartnerCoverage(id: string, coverageId: string) { return api.delete(`/admin/catalog/partners/${id}/coverage/${coverageId}`); }
+
 export interface BusinessClaim {
   id: string;
   business_id: string;

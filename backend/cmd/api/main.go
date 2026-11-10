@@ -18,12 +18,18 @@ import (
 
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/businessclaims"
+	"grepmind-near/backend/internal/deliverydispatch"
 	"grepmind-near/backend/internal/discovery"
 	"grepmind-near/backend/internal/media"
 	"grepmind-near/backend/internal/merchantanalytics"
 	"grepmind-near/backend/internal/moderation"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
+	"grepmind-near/backend/internal/platformcatalog"
+	"grepmind-near/backend/internal/platformcommerce"
+	"grepmind-near/backend/internal/platformfulfillment"
+	"grepmind-near/backend/internal/riderearnings"
+	"grepmind-near/backend/internal/riders"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 	"grepmind-near/backend/pkg/logger"
@@ -53,7 +59,9 @@ func main() {
 	notifHub := notifications.NewHub(db.DB)
 	opsSvc := operations.NewService(db)
 
-	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub, opsSvc)
+	earningsSvc := riderearnings.NewService(db, cfg)
+	dispatchSvc := deliverydispatch.NewService(db, notifHub, cfg, earningsSvc.RecordCompletionTx)
+	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub, opsSvc, platformcommerce.NewService(db), dispatchSvc, earningsSvc)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -69,12 +77,15 @@ func main() {
 			log.Fatal().Err(err).Msg("api server failed")
 		}
 	}()
+	dispatchCtx, stopDispatch := context.WithCancel(context.Background())
+	dispatchSvc.Start(dispatchCtx)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	log.Info().Msg("shutting down")
+	stopDispatch()
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
@@ -83,10 +94,333 @@ func main() {
 	fmt.Println("api stopped")
 }
 
-func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub, opsSvc *operations.Service) *http.ServeMux {
+func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub, opsSvc *operations.Service, platformCommerceSvc *platformcommerce.Service, services ...any) *http.ServeMux {
 	mux := http.NewServeMux()
+	fulfillmentSvc := platformfulfillment.NewService(authSvc.DB())
+	if opsSvc != nil && notifHub != nil {
+		opsSvc.SetOrderStatusPublisher(func(ctx context.Context, customerID, businessID, orderID, status string) {
+			notifHub.Publish(ctx, notifications.Event{
+				Type: "order.status", UserID: customerID, BusinessID: businessID,
+				Title: "Order status updated", Body: "Your order status is now " + strings.ReplaceAll(status, "_", " ") + ".",
+				Payload: map[string]interface{}{"order_id": orderID, "status": status},
+			})
+		})
+	}
+	if notifHub != nil {
+		fulfillmentSvc.SetPublisher(func(ctx context.Context, customerID, businessID, orderID, status, reason string) {
+			labels := map[string]string{
+				"accepted":         "accepted",
+				"preparing":        "preparing",
+				"ready_for_pickup": "ready for pickup",
+				"rejected":         "could not accept",
+			}
+			payload := map[string]interface{}{"order_id": orderID, "status": status}
+			customerBody := "Your Grepmind order is " + labels[status] + "."
+			if status == "rejected" {
+				customerBody = "Your fulfillment partner could not accept the order: " + reason
+				payload["reason"] = reason
+			}
+			notifHub.Publish(ctx, notifications.Event{
+				Type: "order.status", UserID: customerID,
+				Title: "Order status updated", Body: customerBody, Payload: payload,
+			})
+			notifHub.Publish(ctx, notifications.Event{
+				Type: "platform.order.status", BusinessID: businessID,
+				Title: "Platform order updated", Body: "Order " + orderID + " is " + labels[status] + ".", Payload: payload,
+			})
+		})
+		if platformCommerceSvc != nil {
+			platformCommerceSvc.SetOrderAssignmentPublisher(func(ctx context.Context, customerID, businessID, orderID string) {
+				notifHub.Publish(ctx, notifications.Event{
+					Type: "platform.order.assigned", BusinessID: businessID,
+					Title: "New Grepmind order", Body: "A new platform order is awaiting your response.",
+					Payload: map[string]interface{}{"order_id": orderID, "status": "placed"},
+				})
+				notifHub.Publish(ctx, notifications.Event{
+					Type: "order.status", UserID: customerID,
+					Title: "Order placed", Body: "Your Grepmind order is awaiting partner acceptance.",
+					Payload: map[string]interface{}{"order_id": orderID, "status": "placed"},
+				})
+			})
+		}
+	}
 	claimsSvc := businessclaims.NewService(authSvc.DB())
 	analyticsSvc := merchantanalytics.NewService(authSvc.DB(), authSvc.ConfigSecret())
+	catalogSvc := platformcatalog.NewService(authSvc.DB())
+	riderSvc, riderSvcErr := riders.NewService(authSvc.DB(), config.Load())
+	var dispatchSvc *deliverydispatch.Service
+	var earningsSvc *riderearnings.Service
+	for _, service := range services {
+		switch value := service.(type) {
+		case *deliverydispatch.Service:
+			dispatchSvc = value
+		case *riderearnings.Service:
+			earningsSvc = value
+		}
+	}
+	if earningsSvc == nil {
+		earningsSvc = riderearnings.NewService(authSvc.DB(), config.Load())
+	}
+	if dispatchSvc == nil {
+		dispatchSvc = deliverydispatch.NewService(authSvc.DB(), notifHub, config.Load(), earningsSvc.RecordCompletionTx)
+	}
+	if riderSvcErr != nil {
+		logger.Log.Error().Err(riderSvcErr).Msg("rider document storage unavailable; uploads disabled")
+	}
+	if riderSvc != nil {
+		mux.HandleFunc("GET /api/v1/rider/localities", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.Localities(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/document-requirements", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.Requirements(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/application", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.OwnApplication(w, r, uid)
+		}))
+		mux.HandleFunc("PUT /api/v1/rider/application", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.SaveDraft(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/application/submit", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.Submit(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/application/documents", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.UploadDocument(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/profile", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.RiderProfile(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-applications", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminList(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-applications/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminDetail(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/rider-applications/{id}/review", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminReview(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/rider-documents/{id}/review", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminReviewDocument(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/rider-document-requirements", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminRequirement(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-document-requirements", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminRequirements(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/riders/{id}/suspend", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminSuspend(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/riders/{id}/reactivate", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminReactivate(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-documents/{id}/content", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.DocumentContent(w, r, uid)
+		}))
+	}
+	if dispatchSvc != nil && riderSvc != nil {
+		mux.HandleFunc("PUT /api/v1/rider/availability", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.SetAvailability(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/availability/heartbeat", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.Heartbeat(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/availability", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.Availability(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/offers", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.Offers(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/offers/{offerId}", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.GetOffer(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/offers/{offerId}/accept", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.RespondOffer(w, r, uid, "accept")
+		}))
+		mux.HandleFunc("POST /api/v1/rider/offers/{offerId}/decline", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.RespondOffer(w, r, uid, "decline")
+		}))
+		mux.HandleFunc("GET /api/v1/rider/assignments/active", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ActiveAssignment(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/state", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.RiderTransition(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/pickup/verify", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.VerifyPickup(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/delivery/confirm", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ConfirmDelivery(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/exceptions", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ReportException(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/unable-to-continue", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ReportUnableToContinue(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-jobs", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminBoard(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-operations/alerts", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminOperationsAlerts(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-jobs/{jobId}/events", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminEvents(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-jobs/{jobId}/execution-events", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminExecutionHistory(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-jobs/{jobId}/eligible-riders", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.EligibleRiders(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-jobs/{jobId}/retry", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.Retry(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-jobs/{jobId}/assign", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ManualAssign(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-offers/{offerId}/cancel", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.CancelOffer(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-exceptions", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminExceptions(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-jobs/{jobId}/exceptions/{exceptionId}/resolve", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ResolveException(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-recovery-cases", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminRecoveryCases(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/delivery-recovery-cases/{caseId}/events", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminRecoveryCaseEvents(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-jobs/{jobId}/recovery", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminRecover(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/delivery-jobs/{jobId}/return/finalize", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.AdminFinalizeReturn(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/delivery-dispatch", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.MerchantSummary(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/delivery-jobs/{jobId}/pickup-code", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.IssuePickupCode(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/delivery-jobs/{jobId}/return/confirm", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ConfirmReturn(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/delivery-jobs/{jobId}/return/disposition", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.RecordReturnDisposition(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/delivery-jobs/{jobId}/recovery/no-handover", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.ConfirmNoHandover(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/orders/{id}/delivery-status", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.CustomerSummary(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/orders/{id}/delivery-history", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.CustomerTimeline(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/orders/{id}/delivery-code", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			dispatchSvc.IssueDeliveryCode(w, r, uid)
+		}))
+	}
+	if earningsSvc != nil && riderSvc != nil {
+		mux.HandleFunc("GET /api/v1/rider/earnings/summary", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.RiderSummary(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/earnings", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.RiderHistory(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/earnings/{entryId}", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.RiderDetail(w, r, uid)
+		}))
+	}
+	if earningsSvc != nil {
+		// Rider financial data and mutations are restricted to the protected
+		// primary superadmin until granular financial reviewer roles are approved.
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/overview", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminOverview(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/localities", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminLocalities(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/entries", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminEntries(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/audit", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminAudit(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/policies", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminPolicies(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/rider-earnings/reconciliation", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminReconciliation(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/rider-earnings/adjustments", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminAdjustment(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/rider-earnings/entries/{entryId}/reverse", requirePrimarySuperadmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			earningsSvc.AdminReverse(w, r, uid)
+		}))
+	}
+
+	// Grepmind-owned catalog. These routes are separate from merchant-owned
+	// products and the existing customer_orders workflows.
+	mux.HandleFunc("GET /api/v1/catalog/locations", catalogSvc.ListDeliveryLocations)
+	mux.HandleFunc("GET /api/v1/catalog/categories", catalogSvc.ListPublicCategories)
+	mux.HandleFunc("GET /api/v1/catalog/products", catalogSvc.ListPublicProducts)
+	mux.HandleFunc("GET /api/v1/catalog/products/{id}", catalogSvc.GetPublicProduct)
+	mux.HandleFunc("GET /api/v1/admin/catalog/categories", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminListCategories(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/catalog/categories", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminCreateCategory(w, r, uid)
+	}))
+	mux.HandleFunc("PATCH /api/v1/admin/catalog/categories/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminUpdateCategory(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/catalog/products", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminListProducts(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/catalog/products", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminCreateProduct(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/catalog/products/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminGetProduct(w, r, uid)
+	}))
+	mux.HandleFunc("PATCH /api/v1/admin/catalog/products/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminUpdateProduct(w, r, uid)
+	}))
+	mux.HandleFunc("DELETE /api/v1/admin/catalog/products/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminDeleteProduct(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/catalog/products/{id}/variants", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminCreateVariant(w, r, uid)
+	}))
+	mux.HandleFunc("PATCH /api/v1/admin/catalog/variants/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminUpdateVariant(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/catalog/partner-mappings", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminListMappings(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/catalog/partner-mappings", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminCreateMapping(w, r, uid)
+	}))
+	mux.HandleFunc("PATCH /api/v1/admin/catalog/partner-mappings/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminUpdateMapping(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/catalog/partners/{businessId}/coverage", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminListCoverage(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/catalog/partners/{businessId}/coverage", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminAddCoverage(w, r, uid)
+	}))
+	mux.HandleFunc("DELETE /api/v1/admin/catalog/partners/{businessId}/coverage/{coverageId}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminDeleteCoverage(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{id}/catalog-capabilities", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.MerchantCapabilities(w, r, uid)
+	}))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{"status": "ok"})
@@ -99,7 +433,11 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 				writeError(w, http.StatusForbidden, "FORBIDDEN", "You do not have access to this event stream.")
 				return
 			}
-			notifHub.ServeSSE(w, r)
+			accessToken := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+			notifHub.ServeSSE(w, r, userID, func(ctx context.Context) bool {
+				_, err := authSvc.ValidateAccessToken(ctx, accessToken)
+				return err == nil
+			})
 		}))
 		mux.HandleFunc("GET /api/v1/notifications", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 			bizID := r.URL.Query().Get("business_id")
@@ -198,6 +536,30 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/businesses", discSvc.SearchBusinesses)
 	mux.HandleFunc("GET /api/v1/businesses/{id}", discSvc.GetBusiness)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/products", discSvc.ListProducts)
+	mux.HandleFunc("POST /api/v1/businesses/{id}/cart/validate", requireAuth(authSvc, func(_ *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.ValidateCart(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/businesses/{id}/orders/quote", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.CreateCheckoutQuote(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/platform/orders/quote", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		platformCommerceSvc.Quote(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/platform/orders", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		platformCommerceSvc.Submit(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/customer/addresses", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.ListCustomerAddresses(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/customer/addresses", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.CreateCustomerAddress(w, r, userID)
+	}))
+	mux.HandleFunc("PUT /api/v1/customer/addresses/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.UpdateCustomerAddress(w, r, userID)
+	}))
+	mux.HandleFunc("DELETE /api/v1/customer/addresses/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.DeleteCustomerAddress(w, r, userID)
+	}))
 	mux.HandleFunc("GET /api/v1/businesses/{id}/services", discSvc.ListServices)
 	mux.HandleFunc("GET /api/v1/businesses/{id}/offers", discSvc.ListOffers)
 	mux.HandleFunc("GET /api/v1/offers", discSvc.ListCityOffers)
@@ -225,11 +587,32 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/orders/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.GetOrder(w, r, userID)
 	}))
+	mux.HandleFunc("POST /api/v1/orders/{id}/support", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		opsSvc.CreateOrderSupportReport(w, r, userID)
+	}))
 	mux.HandleFunc("POST /api/v1/orders/{id}/cancel", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.CancelOrder(w, r, userID)
 	}))
 	mux.HandleFunc("PATCH /api/v1/merchant/orders/{id}/status", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.UpdateOrderStatus(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/platform-orders", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.List(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/platform-orders/{orderId}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.Get(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/platform-orders/{orderId}/accept", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.Accept(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/platform-orders/{orderId}/reject", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.Reject(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/platform-orders/{orderId}/prepare", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.Prepare(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/platform-orders/{orderId}/ready", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		fulfillmentSvc.Ready(w, r, userID)
 	}))
 
 	// Favorites (require auth)
@@ -462,6 +845,14 @@ func authMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *ht
 		}
 		rows.Close()
 	}
+	var riderStatus interface{}
+	var hasRiderSchema bool
+	if err := db.GetContext(r.Context(), &hasRiderSchema, `SELECT to_regclass('rider_profiles') IS NOT NULL`); err == nil && hasRiderSchema {
+		var status sql.NullString
+		if err := db.GetContext(r.Context(), &status, `SELECT status FROM rider_profiles WHERE user_id=$1`, userID); err == nil && status.Valid {
+			riderStatus = status.String
+		}
+	}
 	writeJSON(w, http.StatusOK, envelope{
 		"data": map[string]interface{}{
 			"id":                       u.ID,
@@ -472,6 +863,7 @@ func authMe(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *ht
 			"preferred_language":       u.PreferredLanguage,
 			"notification_preferences": json.RawMessage(u.NotificationPreferences),
 			"roles":                    roles,
+			"rider_status":             riderStatus,
 		},
 		"meta": map[string]string{"request_id": "me"},
 	})
@@ -964,7 +1356,7 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		return
 	}
 	rows, err := db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, price, currency, stock_status, is_published, image_url, updated_at
+		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at
 		FROM products
 		WHERE business_id = $1
 		ORDER BY updated_at DESC
@@ -981,8 +1373,9 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		var price sql.NullFloat64
 		var desc, image sql.NullString
 		var updated sql.NullTime
+		var available sql.NullInt64
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
-			&p.StockStatus, &p.IsPublished, &image, &updated); err != nil {
+			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated); err != nil {
 			continue
 		}
 		if desc.Valid {
@@ -993,6 +1386,10 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		}
 		if image.Valid {
 			p.ImageURL = image.String
+		}
+		if available.Valid {
+			value := int(available.Int64)
+			p.AvailableQuantity = &value
 		}
 		products = append(products, p)
 	}
@@ -1008,12 +1405,14 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		return
 	}
 	var req struct {
-		Name        string   `json:"name"`
-		Description *string  `json:"description"`
-		Price       *float64 `json:"price"`
-		StockStatus string   `json:"stock_status"`
-		IsPublished bool     `json:"is_published"`
-		ImageURL    *string  `json:"image_url"`
+		Name              string   `json:"name"`
+		Description       *string  `json:"description"`
+		Price             *float64 `json:"price"`
+		StockStatus       string   `json:"stock_status"`
+		InventoryMode     string   `json:"inventory_mode"`
+		AvailableQuantity *int     `json:"available_quantity"`
+		IsPublished       bool     `json:"is_published"`
+		ImageURL          *string  `json:"image_url"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name is required.")
@@ -1022,17 +1421,31 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	if req.StockStatus == "" {
 		req.StockStatus = "unknown"
 	}
+	if req.InventoryMode == "" {
+		req.InventoryMode = "untracked"
+	}
 	if !validProductInput(req.Name, req.Price, req.StockStatus) || req.Description != nil && len(*req.Description) > 2000 {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Product name, price, or stock status is invalid.")
 		return
 	}
+	if !validInventoryInput(req.InventoryMode, req.AvailableQuantity) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Finite inventory requires a non-negative available quantity.")
+		return
+	}
+	if req.InventoryMode == "finite" {
+		if *req.AvailableQuantity == 0 {
+			req.StockStatus = "out_of_stock"
+		} else if req.StockStatus == "unknown" || req.StockStatus == "out_of_stock" {
+			req.StockStatus = "in_stock"
+		}
+	}
 	req.Name = strings.TrimSpace(req.Name)
 	var newID string
 	err := db.QueryRowxContext(r.Context(), `
-		INSERT INTO products (business_id, name, description, price, stock_status, is_published, image_url, updated_at, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, now(), CASE WHEN $6 THEN now() ELSE NULL END)
+		INSERT INTO products (business_id, name, description, price, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), CASE WHEN $8 THEN now() ELSE NULL END)
 		RETURNING id
-	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.IsPublished, req.ImageURL).Scan(&newID)
+	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.InventoryMode, req.AvailableQuantity, req.IsPublished, req.ImageURL).Scan(&newID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product.")
 		return
@@ -1050,12 +1463,14 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 	prodID := r.PathValue("id")
 	var req struct {
-		Name        *string  `json:"name"`
-		Description *string  `json:"description"`
-		Price       *float64 `json:"price"`
-		StockStatus *string  `json:"stock_status"`
-		IsPublished *bool    `json:"is_published"`
-		ImageURL    *string  `json:"image_url"`
+		Name              *string  `json:"name"`
+		Description       *string  `json:"description"`
+		Price             *float64 `json:"price"`
+		StockStatus       *string  `json:"stock_status"`
+		InventoryMode     *string  `json:"inventory_mode"`
+		AvailableQuantity *int     `json:"available_quantity"`
+		IsPublished       *bool    `json:"is_published"`
+		ImageURL          *string  `json:"image_url"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
@@ -1069,13 +1484,53 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		trimmed := strings.TrimSpace(*req.Name)
 		req.Name = &trimmed
 	}
-	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.IsPublished == nil && req.ImageURL == nil {
+	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.InventoryMode == nil && req.AvailableQuantity == nil && req.IsPublished == nil && req.ImageURL == nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No product fields to update.")
 		return
 	}
 	setParts := []string{"updated_at = now()"}
 	args := []interface{}{prodID, bizID}
 	argIdx := 3
+	if req.InventoryMode != nil || req.AvailableQuantity != nil {
+		var currentMode string
+		var currentQuantity sql.NullInt64
+		if err := db.QueryRowxContext(r.Context(), `SELECT inventory_mode,available_quantity FROM products WHERE id=$1 AND business_id=$2`, prodID, bizID).Scan(&currentMode, &currentQuantity); err != nil {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "Product not found.")
+			return
+		}
+		mode := currentMode
+		if req.InventoryMode != nil {
+			mode = *req.InventoryMode
+		}
+		var quantity *int
+		if mode == "finite" {
+			if req.AvailableQuantity != nil {
+				quantity = req.AvailableQuantity
+			} else if currentQuantity.Valid {
+				v := int(currentQuantity.Int64)
+				quantity = &v
+			}
+		}
+		if !validInventoryInput(mode, quantity) {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Finite inventory requires a non-negative available quantity.")
+			return
+		}
+		setParts = append(setParts, fmt.Sprintf("inventory_mode = $%d", argIdx))
+		args = append(args, mode)
+		argIdx++
+		setParts = append(setParts, fmt.Sprintf("available_quantity = $%d", argIdx))
+		args = append(args, quantity)
+		argIdx++
+		if mode == "finite" {
+			status := "in_stock"
+			if *quantity == 0 {
+				status = "out_of_stock"
+			}
+			setParts = append(setParts, fmt.Sprintf("stock_status = $%d", argIdx))
+			args = append(args, status)
+			argIdx++
+		}
+	}
 	if req.Name != nil {
 		setParts = append(setParts, fmt.Sprintf("name = $%d", argIdx))
 		args = append(args, *req.Name)
@@ -2184,7 +2639,18 @@ func authorizeNotificationScope(ctx context.Context, db *database.DB, userID, bu
 func authorizeEventSubscription(ctx context.Context, db *database.DB, r *http.Request, userID string) bool {
 	businessID := r.URL.Query().Get("business_id")
 	requestID := r.URL.Query().Get("request_id")
+	orderID := r.URL.Query().Get("order_id")
 	requestedUserID := r.URL.Query().Get("user_id")
+	if orderID != "" {
+		// An order-scoped stream must not be broadened by combining it with a
+		// business, booking, or whole-user filter.
+		if businessID != "" || requestID != "" || requestedUserID != "" {
+			return false
+		}
+		var allowed bool
+		err := db.GetContext(ctx, &allowed, `SELECT EXISTS(SELECT 1 FROM customer_orders WHERE id=$1 AND customer_user_id=$2)`, orderID, userID)
+		return err == nil && allowed
+	}
 	if requestedUserID != "" && requestedUserID != userID {
 		return false
 	}
@@ -2218,6 +2684,18 @@ func requireAuth(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 	}
 }
 
+// requireRider checks current database entitlement and approval on every
+// request, so an unexpired JWT cannot preserve access after suspension.
+func requireRider(authSvc *auth.Service, riderSvc *riders.Service, next authedHandler) http.HandlerFunc {
+	return requireAuth(authSvc, func(a *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		if riderSvc == nil || !riderSvc.CanUseRider(r.Context(), userID) {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "Approved active rider access is required.")
+			return
+		}
+		next(a, db, w, r, userID)
+	})
+}
+
 func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -2241,6 +2719,28 @@ func requireAdmin(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
 		}
 		next(authSvc, authSvc.DB(), w, r, claims.Subject)
 	}
+}
+
+// requireDeliveryOperator confines recovery and final-return authority to the
+// primary superadmin or admins explicitly granted delivery_operator by the
+// existing root-protected user-access workflow.
+func requireDeliveryOperator(authSvc *auth.Service, next authedHandler) http.HandlerFunc {
+	return requireAdmin(authSvc, func(a *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		var allowed bool
+		err := db.QueryRowContext(r.Context(), `SELECT EXISTS(
+			SELECT 1 FROM users u WHERE u.id=$1 AND u.status='active' AND u.phone_e164='+910000000000'
+			UNION ALL
+			SELECT 1 FROM users u
+			JOIN user_roles admin_role ON admin_role.user_id=u.id AND admin_role.role='admin'
+			JOIN user_roles recovery_role ON recovery_role.user_id=u.id AND recovery_role.role='delivery_operator'
+			WHERE u.id=$1 AND u.status='active'
+		)`, userID).Scan(&allowed)
+		if err != nil || !allowed {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "Delivery operator permission is required.")
+			return
+		}
+		next(a, db, w, r, userID)
+	})
 }
 
 // requirePrimarySuperadmin protects high-impact platform role changes from
@@ -2287,6 +2787,13 @@ func validStockStatus(value string) bool {
 func validProductInput(name string, price *float64, stockStatus string) bool {
 	name = strings.TrimSpace(name)
 	return len(name) >= 2 && len(name) <= 100 && (price == nil || (*price >= 0 && *price <= 9999999999.99)) && validStockStatus(stockStatus)
+}
+
+func validInventoryInput(mode string, quantity *int) bool {
+	if mode == "untracked" {
+		return quantity == nil
+	}
+	return mode == "finite" && quantity != nil && *quantity >= 0 && *quantity <= 1000000
 }
 
 func validBusinessTime(value string) bool {

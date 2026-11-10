@@ -157,6 +157,20 @@ class Business extends Equatable {
     return '${(distanceM! / 1000).toStringAsFixed(1)} km';
   }
 
+  bool get supportsFoodOrdering =>
+      deliveryEnabled &&
+      (categorySlug == 'restaurant' || categorySlug == 'cafe');
+
+  bool get shouldOpenServiceProfile =>
+      !supportsFoodOrdering &&
+      (const {
+            'electrician',
+            'plumber',
+            'carpenter',
+            'tailor',
+          }.contains(categorySlug) ||
+          acceptsRequests);
+
   @override
   List<Object?> get props => [
     id,
@@ -222,6 +236,13 @@ class BusinessDetail extends Business {
     super.latitude,
     super.longitude,
     super.description,
+    super.deliveryEnabled,
+    super.deliveryTimeMins,
+    super.deliveryFee,
+    super.minOrderAmount,
+    super.tableBookingEnabled,
+    super.roomBookingEnabled,
+    super.amenities,
     this.businessHours = const [],
     this.products = const [],
     this.offers = const [],
@@ -260,6 +281,17 @@ class BusinessDetail extends Business {
       description: json['description'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      deliveryEnabled: json['delivery_enabled'] as bool? ?? false,
+      deliveryTimeMins: json['delivery_time_mins'] as int? ?? 30,
+      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
+      minOrderAmount: (json['min_order_amount'] as num?)?.toDouble() ?? 0,
+      tableBookingEnabled: json['table_booking_enabled'] as bool? ?? false,
+      roomBookingEnabled: json['room_booking_enabled'] as bool? ?? false,
+      amenities:
+          (json['amenities'] as List<dynamic>?)
+              ?.map((value) => value.toString())
+              .toList() ??
+          const [],
       businessHours:
           (json['business_hours'] as List<dynamic>?)
               ?.map((e) => BusinessHour.fromJson(e as Map<String, dynamic>))
@@ -357,6 +389,8 @@ class Product extends Equatable {
   final double? price;
   final String currency;
   final String stockStatus;
+  final String inventoryMode;
+  final int? availableQuantity;
   final bool isPublished;
   final String? imageUrl;
   final DateTime? updatedAt;
@@ -372,6 +406,8 @@ class Product extends Equatable {
     this.price,
     this.currency = 'INR',
     this.stockStatus = 'unknown',
+    this.inventoryMode = 'untracked',
+    this.availableQuantity,
     this.isPublished = false,
     this.imageUrl,
     this.updatedAt,
@@ -389,6 +425,8 @@ class Product extends Equatable {
       price: (json['price'] as num?)?.toDouble(),
       currency: json['currency'] as String? ?? 'INR',
       stockStatus: json['stock_status'] as String? ?? 'unknown',
+      inventoryMode: json['inventory_mode'] as String? ?? 'untracked',
+      availableQuantity: (json['available_quantity'] as num?)?.toInt(),
       isPublished: json['is_published'] as bool? ?? false,
       imageUrl: json['image_url'] as String?,
       updatedAt: json['updated_at'] != null
@@ -419,6 +457,8 @@ class Product extends Equatable {
     price,
     currency,
     stockStatus,
+    inventoryMode,
+    availableQuantity,
     isPublished,
     imageUrl,
     updatedAt,
@@ -598,6 +638,7 @@ class AppUser extends Equatable {
   final String preferredLanguage;
   final List<String> roles;
   final Map<String, bool> notificationPreferences;
+  final String? riderStatus;
 
   const AppUser({
     required this.id,
@@ -612,6 +653,7 @@ class AppUser extends Equatable {
       'offers': true,
       'service_updates': true,
     },
+    this.riderStatus,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -634,6 +676,7 @@ class AppUser extends Equatable {
             'offers': true,
             'service_updates': true,
           },
+      riderStatus: json['rider_status'] as String?,
     );
   }
 
@@ -652,6 +695,7 @@ class AppUser extends Equatable {
       'preferred_language': preferredLanguage,
       'roles': roles,
       'notification_preferences': notificationPreferences,
+      'rider_status': riderStatus,
     };
   }
 
@@ -665,6 +709,7 @@ class AppUser extends Equatable {
     preferredLanguage,
     roles,
     notificationPreferences,
+    riderStatus,
   ];
 }
 

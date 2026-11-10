@@ -155,6 +155,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return user.roles.contains('merchant') ||
             user.roles.contains('professional');
       case 'rider':
+        return user.roles.contains('rider') && user.riderStatus == 'approved';
       case 'admin':
         return user.roles.contains(role);
       default:
@@ -323,16 +324,7 @@ class AppLocation {
 
 class LocationNotifier extends StateNotifier<AppLocation> {
   LocationNotifier()
-    : super(
-        const AppLocation(
-          cityName: '',
-          localityName: '',
-          latitude: 0,
-          longitude: 0,
-          isSupported: true,
-          activeBusinessCount: 0,
-        ),
-      );
+    : super(const AppLocation(cityName: '', latitude: 0, longitude: 0));
   Future<void>? _defaultLocationLoad;
 
   Future<void> loadDefaultLocation() {
@@ -728,7 +720,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   Future<bool> clearAll() async {
     final savedItems = List<Business>.of(state.items);
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true);
     try {
       for (final business in savedItems) {
         final res = await apiClient.post('/businesses/${business.id}/favorite');
@@ -1231,6 +1223,8 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
     String? description,
     double? price,
     String stockStatus = 'in_stock',
+    String inventoryMode = 'untracked',
+    int? availableQuantity,
     bool isPublished = true,
     String? imageUrl,
   }) async {
@@ -1242,6 +1236,8 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
           'description': description,
           'price': price,
           'stock_status': stockStatus,
+          'inventory_mode': inventoryMode,
+          'available_quantity': availableQuantity,
           'is_published': isPublished,
           'image_url': imageUrl,
         },
@@ -1409,42 +1405,12 @@ class MerchantHoursCoverageNotifier
 
   static List<BusinessHour> defaultSevenDays() {
     return [
-      const BusinessHour(
-        weekday: 1,
-        opensAt: '09:00:00',
-        closesAt: '20:00:00',
-        isClosed: false,
-      ),
-      const BusinessHour(
-        weekday: 2,
-        opensAt: '09:00:00',
-        closesAt: '20:00:00',
-        isClosed: false,
-      ),
-      const BusinessHour(
-        weekday: 3,
-        opensAt: '09:00:00',
-        closesAt: '20:00:00',
-        isClosed: false,
-      ),
-      const BusinessHour(
-        weekday: 4,
-        opensAt: '09:00:00',
-        closesAt: '20:00:00',
-        isClosed: false,
-      ),
-      const BusinessHour(
-        weekday: 5,
-        opensAt: '09:00:00',
-        closesAt: '20:00:00',
-        isClosed: false,
-      ),
-      const BusinessHour(
-        weekday: 6,
-        opensAt: '10:00:00',
-        closesAt: '18:00:00',
-        isClosed: false,
-      ),
+      const BusinessHour(weekday: 1, opensAt: '09:00:00', closesAt: '20:00:00'),
+      const BusinessHour(weekday: 2, opensAt: '09:00:00', closesAt: '20:00:00'),
+      const BusinessHour(weekday: 3, opensAt: '09:00:00', closesAt: '20:00:00'),
+      const BusinessHour(weekday: 4, opensAt: '09:00:00', closesAt: '20:00:00'),
+      const BusinessHour(weekday: 5, opensAt: '09:00:00', closesAt: '20:00:00'),
+      const BusinessHour(weekday: 6, opensAt: '10:00:00', closesAt: '18:00:00'),
       const BusinessHour(
         weekday: 0,
         opensAt: '09:00:00',
@@ -1455,7 +1421,7 @@ class MerchantHoursCoverageNotifier
   }
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true);
     try {
       // 1. Load Hours
       try {
@@ -1571,7 +1537,7 @@ class MerchantHoursCoverageNotifier
   }
 
   Future<bool> saveOperatingHours() async {
-    state = state.copyWith(isSaving: true, error: null);
+    state = state.copyWith(isSaving: true);
     try {
       final payload = {
         'hours': state.hours
@@ -1601,7 +1567,7 @@ class MerchantHoursCoverageNotifier
   }
 
   Future<bool> saveCoverage() async {
-    state = state.copyWith(isSaving: true, error: null);
+    state = state.copyWith(isSaving: true);
     try {
       final payload = {
         'service_radius_m': state.serviceRadiusM,
@@ -1623,7 +1589,7 @@ class MerchantHoursCoverageNotifier
   }
 
   void clearMessages() {
-    state = state.copyWith(error: null, successMessage: null);
+    state = state.copyWith(successMessage: null);
   }
 }
 

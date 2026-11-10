@@ -1,13 +1,46 @@
-enum OrderType { foodDelivery, tableReservation, hotelBooking, serviceBooking }
+enum OrderType {
+  foodDelivery,
+  platformOrder,
+  tableReservation,
+  hotelBooking,
+  serviceBooking,
+}
 
 enum OrderStatus {
   placed,
+  accepted,
   preparing,
+  readyForPickup,
+  rejected,
   outForDelivery,
   delivered,
   confirmed,
   completed,
   cancelled,
+}
+
+class OrderStatusEvent {
+  final OrderStatus status;
+  final String eventKind;
+  final String? reason;
+  final DateTime createdAt;
+
+  const OrderStatusEvent({
+    required this.status,
+    required this.eventKind,
+    this.reason,
+    required this.createdAt,
+  });
+
+  factory OrderStatusEvent.fromJson(Map<String, dynamic> json) =>
+      OrderStatusEvent(
+        status: CustomerOrder.parseStatus(json['status'] as String?),
+        eventKind: json['event_kind'] as String? ?? 'status_change',
+        reason: json['reason'] as String?,
+        createdAt:
+            DateTime.tryParse(json['created_at'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      );
 }
 
 class CustomerOrderItem {
@@ -57,7 +90,11 @@ class CustomerOrder {
   final String? businessPhone;
   final String? businessCoverUrl;
   final OrderType orderType;
+  final String? platformVertical;
+  final String? orderSource;
   final OrderStatus status;
+  final String paymentStatus;
+  final List<OrderStatusEvent> statusEvents;
   final DateTime createdAt;
   final bool isDelivery;
   final String? deliveryAddress;
@@ -91,7 +128,11 @@ class CustomerOrder {
     this.businessPhone,
     this.businessCoverUrl,
     required this.orderType,
+    this.platformVertical,
+    this.orderSource,
     required this.status,
+    this.paymentStatus = 'not_collected',
+    this.statusEvents = const [],
     required this.createdAt,
     this.isDelivery = true,
     this.deliveryAddress,
@@ -118,21 +159,19 @@ class CustomerOrder {
 
   factory CustomerOrder.fromJson(Map<String, dynamic> json) {
     final type = switch (json['order_type']) {
+      'platform_order' => OrderType.platformOrder,
       'table_reservation' => OrderType.tableReservation,
       'hotel_booking' => OrderType.hotelBooking,
       'service_booking' => OrderType.serviceBooking,
       _ => OrderType.foodDelivery,
     };
-    final status = switch (json['status']) {
-      'confirmed' => OrderStatus.confirmed,
-      'preparing' => OrderStatus.preparing,
-      'out_for_delivery' => OrderStatus.outForDelivery,
-      'delivered' => OrderStatus.delivered,
-      'completed' => OrderStatus.completed,
-      'cancelled' => OrderStatus.cancelled,
-      _ => OrderStatus.placed,
-    };
-    final items = (json['items'] as List<dynamic>? ?? [])
+    final status = parseStatus(json['status'] as String?);
+    final statusEvents = (json['status_events'] as List<dynamic>? ?? const [])
+        .map(
+          (event) => OrderStatusEvent.fromJson(event as Map<String, dynamic>),
+        )
+        .toList();
+    final items = (json['items'] as List<dynamic>? ?? const [])
         .map(
           (entry) => CustomerOrderItem.fromJson(entry as Map<String, dynamic>),
         )
@@ -148,7 +187,11 @@ class CustomerOrder {
       businessPhone: json['business_phone'] as String?,
       businessCoverUrl: json['business_cover_url'] as String?,
       orderType: type,
+      platformVertical: json['platform_vertical'] as String?,
+      orderSource: json['order_source'] as String?,
       status: status,
+      paymentStatus: json['payment_status'] as String? ?? 'not_collected',
+      statusEvents: statusEvents,
       createdAt: DateTime.parse(json['created_at'] as String),
       isDelivery: json['fulfillment_type'] == 'delivery',
       deliveryAddress: json['delivery_address'] as String?,
@@ -182,16 +225,34 @@ class CustomerOrder {
     );
   }
 
+  static OrderStatus parseStatus(String? raw) {
+    return switch (raw) {
+      'accepted' => OrderStatus.accepted,
+      'confirmed' => OrderStatus.confirmed,
+      'preparing' => OrderStatus.preparing,
+      'ready_for_pickup' => OrderStatus.readyForPickup,
+      'rejected' => OrderStatus.rejected,
+      'out_for_delivery' => OrderStatus.outForDelivery,
+      'delivered' => OrderStatus.delivered,
+      'completed' => OrderStatus.completed,
+      'cancelled' => OrderStatus.cancelled,
+      _ => OrderStatus.placed,
+    };
+  }
+
   bool get isActive {
     switch (status) {
       case OrderStatus.placed:
+      case OrderStatus.accepted:
       case OrderStatus.preparing:
+      case OrderStatus.readyForPickup:
       case OrderStatus.outForDelivery:
       case OrderStatus.confirmed:
         return true;
       case OrderStatus.delivered:
       case OrderStatus.completed:
       case OrderStatus.cancelled:
+      case OrderStatus.rejected:
         return false;
     }
   }
@@ -200,8 +261,14 @@ class CustomerOrder {
     switch (status) {
       case OrderStatus.placed:
         return 'Order Placed';
+      case OrderStatus.accepted:
+        return 'Accepted by partner';
       case OrderStatus.preparing:
         return 'Preparing in Kitchen';
+      case OrderStatus.readyForPickup:
+        return 'Ready for pickup';
+      case OrderStatus.rejected:
+        return 'Partner unable to accept';
       case OrderStatus.outForDelivery:
         return 'Out for Delivery';
       case OrderStatus.delivered:
@@ -224,6 +291,8 @@ class CustomerOrder {
     String? businessCoverUrl,
     OrderType? orderType,
     OrderStatus? status,
+    String? paymentStatus,
+    List<OrderStatusEvent>? statusEvents,
     DateTime? createdAt,
     bool? isDelivery,
     String? deliveryAddress,
@@ -256,6 +325,8 @@ class CustomerOrder {
       businessCoverUrl: businessCoverUrl ?? this.businessCoverUrl,
       orderType: orderType ?? this.orderType,
       status: status ?? this.status,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      statusEvents: statusEvents ?? this.statusEvents,
       createdAt: createdAt ?? this.createdAt,
       isDelivery: isDelivery ?? this.isDelivery,
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,

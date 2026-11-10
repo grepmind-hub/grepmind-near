@@ -1,7 +1,5 @@
-'use client';
-
-import AdminPortalPage from '../../page';
+import { AdminPortalClient } from '@/components/AdminPortalClient';
 
 export default function OwnershipClaimsRoute() {
-  return <AdminPortalPage initialTab="claims" />;
+  return <AdminPortalClient initialTab="claims" />;
 }

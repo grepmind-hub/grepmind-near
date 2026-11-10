@@ -23,6 +23,44 @@ export interface RealtimeNotification {
   created_at: string;
 }
 
+export interface MerchantPlatformOrder {
+  id: string;
+  business_id: string;
+  reference_code: string;
+  status: 'placed' | 'accepted' | 'preparing' | 'ready_for_pickup' | 'rejected' | 'cancelled';
+  vertical: 'food' | 'grocery';
+  delivery_locality: string;
+  delivery_district: string;
+  special_instructions?: string;
+  payment_status: string;
+  created_at: string;
+  updated_at: string;
+  items: { product_name: string; variant_name: string; unit_label: string; quantity: number }[];
+  status_events: { status: string; event_kind: string; reason?: string; created_at: string }[];
+}
+
+export interface MerchantDeliveryDispatchSummary {
+  order_id: string;
+  job_id: string;
+  assignment_id?: string | null;
+  delivery_state: string;
+  execution_state: string;
+  rider_assigned: boolean;
+  dispatch_status: string;
+  rider_name?: string | null;
+  rider_arriving_at?: string | null;
+  pickup_verified_at?: string | null;
+  picked_up_at?: string | null;
+  en_route_at?: string | null;
+  delivered_at?: string | null;
+  open_exception_type?: string | null;
+  open_exception_reason?: string | null;
+  partner_confirmed_no_handover?: boolean;
+  inventory_disposition?: 'pending' | 'restockable' | 'not_restockable' | '';
+  return_received_at?: string | null;
+  return_finalized_at?: string | null;
+}
+
 let refreshInFlight: Promise<string | null> | null = null;
 
 export class MerchantApiError extends Error {
@@ -104,6 +142,46 @@ export async function updateServiceRequestStatus(businessId: string, requestId: 
   await merchantApi(`/merchant/businesses/${encodeURIComponent(businessId)}/requests/${encodeURIComponent(requestId)}/status`, {
     method: 'PATCH', body: JSON.stringify({ status }),
   });
+}
+
+export async function fetchMerchantPlatformOrders(businessId: string): Promise<MerchantPlatformOrder[]> {
+  return merchantApi<MerchantPlatformOrder[]>(`/merchant/businesses/${encodeURIComponent(businessId)}/platform-orders?limit=50`);
+}
+
+export async function fetchMerchantDeliveryDispatch(businessId: string): Promise<MerchantDeliveryDispatchSummary[]> {
+  return merchantApi<MerchantDeliveryDispatchSummary[]>(`/merchant/businesses/${encodeURIComponent(businessId)}/delivery-dispatch`);
+}
+
+export async function issueMerchantPickupCode(businessId: string, jobId: string): Promise<{ pickup_code: string; expires_in_seconds: number }> {
+  return merchantApi(`/merchant/businesses/${encodeURIComponent(businessId)}/delivery-jobs/${encodeURIComponent(jobId)}/pickup-code`, { method: 'POST' });
+}
+
+export async function confirmMerchantReturn(businessId: string, jobId: string): Promise<void> {
+  await merchantApi(`/merchant/businesses/${encodeURIComponent(businessId)}/delivery-jobs/${encodeURIComponent(jobId)}/return/confirm`, { method: 'POST' });
+}
+
+export async function confirmMerchantNoHandover(businessId: string, jobId: string, assignmentId: string, reason: string, idempotencyKey: string): Promise<void> {
+  await merchantApi(`/merchant/businesses/${encodeURIComponent(businessId)}/delivery-jobs/${encodeURIComponent(jobId)}/recovery/no-handover`, {
+    method: 'POST', headers: {'Idempotency-Key': idempotencyKey}, body: JSON.stringify({assignment_id: assignmentId, reason}),
+  });
+}
+
+export async function submitMerchantReturnDisposition(businessId: string, jobId: string, inventoryDisposition: 'restockable'|'not_restockable', reason: string, idempotencyKey: string): Promise<void> {
+  await merchantApi(`/merchant/businesses/${encodeURIComponent(businessId)}/delivery-jobs/${encodeURIComponent(jobId)}/return/disposition`, {
+    method: 'POST', headers: {'Idempotency-Key': idempotencyKey}, body: JSON.stringify({inventory_disposition: inventoryDisposition, reason}),
+  });
+}
+
+export async function updateMerchantPlatformOrder(
+  businessId: string,
+  orderId: string,
+  action: 'accept' | 'reject' | 'prepare' | 'ready',
+  reason?: string,
+): Promise<MerchantPlatformOrder> {
+  return merchantApi<MerchantPlatformOrder>(
+    `/merchant/businesses/${encodeURIComponent(businessId)}/platform-orders/${encodeURIComponent(orderId)}/${action}`,
+    { method: 'POST', ...(action === 'reject' ? { body: JSON.stringify({ reason }) } : {}) },
+  );
 }
 
 export async function logoutMerchant(): Promise<void> {

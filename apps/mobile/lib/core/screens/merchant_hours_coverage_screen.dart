@@ -85,7 +85,6 @@ class _MerchantHoursCoverageScreenState
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppTheme.primary,
-              onPrimary: Colors.white,
               onSurface: AppTheme.mainText,
             ),
           ),
@@ -231,19 +230,19 @@ class _MerchantHoursCoverageScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.08),
+              color: AppTheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline,
                   color: AppTheme.primary,
                   size: 22,
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'Set weekly store & booking hours. Customers see real-time "Open Now" or "Closed" statuses.',
                     style: TextStyle(
@@ -355,7 +354,6 @@ class _MerchantHoursCoverageScreenState
 
           // Holiday / Exceptions Note
           PremiumCard(
-            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -438,11 +436,11 @@ class _MerchantHoursCoverageScreenState
           border: Border.all(
             color: hour.isClosed
                 ? const Color(0xFFE2E8F0)
-                : AppTheme.primary.withOpacity(0.2),
+                : AppTheme.primary.withValues(alpha: 0.2),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -461,8 +459,8 @@ class _MerchantHoursCoverageScreenState
                     color: hour.isClosed
                         ? const Color(0xFFF1F5F9)
                         : (isWeekend
-                              ? const Color(0xFF0F766E).withOpacity(0.12)
-                              : AppTheme.primary.withOpacity(0.1)),
+                              ? const Color(0xFF0F766E).withValues(alpha: 0.12)
+                              : AppTheme.primary.withValues(alpha: 0.1)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
@@ -649,14 +647,13 @@ class _MerchantHoursCoverageScreenState
           const SizedBox(height: 14),
           // Store Location Summary
           PremiumCard(
-            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F766E).withOpacity(0.12),
+                    color: const Color(0xFF0F766E).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -867,15 +864,14 @@ class _MerchantHoursCoverageScreenState
 
           // On-Demand / Urgent Requests Toggle
           PremiumCard(
-            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: state.acceptsRequests
-                        ? const Color(0xFF16A34A).withOpacity(0.1)
-                        : const Color(0xFFEF4444).withOpacity(0.1),
+                        ? const Color(0xFF16A34A).withValues(alpha: 0.1)
+                        : const Color(0xFFEF4444).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -940,7 +936,7 @@ class _MerchantHoursCoverageScreenState
         border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),

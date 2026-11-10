@@ -12,7 +12,9 @@ import { TeamManager } from '../components/TeamManager';
 import { AuthLoginView } from '../components/AuthLoginView';
 import { NewStoreOnboardingModal } from '../components/NewStoreOnboardingModal';
 import { OffersManager } from '../components/OffersManager';
+import { PlatformOrdersManager } from '../components/PlatformOrdersManager';
 import type { Business, MerchantOffer, MerchantSession, OperatingHoursDay, ProductItem, ServiceItem, ServiceRequest, TeamMember } from '../lib/types';
+import type { MerchantPlatformOrder } from '../lib/api';
 import {
   createMerchantOffer, createMerchantProduct, createMerchantService,
   createMerchantTeamMember, deleteMerchantOffer, deleteMerchantProduct, deleteMerchantService,
@@ -21,6 +23,7 @@ import {
   saveMerchantCoverage, saveOperatingHours, setMerchantProductStock, subscribeToEvents,
   updateMerchantProduct, updateMerchantService,
   updateServiceRequestStatus,
+  fetchMerchantPlatformOrders, updateMerchantPlatformOrder,
 } from '../lib/api';
 
 const weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -52,6 +55,10 @@ export default function MerchantWorkspacePage() {
   const [incomingAlert, setIncomingAlert] = useState<{ id: string; customerName: string; serviceName: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [platformOrders, setPlatformOrders] = useState<MerchantPlatformOrder[]>([]);
+  const [platformOrdersLoading, setPlatformOrdersLoading] = useState(false);
+  const [platformOrdersError, setPlatformOrdersError] = useState<string | null>(null);
+  const [busyPlatformOrderId, setBusyPlatformOrderId] = useState<string | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
@@ -167,10 +174,34 @@ export default function MerchantWorkspacePage() {
     catch (error) { setLoadError(error instanceof Error ? error.message : 'Unable to refresh notifications.'); }
   }, [currentBusiness]);
 
+  const refreshPlatformOrders = useCallback(async () => {
+    if (!currentBusiness) return;
+    setPlatformOrdersLoading(true);
+    setPlatformOrdersError(null);
+    try { setPlatformOrders(await fetchMerchantPlatformOrders(currentBusiness.id)); }
+    catch (error) { setPlatformOrdersError(error instanceof Error ? error.message : 'Unable to load platform orders.'); }
+    finally { setPlatformOrdersLoading(false); }
+  }, [currentBusiness]);
+
+  const runPlatformOrderAction = async (order: MerchantPlatformOrder, action: 'accept' | 'reject' | 'prepare' | 'ready', reason?: string) => {
+    if (!currentBusiness || busyPlatformOrderId) return;
+    setBusyPlatformOrderId(order.id);
+    setPlatformOrdersError(null);
+    try {
+      await updateMerchantPlatformOrder(currentBusiness.id, order.id, action, reason);
+      await refreshPlatformOrders();
+      await refreshNotifications();
+      showToast(`Order ${action === 'prepare' ? 'moved to preparation' : action === 'ready' ? 'marked ready for pickup' : `${action}ed`}.`);
+    } catch (error) {
+      setPlatformOrdersError(error instanceof Error ? error.message : 'The order action could not be saved. Refresh and retry.');
+    } finally { setBusyPlatformOrderId(null); }
+  };
+
   useEffect(() => {
     if (!session || !currentBusiness) return;
     const unsubscribe = subscribeToEvents(currentBusiness.id, event => {
       if (event.type === 'service_request.created') playBookingChime();
+      if (event.type.startsWith('platform.order.')) void refreshPlatformOrders();
       void refreshSnapshot().then(snapshot => {
         const requestId = event.payload?.request_id;
         if (requestId && event.type === 'service_request.created') {
@@ -181,9 +212,10 @@ export default function MerchantWorkspacePage() {
       void refreshNotifications();
     });
     void refreshNotifications();
-    const interval = window.setInterval(() => { void refreshSnapshot(); void refreshNotifications(); }, 30000);
+    void refreshPlatformOrders();
+    const interval = window.setInterval(() => { void refreshSnapshot(); void refreshNotifications(); void refreshPlatformOrders(); }, 30000);
     return () => { unsubscribe(); window.clearInterval(interval); };
-  }, [session, currentBusiness, refreshSnapshot, refreshNotifications]);
+  }, [session, currentBusiness, refreshSnapshot, refreshNotifications, refreshPlatformOrders]);
 
   const runAction = async (action: () => Promise<unknown>, success: string) => {
     setLoadError(null);
@@ -214,6 +246,7 @@ export default function MerchantWorkspacePage() {
   const currentServices = useMemo(() => currentBusiness ? services.filter(s => s.businessId === currentBusiness.id) : [], [services, currentBusiness]);
   const currentTeam = useMemo(() => currentBusiness ? team.filter(m => m.businessId === currentBusiness.id) : [], [team, currentBusiness]);
   const pendingRequestsCount = currentRequests.filter(r => r.status === 'requested').length;
+  const pendingPlatformOrdersCount = platformOrders.filter(order => order.status === 'placed').length;
 
   if (isInitializing) return <div className="grid min-h-screen place-items-center bg-background"><Loader2 className="animate-spin text-primary"/></div>;
   if (!session) return <AuthLoginView onLoginSuccess={handleLogin}/>;
@@ -223,14 +256,15 @@ export default function MerchantWorkspacePage() {
   return <div className="flex min-h-screen flex-col bg-[#F3F6FC] text-slateText-main">
     <Header businesses={businesses} currentBusiness={currentBusiness} session={session} notifications={notifications} onSelectBusiness={business => void loadWorkspace(session, business.id)} onToggleStoreStatus={() => void runAction(() => saveMerchantCoverage(currentBusiness.id, currentBusiness.serviceRadiusKm * 1000, !currentBusiness.acceptsRequests), 'Request availability updated.')} onLogout={handleLogout} onSelectNotification={n => { void runAction(() => markNotificationAsRead(n.id), 'Notification marked as read.'); setActiveTab('requests'); }}/>
     <div className="flex flex-1 overflow-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} pendingRequestsCount={pendingRequestsCount} verificationStatus={currentBusiness.verificationStatus || currentBusiness.status || 'unknown'}/>
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} pendingRequestsCount={pendingRequestsCount} pendingPlatformOrdersCount={pendingPlatformOrdersCount} verificationStatus={currentBusiness.verificationStatus || currentBusiness.status || 'unknown'}/>
       <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-[1500px] space-y-6">
-          <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">Merchant operations</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-slateText-main">{({ overview: 'Workspace overview', requests: 'Customer requests', catalog: 'Catalog & inventory', hours: 'Hours & coverage', team: 'Team & access', offers: 'Offers & promotions', analytics: 'Store activity' } as Record<string, string>)[activeTab]}</h1><p className="mt-1 text-sm text-slateText-secondary">{currentBusiness.name} · {currentBusiness.locality}, {currentBusiness.city}</p></div><div className="flex items-center gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${currentBusiness.isVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{currentBusiness.isVerified ? 'Approved listing' : 'Verification pending'}</span><button onClick={() => void refreshSnapshot()} aria-label="Refresh workspace data" className="grid h-10 w-10 place-items-center rounded-xl border border-borderMuted bg-white text-primary hover:bg-blue-50"><RefreshGlyph/></button></div></header>
+          <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">Merchant operations</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-slateText-main">{({ overview: 'Workspace overview', requests: 'Customer requests', platformOrders: 'Platform order fulfillment', catalog: 'Catalog & inventory', hours: 'Hours & coverage', team: 'Team & access', offers: 'Offers & promotions', analytics: 'Store activity' } as Record<string, string>)[activeTab]}</h1><p className="mt-1 text-sm text-slateText-secondary">{currentBusiness.name} · {currentBusiness.locality}, {currentBusiness.city}</p></div><div className="flex items-center gap-2"><span className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${currentBusiness.isVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{currentBusiness.isVerified ? 'Approved listing' : 'Verification pending'}</span><button onClick={() => { void refreshSnapshot(); if (activeTab === 'platformOrders') void refreshPlatformOrders(); }} aria-label="Refresh workspace data" className="grid h-10 w-10 place-items-center rounded-xl border border-borderMuted bg-white text-primary hover:bg-blue-50"><RefreshGlyph/></button></div></header>
           {loadError && <div role="alert" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0"/><div className="flex-1">{loadError}</div><button aria-label="Dismiss error" onClick={() => setLoadError(null)}><X size={16}/></button></div>}
           {isLoadingData && <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800"><Loader2 size={16} className="animate-spin"/>Syncing live merchant data…</div>}
           {activeTab === 'overview' && <OverviewCards business={currentBusiness} requests={currentRequests} productCount={currentProducts.length} serviceCount={currentServices.length} hours={hours} updatedAt={lastUpdated} onNavigateTab={setActiveTab}/>}
           {activeTab === 'requests' && <RequestsManager requests={currentRequests} onUpdateStatus={(id, status) => void runAction(() => updateServiceRequestStatus(currentBusiness.id, id, status), `Request updated to ${status.replace('_', ' ')}.`)}/>}
+          {activeTab === 'platformOrders' && <PlatformOrdersManager businessId={currentBusiness.id} orders={platformOrders} isLoading={platformOrdersLoading} error={platformOrdersError} busyOrderId={busyPlatformOrderId} onRefresh={() => { void refreshPlatformOrders(); }} onAction={(order, action, reason) => void runPlatformOrderAction(order, action, reason)}/>}
           {activeTab === 'catalog' && <CatalogManager
             products={currentProducts}
             services={currentServices}

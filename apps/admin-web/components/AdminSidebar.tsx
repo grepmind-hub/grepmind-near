@@ -14,6 +14,10 @@ import {
   ExternalLink,
   UserRoundCheck,
   Activity,
+  PackageSearch,
+  Bike,
+  Truck,
+  WalletCards,
 } from 'lucide-react';
 
 export type AdminTab =
@@ -25,7 +29,11 @@ export type AdminTab =
   | 'offers'
   | 'audit-logs'
   | 'listing-activity'
-  | 'admin-users';
+  | 'admin-users'
+  | 'platform-catalog'
+  | 'riders'
+  | 'dispatch'
+  | 'rider-earnings';
 
 interface AdminSidebarProps {
   currentTab: AdminTab;
@@ -107,6 +115,34 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Admins & Access',
       description: 'Permissions & security',
       icon: ShieldCheck,
+      badge: null,
+    },
+    {
+      id: 'platform-catalog' as AdminTab,
+      label: 'Platform Catalog',
+      description: 'Products & fulfillment partners',
+      icon: PackageSearch,
+      badge: null,
+    },
+    {
+      id: 'riders' as AdminTab,
+      label: 'Rider Management',
+      description: 'Applications & approvals',
+      icon: Bike,
+      badge: null,
+    },
+    {
+      id: 'dispatch' as AdminTab,
+      label: 'Delivery Dispatch',
+      description: 'Jobs, offers & exceptions',
+      icon: Truck,
+      badge: null,
+    },
+    {
+      id: 'rider-earnings' as AdminTab,
+      label: 'Rider earnings',
+      description: 'Ledger & reconciliation',
+      icon: WalletCards,
       badge: null,
     },
   ];

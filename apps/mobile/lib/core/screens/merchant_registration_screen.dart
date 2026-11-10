@@ -415,12 +415,14 @@ class _MerchantRegistrationScreenState
         queryParameters: {'query': query.trim()},
       );
       final data = response.data?['data'];
-      if (data is! List)
+      if (data is! List) {
         throw const FormatException('Invalid listing response');
+      }
       if (!mounted ||
           generation != _claimSearchGeneration ||
-          query.trim() != _searchClaimController.text.trim())
+          query.trim() != _searchClaimController.text.trim()) {
         return;
+      }
       setState(() {
         _filteredClaimable = data
             .whereType<Map>()
@@ -435,8 +437,9 @@ class _MerchantRegistrationScreenState
             'Could not search listings. Check your connection and retry.';
       });
     } finally {
-      if (mounted && generation == _claimSearchGeneration)
+      if (mounted && generation == _claimSearchGeneration) {
         setState(() => _claimSearchLoading = false);
+      }
     }
   }
 
@@ -1573,7 +1576,7 @@ class _MerchantRegistrationScreenState
                                 _businessLatitude == null ||
                                     _businessLongitude == null
                                 ? AppTheme.mainText
-                                : Color(0xFF15803D),
+                                : const Color(0xFF15803D),
                           ),
                         ),
                         Text(
@@ -1581,7 +1584,7 @@ class _MerchantRegistrationScreenState
                                   _businessLongitude == null
                               ? 'Use GPS or enter the storefront pin coordinates.'
                               : '${_businessLatitude!.toStringAsFixed(5)}, ${_businessLongitude!.toStringAsFixed(5)}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.secondaryText,
                           ),
@@ -1754,25 +1757,25 @@ class _MerchantRegistrationScreenState
                                 height: 32,
                                 child: CircularProgressIndicator(),
                               )
-                            : Icon(
+                            : const Icon(
                                 Icons.add_a_photo_outlined,
                                 size: 36,
                                 color: AppTheme.primary,
                               ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           _isUploadingPhoto
                               ? 'Uploading photo…'
                               : 'Add a storefront photo',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.mainText,
                           ),
                         ),
-                        Text(
+                        const Text(
                           'Choose a real photo from your gallery or camera',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
                             color: AppTheme.hintText,
                           ),
@@ -1820,7 +1823,6 @@ class _MerchantRegistrationScreenState
 
         // Service Radius Slider
         PremiumCard(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1868,9 +1870,9 @@ class _MerchantRegistrationScreenState
                 activeColor: AppTheme.primary,
                 onChanged: (v) => setState(() => _serviceRadiusKm = v),
               ),
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+                children: [
                   Text(
                     '1 km (Neighbourhood)',
                     style: TextStyle(fontSize: 10, color: AppTheme.hintText),
@@ -2195,9 +2197,9 @@ class _MerchantRegistrationScreenState
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFBFDBFE)),
           ),
-          child: Row(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Icon(Icons.info_outline, color: AppTheme.primary, size: 20),
               SizedBox(width: 10),
               Expanded(
@@ -2553,8 +2555,8 @@ class _MerchantRegistrationScreenState
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(
                       Icons.shield_outlined,
                       color: Color(0xFF16A34A),

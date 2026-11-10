@@ -111,12 +111,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
       'cuttack',
       'jajpur',
     ].contains(location.cityName.toLowerCase())) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error =
               'Choose Cuttack or Jajpur in Explore to browse listed shops.';
           _isLoading = false;
         });
+      }
       return;
     }
     final defLat = location.latitude;
@@ -158,18 +159,20 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     final sequence = ++_loadSequence;
     final city = ref.read(appLocationProvider).cityName;
     if (!const ['cuttack', 'jajpur'].contains(city.toLowerCase())) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = 'Select Cuttack or Jajpur in Explore.';
           _isLoading = false;
         });
+      }
       return;
     }
-    if (mounted)
+    if (mounted) {
       setState(() {
         _isLoading = true;
         _error = null;
       });
+    }
     try {
       final businessesState = ref.read(mapBusinessesProvider.notifier);
       await businessesState.nearby(
@@ -182,8 +185,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             : _selectedCategorySlug,
       );
       if (!mounted || sequence != _loadSequence) return;
-      if (ref.read(mapBusinessesProvider).error != null)
+      if (ref.read(mapBusinessesProvider).error != null) {
         throw StateError('Nearby lookup failed');
+      }
 
       // Automatically select closest business if none selected
       final businesses = _filteredBusinesses;
@@ -192,15 +196,17 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
       );
       _updateMarkers();
     } catch (e) {
-      if (mounted && sequence == _loadSequence)
+      if (mounted && sequence == _loadSequence) {
         setState(() {
           _error = 'Unable to load nearby shops. Please try again.';
           _selectedBusiness = null;
           _markers = {};
         });
+      }
     } finally {
-      if (mounted && sequence == _loadSequence)
+      if (mounted && sequence == _loadSequence) {
         setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -375,9 +381,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Nearby Map',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.mainText,
@@ -386,7 +392,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             ),
             Text(
               '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 color: AppTheme.secondaryText,
                 fontWeight: FontWeight.w500,
@@ -627,7 +633,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
               itemCount: businesses.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final business = businesses[index];
                 return Card(
@@ -684,7 +690,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   Widget _buildCategoryCarousel() {
     final categories = ref.watch(categoriesProvider);
-    if (categories.error != null)
+    if (categories.error != null) {
       return Align(
         alignment: Alignment.centerLeft,
         child: TextButton(
@@ -692,6 +698,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           child: const Text('Retry categories'),
         ),
       );
+    }
     final items = <Map<String, dynamic>>[
       {'slug': 'all', 'name': 'All', 'icon': Icons.tune_rounded},
       ...categories.items.map(
@@ -708,7 +715,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final cat = items[index];
           final slug = cat['slug'] as String;
@@ -722,8 +729,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 _selectedBusiness = null;
               });
               final center = _currentPosition?.target;
-              if (center != null)
+              if (center != null) {
                 _loadNearbyBusinesses(center.latitude, center.longitude);
+              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
@@ -1047,8 +1055,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               final center = _currentPosition?.target;
               if (center == null ||
                   biz.latitude == null ||
-                  biz.longitude == null)
+                  biz.longitude == null) {
                 return const SizedBox.shrink();
+              }
               // Project actual coordinates around the search center. Never invent positions.
               final north = (biz.latitude! - center.latitude) * 111320;
               final east =
@@ -1206,8 +1215,6 @@ class _RadarMapPainter extends CustomPainter {
     final sweepPaint = Paint()
       ..shader = SweepGradient(
         center: FractionalOffset.center,
-        startAngle: 0.0,
-        endAngle: 2 * math.pi,
         colors: [
           const Color(0xFF2457D6).withValues(alpha: 0.0),
           const Color(0xFF2457D6).withValues(alpha: 0.15),

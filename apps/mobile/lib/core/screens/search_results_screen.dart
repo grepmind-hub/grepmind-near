@@ -203,9 +203,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   }
 
   void _onBusinessTapped(Business biz) {
-    // If it's a trade service pro, navigate to Screen 13 (Service Pro Profile)
-    final serviceCategories = ['electrician', 'plumber', 'carpenter', 'tailor'];
-    if (serviceCategories.contains(biz.categorySlug) || biz.acceptsRequests) {
+    if (biz.shouldOpenServiceProfile) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => ServiceProScreen(business: biz)),

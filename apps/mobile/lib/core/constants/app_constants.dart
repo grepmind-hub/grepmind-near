@@ -6,12 +6,12 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API base URL. Configure via --dart-define=API_BASE_URL=http://...
-  // Defaults to WSL2 Docker IP (works from Android emulator on Windows).
-  // For DNS "api.near.grepmind.com": add to emulator /etc/hosts (root required)
-  // or use Windows port proxy + hosts file.
+  // Android Emulator's host alias reaches the Windows host, whose localhost
+  // ports are forwarded to the WSL2 Docker Compose stack. Physical devices and
+  // production builds should provide their reachable HTTPS URL with dart-define.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://172.18.160.150:80',
+    defaultValue: 'http://10.0.2.2:80',
   );
   static const String apiVersion = '/api/v1';
 

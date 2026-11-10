@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/screens/explore_screen.dart';
@@ -8,10 +11,13 @@ import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
 import 'package:grepmind_mobile/core/screens/splash_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_platform_orders_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
-import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
+import 'package:grepmind_mobile/core/screens/orders_tab_navigator.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_earnings_screen.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,13 +66,19 @@ class MainNavigator extends ConsumerStatefulWidget {
 
 class _MainNavigatorState extends ConsumerState<MainNavigator> {
   int _selectedIndex = 0;
+  bool _handlingNestedBack = false;
+  Timer? _backGuardTimer;
   final Set<int> _mountedPageIndices = {0};
+  final GlobalKey<NavigatorState> _ordersNavigatorKey =
+      GlobalKey<NavigatorState>();
 
   @override
   void didUpdateWidget(covariant MainNavigator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activeRole != widget.activeRole) {
       _selectedIndex = 0;
+      _backGuardTimer?.cancel();
+      _handlingNestedBack = false;
       _mountedPageIndices
         ..clear()
         ..add(0);
@@ -80,7 +92,16 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
     return PopScope<Object?>(
       canPop: selectedIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && selectedIndex != 0) {
+        if (didPop || selectedIndex == 0 || _handlingNestedBack) return;
+        final ordersNavigator = _ordersNavigatorKey.currentState;
+        if (selectedIndex == 3 && (ordersNavigator?.canPop() ?? false)) {
+          _handlingNestedBack = true;
+          ordersNavigator?.pop();
+          _backGuardTimer?.cancel();
+          _backGuardTimer = Timer(const Duration(milliseconds: 300), () {
+            _handlingNestedBack = false;
+          });
+        } else {
           setState(() => _selectedIndex = 0);
         }
       },
@@ -112,16 +133,18 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
     );
   }
 
+  @override
+  void dispose() {
+    _backGuardTimer?.cancel();
+    super.dispose();
+  }
+
   List<Widget> _pagesForRole(String role) {
     switch (role) {
       case 'merchant':
         return const [
           MerchantWorkspaceScreen(),
-          _WorkspacePlaceholder(
-            title: 'Merchant orders',
-            description: 'Merchant order inbox is not available yet. Service requests remain available in Dashboard.',
-            icon: Icons.receipt_long_outlined,
-          ),
+          MerchantPlatformOrdersScreen(),
           MerchantCatalogScreen(),
           _WorkspacePlaceholder(
             title: 'Earnings',
@@ -132,35 +155,23 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
         ];
       case 'rider':
         return const [
-          _WorkspacePlaceholder(
-            title: 'Rider dashboard',
-            description: 'Dispatch is not available yet. This workspace is shown only after backend rider approval.',
-            icon: Icons.dashboard_outlined,
-          ),
-          _WorkspacePlaceholder(
-            title: 'Deliveries',
-            description: 'Assigned deliveries are not available yet.',
-            icon: Icons.delivery_dining_outlined,
-          ),
+          RiderDashboardScreen(),
+          RiderDeliveriesScreen(),
           _WorkspacePlaceholder(
             title: 'Rider map',
             description:
                 'Rider location tracking is not available in this phase.',
             icon: Icons.map_outlined,
           ),
-          _WorkspacePlaceholder(
-            title: 'Earnings',
-            description: 'Rider earnings are not available yet.',
-            icon: Icons.account_balance_wallet_outlined,
-          ),
-          ProfileScreen(),
+          RiderEarningsScreen(),
+          RiderWorkspaceProfileScreen(),
         ];
       default:
         return [
           const HomeScreen(),
           const ExploreScreen(),
           const NearbyMapScreen(),
-          const OrderHistoryScreen(),
+          OrdersTabNavigator(navigatorKey: _ordersNavigatorKey),
           const ProfileScreen(),
         ];
     }

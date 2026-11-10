@@ -23,20 +23,173 @@ tags:
     description: Authenticated user profile
   - name: discovery
     description: Categories, business search, nearby, business details
+  - name: catalog
+    description: Public Grepmind-owned Food and Grocery catalog
   - name: merchant
     description: Merchant business, products, offers, service requests
   - name: customer
     description: Customer service requests and favourites
   - name: admin
     description: Administrator moderation and operations
+  - name: admin-catalog
+    description: Administrator management of platform products and fulfillment mappings
   - name: media
     description: Direct media uploads and MinIO S3 object storage
   - name: notifications
     description: Real-time SSE event streaming and persistent notification management
+  - name: rider
+    description: Approved rider availability, offers, and active assignments
+  - name: admin-riders
+    description: Rider approval and delivery dispatch administration
+  - name: rider-earnings
+    description: Append-only rider compensation ledger and reporting; payouts are unavailable
+  - name: delivery-status
+    description: Customer and merchant-scoped dispatch status
   - name: health
     description: Health checks
 
 paths:
+  /rider/earnings/summary:
+    get:
+      tags: [rider-earnings]
+      summary: Read the authenticated rider's recorded compensation summary
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: from, schema: {type: string, format: date-time}}
+        - {in: query, name: to, schema: {type: string, format: date-time}}
+      responses:
+        '200': {description: Own earnings totals are decimal strings of integer minor units grouped by currency; no payout status}
+        '400': {description: Invalid or overlong date range}
+        '403': {description: Approved active rider access required}
+  /rider/earnings:
+    get:
+      tags: [rider-earnings]
+      summary: List the authenticated rider's append-only earnings entries
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: from, schema: {type: string, format: date-time}}
+        - {in: query, name: to, schema: {type: string, format: date-time}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 10000}}
+      responses:
+        '200': {description: Own entries; amount_minor is a decimal string of integer minor units or null for unpriced compensation}
+        '403': {description: Approved active rider access required}
+  /rider/earnings/{entryId}:
+    get:
+      tags: [rider-earnings]
+      summary: Read one earning entry owned by the authenticated rider
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: entryId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Earning amount_minor is a decimal string of integer minor units; payout functionality is not available}
+        '404': {description: Entry not found for this rider}
+  /admin/rider-earnings/overview:
+    get:
+      tags: [rider-earnings]
+      summary: Admin rider compensation overview (primary superadmin only)
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: from, schema: {type: string, format: date-time}}
+        - {in: query, name: to, schema: {type: string, format: date-time}}
+        - {in: query, name: locality_id, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Aggregated totals are decimal strings of integer minor units, grouped by rider and currency}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/localities:
+    get:
+      tags: [rider-earnings]
+      summary: List localities represented in the ledger (primary superadmin only)
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Ledger-scoped delivery localities}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/entries:
+    get:
+      tags: [rider-earnings]
+      summary: Admin ledger entry list (primary superadmin only)
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: from, schema: {type: string, format: date-time}}
+        - {in: query, name: to, schema: {type: string, format: date-time}}
+        - {in: query, name: rider_id, schema: {type: string, format: uuid}}
+        - {in: query, name: locality_id, schema: {type: string, format: uuid}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 10000}}
+      responses:
+        '200': {description: Immutable ledger amounts are decimal strings of integer minor units or null when unpriced}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/audit:
+    get:
+      tags: [rider-earnings]
+      summary: Admin earnings audit history (primary superadmin only)
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 10000}}
+      responses:
+        '200': {description: Append-only earnings audit events}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/policies:
+    get:
+      tags: [rider-earnings]
+      summary: Inspect compensation policy versions (primary superadmin only)
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Policy fixed_amount_minor values are decimal strings of integer minor units; policy changes are disabled pending commercial approval}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/reconciliation:
+    get:
+      tags: [rider-earnings]
+      summary: Report delivery-to-ledger discrepancies (primary superadmin only)
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Read-only discrepancy report; no automatic ledger repairs}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/adjustments:
+    post:
+      tags: [rider-earnings]
+      summary: Record a reasoned compensation adjustment (primary superadmin only)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rider_user_id, amount_minor, currency, reason, idempotency_key]
+              properties:
+                rider_user_id: {type: string, format: uuid}
+                delivery_job_id: {type: string, format: uuid}
+                amount_minor: {type: integer, format: int64, not: {enum: [0]}}
+                currency: {type: string, pattern: '^[A-Z]{3}$'}
+                reason: {type: string, minLength: 10, maxLength: 500}
+                idempotency_key: {type: string, minLength: 8, maxLength: 160}
+      responses:
+        '201': {description: Immutable adjustment entry recorded}
+        '400': {description: Invalid adjustment request}
+        '403': {description: Primary superadmin access required}
+  /admin/rider-earnings/entries/{entryId}/reverse:
+    post:
+      tags: [rider-earnings]
+      summary: Append a reversal for an earning (primary superadmin only)
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: entryId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, idempotency_key]
+              properties:
+                reason: {type: string, minLength: 10, maxLength: 500}
+                idempotency_key: {type: string, minLength: 8, maxLength: 160}
+      responses:
+        '201': {description: Compensating ledger entry appended; original remains unchanged}
+        '403': {description: Primary superadmin access required}
+        '409': {description: Entry cannot be reversed or has already been reversed}
   /locations:
     get:
       tags: [discovery]
@@ -209,12 +362,17 @@ paths:
 
   /events:
     get:
-      summary: Stream real-time booking updates and platform events (Server-Sent Events)
+      summary: Stream authenticated real-time events (Server-Sent Events)
       tags: [notifications]
       description: |
         Establishes an HTTP long-lived text/event-stream connection.
         Subscribers receive real-time push events for service booking creation,
-        status transitions, and merchant/customer alerts. Heartbeat pings sent every 15s.
+        status transitions, and merchant/customer alerts. Heartbeat pings are sent every 15s.
+        An order_id subscription is restricted to the authenticated customer who owns that order,
+        receives only events for that order, and closes when its backing session is revoked.
+        Reconnect clients should reconcile from the authoritative order and delivery APIs.
+      security:
+        - bearerAuth: []
       parameters:
         - name: business_id
           in: query
@@ -228,6 +386,13 @@ paths:
           schema:
             type: string
           description: Filter events for a single booking tracking lifecycle
+        - name: order_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Stream only events for an order owned by the authenticated customer. Cannot be combined with other scope filters.
       responses:
         '200':
           description: Active event stream
@@ -650,6 +815,64 @@ paths:
                       $ref: '#/components/schemas/Product'
                   meta:
                     $ref: '#/components/schemas/Meta'
+
+  /businesses/{id}/cart/validate:
+    post:
+      summary: Validate a customer's cart against current prices and inventory
+      description: Read-only validation for approved restaurant and cafe businesses with delivery_enabled. Order creation rechecks stock atomically.
+      tags: [commerce]
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: '#/components/parameters/BusinessId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [product_id, quantity]
+                    properties:
+                      product_id: {type: string, format: uuid}
+                      quantity: {type: integer, minimum: 1, maximum: 50}
+      responses:
+        '200':
+          description: Current availability, server prices and minimum-order status in integer minor units
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartValidationResponse'
+        '401': {description: Authentication required}
+        '403': {description: Customer role required}
+        '404': {description: Approved business not found}
+        '409': {description: Business does not support product ordering}
+
+  /businesses/{id}/orders/quote:
+    post:
+      summary: Create an expiring server-priced checkout quote
+      description: Does not reserve stock. Revalidates merchant hours, coverage, address ownership, item prices, inventory, minimum order and delivery fee. Taxes are reported as not configured until a reviewed server tax policy is available.
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateCheckoutQuoteRequest'}
+      responses:
+        '201': {description: Five-minute quote; stock remains unreserved}
+        '400': {description: Invalid fulfillment, address, products, or quantities}
+        '403': {description: Customer role required}
+        '409': {description: Ordering unavailable, merchant closed, insufficient stock, or minimum not met}
+        '422': {description: Invalid address or delivery coverage conflict}
 
   /businesses/{id}/services:
     get:
@@ -1518,6 +1741,135 @@ paths:
                   meta:
                     $ref: '#/components/schemas/Meta'
 
+  /merchant/businesses/{businessId}/platform-orders:
+    get:
+      summary: List Grepmind platform orders assigned to an authorized merchant business
+      description: Returns only platform_catalog orders assigned to this business. Customer address, phone, and customer selling prices are not exposed. Active owners, managers, and staff may view assigned fulfillment tasks.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: status
+          in: query
+          schema: {type: string, enum: [placed, accepted, preparing, ready_for_pickup, rejected, cancelled]}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 50, default: 30}
+      responses:
+        '200': {description: Assigned platform fulfillment orders}
+        '401': {description: Authentication required}
+        '403': {description: Active merchant business membership required}
+  /merchant/businesses/{businessId}/platform-orders/{orderId}:
+    get:
+      summary: Read an assigned platform order's fulfillment details
+      description: Exposes product snapshots, quantities, delivery locality, customer instructions, and status history. It omits customer contact/address details, customer prices, and partner settlement costs.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: orderId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Assigned platform order detail}
+        '403': {description: Active merchant business membership required}
+        '404': {description: Order is not assigned to this business}
+  /merchant/businesses/{businessId}/platform-orders/{orderId}/accept:
+    post:
+      summary: Accept an assigned platform order
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: orderId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Order accepted; duplicate acceptance is idempotent}
+        '403': {description: Merchant membership required}
+        '404': {description: Order not assigned to this business}
+        '409': {description: Invalid or competing transition}
+  /merchant/businesses/{businessId}/platform-orders/{orderId}/reject:
+    post:
+      summary: Reject an assigned platform order with a recorded reason
+      description: Rejection is permitted only while awaiting acceptance. It releases reserved partner inventory once and does not automatically reassign, cancel, or refund the unpaid order.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: orderId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 10, maxLength: 500}
+      responses:
+        '200': {description: Order rejected; reason recorded and reserved stock released}
+        '400': {description: Rejection reason is invalid}
+        '403': {description: Merchant membership required}
+        '404': {description: Order not assigned to this business}
+        '409': {description: Order is no longer awaiting partner response}
+  /merchant/businesses/{businessId}/platform-orders/{orderId}/prepare:
+    post:
+      summary: Start preparation for an accepted platform order
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: orderId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Order moved to preparing}
+        '403': {description: Merchant membership required}
+        '404': {description: Order not assigned to this business}
+        '409': {description: Invalid state transition}
+  /merchant/businesses/{businessId}/platform-orders/{orderId}/ready:
+    post:
+      summary: Mark a prepared platform order ready for pickup
+      description: This does not mark the order as picked up or delivered.
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: orderId
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Order is ready for pickup}
+        '403': {description: Merchant membership required}
+        '404': {description: Order not assigned to this business}
+        '409': {description: Invalid state transition}
+
   /merchant/requests/{id}/status:
     patch:
       summary: Move a merchant service request through its allowed state machine
@@ -1912,7 +2264,7 @@ paths:
                   type: array
                   minItems: 1
                   uniqueItems: true
-                  items: { type: string, enum: [admin, merchant, customer, professional, rider] }
+                  items: { type: string, enum: [admin, merchant, customer, professional, rider, delivery_operator] }
       responses:
         '200':
           description: Account roles replaced and sessions revoked
@@ -2365,6 +2717,11 @@ paths:
       security: [{bearerAuth: []}]
       parameters:
         - $ref: '#/components/parameters/BusinessIdPath'
+        - in: header
+          name: Idempotency-Key
+          required: false
+          description: Required with checkout_quote_id for food orders. UUID scoped to the authenticated customer; identical retries return the original order.
+          schema: {type: string, format: uuid}
       requestBody:
         required: true
         content:
@@ -2376,16 +2733,88 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/StandardResponse'}
+        '200': {description: Original order returned for a valid idempotent retry}
+        '400': {description: Missing quote, idempotency key, or invalid order payload}
         '409':
-          description: Business capability, inventory, minimum-order, or reservation conflict
+          description: Capability, quote expiry/change, inventory, minimum-order, idempotency conflict, or reservation conflict
+        '422': {description: Address ownership or delivery coverage conflict}
 
   /customer/orders:
     get:
-      summary: List orders owned by the authenticated customer
+      summary: List orders owned by the authenticated customer with cursor pagination
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 50, default: 20}
+        - in: query
+          name: before
+          description: Opaque cursor returned in the previous page's meta.next_cursor.
+          schema: {type: string, maxLength: 256}
+        - in: query
+          name: status
+          schema: {type: string, enum: [placed, accepted, confirmed, preparing, ready_for_pickup, rejected, out_for_delivery, delivered, completed, cancelled, returned]}
+        - in: query
+          name: order_type
+          schema: {type: string, enum: [food_delivery, table_reservation, hotel_booking, platform_order]}
+      responses:
+        '200': {description: Customer-owned orders and page metadata; failures return an error, never an empty list}
+        '400': {description: Invalid filter, cursor, or limit}
+
+  /customer/addresses:
+    get:
+      summary: List addresses owned by the authenticated customer
       tags: [customer]
       security: [{bearerAuth: []}]
       responses:
-        '200': {description: Customer orders}
+        '200': {description: Customer-owned addresses with default first}
+        '403': {description: Customer role required}
+    post:
+      summary: Save a customer delivery address
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CustomerAddressInput'}
+      responses:
+        '201': {description: Saved address}
+        '400': {description: Address fields or optional coordinate pair are invalid}
+        '403': {description: Customer role required}
+  /customer/addresses/{id}:
+    put:
+      summary: Replace a customer-owned address and optionally make it default
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CustomerAddressInput'}
+      responses:
+        '200': {description: Updated address}
+        '400': {description: Address fields or optional coordinate pair are invalid}
+        '404': {description: Address not found or not owned}
+    delete:
+      summary: Delete a customer-owned address
+      description: Deleting a default address promotes the most recently updated remaining address. Existing order address snapshots are retained.
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Address deleted}
+        '404': {description: Address not found or not owned}
 
   /orders/{id}:
     get:
@@ -2398,7 +2827,31 @@ paths:
           required: true
           schema: {type: string, format: uuid}
       responses:
-        '200': {description: Order details}
+        '200': {description: Exact customer-owned order details with recorded status events}
+        '404': {description: Order not found or not owned by the customer}
+
+  /orders/{id}/support:
+    post:
+      summary: Submit or retrieve an idempotent customer support report for an owned order
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 10, maxLength: 1000}
+      responses:
+        '201': {description: Order-specific report was created or an existing open report was returned}
+        '400': {description: Support reason is invalid}
         '404': {description: Order not found or not owned by the customer}
 
   /orders/{id}/cancel:
@@ -2456,10 +2909,1057 @@ paths:
         '403': {description: Not an authorized business member}
         '409': {description: Invalid status transition}
 
+  /catalog/locations:
+    get:
+      tags: [catalog]
+      summary: List configured Odisha districts and delivery localities
+      responses:
+        '200':
+          description: District and locality IDs, with delivery rollout status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, localities]
+                      properties:
+                        id: {type: string, format: uuid}
+                        name: {type: string}
+                        localities:
+                          type: array
+                          items:
+                            type: object
+                            required: [id, name, delivery_enabled]
+                            properties:
+                              id: {type: string, format: uuid}
+                              name: {type: string}
+                              delivery_enabled: {type: boolean}
+  /platform/orders/quote:
+    post:
+      summary: Create a server-priced platform cart quote with one eligible partner
+      description: The customer chooses platform products and a saved address. Grepmind selects one approved partner capable of fulfilling the complete cart. Quotes expire after five minutes and do not reserve stock. No payment is collected.
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PlatformCheckoutQuoteRequest'}
+      responses:
+        '201': {description: Server-authoritative quote and selected partner; settlement costs are omitted}
+        '400': {description: Invalid vertical, address, or cart}
+        '403': {description: Customer role required}
+        '409': {description: Product unavailable or no single eligible partner can fulfill the full cart}
+        '422': {description: Address ownership or locality validation failed}
+  /platform/orders:
+    post:
+      summary: Submit an idempotent Grepmind platform catalog order
+      description: Revalidates the quote and partner, reserves applicable stock atomically, stores immutable item and address snapshots, and leaves payment not_collected.
+      tags: [customer]
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PlatformCheckoutSubmitRequest'}
+      responses:
+        '201': {description: Platform order created}
+        '200': {description: Original order returned for an idempotent retry}
+        '400': {description: Invalid quote or idempotency key}
+        '403': {description: Customer role required}
+        '404': {description: Quote not found for this customer}
+        '409': {description: Quote expired, changed, consumed, or fulfillment unavailable}
+  /catalog/categories:
+    get:
+      summary: List active platform catalog categories available in a city
+      tags: [catalog]
+      parameters:
+        - {in: query, name: vertical, required: true, schema: {type: string, enum: [food, grocery]}}
+        - {in: query, name: city, required: true, schema: {type: string, enum: [Cuttack, Jajpur]}}
+        - {in: query, name: locality_id, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Available categories}
+        '400': {description: Invalid catalog filters}
+  /catalog/products:
+    get:
+      summary: Browse active Grepmind-owned catalog products
+      tags: [catalog]
+      parameters:
+        - {in: query, name: vertical, required: true, schema: {type: string, enum: [food, grocery]}}
+        - {in: query, name: city, required: true, schema: {type: string, enum: [Cuttack, Jajpur]}}
+        - {in: query, name: locality_id, schema: {type: string, format: uuid}}
+        - {in: query, name: q, schema: {type: string, maxLength: 100}}
+        - {in: query, name: category_id, schema: {type: string, format: uuid}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 10000, default: 0}}
+      responses:
+        '200': {description: Paged catalog products with active variants and public selling prices}
+        '400': {description: Invalid catalog filters}
+  /catalog/products/{id}:
+    get:
+      summary: Get an active platform product by ID and city
+      tags: [catalog]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+        - {in: query, name: vertical, required: true, schema: {type: string, enum: [food, grocery]}}
+        - {in: query, name: city, required: true, schema: {type: string, enum: [Cuttack, Jajpur]}}
+        - {in: query, name: locality_id, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Product details; partner settlement costs are never included}
+        '400': {description: Invalid product ID or location}
+        '404': {description: Product unavailable in the selected location}
+
+  /admin/catalog/categories:
+    get:
+      summary: List platform catalog categories
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: vertical, schema: {type: string, enum: [food, grocery]}}
+      responses:
+        '200': {description: Catalog categories}
+        '403': {description: Admin access required}
+    post:
+      summary: Create a platform catalog category
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vertical, slug, name]
+              properties:
+                vertical: {type: string, enum: [food, grocery]}
+                slug: {type: string, maxLength: 80}
+                name: {type: string, maxLength: 100}
+                parent_id: {type: string, format: uuid, nullable: true}
+                is_active: {type: boolean}
+                sort_order: {type: integer, minimum: 0}
+      responses:
+        '201': {description: Category created and audit logged}
+        '400': {description: Invalid category}
+        '409': {description: Category slug already exists}
+  /admin/catalog/categories/{id}:
+    patch:
+      summary: Update category name, activation or sort order
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string, maxLength: 100}
+                is_active: {type: boolean}
+                sort_order: {type: integer, minimum: 0}
+      responses:
+        '204': {description: Category updated}
+        '403': {description: Admin access required}
+        '404': {description: Category not found}
+  /admin/catalog/products:
+    get:
+      summary: List all platform catalog products
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: vertical, schema: {type: string, enum: [food, grocery]}}
+        - {in: query, name: status, schema: {type: string, enum: [draft, active, inactive]}}
+        - {in: query, name: q, schema: {type: string, maxLength: 100}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0, maximum: 10000}}
+      responses:
+        '200': {description: Platform products including all variant prices and geographic areas}
+        '403': {description: Admin access required}
+    post:
+      summary: Create a platform-owned product and initial variants
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, category_id, name, areas, variants]
+              properties:
+                sku: {type: string, maxLength: 80}
+                category_id: {type: string, format: uuid}
+                name: {type: string, maxLength: 160}
+                description: {type: string, maxLength: 4000}
+                image_urls: {type: array, maxItems: 8, items: {type: string}}
+                tax_classification: {type: string, maxLength: 80, nullable: true}
+                status: {type: string, enum: [draft, active, inactive]}
+                areas: {type: array, minItems: 1, items: {$ref: '#/components/schemas/PlatformCatalogArea'}}
+                variants: {type: array, minItems: 1, items: {$ref: '#/components/schemas/PlatformCatalogVariantInput'}}
+      responses:
+        '201': {description: Product created and audit logged}
+        '400': {description: Invalid product, area, or variant}
+        '403': {description: Admin access required}
+        '409': {description: SKU exists or category is inactive}
+  /admin/catalog/products/{id}:
+    get:
+      summary: Get an admin catalog product
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Product details including inactive variants and areas}
+        '403': {description: Admin access required}
+        '404': {description: Product not found}
+    patch:
+      summary: Edit product details, availability and lifecycle status
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id: {type: string, format: uuid}
+                name: {type: string, maxLength: 160}
+                description: {type: string, maxLength: 4000}
+                image_urls: {type: array, maxItems: 8, items: {type: string}}
+                tax_classification: {type: string, maxLength: 80}
+                status: {type: string, enum: [draft, active, inactive]}
+                areas: {type: array, items: {$ref: '#/components/schemas/PlatformCatalogArea'}}
+      responses:
+        '204': {description: Product updated and audit logged}
+        '403': {description: Admin access required}
+        '404': {description: Product not found}
+        '409': {description: Product is not ready to activate}
+    delete:
+      summary: Deactivate a platform product
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: Product deactivated}
+        '403': {description: Admin access required}
+        '404': {description: Product not found}
+  /admin/catalog/products/{id}/variants:
+    post:
+      summary: Add a product variant
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PlatformCatalogVariantInput'}
+      responses:
+        '201': {description: Variant created and audit logged}
+        '403': {description: Admin access required}
+        '409': {description: SKU already exists}
+  /admin/catalog/variants/{id}:
+    patch:
+      summary: Edit variant name, unit, price, currency or active state
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string, maxLength: 120}
+                unit_label: {type: string, maxLength: 40}
+                price_minor: {type: integer, format: int64, minimum: 0}
+                currency: {type: string, enum: [INR]}
+                is_active: {type: boolean}
+      responses:
+        '204': {description: Variant updated; price revision increments on price changes}
+        '403': {description: Admin access required}
+        '404': {description: Variant not found}
+  /admin/catalog/partner-mappings:
+    get:
+      summary: List explicit business-to-platform-variant mappings
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: business_id, schema: {type: string, format: uuid}}
+        - {in: query, name: status, schema: {type: string, enum: [pending, approved, rejected, inactive]}}
+      responses:
+        '200': {description: Mappings; supply pricing is restricted to admins}
+        '403': {description: Admin access required}
+    post:
+      summary: Create a pending fulfillment mapping
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [business_id, variant_id, inventory_mode]
+              properties:
+                business_id: {type: string, format: uuid}
+                variant_id: {type: string, format: uuid}
+                inventory_mode: {type: string, enum: [finite, capacity, untracked]}
+                available_quantity: {type: integer, minimum: 0}
+                capacity_per_day: {type: integer, minimum: 0}
+                preparation_minutes: {type: integer, minimum: 0, maximum: 1440}
+                supply_price_minor: {type: integer, format: int64, minimum: 0}
+      responses:
+        '201': {description: Pending mapping created}
+        '400': {description: Invalid partner or variant reference}
+        '403': {description: Admin access required}
+        '409': {description: Mapping already exists}
+  /admin/catalog/partner-mappings/{id}:
+    patch:
+      summary: Update mapping stock, private supply price or approval status
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: {type: string, enum: [pending, approved, rejected, inactive]}
+                inventory_mode: {type: string, enum: [finite, capacity, untracked]}
+                available_quantity: {type: integer, minimum: 0}
+                capacity_per_day: {type: integer, minimum: 0}
+                preparation_minutes: {type: integer, minimum: 0, maximum: 1440}
+                supply_price_minor: {type: integer, format: int64, minimum: 0}
+      responses:
+        '204': {description: Mapping updated and audit logged}
+        '403': {description: Admin access required}
+        '409': {description: Partner is not approved/verified or inventory fields conflict}
+  /admin/catalog/partners/{businessId}/coverage:
+    get:
+      summary: List partner coverage areas
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Coverage areas}
+        '403': {description: Admin access required}
+    post:
+      summary: Add a partner coverage area
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [city]
+              properties:
+                city: {type: string, enum: [Cuttack, Jajpur]}
+                locality: {type: string, maxLength: 100}
+      responses:
+        '201': {description: Coverage area added}
+        '403': {description: Admin access required}
+        '404': {description: Partner business not found}
+        '409': {description: Coverage area already exists}
+  /admin/catalog/partners/{businessId}/coverage/{coverageId}:
+    delete:
+      summary: Deactivate a partner coverage area
+      tags: [admin-catalog]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: coverageId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '204': {description: Coverage deactivated}
+        '403': {description: Admin access required}
+        '404': {description: Coverage not found}
+  /merchant/businesses/{id}/catalog-capabilities:
+    get:
+      summary: Inspect catalog products mapped to the authenticated merchant business
+      tags: [merchant]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Business-scoped capabilities without partner supply pricing}
+        '403': {description: Active business membership required}
+
+  /rider/localities:
+    get:
+      summary: List currently delivery-enabled rider application localities
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Stable locality IDs and district labels; disabled localities are excluded}
+  /rider/document-requirements:
+    get:
+      summary: List active configurable document requirements
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Requirements applicable to rider applications; the list may be empty pending legal review}
+  /rider/application:
+    get:
+      summary: Read the authenticated user's rider application and document review metadata
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Own application or null; private document URLs and object keys are not returned}
+    put:
+      summary: Create or update an editable rider application draft
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [display_name, vehicle_type, locality_ids]
+              properties:
+                display_name: {type: string, minLength: 2, maxLength: 120}
+                vehicle_type: {type: string, enum: [bicycle, two_wheeler, three_wheeler, other]}
+                vehicle_details: {type: string, maxLength: 500}
+                locality_ids: {type: array, minItems: 1, maxItems: 10, items: {type: string, format: uuid}}
+      responses:
+        '200': {description: Application draft saved}
+        '400': {description: Invalid applicant data or locality}
+        '409': {description: Application is not editable}
+  /rider/application/submit:
+    post:
+      summary: Submit the authenticated user's rider application for review
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Application submitted}
+        '409': {description: No editable draft exists}
+  /rider/application/documents:
+    post:
+      summary: Upload a private rider verification document image
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [requirement_code, file]
+              properties:
+                requirement_code: {type: string}
+                file: {type: string, format: binary, description: JPEG/PNG/WebP, max 8 MB}
+      responses:
+        '200': {description: Document stored privately and review status returned}
+        '413': {description: File too large}
+        '415': {description: Unsupported media type}
+  /rider/profile:
+    get:
+      summary: Read the approved rider's own profile and approved service localities
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Approved rider profile}
+        '403': {description: Rider entitlement, active account, and approved profile are required}
+  /admin/rider-applications:
+    get:
+      summary: List rider applications for Admin review
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: status, schema: {type: string, enum: [draft, submitted, under_review, changes_requested, approved, rejected, suspended]}}
+      responses:
+        '200': {description: Admin application queue}
+        '403': {description: Admin access required}
+  /admin/rider-applications/{id}:
+    get:
+      summary: Read an application, requested localities, document review state, and history
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Application detail without public document URLs}
+        '404': {description: Application not found}
+  /admin/rider-applications/{id}/review:
+    post:
+      summary: Review an application and grant approved localities atomically
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: {type: string, enum: [under_review, changes_requested, approved, rejected]}
+                reason: {type: string, maxLength: 500}
+                approved_locality_ids: {type: array, items: {type: string, format: uuid}}
+      responses:
+        '200': {description: Decision, role entitlement, audit, and approved areas committed}
+        '403': {description: Admin access required or self-review denied}
+        '409': {description: Invalid state or unreviewed required documents}
+  /admin/rider-documents/{id}/review:
+    post:
+      summary: Accept or reject an uploaded rider document
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [status], properties: {status: {type: string, enum: [accepted, rejected]}, reason: {type: string, maxLength: 500}}}
+      responses:
+        '200': {description: Document review recorded in immutable application history and audit trail}
+        '404': {description: Pending document not found}
+  /admin/rider-documents/{id}/content:
+    get:
+      summary: Stream a private rider document to an authenticated Admin
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Private no-store document content}
+        '403': {description: Admin access required}
+        '404': {description: Document not found}
+  /admin/rider-document-requirements:
+    get:
+      summary: List configured rider verification requirements
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Configured requirements including inactive records}
+    post:
+      summary: Create or update a verification requirement; restricted to primary superadmin
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, label, vehicle_type, is_required, is_active]
+              properties:
+                code: {type: string, pattern: '^[a-z][a-z0-9_]{1,63}$'}
+                label: {type: string, minLength: 2, maxLength: 120}
+                vehicle_type: {type: string, enum: [any, bicycle, two_wheeler, three_wheeler, other]}
+                is_required: {type: boolean}
+                is_active: {type: boolean}
+      responses:
+        '200': {description: Requirement saved and audited}
+        '403': {description: Primary superadmin access required}
+  /admin/riders/{id}/suspend:
+    post:
+      summary: Suspend an approved rider and revoke role and sessions atomically
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: Rider suspended, entitlement removed, sessions revoked, and audit recorded}
+        '409': {description: Rider is not approved}
+  /admin/riders/{id}/reactivate:
+    post:
+      summary: Reactivate a suspended rider with previously approved localities
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Rider access restored and audited}
+        '409': {description: Rider cannot be reactivated}
+  /rider/availability:
+    get:
+      summary: Read the authenticated approved rider's availability lease
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Online flag and lease expiry}
+        '403': {description: Approved active rider access required}
+    put:
+      summary: Go online or offline; online status is time leased
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [online], properties: {online: {type: boolean}}}
+      responses:
+        '200': {description: Availability updated and lease started}
+        '409': {description: Active assignment or incomplete verification blocks availability}
+        '503': {description: Dispatch disabled}
+  /rider/availability/heartbeat:
+    post:
+      summary: Renew the current rider availability lease without collecting location
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Availability lease renewed}
+        '409': {description: Lease expired; rider must explicitly go online again}
+  /rider/offers:
+    get:
+      summary: List active dispatch offers for the authenticated rider
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Active offers with fulfillment items, pickup business, destination locality, and expiry}
+  /rider/offers/{offerId}:
+    get:
+      summary: Load an offer only for its assigned rider
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: offerId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Rider-scoped offer}
+        '404': {description: Offer not found for this rider}
+  /rider/offers/{offerId}/accept:
+    post:
+      summary: Accept an active rider offer atomically
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: offerId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Assignment accepted, audit and status events recorded}
+        '404': {description: Offer not found for this rider}
+        '409': {description: Offer expired, closed, or rider no longer eligible}
+  /rider/offers/{offerId}/decline:
+    post:
+      summary: Decline an active offer and advance sequential dispatch
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: offerId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {type: object, properties: {reason: {type: string, maxLength: 500}}}
+      responses:
+        '200': {description: Offer declined and next eligible rider considered}
+        '404': {description: Offer not found for this rider}
+  /rider/assignments/active:
+    get:
+      summary: Read the authenticated rider's current assignment, if any
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Active assigned job, partner and destination details, item snapshot, and current delivery execution state; no GPS or ETA}
+  /admin/delivery-jobs:
+    get:
+      summary: Read the dispatch board and refresh expired offers
+      description: Returns recent delivery jobs with immutable order, customer, partner, locality, fulfillment, dispatch, and rider identifiers for safe Admin review.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Recent delivery jobs and rider assignment state}
+        '503': {description: Dispatch disabled}
+  /admin/delivery-jobs/{jobId}/execution-events:
+    get:
+      summary: Read Admin-authorized delivery execution history
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Delivery milestones without verification secrets}
+        '403': {description: Admin access required}
+        '404': {description: Delivery job not found}
+  /admin/delivery-jobs/{jobId}/eligible-riders:
+    get:
+      summary: List approved, online riders eligible for a job's locality
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Eligible riders with no active offer or assignment}
+  /admin/delivery-jobs/{jobId}/retry:
+    post:
+      summary: Retry an exhausted dispatch run with an audited reason
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: New sequential dispatch run started}
+        '409': {description: Job state does not allow retry}
+  /admin/delivery-jobs/{jobId}/assign:
+    post:
+      summary: Assign an eligible online rider with a required audit reason
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [rider_user_id, reason], properties: {rider_user_id: {type: string, format: uuid}, reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: Admin assignment and immutable audit events recorded}
+        '409': {description: Job/rider state conflict}
+  /admin/delivery-recovery-cases:
+    get:
+      summary: List open, investigating, action-pending and escalated delivery recovery cases
+      description: Requires primary superadmin or an Admin with delivery_operator permission. Response omits customer contact, rider KYC and precise location.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Recovery queue ordered by oldest open case}
+        '403': {description: Delivery operator permission required}
+        '503': {description: Dispatch disabled}
+  /admin/delivery-operations/alerts:
+    get:
+      summary: List persisted delivery operations requiring review
+      description: Requires primary superadmin or an active Admin with delivery_operator permission. Read-only; does not resolve alerts or mutate assignments, custody, inventory, or earnings. Omits customer contact, OTP, rider KYC, and precise location.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Bounded alert list with severity, age, locality, partner, order/job references, custody state and recommended review action}
+        '403': {description: Delivery operator permission required}
+        '503': {description: Dispatch disabled}
+  /admin/delivery-recovery-cases/{caseId}/events:
+    get:
+      summary: Read immutable, sanitized events for one recovery case
+      description: Requires primary superadmin or an active Admin with delivery_operator permission. Does not return OTPs, precise location, customer contact, or rider KYC.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: caseId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Recovery event history in chronological order}
+        '403': {description: Delivery operator permission required}
+        '404': {description: Recovery case not found}
+        '503': {description: Dispatch disabled}
+  /admin/delivery-jobs/{jobId}/recovery:
+    post:
+      summary: Cancel before pickup or release an assignment for sequential redispatch
+      description: Requires partner no-handover evidence, expected assignment and execution state, reason, and Idempotency-Key. Custody after pickup is never released through this API.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [action, reason, expected_assignment_id, expected_execution_state, partner_confirmed_no_handover], properties: {action: {type: string, enum: [release_and_reassign_before_pickup, cancel_before_pickup]}, reason: {type: string, minLength: 10, maxLength: 500}, expected_assignment_id: {type: string, format: uuid}, expected_execution_state: {type: string, enum: [assigned, arriving_at_pickup, at_pickup, pickup_failed]}, partner_confirmed_no_handover: {type: boolean, enum: [true]}}}
+      responses:
+        '200': {description: Recovery applied or idempotently replayed}
+        '403': {description: Delivery operator permission required}
+        '409': {description: Stale assignment/state, custody, or idempotency conflict}
+        '422': {description: Recovery preconditions are not satisfied}
+        '503': {description: Dispatch disabled}
+  /admin/delivery-jobs/{jobId}/return/finalize:
+    post:
+      summary: Finalize an inspected physical return and its explicit inventory disposition
+      description: Requires delivery operator permission and Idempotency-Key. Only restockable returns release reserved stock; not-restockable returns consume the reservation. Payment remains unchanged.
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: Return finalized or idempotently replayed; order remains unpaid}
+        '403': {description: Delivery operator permission required}
+        '409': {description: Return is not inspected or idempotency conflict}
+  /admin/delivery-offers/{offerId}/cancel:
+    post:
+      summary: Cancel an active rider offer with an audit reason
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: offerId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: Offer cancelled and dispatch advances}
+  /merchant/businesses/{businessId}/delivery-dispatch:
+    get:
+      summary: Read delivery assignment status for an authorized business
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Dispatch states for the business's orders}
+        '403': {description: Active business membership required}
+  /orders/{id}/delivery-status:
+    get:
+      summary: Read dispatch state for the authenticated customer's own order
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Delivery state without rider identity, location, or ETA}
+        '404': {description: Order is not owned by the customer or has no dispatch job}
+  /rider/delivery-jobs/{jobId}/state:
+    post:
+      summary: Advance an assigned rider through arrival and return-in-progress states
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [state], properties: {state: {type: string, enum: [arriving_at_pickup, at_pickup, en_route, return_in_progress]}}}
+      responses:
+        '200': {description: Authorized execution state transition recorded}
+        '403': {description: Active approved rider/locality required}
+        '409': {description: Invalid state transition or partner order is not ready}
+  /rider/delivery-jobs/{jobId}/pickup/verify:
+    post:
+      summary: Verify partner handover using the short-lived pickup code
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [code], properties: {code: {type: string, pattern: '^[0-9]{8}$'}}}
+      responses:
+        '200': {description: Pickup handover verified and auditable}
+        '401': {description: Incorrect, expired, or exhausted verification code}
+        '409': {description: Pickup prerequisites are not met}
+  /rider/delivery-jobs/{jobId}/delivery/confirm:
+    post:
+      summary: Complete delivery using the owning customer's one-time code
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [code], properties: {code: {type: string, pattern: '^[0-9]{8}$'}}}
+      responses:
+        '200': {description: Customer-verified delivery completion; idempotent on retry}
+        '401': {description: Incorrect, expired, or exhausted verification code}
+        '409': {description: Delivery is not en route or customer code is unavailable}
+  /rider/delivery-jobs/{jobId}/exceptions:
+    post:
+      summary: Report a pickup or delivery exception
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [type, reason], properties: {type: {type: string, enum: [pickup_failed, customer_unreachable, delivery_failed, return_required]}, reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '201': {description: Exception recorded and scoped parties notified}
+        '409': {description: Exception is invalid for current delivery state}
+  /rider/delivery-jobs/{jobId}/unable-to-continue:
+    post:
+      summary: Open an auditable recovery case for the authenticated rider's active assignment
+      description: Does not release assignment or transfer physical custody. Requires an Idempotency-Key.
+      tags: [rider]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '201': {description: Recovery case created or idempotently replayed}
+        '403': {description: Approved active rider access is required}
+        '404': {description: Active assignment not owned by rider}
+        '409': {description: Idempotency key reused with a different payload}
+  /merchant/businesses/{businessId}/delivery-jobs/{jobId}/recovery/no-handover:
+    post:
+      summary: Record partner-confirmed evidence that goods were not handed to the rider
+      description: Bound to the active assignment and business; required before Admin can release an assignment pre-pickup. Requires Idempotency-Key.
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [assignment_id, reason], properties: {assignment_id: {type: string, format: uuid}, reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: No-handover evidence recorded or idempotently replayed}
+        '403': {description: Active membership for assigned business required}
+        '409': {description: Assignment/custody conflict or idempotency conflict}
+  /merchant/businesses/{businessId}/delivery-jobs/{jobId}/return/disposition:
+    post:
+      summary: Record inventory condition after the partner receives a physical return
+      description: Does not restore inventory; separate Admin finalization applies the disposition. Requires Idempotency-Key.
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [inventory_disposition, reason], properties: {inventory_disposition: {type: string, enum: [restockable, not_restockable]}, reason: {type: string, minLength: 10, maxLength: 500}}}
+      responses:
+        '200': {description: Partner inspection recorded; awaiting Admin finalization}
+        '403': {description: Active membership for assigned business required}
+        '409': {description: Return/disposition conflict or idempotency conflict}
+  /merchant/businesses/{businessId}/delivery-jobs/{jobId}/pickup-code:
+    post:
+      summary: Issue a short-lived code for an assigned rider handover
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Pickup code shown only to authorized assigned partner}
+        '403': {description: Business membership required}
+        '409': {description: Partner order is not ready or rider has not arrived}
+  /merchant/businesses/{businessId}/delivery-jobs/{jobId}/return/confirm:
+    post:
+      summary: Confirm physical return handover to the assigned partner
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Return receipt recorded; inventory is not automatically restored}
+        '403': {description: Business membership required}
+  /orders/{id}/delivery-code:
+    post:
+      summary: Issue a short-lived delivery code to the authenticated owning customer
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: One-time code returned only to owning customer after rider is en route}
+        '404': {description: Order not found for customer}
+        '409': {description: Delivery is not en route}
+        '429': {description: Code request cooldown}
+  /orders/{id}/delivery-history:
+    get:
+      summary: Read customer-owned delivery execution milestones
+      tags: [delivery-status]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Ordered delivery execution events without OTP values}
+        '404': {description: Order not found for customer}
+  /admin/delivery-exceptions:
+    get:
+      summary: List open delivery exceptions for Admin review
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Open exceptions with order reference and current execution state}
+  /admin/delivery-jobs/{jobId}/exceptions/{exceptionId}/resolve:
+    post:
+      summary: Resolve an exception with an audited and idempotent return or pre-pickup cancellation action
+      tags: [admin-riders]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: jobId, required: true, schema: {type: string, format: uuid}}
+        - {in: path, name: exceptionId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [action, reason], properties: {action: {type: string, enum: [require_return, cancel_before_pickup]}, reason: {type: string, minLength: 10, maxLength: 500}, expected_assignment_id: {type: string, format: uuid, description: Required for require_return; binds the action to the active custody assignment.}}}
+      responses:
+        '200': {description: Audited operational exception resolution; repeated require_return requests replay safely and delivery OTP is never bypassed}
+        '403': {description: Primary superadmin or delivery_operator permission required}
+        '409': {description: Assignment or custody state changed, idempotency key conflict, or resolution incompatible with current state}
+
 # ---------------------------------------------------------------
 # Components
 # ---------------------------------------------------------------
 components:
+  schemas:
+    PlatformCatalogArea:
+      type: object
+      properties:
+        city: {type: string, enum: [Cuttack, Jajpur], description: Legacy district field retained for existing Admin clients}
+        locality: {type: string, maxLength: 100}
+        district_id: {type: string, format: uuid, description: Stable district reference}
+        locality_id: {type: string, format: uuid, description: Stable locality reference; locality must belong to district_id}
+    PlatformCatalogVariantInput:
+      type: object
+      required: [sku, name, unit_label, price_minor]
+      properties:
+        sku: {type: string, maxLength: 80}
+        name: {type: string, maxLength: 120}
+        unit_label: {type: string, maxLength: 40}
+        price_minor: {type: integer, format: int64, minimum: 0}
+        currency: {type: string, enum: [INR], default: INR}
   securitySchemes:
     bearerAuth:
       type: http
@@ -2657,6 +4157,7 @@ components:
       required: [order_type]
       properties:
         order_type: {type: string, enum: [food_delivery, table_reservation, hotel_booking]}
+        checkout_quote_id: {type: string, format: uuid, description: Required for Phase 2C food ordering}
         fulfillment_type: {type: string, enum: [delivery, takeaway]}
         delivery_address: {type: string, maxLength: 500}
         notes: {type: string, maxLength: 1000}
@@ -2668,12 +4169,71 @@ components:
             required: [product_id, quantity]
             properties:
               product_id: {type: string, format: uuid}
-              quantity: {type: integer, minimum: 1, maximum: 99}
+              quantity: {type: integer, minimum: 1, maximum: 50}
         reservation_at: {type: string, format: date-time}
         reservation_end_at: {type: string, format: date-time}
         guest_count: {type: integer, minimum: 1, maximum: 30}
         seating_area: {type: string, maxLength: 80}
         room_product_id: {type: string, format: uuid}
+
+    CreateCheckoutQuoteRequest:
+      type: object
+      required: [fulfillment_type, items]
+      properties:
+        fulfillment_type: {type: string, enum: [delivery, takeaway]}
+        address_id: {type: string, format: uuid, description: Required for delivery and omitted for takeaway}
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [product_id, quantity]
+            properties:
+              product_id: {type: string, format: uuid}
+              quantity: {type: integer, minimum: 1, maximum: 50}
+
+    PlatformCheckoutQuoteRequest:
+      type: object
+      required: [vertical, address_id, items]
+      properties:
+        vertical: {type: string, enum: [food, grocery]}
+        address_id: {type: string, format: uuid}
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [variant_id, quantity]
+            properties:
+              variant_id: {type: string, format: uuid}
+              quantity: {type: integer, minimum: 1, maximum: 50}
+
+    PlatformCheckoutSubmitRequest:
+      type: object
+      required: [quote_id]
+      properties:
+        quote_id: {type: string, format: uuid}
+        notes: {type: string, maxLength: 1000}
+
+    CustomerAddressInput:
+      type: object
+      required: [label, recipient_name, address_line1, locality, city, state, postal_code, contact_phone]
+      properties:
+        label: {type: string, minLength: 1, maxLength: 40}
+        recipient_name: {type: string, minLength: 1, maxLength: 100}
+        address_line1: {type: string, minLength: 3, maxLength: 200}
+        locality: {type: string, minLength: 1, maxLength: 100}
+        locality_id: {type: string, format: uuid, description: Stable delivery locality ID; required for Grepmind platform checkout}
+        landmark: {type: string, maxLength: 120}
+        city: {type: string, enum: [Cuttack, Jajpur]}
+        state: {type: string, minLength: 1, maxLength: 80}
+        postal_code: {type: string, pattern: '^[0-9]{6}$'}
+        contact_phone: {type: string, pattern: '^(\+91)?[6-9][0-9]{9}$'}
+        latitude: {type: number, minimum: -90, maximum: 90}
+        longitude: {type: number, minimum: -180, maximum: 180}
+        is_default: {type: boolean, default: false}
 
     Meta:
       type: object
@@ -2784,7 +4344,12 @@ components:
           type: array
           items:
             type: string
-            enum: [customer, merchant, professional, admin, rider]
+            enum: [customer, merchant, professional, admin, rider, delivery_operator]
+        rider_status:
+          type: string
+          nullable: true
+          enum: [draft, submitted, under_review, changes_requested, approved, rejected, suspended]
+          description: Server-read application status. A rider role without approved status does not authorize rider workspace access.
         created_at:
           type: string
           format: date-time
@@ -3004,6 +4569,13 @@ components:
           type: string
         stock_status:
           type: string
+        inventory_mode:
+          type: string
+          enum: [untracked, finite]
+        available_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
         is_published:
           type: boolean
         image_url:
@@ -3034,6 +4606,14 @@ components:
           type: string
           enum: [unknown, in_stock, out_of_stock, limited]
           default: unknown
+        inventory_mode:
+          type: string
+          enum: [untracked, finite]
+          default: untracked
+        available_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
         image_url:
           type: string
           nullable: true
@@ -3056,11 +4636,50 @@ components:
         stock_status:
           type: string
           enum: [unknown, in_stock, out_of_stock, limited]
+        inventory_mode:
+          type: string
+          enum: [untracked, finite]
+        available_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
         is_published:
           type: boolean
         image_url:
           type: string
           nullable: true
+
+    CartValidationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          required: [business_id, items, item_subtotal_minor, minimum_order_minor, currency, valid, minimum_met]
+          properties:
+            business_id: {type: string, format: uuid}
+            business_name: {type: string}
+            item_subtotal_minor: {type: integer, minimum: 0}
+            minimum_order_minor: {type: integer, minimum: 0}
+            currency: {type: string, example: INR}
+            valid: {type: boolean}
+            minimum_met: {type: boolean}
+            items:
+              type: array
+              items:
+                type: object
+                required: [product_id, quantity, available]
+                properties:
+                  product_id: {type: string, format: uuid}
+                  name: {type: string}
+                  quantity: {type: integer}
+                  available: {type: boolean}
+                  reason: {type: string, enum: [unavailable, insufficient_stock]}
+                  unit_price_minor: {type: integer, minimum: 0}
+                  line_total_minor: {type: integer, minimum: 0}
+                  inventory_mode: {type: string, enum: [untracked, finite]}
+                  available_quantity: {type: integer, nullable: true}
+        meta:
+          $ref: '#/components/schemas/Meta'
 
     Service:
       type: object

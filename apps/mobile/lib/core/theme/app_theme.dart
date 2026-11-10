@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Grepmind Near premium design system — 2026 Material Design 3.
 ///
@@ -31,79 +30,94 @@ class AppTheme {
 
   // ---------- Typography ----------
   static TextTheme _textTheme(BuildContext context) {
-    return GoogleFonts.interTextTheme(Theme.of(context).textTheme).copyWith(
-      displayLarge: GoogleFonts.inter(
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        color: mainText,
-        letterSpacing: -0.5,
-      ),
-      displayMedium: GoogleFonts.inter(
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        color: mainText,
-        letterSpacing: -0.4,
-      ),
-      headlineLarge: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        color: mainText,
-        letterSpacing: -0.2,
-      ),
-      headlineMedium: GoogleFonts.inter(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: mainText,
-      ),
-      headlineSmall: GoogleFonts.inter(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: mainText,
-      ),
-      titleLarge: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: mainText,
-      ),
-      titleMedium: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: mainText,
-      ),
-      bodyLarge: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        color: mainText,
-        height: 1.5,
-      ),
-      bodyMedium: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: mainText,
-        height: 1.5,
-      ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        color: secondaryText,
-        height: 1.4,
-      ),
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: mainText,
-      ),
-      labelMedium: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: secondaryText,
-      ),
-      labelSmall: GoogleFonts.inter(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: hintText,
-      ),
-    );
+    return Theme.of(context).textTheme
+        .apply(fontFamily: 'sans-serif')
+        .copyWith(
+          displayLarge: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: mainText,
+            letterSpacing: -0.5,
+          ),
+          displayMedium: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: mainText,
+            letterSpacing: -0.4,
+          ),
+          headlineLarge: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: mainText,
+            letterSpacing: -0.2,
+          ),
+          headlineMedium: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: mainText,
+          ),
+          headlineSmall: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: mainText,
+          ),
+          titleLarge: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: mainText,
+          ),
+          titleMedium: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: mainText,
+          ),
+          bodyLarge: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: mainText,
+            height: 1.5,
+          ),
+          bodyMedium: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: mainText,
+            height: 1.5,
+          ),
+          bodySmall: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: secondaryText,
+            height: 1.4,
+          ),
+          labelLarge: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: mainText,
+          ),
+          labelMedium: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: secondaryText,
+          ),
+          labelSmall: const TextStyle(
+            fontFamily: 'sans-serif',
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: hintText,
+          ),
+        );
   }
 
   static ThemeData lightTheme(BuildContext context) {
@@ -227,7 +241,7 @@ class AppTheme {
           color: mainText,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          fontFamily: 'Inter',
+          fontFamily: 'sans-serif',
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
