@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readQaOtp } from './qa-otp';
 
 test('Admin manages Food/Grocery products and an eligible partner mapping', async ({ page, request }) => {
   test.setTimeout(120_000);
@@ -15,9 +16,9 @@ test('Admin manages Food/Grocery products and an eligible partner mapping', asyn
   await page.getByRole('button', { name: 'Continue securely' }).click();
   const otpResponse = await otpRequest;
   expect(otpResponse.status()).toBe(202);
-  const otp = (await otpResponse.json())?.data?.otp_code as string;
-  expect(otp).toMatch(/^\d{6}$/);
-  await page.getByLabel('Six-digit verification code').fill(otp);
+  const payload = (await otpResponse.json())?.data;
+  expect(payload?.otp_code).toBeUndefined();
+  await page.getByLabel('Six-digit verification code').fill(await readQaOtp(payload.challenge_id, adminPhone!, payload.expires_at));
   const verification = page.waitForResponse((response) =>
     response.url().endsWith('/auth/otp/verify') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Verify and continue' }).click();

@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, BadgePercent, ShieldCheck, PackageCheck } from 'lucide-react';
+import { LayoutDashboard, CalendarClock, ShoppingBag, Clock, Users, BarChart3, BadgePercent, ShieldCheck, PackageCheck, WalletCards } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -10,6 +10,7 @@ interface SidebarProps {
   pendingRequestsCount: number;
   pendingPlatformOrdersCount?: number;
   verificationStatus: string;
+  accessRole?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -18,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingRequestsCount,
   pendingPlatformOrdersCount = 0,
   verificationStatus,
+  accessRole = '',
 }) => {
   const menuItems = [
     {
@@ -53,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
     },
     { id: 'offers', label: 'Offers & Promotions', icon: BadgePercent },
+    ...(accessRole === 'owner' || accessRole === 'manager' ? [{ id: 'finance', label: 'Payables & settlements', icon: WalletCards }] : []),
     {
       id: 'analytics',
       label: 'Store Analytics',

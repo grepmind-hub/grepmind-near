@@ -15,7 +15,7 @@ param(
     [string]$Action = 'Status',
     [string]$AvdName = 'Pixel_8',
     [string]$DeviceId = 'emulator-5554',
-    [string]$ApiBaseUrl = 'http://172.18.160.150:80',
+    [string]$ApiBaseUrl = 'http://10.0.2.2:80',
     [ValidateRange(1024,65535)][int]$AdbServerPort = 5037,
     [string]$WindowsSdk = 'D:\emulator\android-sdk',
     [string]$WslFlutter = '/home/grepmind/projects/flutter-setup/develop/flutter/bin/flutter',
@@ -70,12 +70,28 @@ function Connect-TcpEmulatorIfNeeded {
 
 function Start-Emulator {
     # -a makes the Windows ADB server reachable from WSL2.
-    $serverOutput = & $adb -P $AdbServerPort -a start-server 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    # ADB writes its normal "daemon not running; starting now" startup banner
+    # to stderr. The script's Stop preference must not treat that banner as a
+    # terminating PowerShell error when adb exits successfully.
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $serverOutput = & $adb -P $AdbServerPort -a start-server 2>&1
+        $serverExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($serverExitCode -ne 0) {
         # ADB can report a startup handshake error while its daemon is still exiting.
         Start-Sleep -Seconds 2
-        $serverOutput = & $adb -P $AdbServerPort -a start-server 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        try {
+            $ErrorActionPreference = 'Continue'
+            $serverOutput = & $adb -P $AdbServerPort -a start-server 2>&1
+            $serverExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        if ($serverExitCode -ne 0) {
             throw "Could not start the Windows ADB server after retrying. $($serverOutput -join ' ')"
         }
     }

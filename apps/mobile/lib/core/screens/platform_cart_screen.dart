@@ -9,7 +9,7 @@ import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/providers/platform_cart_provider.dart';
 import 'package:grepmind_mobile/core/screens/customer_addresses_screen.dart';
-import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
+import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
 class PlatformCartScreen extends ConsumerStatefulWidget {
@@ -24,6 +24,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   CustomerAddress? _address;
   Map<String, dynamic>? _quote;
   bool _busy = false;
+  String? _paymentMethod;
   String? _error;
   String? _idempotencyKey;
   final _notes = TextEditingController();
@@ -87,6 +88,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     setState(() {
       _address = selected;
       _quote = null;
+      _paymentMethod = null;
       _idempotencyKey = null;
       _error = null;
     });
@@ -113,6 +115,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
       if (!mounted) return;
       setState(() {
         _quote = quote;
+        _paymentMethod = quote['upi_sandbox_available'] == true
+            ? 'upi'
+            : quote['cash_on_delivery_available'] == true
+            ? 'cash_on_delivery'
+            : null;
         _idempotencyKey = _newUUID();
         _busy = false;
       });
@@ -137,7 +144,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     try {
       final order = await ref
           .read(platformCartProvider(widget.scope).notifier)
-          .submit(quote['quote_id'] as String, key, _notes.text.trim());
+          .submit(
+            quote['quote_id'] as String,
+            key,
+            _notes.text.trim(),
+            paymentMethod: _paymentMethod,
+          );
       await ref.read(platformCartProvider(widget.scope).notifier).clear();
       ref.invalidate(customerOrdersProvider);
       if (!mounted) return;
@@ -152,12 +164,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           ),
           title: const Text('Order request received'),
           content: Text(
-            'Your ${widget.scope.vertical == 'food' ? 'Food' : 'Grocery'} order was sent to the selected fulfillment partner. Payment was not collected.\n\nReference: ${order['reference_code'] ?? order['id']}',
+            'Your ${widget.scope.vertical == 'food' ? 'Food' : 'Grocery'} order was sent to the selected fulfillment partner. ${_paymentMethod == 'cash_on_delivery' ? 'Synthetic Cash on Delivery is due at delivery; no cash is collected now.' : 'Sandbox UPI payment is not confirmed yet. Complete it from the order screen; fulfillment starts only after backend verification.'}\n\nReference: ${order['reference_code'] ?? order['id']}',
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('View My Orders'),
+              child: const Text('Continue to order'),
             ),
           ],
         ),
@@ -166,7 +178,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         Navigator.pop(context);
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+          MaterialPageRoute(
+            builder: (_) => OrderTrackingScreen(orderId: order['id'] as String),
+          ),
         );
       }
     } catch (error) {
@@ -185,6 +199,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     setState(() {
       _quote = null;
       _idempotencyKey = null;
+      _paymentMethod = null;
       _error = null;
     });
   }
@@ -266,6 +281,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                     ),
                   ),
                 if (_quote != null) _quoteCard(),
+                if (_quote != null) _paymentMethodCard(),
                 if (_error != null)
                   Card(
                     color: const Color(0xFFFFF1F0),
@@ -299,7 +315,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   ),
                   const SizedBox(height: 8),
                   FilledButton.icon(
-                    onPressed: _busy ? null : _submit,
+                    onPressed: _busy || _paymentMethod == null ? null : _submit,
                     icon: const Icon(Icons.check_circle_outline_rounded),
                     label: Text(
                       _busy
@@ -310,7 +326,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                 ],
                 const SizedBox(height: 10),
                 const Text(
-                  'Payment is not collected through Grepmind at this stage.',
+                  'Payment availability and order eligibility are checked again by Grepmind when you continue.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppTheme.secondaryText),
                 ),
@@ -482,6 +498,69 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                 child: Text(
                   'Tax is not separately calculated in this build.',
                   style: TextStyle(color: AppTheme.secondaryText),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _paymentMethodCard() {
+    final quote = _quote!;
+    final upiAvailable = quote['upi_sandbox_available'] == true;
+    final codAvailable = quote['cash_on_delivery_available'] == true;
+    return Card(
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(
+                'Payment method',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            if (upiAvailable || codAvailable)
+              RadioGroup<String>(
+                groupValue: _paymentMethod,
+                onChanged: (value) {
+                  if (_busy || value == null) return;
+                  setState(() => _paymentMethod = value);
+                },
+                child: Column(
+                  children: [
+                    if (upiAvailable)
+                      RadioListTile<String>(
+                        value: 'upi',
+                        enabled: !_busy,
+                        title: const Text('UPI'),
+                        subtitle: const Text(
+                          'Sandbox payment · no real money is charged',
+                        ),
+                        secondary: const Icon(Icons.account_balance_outlined),
+                      ),
+                    if (codAvailable)
+                      RadioListTile<String>(
+                        value: 'cash_on_delivery',
+                        enabled: !_busy,
+                        title: const Text('Cash on Delivery'),
+                        subtitle: Text(
+                          'Synthetic QA only · ${_money((quote['grand_total_minor'] as num).toInt())} due at delivery; no cash collected now',
+                        ),
+                        secondary: const Icon(Icons.payments_outlined),
+                      ),
+                  ],
+                ),
+              ),
+            if (!upiAvailable && !codAvailable)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'No payment method is currently available for this order.',
                 ),
               ),
           ],

@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/crypto/bcrypt"
 	"grepmind-near/backend/pkg/config"
 	"grepmind-near/backend/pkg/database"
 )
@@ -153,7 +154,7 @@ func TestConcurrentOTPRequestsEnforcePersistentPhoneLimit(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/otp/request", strings.NewReader(`{"phone_e164":"+919876543210"}`))
 			request.RemoteAddr = "127.0.0.1:12345"
 			response := httptest.NewRecorder()
-			NewService(svc.db, cfg).RequestOTP(response, request)
+			NewServiceWithOTPProvider(svc.db, cfg, testOTPDeliveryProvider{}).RequestOTP(response, request)
 			statuses <- response.Code
 		}()
 	}
@@ -180,6 +181,101 @@ func TestConcurrentOTPRequestsEnforcePersistentPhoneLimit(t *testing.T) {
 	if stored != 5 {
 		t.Fatalf("expected exactly five stored OTPs, got %d", stored)
 	}
+}
+
+func TestOTPExpiryAndReplayRemainEnforcedWithQAProvider(t *testing.T) {
+	svc, _ := newSessionIntegrationService(t)
+	phone := "+919876543210"
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("654321"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.db.ExecContext(context.Background(), `INSERT INTO otp_codes(phone_e164,code_hash,attempts,max_attempts,expires_at) VALUES($1,$2,0,5,$3)`, phone, string(passwordHash), time.Now().Add(-time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if response := verifyOTPRequest(svc, phone, "654321"); response.Code != http.StatusUnauthorized {
+		t.Fatalf("expired OTP status=%d body=%s", response.Code, response.Body.String())
+	}
+	if _, err = svc.db.ExecContext(context.Background(), `DELETE FROM otp_codes WHERE phone_e164=$1`, phone); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.db.ExecContext(context.Background(), `INSERT INTO otp_codes(phone_e164,code_hash,attempts,max_attempts,expires_at) VALUES($1,$2,0,5,$3)`, phone, string(passwordHash), time.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if response := verifyOTPRequest(svc, phone, "111111"); response.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid OTP status=%d body=%s", response.Code, response.Body.String())
+	}
+	first := verifyOTPRequest(svc, phone, "654321")
+	if first.Code != http.StatusOK {
+		t.Fatalf("valid OTP status=%d body=%s", first.Code, first.Body.String())
+	}
+	if second := verifyOTPRequest(svc, phone, "654321"); second.Code != http.StatusUnauthorized {
+		t.Fatalf("replayed OTP status=%d, want 401", second.Code)
+	}
+}
+
+func TestOTPChallengeScopeAndNewRequestInvalidatesPriorCode(t *testing.T) {
+	svc, _ := newSessionIntegrationService(t)
+	cfg := &config.Config{
+		Env: "test", JWTSecret: "integration-test-secret-with-over-32-characters",
+		JWTAccessTTL: time.Minute, JWTRefreshTTL: time.Hour, OTPTTL: 5 * time.Minute,
+		OTPResendCooldown: 0, OTPMaxAttempts: 5,
+	}
+	provider := &capturingOTPDeliveryProvider{}
+	svc = NewServiceWithOTPProvider(svc.db, cfg, provider)
+	requestOTP := func() map[string]interface{} {
+		request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/otp/request", strings.NewReader(`{"phone_e164":"+919876543210"}`))
+		request.RemoteAddr = "127.0.0.1:12345"
+		response := httptest.NewRecorder()
+		svc.RequestOTP(response, request)
+		if response.Code != http.StatusAccepted {
+			t.Fatalf("request OTP status=%d body=%s", response.Code, response.Body.String())
+		}
+		var payload struct {
+			Data map[string]interface{} `json:"data"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatal(err)
+		}
+		if _, leaked := payload.Data["otp_code"]; leaked {
+			t.Fatal("OTP was disclosed in API response")
+		}
+		return payload.Data
+	}
+	first := requestOTP()
+	firstDelivery := provider.last()
+	second := requestOTP()
+	secondDelivery := provider.last()
+	firstID := first["challenge_id"].(string)
+	secondID := second["challenge_id"].(string)
+	if firstID == secondID {
+		t.Fatal("each request must return a new challenge ID")
+	}
+	if got := verifyOTPRequest(svc, "+919876543210", firstDelivery.Code, firstID); got.Code != http.StatusUnauthorized {
+		t.Fatalf("superseded challenge status=%d body=%s", got.Code, got.Body.String())
+	}
+	if got := verifyOTPRequest(svc, "+919876543210", secondDelivery.Code, firstID); got.Code != http.StatusUnauthorized {
+		t.Fatalf("code/challenge mismatch status=%d body=%s", got.Code, got.Body.String())
+	}
+	if got := verifyOTPRequest(svc, "+919876543210", secondDelivery.Code, secondID); got.Code != http.StatusOK {
+		t.Fatalf("current challenge status=%d body=%s", got.Code, got.Body.String())
+	}
+	if got := verifyOTPRequest(svc, "+919876543210", secondDelivery.Code, secondID); got.Code != http.StatusUnauthorized {
+		t.Fatalf("replayed current challenge status=%d", got.Code)
+	}
+}
+
+func verifyOTPRequest(svc *Service, phone, code string, challengeID ...string) *httptest.ResponseRecorder {
+	data := map[string]string{"phone_e164": phone, "otp_code": code}
+	if len(challengeID) > 0 {
+		data["challenge_id"] = challengeID[0]
+	}
+	body, _ := json.Marshal(data)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/otp/verify", bytes.NewReader(body))
+	request.RemoteAddr = "127.0.0.1:12345"
+	response := httptest.NewRecorder()
+	svc.VerifyOTP(response, request)
+	return response
 }
 
 func refreshRequest(svc *Service, token string) *httptest.ResponseRecorder {
@@ -242,9 +338,10 @@ func newSessionIntegrationService(t *testing.T) (*Service, string) {
 		_ = adminDB.Close()
 	})
 	for _, statement := range []string{
-		`CREATE TABLE users (id UUID PRIMARY KEY, phone_e164 TEXT UNIQUE NOT NULL)`,
+		`CREATE TABLE users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), phone_e164 TEXT UNIQUE NOT NULL, display_name TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', preferred_language TEXT NOT NULL DEFAULT 'en', updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+		`CREATE TABLE user_roles (user_id UUID NOT NULL REFERENCES users(id), role TEXT NOT NULL, PRIMARY KEY(user_id, role))`,
 		`CREATE TABLE sessions (id UUID PRIMARY KEY, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, refresh_token_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), user_agent TEXT, ip_address TEXT)`,
-		`CREATE TABLE otp_codes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), phone_e164 TEXT NOT NULL, code_hash TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 5, expires_at TIMESTAMPTZ NOT NULL, verified_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+		`CREATE TABLE otp_codes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), phone_e164 TEXT NOT NULL, code_hash TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 5, expires_at TIMESTAMPTZ NOT NULL, verified_at TIMESTAMPTZ, invalidated_at TIMESTAMPTZ, purpose TEXT NOT NULL DEFAULT 'login', created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 	} {
 		if _, err = raw.Exec(statement); err != nil {
 			t.Fatalf("create auth fixture table: %v", err)
@@ -256,4 +353,26 @@ func newSessionIntegrationService(t *testing.T) (*Service, string) {
 	}
 	cfg := &config.Config{Env: "test", JWTSecret: "integration-test-secret-with-over-32-characters", JWTAccessTTL: time.Minute, JWTRefreshTTL: time.Hour}
 	return NewService(&database.DB{DB: raw}, cfg), userID
+}
+
+type testOTPDeliveryProvider struct{}
+
+func (testOTPDeliveryProvider) SendOTP(context.Context, OTPDelivery) error { return nil }
+
+type capturingOTPDeliveryProvider struct {
+	mu         sync.Mutex
+	deliveries []OTPDelivery
+}
+
+func (p *capturingOTPDeliveryProvider) SendOTP(_ context.Context, delivery OTPDelivery) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.deliveries = append(p.deliveries, delivery)
+	return nil
+}
+
+func (p *capturingOTPDeliveryProvider) last() OTPDelivery {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.deliveries[len(p.deliveries)-1]
 }

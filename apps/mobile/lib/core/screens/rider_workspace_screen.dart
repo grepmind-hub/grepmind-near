@@ -3,7 +3,9 @@ import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
@@ -312,9 +314,33 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               body: 'Live GPS tracking is not enabled. No location is collected in this phase.',
             ),
             const SizedBox(height: 12),
+            Card(
+              color: Colors.white,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: AppTheme.primary,
+                ),
+                title: const Text(
+                  'Cash accountability',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Synthetic COD collections and remittance status · separate from earnings',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RiderCashAccountabilityScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             const _PhaseNotice(
               title: 'Earnings',
-              body: 'There are no delivery earnings or payouts to display yet.',
+              body: 'Rider earnings remain separate from cash collected and no payouts are enabled.',
             ),
           ],
         ),
@@ -469,7 +495,7 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
 
   Future<void> _verifyPickup() async {
     final code = await _askCode('Verify pickup', '8-digit partner code');
-    if (code == null || code.length != 8 || _busy) return;
+    if (!mounted || code == null || code.length != 8 || _busy) return;
     final jobId = _assignment?['job_id']?.toString();
     if (jobId == null) return;
     setState(() {
@@ -499,9 +525,35 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
       'Confirm customer handover',
       '8-digit customer code',
     );
+    if (!mounted) return;
     if (code == null || code.length != 8 || _busy) return;
     final jobId = _assignment?['job_id']?.toString();
     if (jobId == null) return;
+    final isCOD = _assignment?['payment_method'] == 'cash_on_delivery';
+    if (isCOD) {
+      final amountMinor =
+          (_assignment?['cod_amount_minor'] as num?)?.toInt() ?? 0;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirm synthetic COD collection'),
+          content: Text(
+            'Amount due: ₹${(amountMinor / 100).toStringAsFixed(2)}. This QA action records synthetic collection only. Do not collect real cash.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm QA collection'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -509,7 +561,7 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
     try {
       await apiClient.post(
         '/rider/delivery-jobs/$jobId/delivery/confirm',
-        data: {'code': code},
+        data: {'code': code, if (isCOD) 'confirm_cod_collection': true},
       );
       if (mounted) {
         setState(
@@ -796,6 +848,24 @@ class _OfferCard extends StatelessWidget {
         Text(
           '${offer['vertical'] ?? 'Order'} · ${offer['destination_locality'] ?? ''}, ${offer['destination_district'] ?? ''}',
         ),
+        if (offer['payment_method'] == 'upi')
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              offer['payment_status'] == 'paid'
+                  ? 'UPI · verified by Grepmind'
+                  : 'UPI · payment not verified',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        if (offer['payment_method'] == 'cash_on_delivery')
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Synthetic COD due · ₹${((((offer['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         if (offer['pickup_address'] != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -902,6 +972,39 @@ class _AssignmentCard extends StatelessWidget {
             color: AppTheme.primary,
           ),
         ),
+        if (value['payment_method'] == 'upi')
+          Text(
+            value['payment_status'] == 'paid'
+                ? 'Payment · UPI verified by Grepmind'
+                : 'Payment · UPI not verified',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        if (value['payment_method'] == 'cash_on_delivery')
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF4E5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Synthetic QA COD · ₹${((((value['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  'Collection · ${value['cod_collection_state'] ?? 'due'}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                const Text(
+                  'No real cash handling. Collection is recorded with customer handover verification.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 12),
         if (busy) const LinearProgressIndicator(),
         if (value['execution_state'] == 'assigned')
@@ -985,16 +1088,16 @@ class _AssignmentCard extends StatelessWidget {
   );
 }
 
-class RiderWorkspaceProfileScreen extends StatefulWidget {
+class RiderWorkspaceProfileScreen extends ConsumerStatefulWidget {
   const RiderWorkspaceProfileScreen({super.key});
 
   @override
-  State<RiderWorkspaceProfileScreen> createState() =>
+  ConsumerState<RiderWorkspaceProfileScreen> createState() =>
       _RiderWorkspaceProfileScreenState();
 }
 
 class _RiderWorkspaceProfileScreenState
-    extends State<RiderWorkspaceProfileScreen> {
+    extends ConsumerState<RiderWorkspaceProfileScreen> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
   String? _error;
@@ -1083,10 +1186,46 @@ class _RiderWorkspaceProfileScreenState
                     title: 'Privacy',
                     body: 'Your service locality access is controlled by Grepmind Admin. GPS and delivery availability are not active in this phase.',
                   ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    key: const ValueKey('rider_logout_button'),
+                    onPressed: () => _confirmLogout(context),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Log out'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                  ),
                 ],
               ),
             ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('LOG OUT'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(authProvider.notifier).logout();
+    }
   }
 }
 
@@ -1172,3 +1311,294 @@ class _RiderTextEntryDialogState extends State<_RiderTextEntryDialog> {
     ],
   );
 }
+
+class RiderCashAccountabilityScreen extends StatefulWidget {
+  const RiderCashAccountabilityScreen({super.key});
+  @override
+  State<RiderCashAccountabilityScreen> createState() =>
+      _RiderCashAccountabilityScreenState();
+}
+
+class _RemittanceSubmissionDialog extends StatefulWidget {
+  const _RemittanceSubmissionDialog();
+
+  @override
+  State<_RemittanceSubmissionDialog> createState() =>
+      _RemittanceSubmissionDialogState();
+}
+
+class _RemittanceSubmissionDialogState
+    extends State<_RemittanceSubmissionDialog> {
+  final _amountController = TextEditingController();
+  final _referenceController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _referenceController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop({
+      'amount': _amountController.text.trim(),
+      'reference': _referenceController.text.trim(),
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Submit synthetic remittance'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _amountController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Amount in rupees'),
+        ),
+        TextField(
+          controller: _referenceController,
+          maxLength: 120,
+          decoration: const InputDecoration(labelText: 'Submission reference'),
+        ),
+        const Text(
+          'A submission is a claim only. Finance verification is required; no real cash is handled.',
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Submit')),
+    ],
+  );
+}
+
+class _RiderCashAccountabilityScreenState
+    extends State<RiderCashAccountabilityScreen> {
+  Map<String, dynamic>? _summary;
+  List<Map<String, dynamic>> _remittances = const [];
+  bool _loading = true;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final values = await Future.wait([
+        apiClient.get('/rider/cash-accountability'),
+        apiClient.get('/rider/cash-remittances'),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _summary = Map<String, dynamic>.from(values[0].data['data'] as Map);
+        _remittances =
+            ((values[1].data['data'] as List<dynamic>? ?? const [])
+                    .whereType<Map<String, dynamic>>())
+                .toList();
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Cash accountability is unavailable. Refresh when the QA service is connected.';
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  String _money(Object? raw) =>
+      '₹${(((raw as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2)}';
+
+  Future<void> _submitRemittance() async {
+    final input = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) => const _RemittanceSubmissionDialog(),
+    );
+    if (input == null) return;
+    final rupees = int.tryParse(input['amount'] ?? '');
+    final reference = input['reference'] ?? '';
+    if (rupees == null || rupees <= 0 || reference.isEmpty) {
+      if (mounted) {
+        setState(
+          () => _error = 'Enter a positive whole-rupee amount and reference.',
+        );
+      }
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await apiClient.post(
+        '/rider/cash-remittances',
+        data: {'amount_minor': rupees * 100, 'submission_reference': reference},
+        options: Options(headers: {'Idempotency-Key': _uuid()}),
+      );
+      await _load();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Remittance was not accepted. Check the amount and retry.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _uuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    final v = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${v.substring(0, 8)}-${v.substring(8, 12)}-${v.substring(12, 16)}-${v.substring(16, 20)}-${v.substring(20)}';
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Cash accountability'),
+      actions: [
+        IconButton(
+          onPressed: _busy ? null : _load,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    ),
+    body: _loading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (_error != null)
+                  Card(
+                    color: const Color(0xFFFFF1F0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Text(_error!),
+                    ),
+                  ),
+                if (_summary == null)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Text(
+                        'Synthetic COD is not enabled for this environment.',
+                      ),
+                    ),
+                  ),
+                if (_summary != null) ...[
+                  Card(
+                    color: const Color(0xFFF3F7FF),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'SYNTHETIC QA BALANCES',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: .6,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _cashValue(
+                            'COD collected',
+                            _money(_summary!['collected_minor']),
+                          ),
+                          _cashValue(
+                            'Verified remittances',
+                            _money(_summary!['verified_remitted_minor']),
+                          ),
+                          _cashValue(
+                            'Outstanding cash liability',
+                            _money(_summary!['outstanding_liability_minor']),
+                            bold: true,
+                          ),
+                          _cashValue(
+                            'Pending verification',
+                            _money(_summary!['pending_remittance_minor']),
+                          ),
+                          _cashValue(
+                            'Disputed',
+                            _money(_summary!['disputed_remittance_minor']),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'This liability is separate from rider earnings. Payouts and real cash operations are disabled.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed:
+                        _busy ||
+                            ((_summary!['outstanding_liability_minor'] as num?)
+                                        ?.toInt() ??
+                                    0) <=
+                                0
+                        ? null
+                        : _submitRemittance,
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: const Text('Submit synthetic remittance'),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Remittance history',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (_remittances.isEmpty)
+                    const ListTile(title: Text('No remittances submitted')),
+                  for (final item in _remittances)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.receipt_long_outlined),
+                        title: Text(_money(item['amount_minor'])),
+                        subtitle: Text(
+                          '${item['submission_reference']} · ${item['submitted_at']}',
+                        ),
+                        trailing: Text(
+                          item['state'].toString().replaceAll('_', ' '),
+                        ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+  );
+}
+
+Widget _cashValue(String label, String value, {bool bold = false}) => Padding(
+  padding: const EdgeInsets.symmetric(vertical: 3),
+  child: Row(
+    children: [
+      Expanded(child: Text(label)),
+      Text(
+        value,
+        style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
+      ),
+    ],
+  ),
+);

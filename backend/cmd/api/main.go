@@ -18,13 +18,17 @@ import (
 
 	"grepmind-near/backend/internal/auth"
 	"grepmind-near/backend/internal/businessclaims"
+	"grepmind-near/backend/internal/codcash"
 	"grepmind-near/backend/internal/deliverydispatch"
 	"grepmind-near/backend/internal/discovery"
+	"grepmind-near/backend/internal/financialaccess"
 	"grepmind-near/backend/internal/media"
 	"grepmind-near/backend/internal/merchantanalytics"
+	"grepmind-near/backend/internal/merchantfinance"
 	"grepmind-near/backend/internal/moderation"
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
+	"grepmind-near/backend/internal/payments"
 	"grepmind-near/backend/internal/platformcatalog"
 	"grepmind-near/backend/internal/platformcommerce"
 	"grepmind-near/backend/internal/platformfulfillment"
@@ -60,8 +64,10 @@ func main() {
 	opsSvc := operations.NewService(db)
 
 	earningsSvc := riderearnings.NewService(db, cfg)
+	codSvc := codcash.NewService(db, cfg.SandboxCODEnabled)
 	dispatchSvc := deliverydispatch.NewService(db, notifHub, cfg, earningsSvc.RecordCompletionTx)
-	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub, opsSvc, platformcommerce.NewService(db), dispatchSvc, earningsSvc)
+	dispatchSvc.SetCODCollectionRecorder(codSvc.RecordCollectionTx)
+	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub, opsSvc, platformcommerce.NewService(db, cfg.SandboxCODEnabled), dispatchSvc, earningsSvc, codSvc)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -97,6 +103,7 @@ func main() {
 func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *moderation.Service, mediaSvc *media.Service, notifHub *notifications.Hub, opsSvc *operations.Service, platformCommerceSvc *platformcommerce.Service, services ...any) *http.ServeMux {
 	mux := http.NewServeMux()
 	fulfillmentSvc := platformfulfillment.NewService(authSvc.DB())
+	paymentSvc := payments.NewServiceWithProvider(authSvc.DB(), payments.ProviderForEnvironment(config.Load().Env))
 	if opsSvc != nil && notifHub != nil {
 		opsSvc.SetOrderStatusPublisher(func(ctx context.Context, customerID, businessID, orderID, status string) {
 			notifHub.Publish(ctx, notifications.Event{
@@ -147,15 +154,20 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	claimsSvc := businessclaims.NewService(authSvc.DB())
 	analyticsSvc := merchantanalytics.NewService(authSvc.DB(), authSvc.ConfigSecret())
 	catalogSvc := platformcatalog.NewService(authSvc.DB())
+	merchantFinanceSvc := merchantfinance.NewService(authSvc.DB(), config.Load().Env)
+	financeAccessSvc := financialaccess.NewService(authSvc.DB(), config.Load().Env)
 	riderSvc, riderSvcErr := riders.NewService(authSvc.DB(), config.Load())
 	var dispatchSvc *deliverydispatch.Service
 	var earningsSvc *riderearnings.Service
+	var codSvc *codcash.Service
 	for _, service := range services {
 		switch value := service.(type) {
 		case *deliverydispatch.Service:
 			dispatchSvc = value
 		case *riderearnings.Service:
 			earningsSvc = value
+		case *codcash.Service:
+			codSvc = value
 		}
 	}
 	if earningsSvc == nil {
@@ -164,6 +176,10 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	if dispatchSvc == nil {
 		dispatchSvc = deliverydispatch.NewService(authSvc.DB(), notifHub, config.Load(), earningsSvc.RecordCompletionTx)
 	}
+	if codSvc == nil {
+		codSvc = codcash.NewService(authSvc.DB(), config.Load().SandboxCODEnabled)
+	}
+	dispatchSvc.SetCODCollectionRecorder(codSvc.RecordCollectionTx)
 	if riderSvcErr != nil {
 		logger.Log.Error().Err(riderSvcErr).Msg("rider document storage unavailable; uploads disabled")
 	}
@@ -242,6 +258,15 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		mux.HandleFunc("GET /api/v1/rider/assignments/active", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			dispatchSvc.ActiveAssignment(w, r, uid)
 		}))
+		mux.HandleFunc("GET /api/v1/rider/cash-accountability", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.RiderSummary(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/rider/cash-remittances", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.RiderRemittances(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/rider/cash-remittances", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.SubmitRemittance(w, r, uid)
+		}))
 		mux.HandleFunc("POST /api/v1/rider/delivery-jobs/{jobId}/state", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			dispatchSvc.RiderTransition(w, r, uid)
 		}))
@@ -259,6 +284,21 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		}))
 		mux.HandleFunc("GET /api/v1/admin/delivery-jobs", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			dispatchSvc.AdminBoard(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/cod/remittances", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.ListAdminRemittances(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/cod/collections", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.ListAdminCollections(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/cod/audit", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.Audit(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/cod/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.Reconcile(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/cod/remittances/{remittanceId}/review", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			codSvc.ReviewRemittance(w, r, uid)
 		}))
 		mux.HandleFunc("GET /api/v1/admin/delivery-operations/alerts", requireDeliveryOperator(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			dispatchSvc.AdminOperationsAlerts(w, r, uid)
@@ -547,6 +587,116 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	}))
 	mux.HandleFunc("POST /api/v1/platform/orders", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		platformCommerceSvc.Submit(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/orders/{id}/payment-intents", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.CreateIntent(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/orders/{id}/cod-status", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		codSvc.CustomerStatus(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/orders/{id}/payment-intent", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.GetIntent(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/orders/{id}/payment-sessions", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.CreateSandboxSession(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/orders/{id}/payment", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.GetPaymentState(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/orders/{id}/refunds", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.ListRefunds(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/orders/{id}/refunds", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.RequestRefund(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/payments/webhooks/{provider}", paymentSvc.ReceiveSandboxWebhook)
+	mux.HandleFunc("POST /api/v1/admin/payments/attempts/{id}/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.ReconcileSandboxPayment(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/payments/refunds/{id}/review", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.ReviewRefund(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/payments/refunds", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.ListAdminRefunds(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/payments/refunds/{id}/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.ReconcileSandboxRefund(w, r, userID)
+	}))
+	if env := config.Load().Env; env == "qa" || env == "test" {
+		mux.HandleFunc("POST /api/v1/orders/{id}/sandbox-payment-outcomes", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+			paymentSvc.SimulatePaymentOutcome(w, r, userID)
+		}))
+		mux.HandleFunc("POST /api/v1/orders/{id}/refunds/{refundId}/sandbox-outcomes", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+			paymentSvc.SimulateRefundOutcome(w, r, userID)
+		}))
+	}
+	// Merchant payables and settlement simulation are fail-closed in the service and
+	// require explicit finance permissions in addition to authentication.
+	mux.HandleFunc("GET /api/v1/admin/finance/access-grants", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		financeAccessSvc.List(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/access-grant-requests", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		financeAccessSvc.Create(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/access-grant-requests/{requestId}/decision", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		financeAccessSvc.Decide(w, r, uid, r.PathValue("requestId"))
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/commission-policies", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListPolicies(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/commission-policies", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.CreatePolicy(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/commission-policies/{policyId}/decision", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.DecidePolicy(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/orders/{orderId}/accrue-payable", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.Accrue(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/payables", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListPayables(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/eligible-orders", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListEligibleOrders(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/qa-funding-pools", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.CreateQAFundingPool(w, r, uid, config.Load().Env)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/settlements", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListSettlements(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/settlements", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.CreateSettlement(w, r, uid)
+	}))
+	for _, action := range []string{"review", "approve", "simulate", "reconcile"} {
+		transition := action
+		mux.HandleFunc("POST /api/v1/admin/finance/settlements/{batchId}/"+transition, requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			merchantFinanceSvc.TransitionSettlement(w, r, uid, transition)
+		}))
+	}
+	mux.HandleFunc("POST /api/v1/admin/finance/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.Reconcile(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/reconciliation-exceptions", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListReconciliationExceptions(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/payable-adjustments", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.RequestAdjustment(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/payable-adjustments", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ListAdjustments(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/payable-adjustments/{adjustmentId}/review", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.ReviewAdjustment(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/finance/overview", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.MerchantOverview(w, r, uid, r.PathValue("businessId"))
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/finance/payables", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.MerchantPayables(w, r, uid, r.PathValue("businessId"))
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/finance/settlements", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		merchantFinanceSvc.MerchantSettlements(w, r, uid, r.PathValue("businessId"))
 	}))
 	mux.HandleFunc("GET /api/v1/customer/addresses", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.ListCustomerAddresses(w, r, userID)

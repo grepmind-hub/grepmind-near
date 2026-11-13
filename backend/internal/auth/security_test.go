@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -54,14 +55,27 @@ func TestParseSessionTokenRejectsExpiredAndWrongAlgorithm(t *testing.T) {
 	}
 }
 
-func TestOTPDisclosureIsLocalOnly(t *testing.T) {
-	local := otpRequestResponseData("+919876543210", "123456", true)
-	if local["otp_code"] != "123456" {
-		t.Fatal("local development response should retain the stub OTP")
+func TestOTPRequestResponseNeverContainsCode(t *testing.T) {
+	response := otpRequestResponseData("+919876543210", "9d43b8e0-0000-4000-8000-000000000001", time.Now().Add(time.Minute))
+	if _, exists := response["otp_code"]; exists {
+		t.Fatal("OTP request response must never disclose the code")
 	}
-	production := otpRequestResponseData("+919876543210", "123456", false)
-	if _, exists := production["otp_code"]; exists {
-		t.Fatal("non-local response must never contain the OTP")
+	if response["challenge_id"] == nil {
+		t.Fatal("OTP response should identify the non-secret challenge")
+	}
+}
+
+func TestOTPExpiryUsesPostgresMicrosecondPrecision(t *testing.T) {
+	now := time.Date(2026, time.November, 12, 19, 10, 14, 542236789, time.FixedZone("test", 2*60*60))
+	expiresAt := otpExpiry(now, time.Minute)
+	if expiresAt.Location() != time.UTC {
+		t.Fatalf("expiry location=%v, want UTC", expiresAt.Location())
+	}
+	if got := expiresAt.Nanosecond(); got%int(time.Microsecond) != 0 {
+		t.Fatalf("expiry nanoseconds=%d, want microsecond-aligned", got)
+	}
+	if want := now.Add(time.Minute).UTC().Truncate(time.Microsecond); !expiresAt.Equal(want) {
+		t.Fatalf("expiry=%s, want %s", expiresAt, want)
 	}
 }
 
@@ -75,6 +89,32 @@ func TestProductionOTPRequestFailsClosedWithoutProvider(t *testing.T) {
 	}
 	if strings.Contains(response.Body.String(), "otp_code") {
 		t.Fatalf("production response disclosed an OTP: %s", response.Body.String())
+	}
+}
+
+func TestQAHTTPOTPProviderUsesAuthenticatedPrivateDelivery(t *testing.T) {
+	var received bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/internal/v1/deliver" || r.Header.Get("Authorization") != "Bearer writer-token-that-is-long-enough-for-tests" {
+			t.Fatalf("unexpected QA delivery request")
+		}
+		received = true
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+	provider, err := newQAHTTPOTPProvider(server.URL, "writer-token-that-is-long-enough-for-tests")
+	if err != nil {
+		t.Fatal(err)
+	}
+	delivery := OTPDelivery{ChallengeID: "9d43b8e0-0000-4000-8000-000000000001", PhoneE164: "+919000000001", Purpose: "login", Code: "012345", CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Minute), RunID: "qa-test-run-00000001"}
+	if err := provider.SendOTP(context.Background(), delivery); err != nil {
+		t.Fatal("private QA delivery failed")
+	}
+	if !received {
+		t.Fatal("QA inbox did not receive the challenge")
+	}
+	if _, err := newQAHTTPOTPProvider("https://user:pass@example.test", "writer-token-that-is-long-enough-for-tests"); err == nil {
+		t.Fatal("userinfo URL must be rejected")
 	}
 }
 

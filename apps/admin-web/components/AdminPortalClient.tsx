@@ -18,6 +18,8 @@ import { PlatformCatalogView } from '@/components/PlatformCatalogView';
 import { RiderManagementView } from '@/components/RiderManagementView';
 import { DispatchBoardView } from '@/components/DispatchBoardView';
 import { RiderEarningsView } from '@/components/RiderEarningsView';
+import { CODFinanceView } from '@/components/CODFinanceView';
+import { MerchantSettlementFinanceView } from '@/components/MerchantSettlementFinanceView';
 import {
   api,
   setAuthToken,
@@ -399,6 +401,8 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
           {currentTab === 'riders' && <RiderManagementView />}
           {currentTab === 'dispatch' && <DispatchBoardView />}
           {currentTab === 'rider-earnings' && <RiderEarningsView />}
+          {currentTab === 'cod-finance' && <CODFinanceView />}
+          {currentTab === 'merchant-finance' && <MerchantSettlementFinanceView />}
         </main>
       </div>
     </div>

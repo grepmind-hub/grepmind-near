@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "local.grepmind.grepmind_mobile"
-    compileSdk = flutter.compileSdkVersion
+    // sms_autofill 2.6.1 compiles against API 37. This changes the compile
+    // API only; targetSdk, signing, and the Flutter/Android SDK paths stay intact.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

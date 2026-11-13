@@ -1,12 +1,17 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kDebugMode, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+
+const bool _qaOtpAutomation = bool.fromEnvironment(
+  'QA_OTP_AUTOMATION',
+);
 
 /// Authentication state.
 class AuthState {
@@ -222,8 +227,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
-  /// Request an OTP for the given phone number.
-  /// Returns the OTP code when running against the local dev stub.
+  /// Requests a server-generated OTP challenge. The response never contains
+  /// the code; delivery is handled by the configured SMS/QA transport.
   Future<Map<String, dynamic>?> requestOTP(String phone) async {
     try {
       final res = await apiClient.post(
@@ -232,10 +237,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       final data = res.data as Map<String, dynamic>;
       final resultData = data['data'] as Map<String, dynamic>;
+      final challengeId = resultData['challenge_id'];
+      final expiresAt = resultData['expires_at'];
+      if (kDebugMode &&
+          _qaOtpAutomation &&
+          challengeId is String &&
+          expiresAt is String) {
+        // QA test-runner instrumentation exposes challenge metadata only.
+        // The OTP remains exclusively in the private, single-use QA reader.
+        final challengeMetadata = jsonEncode(<String, String>{
+          'challenge_id': challengeId,
+          'expires_at': expiresAt,
+        });
+        debugPrint('QA_OTP_CHALLENGE $challengeMetadata');
+      }
       return {
         'phone_e164': resultData['phone_e164'],
-        if (kDebugMode)
-          'otp_code': resultData['otp_code'], // local emulator aid only
+        'challenge_id': challengeId,
+        'expires_at': expiresAt,
         'status': resultData['status'],
       };
     } catch (_) {
@@ -244,11 +263,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Verify an OTP and establish a session.
-  Future<bool> verifyOTP(String phone, String otpCode) async {
+  Future<bool> verifyOTP(
+    String phone,
+    String otpCode, {
+    String? challengeId,
+  }) async {
     try {
       final res = await apiClient.post(
         '/auth/otp/verify',
-        data: {'phone_e164': phone, 'otp_code': otpCode},
+        data: {
+          'phone_e164': phone,
+          'otp_code': otpCode,
+          ...?(challengeId == null ? null : {'challenge_id': challengeId}),
+        },
       );
       final data = res.data as Map<String, dynamic>;
       final resultData = data['data'] as Map<String, dynamic>;

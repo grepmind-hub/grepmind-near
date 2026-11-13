@@ -13,6 +13,7 @@ import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_platform_orders_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_earnings_screen.dart';
 import 'package:grepmind_mobile/core/screens/orders_tab_navigator.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
@@ -146,11 +147,7 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
           MerchantWorkspaceScreen(),
           MerchantPlatformOrdersScreen(),
           MerchantCatalogScreen(),
-          _WorkspacePlaceholder(
-            title: 'Earnings',
-            description: 'Earnings and payouts are not available yet. No financial totals are shown here.',
-            icon: Icons.account_balance_wallet_outlined,
-          ),
+          MerchantEarningsScreen(),
           ProfileScreen(),
         ];
       case 'rider':

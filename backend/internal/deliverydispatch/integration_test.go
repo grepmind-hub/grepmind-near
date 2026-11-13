@@ -607,6 +607,16 @@ func TestDispatchPrepareOfferAcceptAndIsolation(t *testing.T) {
 	if got := transition("at_pickup"); got.Code != 200 {
 		t.Fatalf("rider at-pickup transition failed: %d %s", got.Code, got.Body.String())
 	}
+	pickupMerchantSummary := httptest.NewRecorder()
+	pickupMerchantRequest := httptest.NewRequest("GET", "/merchant/businesses/"+businessID+"/delivery-dispatch", nil)
+	pickupMerchantRequest.SetPathValue("businessId", businessID)
+	service.MerchantSummary(pickupMerchantSummary, pickupMerchantRequest, merchantID)
+	if pickupMerchantSummary.Code != 200 ||
+		!strings.Contains(pickupMerchantSummary.Body.String(), `"order_id":"`+executionOrderID+`"`) ||
+		!strings.Contains(pickupMerchantSummary.Body.String(), `"execution_state":"at_pickup"`) ||
+		!strings.Contains(pickupMerchantSummary.Body.String(), `"rider_assigned":true`) {
+		t.Fatalf("Merchant dispatch projection did not expose pickup eligibility: HTTP %d %s", pickupMerchantSummary.Code, pickupMerchantSummary.Body.String())
+	}
 
 	foreignPickup := httptest.NewRecorder()
 	foreignPickupRequest := httptest.NewRequest("POST", "/merchant/businesses/"+businessID+"/delivery-jobs/"+executionJobID+"/pickup-code", nil)
@@ -1559,6 +1569,57 @@ func TestDispatchPrepareOfferAcceptAndIsolation(t *testing.T) {
 	}
 	if (staleReplay.Code != 404 && staleReplay.Code != 409) || activeReplacementRider != replacementRiderID {
 		t.Fatalf("stale recovery must be denied without changing new owner: response=%d new_owner=%s expected=%s", staleReplay.Code, activeReplacementRider, replacementRiderID)
+	}
+}
+
+func TestMerchantDispatchSummaryReportsRiderAtPickup(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN is not set")
+	}
+	if !strings.HasSuffix(databaseNameFromDSN(dsn), "_qa") && !strings.HasSuffix(databaseNameFromDSN(dsn), "_test") {
+		t.Fatal("refusing merchant dispatch projection test: database name must end in _qa or _test")
+	}
+	db, err := database.Open(dsn, 4, 4, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	id := func() string { return uuid.NewString() }
+	merchantID, customerID, riderID := id(), id(), id()
+	businessID, orderID, jobID := id(), id(), id()
+	addressID, quoteID := id(), id()
+	localityID := "02200000-0000-4000-8000-000000000101"
+	queries := []struct {
+		query string
+		args  []any
+	}{
+		{`INSERT INTO users(id,phone_e164,display_name,status) VALUES($1,$2,'QA Merchant','active'),($3,$4,'QA Customer','active'),($5,$6,'QA Rider','active')`, []any{merchantID, "+91" + phoneSuffix(), customerID, "+91" + phoneSuffix(), riderID, "+91" + phoneSuffix()}},
+		{`INSERT INTO businesses(id,owner_user_id,name,slug,description,category_slug,phone_e164,address_text,locality,city,postal_code,location,status,verification_status) VALUES($1,$2,'QA Pickup Projection Partner',$3,'Disposable projection fixture','restaurant',$4,'QA partner pickup','Kuanpal','Cuttack','754082',ST_SetSRID(ST_MakePoint(85.75,20.45)::geography,4326),'approved','verified')`, []any{businessID, merchantID, "qa-pickup-projection-" + id(), "+91" + phoneSuffix()}},
+		{`INSERT INTO customer_addresses(id,customer_user_id,label,recipient_name,address_line1,locality,city,state,postal_code,contact_phone,is_default,delivery_locality_id) VALUES($1,$2,'QA','QA Customer','QA House 1','Kuanpal','Cuttack','Odisha','754082',$3,true,$4)`, []any{addressID, customerID, "+91" + phoneSuffix(), localityID}},
+		{`INSERT INTO platform_checkout_quotes(id,customer_user_id,vertical,locality_id,service_date,address_id,address_updated_at,partner_business_id,items,item_subtotal_minor,delivery_fee_minor,tax_minor,grand_total_minor,expires_at) SELECT $1,$2,'food',$3,CURRENT_DATE,$4,updated_at,$5,'[{}]'::jsonb,10000,0,0,10000,now()+interval '5 minutes' FROM customer_addresses WHERE id=$4`, []any{quoteID, customerID, localityID, addressID, businessID}},
+		{`INSERT INTO customer_orders(id,customer_user_id,business_id,order_type,status,fulfillment_type,item_total,grand_total,reference_code,order_source,platform_vertical,delivery_locality_id,platform_checkout_quote_id) VALUES($1,$2,$3,'platform_order','ready_for_pickup','delivery',100,100,$4,'platform_catalog','food',$5,$6)`, []any{orderID, customerID, businessID, "QA-" + id(), localityID, quoteID}},
+		{`UPDATE platform_checkout_quotes SET consumed_order_id=$1 WHERE id=$2`, []any{orderID, quoteID}},
+		{`INSERT INTO rider_profiles(user_id,display_name,vehicle_type,status) VALUES($1,'QA Rider','two_wheeler','approved')`, []any{riderID}},
+		{`INSERT INTO delivery_jobs(id,order_id,business_id,locality_id,state,execution_state) VALUES($1,$2,$3,$4,'assigned','at_pickup')`, []any{jobID, orderID, businessID, localityID}},
+		{`INSERT INTO delivery_assignments(job_id,rider_user_id,state) VALUES($1,$2,'active')`, []any{jobID, riderID}},
+	}
+	for _, item := range queries {
+		if _, err := db.ExecContext(ctx, item.query, item.args...); err != nil {
+			t.Fatalf("QA projection fixture failed: %v", err)
+		}
+	}
+	service := NewService(db, nil, &config.Config{RiderDispatchEnabled: true})
+	request := httptest.NewRequest("GET", "/merchant/businesses/"+businessID+"/delivery-dispatch", nil)
+	request.SetPathValue("businessId", businessID)
+	recorder := httptest.NewRecorder()
+	service.MerchantSummary(recorder, request, merchantID)
+	if recorder.Code != 200 ||
+		!strings.Contains(recorder.Body.String(), `"order_id":"`+orderID+`"`) ||
+		!strings.Contains(recorder.Body.String(), `"execution_state":"at_pickup"`) ||
+		!strings.Contains(recorder.Body.String(), `"rider_assigned":true`) {
+		t.Fatalf("Merchant summary must expose the current assigned rider pickup state: HTTP %d %s", recorder.Code, recorder.Body.String())
 	}
 }
 

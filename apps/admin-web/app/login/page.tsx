@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, KeyRound, Phone, ShieldCheck } from 'lucide-react'
@@ -23,22 +23,35 @@ function createIdempotencyKey(): string {
 export default function LoginPage() {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
-  const [otpCode, setOtpCode] = useState<string | null>(null)
+  const [challengeId, setChallengeId] = useState<string | null>(null)
+  const [resendSeconds, setResendSeconds] = useState(0)
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  useEffect(() => {
+    if (step !== 'otp' || resendSeconds <= 0) return
+    const timer = window.setTimeout(() => setResendSeconds((value) => Math.max(0, value - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [resendSeconds, step])
+
   async function requestCode(e: React.FormEvent) {
     e.preventDefault()
+    const normalized = phone.trim().startsWith('+') ? phone.trim() : `+91${phone.trim()}`
+    await requestOtp(normalized)
+  }
+
+  async function requestOtp(normalized: string) {
     setError('')
     setLoading(true)
     try {
-      const normalized = phone.trim().startsWith('+') ? phone.trim() : `+91${phone.trim()}`
       const res = await api.post('/auth/otp/request', { phone_e164: normalized })
       setPhone(normalized)
-      setOtpCode(res.data?.data?.otp_code ?? null)
+      setChallengeId(res.data?.data?.challenge_id ?? null)
+      setOtp('')
       setStep('otp')
+      setResendSeconds(60)
     } catch (err: any) {
       setError(err?.response?.data?.error?.message ?? 'Could not send a verification code. Try again.')
     } finally { setLoading(false) }
@@ -52,6 +65,7 @@ export default function LoginPage() {
       const res = await api.post('/auth/otp/verify', {
         phone_e164: phone,
         otp_code: otp,
+        ...(challengeId ? { challenge_id: challengeId } : {}),
         idempotency_key: createIdempotencyKey(),
       })
       const data = res.data?.data
@@ -112,11 +126,13 @@ export default function LoginPage() {
                   <Input autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="000000" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required className="h-12 rounded-xl pl-10 text-lg tracking-[.35em]" />
                 </span>
               </label>
-              {otpCode && <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">Local development code: <strong>{otpCode}</strong></p>}
               {error && <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{error}</p>}
               <Button type="submit" className="h-12 w-full rounded-xl bg-[#2457D6] text-base font-semibold hover:bg-[#1D49BD]" disabled={loading || otp.length !== 6}>
                 {loading ? 'Verifying…' : <>Verify and continue <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
+              <button type="button" disabled={loading || resendSeconds > 0} onClick={() => requestOtp(phone)} className="min-h-11 w-full text-sm font-medium text-[#2457D6] disabled:text-[#98A2B3]">
+                {resendSeconds > 0 ? `Resend code in 00:${String(resendSeconds).padStart(2, '0')}` : 'Resend code'}
+              </button>
               <button type="button" onClick={() => { setStep('phone'); setOtp(''); setError('') }} className="flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-[#667085] hover:text-[#2457D6]"><ArrowLeft className="h-4 w-4" /> Change mobile number</button>
             </form>
           )}

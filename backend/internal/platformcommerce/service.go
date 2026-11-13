@@ -22,10 +22,17 @@ const maxLines = 50
 
 type Service struct {
 	db                     *database.DB
+	sandboxCODEnabled      bool
 	publishOrderAssignment func(ctx context.Context, customerID, businessID, orderID string)
 }
 
-func NewService(db *database.DB) *Service { return &Service{db: db} }
+func NewService(db *database.DB, sandboxCODEnabled ...bool) *Service {
+	s := &Service{db: db}
+	if len(sandboxCODEnabled) > 0 {
+		s.sandboxCODEnabled = sandboxCODEnabled[0]
+	}
+	return s
+}
 
 func (s *Service) SetOrderAssignmentPublisher(publisher func(ctx context.Context, customerID, businessID, orderID string)) {
 	s.publishOrderAssignment = publisher
@@ -69,8 +76,13 @@ type quoteRequest struct {
 }
 
 type submitRequest struct {
-	QuoteID string `json:"quote_id"`
-	Notes   string `json:"notes"`
+	QuoteID       string `json:"quote_id"`
+	Notes         string `json:"notes"`
+	PaymentMethod string `json:"payment_method"`
+}
+
+func validCheckoutPaymentMethod(method string) bool {
+	return method == "upi" || method == "cash_on_delivery"
 }
 
 type address struct {
@@ -87,17 +99,18 @@ type address struct {
 }
 
 type pricedLine struct {
-	ProductID      string `json:"product_id" db:"product_id"`
-	VariantID      string `json:"variant_id" db:"variant_id"`
-	Vertical       string `json:"vertical" db:"vertical"`
-	ProductName    string `json:"product_name" db:"product_name"`
-	VariantName    string `json:"variant_name" db:"variant_name"`
-	UnitLabel      string `json:"unit_label" db:"unit_label"`
-	Quantity       int    `json:"quantity" db:"quantity"`
-	UnitPriceMinor int64  `json:"unit_price_minor" db:"unit_price_minor"`
-	PriceRevision  int    `json:"price_revision" db:"price_revision"`
-	MappingID      string `json:"-" db:"mapping_id"`
-	InventoryMode  string `json:"-" db:"inventory_mode"`
+	ProductID               string        `json:"product_id" db:"product_id"`
+	VariantID               string        `json:"variant_id" db:"variant_id"`
+	Vertical                string        `json:"vertical" db:"vertical"`
+	ProductName             string        `json:"product_name" db:"product_name"`
+	VariantName             string        `json:"variant_name" db:"variant_name"`
+	UnitLabel               string        `json:"unit_label" db:"unit_label"`
+	Quantity                int           `json:"quantity" db:"quantity"`
+	UnitPriceMinor          int64         `json:"unit_price_minor" db:"unit_price_minor"`
+	PriceRevision           int           `json:"price_revision" db:"price_revision"`
+	MappingID               string        `json:"-" db:"mapping_id"`
+	InventoryMode           string        `json:"-" db:"inventory_mode"`
+	PartnerSupplyPriceMinor sql.NullInt64 `json:"-" db:"partner_supply_price_minor"`
 }
 
 type partner struct {
@@ -108,6 +121,21 @@ type partner struct {
 func (s *Service) customerAllowed(ctx context.Context, userID string) bool {
 	var ok bool
 	return s.db.GetContext(ctx, &ok, `SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role='customer')`, userID) == nil && ok
+}
+
+func (s *Service) codAvailable(ctx context.Context, tx *sqlx.Tx) bool {
+	if !s.sandboxCODEnabled {
+		return false
+	}
+	var enabled bool
+	err := tx.GetContext(ctx, &enabled, `SELECT sandbox_cod_enabled AND financial_posting_enabled AND NOT upi_enabled AND NOT cod_enabled AND NOT merchant_settlement_enabled AND NOT real_money_enabled FROM financial_feature_config WHERE singleton=true`)
+	return err == nil && enabled
+}
+
+func sandboxUPIAvailable(ctx context.Context, tx *sqlx.Tx) bool {
+	var enabled bool
+	err := tx.GetContext(ctx, &enabled, `SELECT payment_intent_creation_enabled AND payment_attempt_creation_enabled AND sandbox_payment_enabled AND financial_posting_enabled AND NOT upi_enabled AND NOT cod_enabled AND NOT merchant_settlement_enabled AND NOT real_money_enabled FROM financial_feature_config WHERE singleton=true`)
+	return err == nil && enabled
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
@@ -256,14 +284,16 @@ func selectPartner(ctx context.Context, tx *sqlx.Tx, localityID string, serviceD
 		all := true
 		for i := range partnerLines {
 			var mappingID, mode string
-			query := `SELECT id::text,inventory_mode FROM platform_partner_product_mappings WHERE business_id=$1 AND variant_id=$2 AND status='approved'`
-			err := tx.QueryRowxContext(ctx, query, candidate.ID, partnerLines[i].VariantID).Scan(&mappingID, &mode)
+			var supplyPrice sql.NullInt64
+			query := `SELECT id::text,inventory_mode,supply_price_minor FROM platform_partner_product_mappings WHERE business_id=$1 AND variant_id=$2 AND status='approved'`
+			err := tx.QueryRowxContext(ctx, query, candidate.ID, partnerLines[i].VariantID).Scan(&mappingID, &mode, &supplyPrice)
 			if err != nil {
 				all = false
 				break
 			}
 			partnerLines[i].MappingID = mappingID
 			partnerLines[i].InventoryMode = mode
+			partnerLines[i].PartnerSupplyPriceMinor = supplyPrice
 		}
 		if all {
 			return candidate, partnerLines, nil
@@ -363,7 +393,9 @@ func (s *Service) Quote(w http.ResponseWriter, r *http.Request, userID string) {
 		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,0,0,$10,'INR',now()+interval '5 minutes') RETURNING expires_at`, quoteID, userID, req.Vertical, a.LocalityID, today.Format("2006-01-02"), req.AddressID, a.UpdatedAt, selected.ID, string(raw), subtotal).Scan(&expires); err != nil {
 			return err
 		}
-		result = map[string]any{"quote_id": quoteID, "vertical": req.Vertical, "locality_id": a.LocalityID, "locality": a.Locality, "district": a.DistrictName, "partner": map[string]string{"business_id": selected.ID, "name": selected.Name}, "address": json.RawMessage(a.Snapshot), "items": lines, "item_subtotal_minor": subtotal, "discount_minor": 0, "delivery_fee_minor": 0, "delivery_fee_status": "not_configured", "tax_minor": 0, "tax_status": "not_configured", "tax_message": "Tax is not separately calculated in this build; the total excludes any tax not included in listed prices.", "grand_total_minor": subtotal, "currency": "INR", "expires_at": expires.UTC(), "payment_status": "not_collected"}
+		codAvailable := s.codAvailable(r.Context(), tx)
+		upiAvailable := sandboxUPIAvailable(r.Context(), tx)
+		result = map[string]any{"quote_id": quoteID, "vertical": req.Vertical, "locality_id": a.LocalityID, "locality": a.Locality, "district": a.DistrictName, "partner": map[string]string{"business_id": selected.ID, "name": selected.Name}, "address": json.RawMessage(a.Snapshot), "items": lines, "item_subtotal_minor": subtotal, "discount_minor": 0, "delivery_fee_minor": 0, "delivery_fee_status": "not_configured", "tax_minor": 0, "tax_status": "not_configured", "tax_message": "Tax is not separately calculated in this build; the total excludes any tax not included in listed prices.", "grand_total_minor": subtotal, "currency": "INR", "expires_at": expires.UTC(), "payment_status": "not_collected", "upi_sandbox_available": upiAvailable, "cash_on_delivery_available": codAvailable, "payment_mode": "sandbox_only", "cash_on_delivery_mode": "synthetic_qa"}
 		return nil
 	})
 	if err != nil {
@@ -382,8 +414,8 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 	if !decode(w, r, &req) {
 		return
 	}
-	if _, err := uuid.Parse(req.QuoteID); err != nil || len(req.Notes) > 1000 {
-		writeJSON(w, 400, map[string]any{"error": map[string]string{"code": "VALIDATION_ERROR", "message": "A valid quote and short note are required."}})
+	if _, err := uuid.Parse(req.QuoteID); err != nil || len(req.Notes) > 1000 || !validCheckoutPaymentMethod(req.PaymentMethod) {
+		writeJSON(w, 400, map[string]any{"error": map[string]string{"code": "VALIDATION_ERROR", "message": "A valid quote, payment method, and short note are required."}})
 		return
 	}
 	idemRaw := r.Header.Get("Idempotency-Key")
@@ -392,7 +424,7 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 		writeJSON(w, 400, map[string]any{"error": map[string]string{"code": "IDEMPOTENCY_KEY_REQUIRED", "message": "A valid Idempotency-Key is required."}})
 		return
 	}
-	requestHash := fmt.Sprintf("%s|%s|%s", userID, req.QuoteID, strings.TrimSpace(req.Notes))
+	requestHash := fmt.Sprintf("%s|%s|%s|%s", userID, req.QuoteID, strings.TrimSpace(req.Notes), req.PaymentMethod)
 	orderID := uuid.NewString()
 	reference := "GN-" + strings.ToUpper(strings.ReplaceAll(orderID[:8], "-", ""))
 	replay := false
@@ -502,9 +534,24 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 		if err := tx.QueryRowxContext(r.Context(), `SELECT concat_ws(', ',address_line1,locality,landmark,city,state,postal_code) FROM customer_addresses WHERE id=$1 AND customer_user_id=$2`, addressID, userID).Scan(&addressText); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_orders(id,customer_user_id,business_id,order_type,status,fulfillment_type,delivery_address,delivery_address_id,delivery_address_snapshot,platform_checkout_quote_id,platform_idempotency_key,platform_request_hash,payment_status,customer_notes,item_total,delivery_fee,tax_amount,grand_total,currency,reference_code,order_source,platform_vertical,delivery_locality_id)
-				VALUES($1,$2,$3,'platform_order','placed','delivery',$4,$5,$6::jsonb,$7,$8,$9,'not_collected',NULLIF($10,''),$11::numeric/100,$12::numeric/100,$13::numeric/100,$14::numeric/100,'INR',$15,'platform_catalog',$16,$17)`, orderID, userID, partnerID, addressText, addressID, a.Snapshot, req.QuoteID, idem.String(), requestHash, strings.TrimSpace(req.Notes), subtotal, delivery, tax, total, reference, vertical, localityID); err != nil {
+		if req.PaymentMethod == "cash_on_delivery" && !s.codAvailable(r.Context(), tx) {
+			return fail(409, "COD_UNAVAILABLE", "Cash on Delivery is unavailable for this order.")
+		}
+		if req.PaymentMethod == "upi" && !sandboxUPIAvailable(r.Context(), tx) {
+			return fail(409, "UPI_UNAVAILABLE", "Sandbox UPI is unavailable for this order.")
+		}
+		paymentMethod := req.PaymentMethod
+		if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_orders(id,customer_user_id,business_id,order_type,status,fulfillment_type,delivery_address,delivery_address_id,delivery_address_snapshot,platform_checkout_quote_id,platform_idempotency_key,platform_request_hash,payment_status,payment_method,customer_notes,item_total,delivery_fee,tax_amount,grand_total,currency,reference_code,order_source,platform_vertical,delivery_locality_id)
+				VALUES($1,$2,$3,'platform_order','placed','delivery',$4,$5,$6::jsonb,$7,$8,$9,'not_collected',$10,NULLIF($11,''),$12::numeric/100,$13::numeric/100,$14::numeric/100,$15::numeric/100,'INR',$16,'platform_catalog',$17,$18)`, orderID, userID, partnerID, addressText, addressID, a.Snapshot, req.QuoteID, idem.String(), requestHash, paymentMethod, strings.TrimSpace(req.Notes), subtotal, delivery, tax, total, reference, vertical, localityID); err != nil {
 			return err
+		}
+		if req.PaymentMethod == "cash_on_delivery" {
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_obligations(order_id,customer_user_id,amount_minor,currency,policy_version) VALUES($1,$2,$3,'INR','synthetic-qa-v1')`, orderID, userID, total); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_audit_events(actor_user_id,obligation_id,event_type,reason,metadata) SELECT $2,id,'obligation_created','Customer selected synthetic QA Cash on Delivery',jsonb_build_object('mode','synthetic_qa','amount_minor',amount_minor) FROM cod_obligations WHERE order_id=$1`, orderID, userID); err != nil {
+				return err
+			}
 		}
 		for _, line := range currentLines {
 			mapped := byVariant[line.VariantID]
@@ -513,7 +560,17 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 			}
 		}
 		for _, line := range currentLines {
-			if _, err := tx.ExecContext(r.Context(), `INSERT INTO platform_customer_order_items(order_id,product_id,variant_id,vertical,product_name,variant_name,unit_label,unit_price_minor,quantity,price_revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, orderID, line.ProductID, line.VariantID, line.Vertical, line.ProductName, line.VariantName, line.UnitLabel, line.UnitPriceMinor, line.Quantity, line.PriceRevision); err != nil {
+			mapped := byVariant[line.VariantID]
+			if mapped.MappingID == "" {
+				return errors.New("selected partner mapping missing for order snapshot")
+			}
+			var supplyPrice any
+			var supplyCurrency any
+			if mapped.PartnerSupplyPriceMinor.Valid {
+				supplyPrice = mapped.PartnerSupplyPriceMinor.Int64
+				supplyCurrency = "INR"
+			}
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO platform_customer_order_items(order_id,product_id,variant_id,vertical,product_name,variant_name,unit_label,unit_price_minor,quantity,price_revision,partner_supply_price_minor,partner_supply_currency) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, orderID, line.ProductID, line.VariantID, line.Vertical, line.ProductName, line.VariantName, line.UnitLabel, line.UnitPriceMinor, line.Quantity, line.PriceRevision, supplyPrice, supplyCurrency); err != nil {
 				return err
 			}
 		}
@@ -541,7 +598,7 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 	} else if s.publishOrderAssignment != nil {
 		s.publishOrderAssignment(r.Context(), userID, selectedPartnerID, orderID)
 	}
-	writeJSON(w, status, map[string]any{"data": map[string]any{"id": orderID, "order_type": "platform_order", "order_source": "platform_catalog", "status": "placed", "payment_status": "not_collected", "reference_code": reference}, "meta": map[string]any{"idempotent_replay": replay}})
+	writeJSON(w, status, map[string]any{"data": map[string]any{"id": orderID, "order_type": "platform_order", "order_source": "platform_catalog", "status": "placed", "payment_status": "not_collected", "payment_method": req.PaymentMethod, "reference_code": reference}, "meta": map[string]any{"idempotent_replay": replay}})
 }
 
 func samePrices(a, b []pricedLine) bool {

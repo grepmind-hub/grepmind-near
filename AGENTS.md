@@ -74,6 +74,88 @@ These images define the premium 2026 visual direction: light-first interface, de
 6. Review diff for security, compatibility and unintended changes.
 7. Report modified files, test results, assumptions and outstanding risks.
 
+## Mandatory multi-emulator agent validation rule
+
+Applies to all current and future implementation phases, regression testing, release preparation, and end-to-end acceptance. Every Codex agent must follow this rule. It supersedes older instructions that permit Customer, Merchant, or Rider UI validation to be skipped.
+
+### Dedicated role assignments
+
+#### Customer
+
+- AVD: `Pixel_8`; expected serial: `emulator-5560`.
+- Use this emulator exclusively for Customer validation and authenticate with an authorized synthetic Customer QA identity.
+- Validate Customer screens, checkout, orders, payments, refunds, delivery tracking, notifications, and profile changes.
+- Backend/API tests do not replace Customer UI acceptance.
+
+#### Merchant
+
+- AVD: `Pixel_8_Merchant_QA`; expected serial: `emulator-5558`.
+- Use this emulator exclusively for Merchant Android validation and authenticate with an authorized synthetic Merchant QA identity.
+- Merchants operate primarily through Android. Validate the Merchant workspace, order acceptance, preparation, ready-for-pickup, catalog, notifications, role permissions, and read-only earnings/payable/settlement screens when available.
+- Merchant Web is complementary. Validate it using the same synthetic business when relevant, but merchants must not be required to use the web portal to view financial information.
+
+#### Rider
+
+- AVD: `Pixel_8_Rider_QA`; expected serial: `emulator-5556`.
+- Use this emulator exclusively for Rider validation and authenticate with an authorized synthetic Rider QA identity.
+- Validate availability, assignment, pickup verification, customer handover, COD collection, cash liability, remittance, delivery history, and notifications.
+- Customer or Merchant emulator sessions cannot substitute for Rider validation.
+
+#### Admin
+
+- Platform: web browser only.
+- Authenticate with an authorized synthetic Admin identity. Finance is an Admin permission/workflow duty, not a fifth application role.
+- Validate dispatch, finance review, settlement simulation, reconciliation, permissions, and audit history.
+- Do not use an Android emulator for Admin validation.
+
+### Emulator identity verification
+
+Before installation or login:
+
+1. Run `adb devices -l`.
+2. Query the AVD name for each emulator serial.
+3. Confirm each mapping matches the role assignments above.
+4. If serials changed, identify the correct AVD by name; do not assume serial numbers are permanent.
+5. Record the actual serial-to-AVD mapping in the QA report.
+6. Never install or operate against an unidentified emulator.
+
+### Mandatory APK installation
+
+Whenever a new debug APK is built for validation:
+
+1. Compute and record its SHA-256.
+2. Install the same APK build on all three assigned emulators.
+3. Verify installation succeeds on each emulator and verify installed package/build identity.
+4. Launch the app on each emulator and confirm it reaches the expected role/login state.
+5. Authenticate with the assigned role and record the APK hash and actual emulator serials.
+6. Do not claim all-emulator validation if any installation or login failed.
+
+If no APK was built in a phase, confirm whether the installed build is compatible with the isolated QA API and current backend contract.
+
+### Mobile-first acceptance
+
+For every relevant phase, validate Customer Android, Merchant Android, Rider Android, Merchant Web Portal, Admin Web Portal, and PostgreSQL/API/ledger reconciliation. Interleave the order where the lifecycle requires it, but do not omit any affected Android role. Every affected role must be authenticated and tested through its assigned surface.
+
+### Isolated QA authentication
+
+Use the existing secure QA OTP delivery mechanism and synthetic allowlisted QA identities. Preserve OTP expiry, replay protection, and rate limits. Reuse authenticated sessions when safe to avoid unnecessary OTP requests.
+
+Never return OTPs in ordinary API responses, print OTPs in application logs, use fixed universal OTPs, disable OTP verification, bypass login with fabricated JWTs, or use production Customer identities. If an authorized login cannot be completed without weakening these protections, stop and report PARTIAL/BLOCKED. Exception for local QA troubleshooting only: the Admin PowerShell Playwright wrapper may display a fresh, challenge-bound OTP in the invoking terminal when the operator explicitly selects `-ManualEntry -Headed`; this is never the default, is limited to the isolated QA reader and synthetic allowlisted account, and must not be copied into application logs, screenshots, reports, or shared transcripts.
+
+### Shared environment protection
+
+Use isolated QA databases and APIs for migrations not applied to shared services. Never point a QA APK at an incompatible shared API or apply unapproved migrations to shared or production databases. Preserve unrelated emulator application data and shared containers; clean up only QA-owned resources.
+
+### Acceptance evidence
+
+Record actual emulator serial/AVD mapping, APK SHA-256, Customer login and screenshots, Merchant Android login and screenshots, Rider login and screenshots, Merchant Web Portal evidence, Admin Web Portal evidence, same-order references, backend/PostgreSQL reconciliation, executed test commands/results, blockers, and known limitations.
+
+Do not report full PASS when required authenticated role validation is missing.
+
+### Stop conditions
+
+Stop and report PARTIAL if a required emulator cannot be identified, APK installation fails on a required emulator, required role login fails, a role is validated only through API calls when Android UI acceptance is required, QA OTP security would need to be weakened, shared/production migrations would be required, a financial transaction cannot be reconciled, or real money/payout functionality would be activated.
+
 ## Prohibited without explicit approval
 
 - Deploying to production.
@@ -92,11 +174,11 @@ Do not claim success unless checks were actually executed. If a check cannot run
 - Phase records and current approval boundaries are maintained in `docs/phases/README.md`; phase evidence must distinguish implemented, tested, blocked, and planned work.
 - Phase 0 repository audit and Phase 0B runtime baseline are historical records. Recheck current source and runtime before reusing any finding.
 - Phase 1 Unified Customer/Merchant/Rider navigation passed its documented validation on 6 November 2026. This does not imply that every historic screen inventory workflow is production-ready.
-- Phase 2A commerce audit/design was accepted. Phase 2B/2C and Phase 2D implementation records describe the earlier business-selected merchant-menu ordering model; those files are historical evidence and must not be rewritten as platform-catalog work. Phase 2R's Grepmind-owned catalog direction is accepted and documented in `docs/phases/PHASE_2_ARCHITECTURE_CORRECTION_PLATFORM_CATALOG.md`. Phases 2R.1–2R.4 passed for their documented scopes; see their phase reports. Migrations 023 and 024 remain unapplied to the shared development database. The Flutter analyzer baseline is 18 diagnostics (3 warnings, 15 infos); the latest full analysis attempt timed out, so do not assume the count remains unchanged. Use plain `wsl` from the Windows host to reach the project's Ubuntu environment for Go/Flutter commands. Phase 2E is approved; see the current acceptance status below.
+- Phase 2A commerce audit/design was accepted. Phase 2B/2C and Phase 2D implementation records describe the earlier business-selected merchant-menu ordering model; those files are historical evidence and must not be rewritten as platform-catalog work. Phase 2R's Grepmind-owned catalog direction is accepted and documented in `docs/phases/PHASE_2_ARCHITECTURE_CORRECTION_PLATFORM_CATALOG.md`. Phases 2R.1–2R.4 passed for their documented scopes; see their phase reports. Migrations 023 and 024 remain unapplied to the shared development database. The Flutter analyzer baseline is 18 diagnostics (3 warnings, 15 infos); the latest full analysis attempt timed out, so do not assume the count remains unchanged. Run Go/Flutter commands from the user's interactive Windows-host PowerShell using plain `wsl` to enter Ubuntu. Do not invoke WSL through the sandboxed command bridge: it may return `Wsl/Service/E_ACCESSDENIED` even when interactive host PowerShell works. Phase 2E is approved; see the current acceptance status below.
 - The accepted platform-commerce direction is a Grepmind-owned customer catalog with explicit local-partner mappings and server-side one-partner fulfillment. Preserve existing `customer_orders` / `customer_order_items` for legacy orders, table reservations, and hotel bookings; extend them compatibly instead of introducing a competing legacy order model.
-- Customer online payment collection, payment gateway integration, and claims that an order is paid are out of scope through Phase 2. Payment integration is scheduled for Phase 6 and may only confirm payment after server-side provider verification.
+- Customer online payment collection and claims that an order is paid remain out of scope through Phase 2. The approved payment roadmap is Phase 4: sandbox integration only after Phase 4A design review, with server-side provider verification. Phase 4A-Build, Phase 4B-A, and Phase 4B-B passed isolated QA; migrations 030–034 remain unapplied to shared development/production. Real-money activity, COD cash handling, merchant transfers, and rider payouts remain disabled during Phase 4 implementation and QA; see `docs/phases/README.md` and the corresponding Phase 4 reports.
 - Keep each Phase 2 subphase independently reviewable and validated. Stop at each stated gate; do not start a later subphase automatically.
-- Never treat older changelog claims, design mockups, QA fixtures, or local database counts as proof of current behavior. Cite the actual files, executed commands, and runtime evidence. Phase 3F Rider Earnings is PASS for isolated QA acceptance only: the same synthetic rider ledger balance was verified on Pixel 8, authenticated Admin UI, API, and disposable PostgreSQL; migration 028 remains unapplied to shared development/production, real compensation posting and payouts remain disabled. Phase 3G-A is complete as a documentation/source audit; Phase 3G-B and 3G-C passed their documented backend/UI isolated-QA scopes. Phase 3G-D is PASS for isolated QA only: Gate A live custody-aware recovery passed, and Gate B's eight deterministic PostgreSQL races passed twice against disposable tmpfs PostGIS stacks; the tests found and fixed an offer/job lock-order deadlock and a heartbeat lease-expiry false-success race. Migration 029 remains unapplied to shared development/production. No Phase 3 acceptance authorizes production recovery, customer payments/COD, payouts, GPS/ETA, or real compensation activation. Phase 4 is approved only for its separately gated development sequence; begin with Phase 4A architecture, ledger, and compliance design, and stop for review before 4B. Real-money transactions remain disabled throughout Phase 4 implementation and QA. See `docs/phases/README.md` and the corresponding phase reports for current evidence and boundaries.
+- Never treat older changelog claims, design mockups, QA fixtures, or local database counts as proof of current behavior. Cite actual files, executed commands, and runtime evidence. Phase 3F Rider Earnings is PASS for isolated QA only; migration 028 remains unapplied to shared development/production and real compensation/payouts remain disabled. Phase 3G-A is complete as a documentation/source audit; Phases 3G-B/C/D passed their documented isolated-QA scopes; migration 029 remains unapplied to shared development/production. No Phase 3 acceptance authorizes production recovery, customer payments/COD, payouts, GPS/ETA, or real compensation activation. Phase 4A design, 4A-Build, 4B-A, 4B-B, 4B-C, 4C and 4D passed their documented isolated-QA scopes. Phase 4C used synthetic QA only; migration 034 remains unapplied to shared development/production, and no physical cash or real-money transaction occurred. Phase 4D is PASS for isolated QA: both ₹220 UPI/COD payable batches were simulated and reconciled with balanced journals, and Merchant Web/Android read-only finance views matched; migrations 035/037 remain unapplied to shared/production and no real funds moved. Phase 4E.1 passed its lifecycle/G1 design gate: backend determines payable eligibility; actual ledger posting remains an explicit Admin `finance.post` action, with no fifth role or automatic posting. The 30 races are planned acceptance scenarios, not executed evidence. Phase 4E.2 is authorized and PARTIAL; do not begin 4E.3 or 4E.4 without separate explicit approval. Phase 3H remains deferred; see `docs/phases/README.md` and phase reports.
 
 ## Implementation task template
 
@@ -258,6 +340,14 @@ Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
     - Interactive Hotel Room Booking Sheet: Check-in/Check-out stay duration, guest count, room tier selection, amenities showcase, and confirmed stay voucher dialog.
     - Seed Data: Seeded 8 authentic Odia & Mughlai dishes for *Spice Garden Restaurant* (Bhubaneswar) and luxury 5-star beachfront *Mayfair Coastal Lagoon & Resort* (Puri) with 3 room tiers.
     - Verification: `flutter analyze` 100% clean with zero errors, zero warnings.
+
+### AUTH-OTP-01 security and QA rules
+- The Go service generates and verifies OTPs. Normal auth responses and application logs must never contain the OTP. The Fast2SMS production adapter exists and has mocked tests, but production credentials/template are not configured and live delivery is unverified; without a configured provider, auth must fail closed rather than echo a local code.
+- Login challenges are opaque, phone/purpose scoped, expiring, attempt-limited, invalidated on resend, and single use. Clients should submit the returned `challenge_id` with verification.
+- Android may use SMS Retriever and the one-time-code autofill hint, but must keep manual entry and avoid broad SMS inbox permissions. Web inputs may advertise `autocomplete="one-time-code"`; do not claim desktop browsers retrieve Android SMS.
+- The legacy `qa_file` transport is isolated-QA-only, explicitly enabled, synthetic-allowlist- and per-run-bound, and has no HTTP read endpoint. Do not use the retired broad Docker-exec OTP reader. Current authenticated QA uses the dedicated `qa_http` writer plus root-owned mode-0700 tmpfs inbox helper; its loopback-only reader requires a single-use capability bound to run, challenge, phone, purpose, expiry, and runner. Keep writer and runner secrets separate, never expose the reader through Nginx, and never allowlist a real root admin to bypass authentication or finance separation of duties.
+- Migration 036 is additive; it is applied only to the tmpfs-backed isolated QA database and remains unapplied to shared development/production. AUTH-OTP-01 passed isolated-QA acceptance on 13 November 2026: the dedicated root-owned inbox helper uses a run/challenge/phone/purpose/expiry/runner-scoped, atomic single-use capability, and Customer, Merchant, Rider, and Admin authenticated through normal UI flows. See the R2 report for current APK, AVD, test, and evidence details. Production SMS remains unconfigured; do not treat isolated QA OTP delivery as production readiness. The previous R1 Docker-exec reader and missing-run-ID findings are historical and superseded; do not use the retired broad reader.
+- AUTH-OTP-02 passed isolated-QA automatic-entry acceptance on 13 November 2026: a trusted runner retrieved four fresh role challenges through the existing private reader and entered them into the actual Customer, Merchant, Rider, and Admin login UIs. The debug-only `QA_OTP_AUTOMATION` instrumentation exposes challenge metadata only, never a code, and must not be enabled in release builds. The final APK/hash, AVD mapping, screenshots, tests and Merchant build limitation are recorded in `docs/phases/AUTH_OTP_02_QA_AUTOMATIC_ENTRY_AND_FAST2SMS.md`. This QA path does not validate native Android SMS Retriever; real Fast2SMS delivery is also untested. AUTH-OTP-01's single-use reader and OTP verification rules remain unchanged.
 
 
 ### Phase 2R.4 — Partner Fulfillment & Order Preparation (6 November 2026)

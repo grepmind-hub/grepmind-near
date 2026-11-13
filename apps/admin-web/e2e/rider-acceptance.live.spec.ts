@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readQaOtp } from './qa-otp';
 
 const primaryAdmin = process.env.PHASE3B_QA_PRIMARY_ADMIN_PHONE;
 const regularAdmin = process.env.PHASE3B_QA_REGULAR_ADMIN_PHONE;
@@ -13,9 +14,9 @@ async function signIn(page: Page, phone: string) {
   await page.getByRole('button', { name: 'Continue securely' }).click();
   const response = await otpRequest;
   expect(response.status()).toBe(202);
-  const otp = (await response.json())?.data?.otp_code as string | undefined;
-  expect(otp).toMatch(/^\d{6}$/);
-  await page.getByLabel('Six-digit verification code').fill(otp!);
+  const payload = (await response.json())?.data;
+  expect(payload?.otp_code).toBeUndefined();
+  await page.getByLabel('Six-digit verification code').fill(await readQaOtp(payload.challenge_id, phone, payload.expires_at));
   const verified = page.waitForResponse((r) =>
     r.url().endsWith('/auth/otp/verify') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Verify and continue' }).click();
@@ -98,9 +99,10 @@ test('live QA rider checklist is primary-superadmin protected', async ({ browser
   // deny this already-issued access token on a protected Rider API request.
   const otpRequest = await primary.request.post('/api/v1/auth/otp/request', { data: { phone_e164: riderPhone } });
   expect(otpRequest.status()).toBe(202);
-  const otp = (await otpRequest.json())?.data?.otp_code as string;
-  expect(otp).toMatch(/^\d{6}$/);
-  const riderLogin = await primary.request.post('/api/v1/auth/otp/verify', { data: { phone_e164: riderPhone, otp_code: otp } });
+  const otpPayload = (await otpRequest.json())?.data;
+  expect(otpPayload?.otp_code).toBeUndefined();
+  const otp = await readQaOtp(otpPayload.challenge_id, riderPhone!, otpPayload.expires_at);
+  const riderLogin = await primary.request.post('/api/v1/auth/otp/verify', { data: { phone_e164: riderPhone, otp_code: otp, challenge_id: otpPayload.challenge_id } });
   expect(riderLogin.status()).toBe(200);
   const accessToken = (await riderLogin.json())?.data?.access_token as string;
   expect(accessToken).toBeTruthy();

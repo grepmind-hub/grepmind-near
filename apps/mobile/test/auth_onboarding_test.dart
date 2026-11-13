@@ -13,13 +13,17 @@ class _FakeAuthNotifier extends AuthNotifier {
     requestCount++;
     return {
       'phone_e164': phone,
-      'otp_code': '654321',
+      'challenge_id': '00000000-0000-4000-8000-000000000001',
       'status': 'otp_requested',
     };
   }
 
   @override
-  Future<bool> verifyOTP(String phone, String otpCode) async => true;
+  Future<bool> verifyOTP(
+    String phone,
+    String otpCode, {
+    String? challengeId,
+  }) async => true;
 }
 
 void main() {
@@ -30,7 +34,7 @@ void main() {
     expect(find.text('Everything nearby.\nOne tap away.'), findsOneWidget);
   });
 
-  testWidgets('OTP step presents six cells and generated local code', (
+  testWidgets('OTP step presents six cells without exposing a code', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -46,7 +50,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.byKey(const Key('otpInput')), findsOneWidget);
-    expect(find.text('Local development code: 654321'), findsOneWidget);
+    expect(find.textContaining('Local development code:'), findsNothing);
     expect(find.text('Resend code in 00:60'), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('otpInput')), '123456');

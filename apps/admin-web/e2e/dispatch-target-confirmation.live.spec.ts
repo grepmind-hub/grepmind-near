@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readQaOtp } from './qa-otp';
 
 const adminPhone = process.env.PHASE3E_QA_ADMIN_PHONE;
 const orderReference = process.env.PHASE3E_QA_ORDER_REFERENCE;
@@ -13,9 +14,9 @@ async function signIn(page: Page, phone: string) {
   await page.getByRole('button', { name: /Continue securely/ }).click();
   const requested = await otpRequest;
   expect(requested.status()).toBe(202);
-  const code = (await requested.json())?.data?.otp_code as string | undefined;
-  expect(code).toMatch(/^\d{6}$/);
-  await page.getByLabel('Six-digit verification code').fill(code!);
+  const payload = (await requested.json())?.data;
+  expect(payload?.otp_code).toBeUndefined();
+  await page.getByLabel('Six-digit verification code').fill(await readQaOtp(payload.challenge_id, phone, payload.expires_at));
   const verified = page.waitForResponse((response) =>
     response.url().endsWith('/auth/otp/verify') && response.request().method() === 'POST');
   await page.getByRole('button', { name: /Verify and continue/ }).click();

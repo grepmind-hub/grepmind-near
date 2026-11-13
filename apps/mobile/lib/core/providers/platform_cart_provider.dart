@@ -223,11 +223,17 @@ class PlatformCartNotifier extends StateNotifier<PlatformCartState> {
   Future<Map<String, dynamic>> submit(
     String quoteId,
     String idempotencyKey,
-    String notes,
-  ) async {
+    String notes, {
+    String? paymentMethod,
+  }) async {
     final response = await apiClient.post(
       '/platform/orders',
-      data: {'quote_id': quoteId, 'notes': notes},
+      data: {
+        'quote_id': quoteId,
+        'notes': notes,
+        if (paymentMethod != null && paymentMethod.isNotEmpty)
+          'payment_method': paymentMethod,
+      },
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     return Map<String, dynamic>.from(response.data['data'] as Map);

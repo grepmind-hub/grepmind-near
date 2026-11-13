@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readQaOtp } from './qa-otp';
 
 const merchantPhone = process.env.PHASE3GC_MERCHANT_PHONE!;
 const orderReference = process.env.PHASE3GC_ORDER_REFERENCE!;
@@ -11,9 +12,9 @@ async function signIn(page: Page) {
   await page.getByRole('button', { name: 'Get Verification Code' }).click();
   const requested = await otpRequest;
   expect(requested.status()).toBe(202);
-  const otp = (await requested.json())?.data?.otp_code as string | undefined;
-  expect(otp).toMatch(/^\d{6}$/);
-  for (let index = 0; index < 6; index += 1) await page.locator(`#otp-${index}`).fill(otp![index]);
+  const payload = (await requested.json())?.data;
+  expect(payload?.otp_code).toBeUndefined();
+  await page.locator('#merchant-otp').fill(await readQaOtp(payload.challenge_id, merchantPhone, payload.expires_at));
   const verified = page.waitForResponse(response =>
     response.url().endsWith('/auth/otp/verify') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Verify & Access Workspace' }).click();

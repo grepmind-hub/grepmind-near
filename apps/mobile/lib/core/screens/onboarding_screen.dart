@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 /// Phone-number onboarding screen with the production OTP flow.
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -14,18 +15,23 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
+    with CodeAutoFill {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   bool _sending = false;
   bool _otpSent = false;
-  String? _otpCode; // Returned by the API only in APP_ENV=local.
+  bool _otpRequestInFlight = false;
+  bool _verifyingOtp = false;
+  String? _pendingAutofillCode;
+  String? _challengeId;
   int _resendSeconds = 0;
   Timer? _resendTimer;
 
   @override
   void dispose() {
     _resendTimer?.cancel();
+    cancel();
     _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
@@ -49,20 +55,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _showMessage('Enter a valid 10-digit Indian mobile number');
       return;
     }
+    _otpRequestInFlight = true;
+    _pendingAutofillCode = null;
     setState(() => _sending = true);
+    try {
+      listenForCode();
+    } catch (_) {
+      // Keep manual entry available when Retriever is unavailable.
+    }
     final result = await ref
         .read(authProvider.notifier)
         .requestOTP(_normalizedPhone);
     if (!mounted) return;
     setState(() {
       _sending = false;
+      _otpRequestInFlight = false;
       if (result != null) {
         _otpSent = true;
-        _otpCode = result['otp_code'] as String?;
+        _challengeId = result['challenge_id'] as String?;
         _otpController.clear();
+        final autofilled = _pendingAutofillCode;
+        if (autofilled != null && RegExp(r'^\d{6}$').hasMatch(autofilled)) {
+          _setOtpCode(autofilled, notify: false);
+        }
         _startResendCountdown();
       }
+      _pendingAutofillCode = null;
     });
+    if (result == null) cancel();
     _showMessage(
       result == null
           ? 'Could not send a code. Please try again.'
@@ -85,17 +105,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _verifyOTP() async {
+    if (_sending || _verifyingOtp) return;
     final code = _otpController.text.trim();
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       _showMessage('Enter the 6-digit verification code');
       return;
     }
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _verifyingOtp = true;
+    });
     final success = await ref
         .read(authProvider.notifier)
-        .verifyOTP(_normalizedPhone, code);
+        .verifyOTP(_normalizedPhone, code, challengeId: _challengeId);
     if (!mounted) return;
-    setState(() => _sending = false);
+    setState(() {
+      _sending = false;
+      _verifyingOtp = false;
+    });
     _showMessage(
       success
           ? 'Signed in successfully'
@@ -105,12 +132,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _useDifferentNumber() {
     _resendTimer?.cancel();
+    cancel();
     setState(() {
       _otpSent = false;
-      _otpCode = null;
+      _challengeId = null;
       _resendSeconds = 0;
       _otpController.clear();
     });
+  }
+
+  @override
+  void codeUpdated() {
+    final received = code;
+    if (!mounted ||
+        received == null ||
+        !RegExp(r'^\d{6}$').hasMatch(received)) {
+      return;
+    }
+    if (_otpRequestInFlight) {
+      _pendingAutofillCode = received;
+      return;
+    }
+    if (!_otpSent || _verifyingOtp) return;
+    _setOtpCode(received);
+  }
+
+  void _setOtpCode(String value, {bool notify = true}) {
+    _otpController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    if (notify) setState(() {});
   }
 
   void _showMessage(String message) {
@@ -403,6 +455,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.oneTimeCode],
                       maxLength: 6,
+                      autofocus: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         counterText: '',
@@ -415,30 +470,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
         ),
-        if (_otpCode != null) ...[
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppTheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              'Local development code: $_otpCode',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 20),
         SizedBox(
           height: 54,
           child: ElevatedButton(
             key: const Key('verifyOTPButton'),
-            onPressed: _sending ? null : _verifyOTP,
+            onPressed:
+                _sending || !RegExp(r'^\d{6}$').hasMatch(_otpController.text)
+                ? null
+                : _verifyOTP,
             child: _sending
                 ? _loadingLabel()
                 : const Text('Verify and sign in'),

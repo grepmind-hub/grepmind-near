@@ -18,6 +18,7 @@ import {
   Bike,
   Truck,
   WalletCards,
+  Banknote,
 } from 'lucide-react';
 
 export type AdminTab =
@@ -33,7 +34,9 @@ export type AdminTab =
   | 'platform-catalog'
   | 'riders'
   | 'dispatch'
-  | 'rider-earnings';
+  | 'rider-earnings'
+  | 'cod-finance'
+  | 'merchant-finance';
 
 interface AdminSidebarProps {
   currentTab: AdminTab;
@@ -142,6 +145,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'rider-earnings' as AdminTab,
       label: 'Rider earnings',
       description: 'Ledger & reconciliation',
+      icon: WalletCards,
+      badge: null,
+    },
+    {
+      id: 'cod-finance' as AdminTab,
+      label: 'COD accountability',
+      description: 'Synthetic remittance review',
+      icon: Banknote,
+      badge: null,
+    },
+    {
+      id: 'merchant-finance' as AdminTab,
+      label: 'Merchant settlements',
+      description: 'Payables, commission & simulation',
       icon: WalletCards,
       badge: null,
     },

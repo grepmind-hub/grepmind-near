@@ -23,7 +23,7 @@ Run these commands from PowerShell at the repository root:
 The default values target this workstation's Pixel 8 AVD, Windows Android SDK, WSL Flutter/Android SDK, and local API URL. Override them when needed:
 
 ```powershell
-./scripts/mobile_emulator.ps1 -Action Run -AvdName Pixel_8 -DeviceId emulator-5554 -ApiBaseUrl http://172.18.160.150:80
+./scripts/mobile_emulator.ps1 -Action Run -AvdName Pixel_8 -DeviceId emulator-5554 -ApiBaseUrl http://10.0.2.2:80
 ```
 
 The Windows ADB server is started with `-a` so WSL can connect through its default NAT gateway. If Windows Firewall blocks that connection, allow the local ADB server on the private WSL network; the script does not change firewall rules. `Stop` targets only the selected AVD/device and does not stop WSL or the shared ADB server.

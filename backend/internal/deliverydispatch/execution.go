@@ -58,6 +58,9 @@ func (s *Service) RiderTransition(w http.ResponseWriter, r *http.Request, riderI
 			return failure(409, "INVALID_DELIVERY_TRANSITION", "This delivery state transition is not allowed.")
 		}
 		if in.State == "at_pickup" {
+			if err := requireDispatchPaymentEligibility(r.Context(), tx, jobID); err != nil {
+				return err
+			}
 			var ready bool
 			if err := tx.GetContext(r.Context(), &ready, `SELECT status='ready_for_pickup' FROM customer_orders WHERE id=(SELECT order_id FROM delivery_jobs WHERE id=$1)`, jobID); err != nil {
 				return err
@@ -162,6 +165,9 @@ func (s *Service) VerifyPickup(w http.ResponseWriter, r *http.Request, riderID s
 		if state != "at_pickup" {
 			return failure(409, "INVALID_DELIVERY_TRANSITION", "Pickup can be verified only after arrival at the ready partner.")
 		}
+		if err := requireDispatchPaymentEligibility(r.Context(), tx, jobID); err != nil {
+			return err
+		}
 		var id string
 		var digest []byte
 		var expires time.Time
@@ -264,18 +270,19 @@ func (s *Service) ConfirmDelivery(w http.ResponseWriter, r *http.Request, riderI
 	}
 	jobID := r.PathValue("jobId")
 	var in struct {
-		Code string `json:"code"`
+		Code                 string `json:"code"`
+		ConfirmCODCollection bool   `json:"confirm_cod_collection"`
 	}
 	if decodeBody(w, r, &in, 2048) != nil || len(in.Code) != 8 {
 		writeError(w, 400, "VALIDATION_ERROR", "Enter the 8-digit customer delivery code.")
 		return
 	}
 	var state string
-	var customerID, businessID string
+	var customerID, businessID, paymentMethod string
 	var invalid, idempotent bool
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
 		var locality string
-		err := tx.QueryRowxContext(r.Context(), `SELECT j.execution_state,j.locality_id::text,o.customer_user_id::text,o.business_id::text FROM delivery_jobs j JOIN customer_orders o ON o.id=j.order_id JOIN delivery_assignments a ON a.job_id=j.id WHERE j.id=$1 AND a.rider_user_id=$2 AND (a.state='active' OR j.execution_state='delivered') ORDER BY a.assigned_at DESC LIMIT 1 FOR UPDATE OF j,a`, jobID, riderID).Scan(&state, &locality, &customerID, &businessID)
+		err := tx.QueryRowxContext(r.Context(), `SELECT j.execution_state,j.locality_id::text,o.customer_user_id::text,o.business_id::text,COALESCE(o.payment_method,'') FROM delivery_jobs j JOIN customer_orders o ON o.id=j.order_id JOIN delivery_assignments a ON a.job_id=j.id WHERE j.id=$1 AND a.rider_user_id=$2 AND (a.state='active' OR j.execution_state='delivered') ORDER BY a.assigned_at DESC LIMIT 1 FOR UPDATE OF j,a`, jobID, riderID).Scan(&state, &locality, &customerID, &businessID, &paymentMethod)
 		if errorsNoRows(err) {
 			return failure(404, "NOT_FOUND", "Rider assignment not found.")
 		}
@@ -291,6 +298,12 @@ func (s *Service) ConfirmDelivery(w http.ResponseWriter, r *http.Request, riderI
 		}
 		if state != "en_route" {
 			return failure(409, "INVALID_DELIVERY_TRANSITION", "Delivery can be completed only after pickup and en-route confirmation.")
+		}
+		if paymentMethod == "cash_on_delivery" && !in.ConfirmCODCollection {
+			return failure(409, "COD_COLLECTION_CONFIRMATION_REQUIRED", "Confirm the synthetic QA COD collection at customer handover.")
+		}
+		if paymentMethod != "cash_on_delivery" && in.ConfirmCODCollection {
+			return failure(400, "COD_NOT_APPLICABLE", "This order does not have a Cash on Delivery obligation.")
 		}
 		var id string
 		var digest []byte
@@ -315,6 +328,14 @@ func (s *Service) ConfirmDelivery(w http.ResponseWriter, r *http.Request, riderI
 		}
 		if _, err = tx.ExecContext(r.Context(), `UPDATE delivery_verification_codes SET consumed_at=now() WHERE id=$1`, id); err != nil {
 			return err
+		}
+		if paymentMethod == "cash_on_delivery" {
+			if s.codCollectionRecorder == nil {
+				return failure(503, "SYNTHETIC_COD_UNAVAILABLE", "COD collection cannot be recorded in this environment.")
+			}
+			if err = s.codCollectionRecorder(r.Context(), tx, jobID, riderID); err != nil {
+				return err
+			}
 		}
 		if err = changeExecutionState(r.Context(), tx, jobID, riderID, "rider", "customer_otp_verified", state, "delivered", ""); err != nil {
 			return err

@@ -1,0 +1,1 @@
+ALTER ROLE phase2e WITH PASSWORD 'Phase2E_QA_Db_2026_only';

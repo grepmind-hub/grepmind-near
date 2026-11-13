@@ -163,6 +163,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Partner Orders'), findsOneWidget);
+
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();
   });
@@ -210,6 +211,20 @@ void main() {
       find.text('Rider location tracking is not available in this phase.'),
       findsOneWidget,
     );
+    await tester.tap(
+      find.descendant(of: navigation, matching: find.text('Profile')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rider profile'), findsOneWidget);
+    final riderLogout = find.byKey(const ValueKey('rider_logout_button'));
+    await tester.ensureVisible(riderLogout);
+    expect(riderLogout, findsOneWidget);
+    await tester.tap(riderLogout);
+    await tester.pumpAndSettle();
+    expect(find.text('Are you sure you want to log out?'), findsOneWidget);
+    await tester.tap(find.text('LOG OUT'));
+    await tester.pumpAndSettle();
+    expect(container.read(authProvider).isAuthenticated, isFalse);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();
   });
@@ -253,5 +268,10 @@ class _TestAuthNotifier extends AuthNotifier {
     if (!permitted) return false;
     state = state.copyWith(activeRole: role);
     return true;
+  }
+
+  @override
+  Future<void> logout() async {
+    state = const AuthState();
   }
 }

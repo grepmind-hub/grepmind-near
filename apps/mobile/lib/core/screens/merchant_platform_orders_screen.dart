@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
@@ -14,17 +17,63 @@ class MerchantPlatformOrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _MerchantPlatformOrdersScreenState
-    extends ConsumerState<MerchantPlatformOrdersScreen> {
+    extends ConsumerState<MerchantPlatformOrdersScreen>
+    with WidgetsBindingObserver {
+  static const _dispatchRefreshInterval = Duration(seconds: 8);
+
   String? _businessId;
   String? _error;
+  String? _dispatchError;
   bool _loading = true;
+  bool _dispatchRefreshing = false;
   String? _busyOrder;
+  String? _confirmingPickupOrder;
   List<Map<String, dynamic>> _orders = const [];
+  Map<String, Map<String, dynamic>> _dispatchByOrder = const {};
+  Timer? _dispatchRefreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dispatchRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final businessId = _businessId;
+      if (businessId != null && _hasReadyOrders) {
+        _refreshDispatch(businessId);
+      }
+      _startDispatchRefreshTimer();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _dispatchRefreshTimer?.cancel();
+      _dispatchRefreshTimer = null;
+    }
+  }
+
+  bool get _hasReadyOrders =>
+      _orders.any((order) => order['status'] == 'ready_for_pickup');
+
+  void _startDispatchRefreshTimer() {
+    _dispatchRefreshTimer?.cancel();
+    _dispatchRefreshTimer = null;
+    if (!_hasReadyOrders || _businessId == null) return;
+    _dispatchRefreshTimer = Timer.periodic(_dispatchRefreshInterval, (_) {
+      final businessId = _businessId;
+      if (mounted && businessId != null && _hasReadyOrders) {
+        _refreshDispatch(businessId);
+      }
+    });
   }
 
   Future<void> _initialize() async {
@@ -64,10 +113,139 @@ class _MerchantPlatformOrdersScreenState
           const [];
       if (!mounted) return;
       setState(() => _orders = data.cast<Map<String, dynamic>>());
+      await _refreshDispatch(businessId);
+      _startDispatchRefreshTimer();
     } catch (error) {
       if (mounted) setState(() => _error = _apiMessage(error));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _refreshDispatch(String businessId) async {
+    if (_dispatchRefreshing) return;
+    _dispatchRefreshing = true;
+    try {
+      final response = await apiClient.get(
+        '/merchant/businesses/$businessId/delivery-dispatch',
+      );
+      final data =
+          (response.data as Map<String, dynamic>)['data'] as List<dynamic>? ??
+          const [];
+      if (!mounted) return;
+      final nextDispatch = {
+        for (final row in data.cast<Map<String, dynamic>>())
+          if (row['order_id'] is String) row['order_id'] as String: row,
+      };
+      final unchanged =
+          nextDispatch.length == _dispatchByOrder.length &&
+          nextDispatch.entries.every((entry) {
+            final previous = _dispatchByOrder[entry.key];
+            final next = entry.value;
+            return previous != null &&
+                previous['job_id'] == next['job_id'] &&
+                previous['execution_state'] == next['execution_state'] &&
+                previous['rider_assigned'] == next['rider_assigned'] &&
+                previous['rider_name'] == next['rider_name'] &&
+                previous['delivery_state'] == next['delivery_state'];
+          });
+      if (unchanged && _dispatchError == null) return;
+      setState(() {
+        _dispatchByOrder = nextDispatch;
+        _dispatchError = null;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          // Fail closed: stale eligibility must never expose a pickup-code action.
+          _dispatchByOrder = const {};
+          _dispatchError = 'Delivery handover status is unavailable. Refresh before issuing a code.';
+        });
+      }
+    } finally {
+      _dispatchRefreshing = false;
+    }
+  }
+
+  Future<void> _issuePickupCode(Map<String, dynamic> order) async {
+    final orderId = order['id'] as String?;
+    final businessId = _businessId;
+    final summary = orderId == null ? null : _dispatchByOrder[orderId];
+    final jobId = summary?['job_id'] as String?;
+    final reference = order['reference_code'] as String? ?? 'this order';
+    if (businessId == null ||
+        orderId == null ||
+        jobId == null ||
+        _busyOrder != null ||
+        _confirmingPickupOrder != null) {
+      return;
+    }
+
+    // Lock before opening the confirmation dialog so rapid taps cannot queue
+    // multiple code issuances for the same order.
+    setState(() => _confirmingPickupOrder = orderId);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Issue pickup code?'),
+          content: Text(
+            'Confirm order $reference is ready and the assigned rider is physically at your pickup location. The short-lived code can be used to verify this handover.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Issue code'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      setState(() {
+        _confirmingPickupOrder = null;
+        _busyOrder = orderId;
+        _dispatchError = null;
+      });
+      final response = await apiClient.post(
+        '/merchant/businesses/$businessId/delivery-jobs/$jobId/pickup-code',
+      );
+      final data =
+          (response.data as Map<String, dynamic>)['data']
+              as Map<String, dynamic>;
+      final code = data['pickup_code'] as String?;
+      final expires = data['expires_in_seconds'] as int?;
+      if (code == null || code.length != 8 || expires == null || expires <= 0) {
+        throw const FormatException('Invalid pickup code response.');
+      }
+      if (!mounted) return;
+      // The code is kept only in this local stack frame and dialog; never log or persist it.
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _PickupCodeDialog(
+          reference: reference,
+          code: code,
+          expiresInSeconds: expires,
+        ),
+      );
+      await _refreshDispatch(businessId);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _dispatchError = _apiMessage(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (_busyOrder == orderId) _busyOrder = null;
+          if (_confirmingPickupOrder == orderId) {
+            _confirmingPickupOrder = null;
+          }
+        });
+      }
     }
   }
 
@@ -187,7 +365,7 @@ class _MerchantPlatformOrdersScreenState
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Orders assigned by Grepmind appear here. Customer prices stay platform-controlled. Payment is not collected, and marking ready does not mean delivered.',
+                  'Orders assigned by Grepmind appear here. Customer prices stay platform-controlled. UPI orders require backend-verified payment; COD orders show the amount due at delivery. Marking ready does not mean delivered.',
                 ),
               ),
             ),
@@ -210,6 +388,17 @@ class _MerchantPlatformOrdersScreenState
                 ),
               ),
             ],
+            if (_dispatchError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Card(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(_dispatchError!),
+                  ),
+                ),
+              ),
             if (_loading && _orders.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(40),
@@ -247,9 +436,21 @@ class _MerchantPlatformOrdersScreenState
 
   Widget _orderCard(Map<String, dynamic> order) {
     final status = order['status'] as String? ?? 'placed';
+    final paymentMethod = order['payment_method']?.toString() ?? '';
+    final paymentStatus =
+        order['payment_status']?.toString() ?? 'not_collected';
+    final codState =
+        order['cod_collection_state']?.toString() ?? 'not_applicable';
+    final fulfillmentPaymentAllowed = switch (paymentMethod) {
+      'upi' => paymentStatus == 'paid',
+      'cash_on_delivery' => codState == 'due' || codState == 'collected',
+      _ => true, // Existing legacy orders retain their established workflow.
+    };
     final items = (order['items'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
     final busy = _busyOrder == order['id'];
+    final confirmingPickup = _confirmingPickupOrder == order['id'];
+    final dispatch = _dispatchByOrder[order['id']];
     final vertical = order['vertical'] == 'grocery'
         ? 'Grocery order'
         : 'Food order';
@@ -277,6 +478,13 @@ class _MerchantPlatformOrdersScreenState
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           const Divider(),
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(_paymentLabel(order)),
+            subtitle: Text(_paymentDetail(order)),
+          ),
           for (final item in items)
             ListTile(
               dense: true,
@@ -313,28 +521,83 @@ class _MerchantPlatformOrdersScreenState
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
-                    onPressed: busy ? null : () => _act(order, 'accept'),
+                    onPressed: busy || !fulfillmentPaymentAllowed
+                        ? null
+                        : () => _act(order, 'accept'),
                     child: const Text('Accept'),
                   ),
                 ),
               ],
             ),
+          if (status == 'placed' && !fulfillmentPaymentAllowed)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'UPI payment must be verified before this order can be accepted.',
+                ),
+              ),
+            ),
           if (status == 'accepted')
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: busy ? null : () => _act(order, 'prepare'),
+                onPressed: busy || !fulfillmentPaymentAllowed
+                    ? null
+                    : () => _act(order, 'prepare'),
                 child: const Text('Start preparation'),
+              ),
+            ),
+          if (status == 'accepted' && !fulfillmentPaymentAllowed)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'UPI payment must remain verified before preparation.',
+                ),
               ),
             ),
           if (status == 'preparing')
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: busy ? null : () => _act(order, 'ready'),
+                onPressed: busy || !fulfillmentPaymentAllowed
+                    ? null
+                    : () => _act(order, 'ready'),
                 child: const Text('Mark ready for pickup'),
               ),
             ),
+          if (status == 'ready_for_pickup' && dispatch != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Delivery progress: ${(dispatch['execution_state'] as String? ?? 'assigned').replaceAll('_', ' ')}${(dispatch['rider_name'] as String? ?? '').isNotEmpty ? ' · ${dispatch['rider_name']}' : ''}',
+                style: const TextStyle(color: AppTheme.secondaryText),
+              ),
+            ),
+            if (dispatch['execution_state'] == 'at_pickup' &&
+                dispatch['rider_assigned'] == true)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: ValueKey('issue_pickup_code_${order['id']}'),
+                  onPressed: busy || confirmingPickup
+                      ? null
+                      : () => _issuePickupCode(order),
+                  icon: const Icon(Icons.verified_user_outlined),
+                  label: Text(
+                    busy
+                        ? 'Issuing…'
+                        : confirmingPickup
+                        ? 'Confirming…'
+                        : 'Issue pickup code',
+                  ),
+                ),
+              ),
+          ],
           if (busy)
             const Padding(
               padding: EdgeInsets.all(8),
@@ -358,4 +621,99 @@ class _MerchantPlatformOrdersScreenState
       ),
     );
   }
+
+  String _paymentLabel(Map<String, dynamic> order) {
+    final method = order['payment_method']?.toString() ?? '';
+    if (method == 'cash_on_delivery') return 'Cash on Delivery';
+    if (method == 'upi') return 'Sandbox UPI';
+    return 'Payment status';
+  }
+
+  String _paymentDetail(Map<String, dynamic> order) {
+    final method = order['payment_method']?.toString() ?? '';
+    final status = order['payment_status']?.toString() ?? 'not_collected';
+    if (method == 'cash_on_delivery') {
+      final cod = order['cod_collection_state']?.toString() ?? 'due';
+      return cod == 'collected'
+          ? 'Synthetic COD collected at verified customer handover.'
+          : 'Synthetic QA · amount due at delivery; not collected yet.';
+    }
+    if (method == 'upi') {
+      return status == 'paid'
+          ? 'Payment verified by Grepmind backend.'
+          : 'Payment is not verified; fulfillment actions are blocked.';
+    }
+    return 'Payment details are unavailable for this legacy order.';
+  }
+}
+
+class _PickupCodeDialog extends StatefulWidget {
+  const _PickupCodeDialog({
+    required this.reference,
+    required this.code,
+    required this.expiresInSeconds,
+  });
+
+  final String reference;
+  final String code;
+  final int expiresInSeconds;
+
+  @override
+  State<_PickupCodeDialog> createState() => _PickupCodeDialogState();
+}
+
+class _PickupCodeDialogState extends State<_PickupCodeDialog> {
+  late int _remaining;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = widget.expiresInSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      if (_remaining <= 1) {
+        timer.cancel();
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _remaining--);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Partner-to-rider handover'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Share this code only with the assigned rider collecting ${widget.reference}.',
+        ),
+        const SizedBox(height: 18),
+        SelectableText(
+          widget.code,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 6,
+            color: AppTheme.primary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text('Expires in $_remaining seconds.'),
+      ],
+    ),
+    actions: [
+      FilledButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Close and clear'),
+      ),
+    ],
+  );
 }

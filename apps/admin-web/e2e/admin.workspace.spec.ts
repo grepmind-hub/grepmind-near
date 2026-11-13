@@ -1,5 +1,6 @@
 // Admin Web Portal E2E Tests
 import { test, expect } from '@playwright/test';
+import { readQaOtp } from './qa-otp';
 
 test.describe('Admin Web Portal access boundaries', () => {
   test('login offers the existing OTP flow without demo credentials', async ({ page }) => {
@@ -17,7 +18,8 @@ test.describe('Admin Web Portal access boundaries', () => {
 
   test('local admin signs in, loads protected data, and signs out', async ({ page }) => {
     const adminPhone = process.env.E2E_ADMIN_PHONE_E164;
-    test.skip(!adminPhone, 'Set E2E_ADMIN_PHONE_E164 to the local development admin fixture.');
+    test.skip(!adminPhone || !process.env.QA_OTP_READER_URL || !process.env.QA_OTP_RUN_ID,
+      'Set a synthetic QA admin and protected isolated QA OTP reader configuration.');
 
     await page.goto('/admin/login');
     const otpRequest = page.waitForResponse((response) =>
@@ -29,11 +31,13 @@ test.describe('Admin Web Portal access boundaries', () => {
     const otpResponse = await otpRequest;
     expect(otpResponse.status()).toBe(202);
     const otpPayload = await otpResponse.json();
-    const localDevelopmentCode = otpPayload?.data?.otp_code;
-    expect(localDevelopmentCode).toMatch(/^\d{6}$/);
+    expect(otpPayload?.data?.otp_code).toBeUndefined();
+    const challengeId = otpPayload?.data?.challenge_id as string;
+    expect(challengeId).toMatch(/^[0-9a-f-]{36}$/i);
+    const qaCode = await readQaOtp(challengeId, adminPhone!, otpPayload?.data?.expires_at as string);
 
     const otpInput = page.getByLabel('Six-digit verification code');
-    await otpInput.fill(localDevelopmentCode);
+    await otpInput.fill(qaCode);
     expect(await otpInput.evaluate((element) => (element as HTMLInputElement).value.length)).toBe(6);
     const verifyButton = page.getByRole('button', { name: 'Verify and continue' });
     await expect(verifyButton).toBeEnabled();
@@ -60,6 +64,16 @@ test.describe('Admin Web Portal access boundaries', () => {
       accessTokenForCleanup = (await verifyResponse.json())?.data?.access_token ?? null;
       expect(accessTokenForCleanup).toBeTruthy();
 
+      const replayStatus = await page.evaluate(async ({ phone, code, id }) => {
+        const response = await fetch('/api/v1/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ phone_e164: phone, otp_code: code, challenge_id: id }),
+        });
+        return response.status;
+      }, { phone: adminPhone!, code: qaCode, id: challengeId });
+      expect(replayStatus, 'a verified challenge must not be reusable').toBe(401);
+
       await expect(page).toHaveURL(/\/admin\/dashboard$/);
       const statsResponse = await statsRequest;
       const activityResponse = await listingActivityRequest;
@@ -74,6 +88,7 @@ test.describe('Admin Web Portal access boundaries', () => {
       await expect(page.getByRole('heading', { name: 'New listings' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Service requests' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Customer orders' })).toBeVisible();
+      await page.screenshot({ path: '../../docs/phases/evidence/auth-otp-01-e2e-r2/admin-dashboard.png' });
       await expect(page.getByRole('link', { name: /Open Merchant Portal/ })).toHaveAttribute('href', 'http://localhost:3001/');
       await expect(page.getByText('Live platform data could not be loaded. Check the API connection and refresh.')).toHaveCount(0);
 
@@ -92,7 +107,9 @@ test.describe('Admin Web Portal access boundaries', () => {
       }
 
       await expect(page.getByRole('heading', { name: 'User access control' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Add account access' })).toBeEnabled();
+      // Synthetic QA admins are intentionally not the primary superadmin and
+      // must not be able to grant or revoke platform roles.
+      await expect(page.getByRole('button', { name: 'Add account access' })).toBeDisabled();
 
       await page.getByRole('button', { name: /Ownership claims/ }).click();
       await expect(page).toHaveURL(/\/admin\/dashboard\/businesses$/);

@@ -236,6 +236,7 @@ type orderResponse struct {
 	GrandTotal                 float64            `json:"grand_total" db:"grand_total"`
 	Currency                   string             `json:"currency" db:"currency"`
 	PaymentStatus              string             `json:"payment_status" db:"payment_status"`
+	PaymentMethod              string             `json:"payment_method,omitempty" db:"payment_method"`
 	ETAMinutes                 *int               `json:"eta_minutes,omitempty" db:"eta_minutes"`
 	ReservationAt              *time.Time         `json:"reservation_at,omitempty" db:"reservation_at"`
 	ReservationEnd             *time.Time         `json:"reservation_end_at,omitempty" db:"reservation_end_at"`
@@ -944,7 +945,7 @@ func restoreOrderInventory(tx *sqlx.Tx, orderID string) error {
 	return nil
 }
 
-const orderSelect = `SELECT o.id,o.business_id,b.name business_name,COALESCE(b.locality,'') business_locality,COALESCE(b.phone_e164,'') business_phone,COALESCE(b.cover_photo_url,'') business_cover_url,o.order_type,o.order_source,COALESCE(o.platform_vertical,'') platform_vertical,COALESCE(o.delivery_locality_id::text,'') delivery_locality_id,o.status,COALESCE(o.fulfillment_type,'') fulfillment_type,COALESCE(o.delivery_address,'') delivery_address,COALESCE(o.delivery_address_id::text,'') delivery_address_id,COALESCE(o.delivery_address_snapshot::text,'') delivery_address_snapshot,COALESCE(o.customer_notes,'') customer_notes,o.item_total,o.delivery_fee,o.tax_amount,o.grand_total,o.currency,COALESCE(o.payment_status,'not_collected') payment_status,o.eta_minutes,o.reservation_at,o.reservation_end_at,o.guest_count,COALESCE(o.seating_area,'') seating_area,COALESCE(o.room_product_id::text,'') room_product_id,o.reference_code,o.created_at,o.updated_at FROM customer_orders o JOIN businesses b ON b.id=o.business_id`
+const orderSelect = `SELECT o.id,o.business_id,b.name business_name,COALESCE(b.locality,'') business_locality,COALESCE(b.phone_e164,'') business_phone,COALESCE(b.cover_photo_url,'') business_cover_url,o.order_type,o.order_source,COALESCE(o.platform_vertical,'') platform_vertical,COALESCE(o.delivery_locality_id::text,'') delivery_locality_id,o.status,COALESCE(o.fulfillment_type,'') fulfillment_type,COALESCE(o.delivery_address,'') delivery_address,COALESCE(o.delivery_address_id::text,'') delivery_address_id,COALESCE(o.delivery_address_snapshot::text,'') delivery_address_snapshot,COALESCE(o.customer_notes,'') customer_notes,o.item_total,o.delivery_fee,o.tax_amount,o.grand_total,o.currency,COALESCE(o.payment_status,'not_collected') payment_status,COALESCE(o.payment_method,'') payment_method,o.eta_minutes,o.reservation_at,o.reservation_end_at,o.guest_count,COALESCE(o.seating_area,'') seating_area,COALESCE(o.room_product_id::text,'') room_product_id,o.reference_code,o.created_at,o.updated_at FROM customer_orders o JOIN businesses b ON b.id=o.business_id`
 
 func (s *Service) loadOrder(ctx context.Context, id, userID string, merchant bool) (*orderResponse, error) {
 	q := orderSelect + ` WHERE o.id=$1 AND o.customer_user_id=$2`

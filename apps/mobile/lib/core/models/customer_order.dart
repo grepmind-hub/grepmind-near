@@ -94,6 +94,7 @@ class CustomerOrder {
   final String? orderSource;
   final OrderStatus status;
   final String paymentStatus;
+  final String? paymentMethod;
   final List<OrderStatusEvent> statusEvents;
   final DateTime createdAt;
   final bool isDelivery;
@@ -132,6 +133,7 @@ class CustomerOrder {
     this.orderSource,
     required this.status,
     this.paymentStatus = 'not_collected',
+    this.paymentMethod,
     this.statusEvents = const [],
     required this.createdAt,
     this.isDelivery = true,
@@ -191,6 +193,7 @@ class CustomerOrder {
       orderSource: json['order_source'] as String?,
       status: status,
       paymentStatus: json['payment_status'] as String? ?? 'not_collected',
+      paymentMethod: json['payment_method'] as String?,
       statusEvents: statusEvents,
       createdAt: DateTime.parse(json['created_at'] as String),
       isDelivery: json['fulfillment_type'] == 'delivery',
@@ -292,6 +295,7 @@ class CustomerOrder {
     OrderType? orderType,
     OrderStatus? status,
     String? paymentStatus,
+    String? paymentMethod,
     List<OrderStatusEvent>? statusEvents,
     DateTime? createdAt,
     bool? isDelivery,
@@ -326,6 +330,7 @@ class CustomerOrder {
       orderType: orderType ?? this.orderType,
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
       statusEvents: statusEvents ?? this.statusEvents,
       createdAt: createdAt ?? this.createdAt,
       isDelivery: isDelivery ?? this.isDelivery,

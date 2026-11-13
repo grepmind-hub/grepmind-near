@@ -25,17 +25,22 @@ const defaultOfferTimeout = 60 * time.Second
 const defaultAvailabilityLease = 90 * time.Second
 
 type Service struct {
-	db                 *database.DB
-	hub                *notifications.Hub
-	enabled            bool
-	offerTimeout       time.Duration
-	availabilityLease  time.Duration
-	verificationKey    [32]byte
-	completionRecorder func(context.Context, *sqlx.Tx, string, string) error
+	db                    *database.DB
+	hub                   *notifications.Hub
+	enabled               bool
+	offerTimeout          time.Duration
+	availabilityLease     time.Duration
+	verificationKey       [32]byte
+	completionRecorder    func(context.Context, *sqlx.Tx, string, string) error
+	codCollectionRecorder func(context.Context, *sqlx.Tx, string, string) error
 	// beforeHeartbeatLeaseUpdate is a nil-by-default synchronization hook used
 	// only by package integration tests to control the lease-expiry boundary.
 	beforeHeartbeatLeaseUpdate func()
 	beforeProcessExpiredOffers func()
+}
+
+func (s *Service) SetCODCollectionRecorder(recorder func(context.Context, *sqlx.Tx, string, string) error) {
+	s.codCollectionRecorder = recorder
 }
 
 func NewService(db *database.DB, hub *notifications.Hub, cfg *config.Config, completionRecorder ...func(context.Context, *sqlx.Tx, string, string) error) *Service {
@@ -94,6 +99,10 @@ type offer struct {
 	PickupLocality      string      `json:"pickup_locality" db:"pickup_locality"`
 	DestinationLocality string      `json:"destination_locality" db:"destination_locality"`
 	DestinationDistrict string      `json:"destination_district" db:"destination_district"`
+	PaymentMethod       string      `json:"payment_method" db:"payment_method"`
+	PaymentStatus       string      `json:"payment_status" db:"payment_status"`
+	CODAmountMinor      int64       `json:"cod_amount_minor" db:"cod_amount_minor"`
+	CODCollectionState  string      `json:"cod_collection_state" db:"cod_collection_state"`
 	ExpiresAt           string      `json:"expires_at" db:"expires_at"`
 	Items               []riderItem `json:"items" db:"-"`
 }
@@ -110,6 +119,10 @@ type assignment struct {
 	DestinationDistrict string      `json:"destination_district" db:"destination_district"`
 	AssignedAt          string      `json:"assigned_at" db:"assigned_at"`
 	ExecutionState      string      `json:"execution_state" db:"execution_state"`
+	PaymentMethod       string      `json:"payment_method" db:"payment_method"`
+	PaymentStatus       string      `json:"payment_status" db:"payment_status"`
+	CODAmountMinor      int64       `json:"cod_amount_minor" db:"cod_amount_minor"`
+	CODCollectionState  string      `json:"cod_collection_state" db:"cod_collection_state"`
 	DestinationAddress  string      `json:"destination_address,omitempty" db:"destination_address"`
 	RecipientName       string      `json:"recipient_name,omitempty" db:"recipient_name"`
 	ContactPhone        string      `json:"contact_phone,omitempty" db:"contact_phone"`
@@ -182,11 +195,22 @@ func (s *Service) Process(ctx context.Context) error {
 	if err := s.db.SelectContext(ctx, &pending, `SELECT id::text FROM delivery_jobs WHERE state='pending_dispatch' ORDER BY created_at,id LIMIT 100`); err != nil {
 		return err
 	}
-	seen := make(map[string]bool, len(expired)+len(pending))
+	// A job that exhausted its rider pool must be reconsidered when eligible
+	// capacity returns. Limit this recovery scan to the oldest job that has at
+	// least one currently eligible rider; otherwise every sweep would create a
+	// new exhausted dispatch run while no rider is available.
+	var newlyEligible []string
+	if err := s.db.SelectContext(ctx, &newlyEligible, eligibleNoRiderJobsSQL); err != nil {
+		return err
+	}
+	seen := make(map[string]bool, len(expired)+len(pending)+len(newlyEligible))
 	for _, id := range expired {
 		seen[id] = true
 	}
 	for _, id := range pending {
+		seen[id] = true
+	}
+	for _, id := range newlyEligible {
 		seen[id] = true
 	}
 	for id := range seen {
@@ -203,9 +227,13 @@ func (s *Service) advanceJob(ctx context.Context, jobID string) error {
 	var newOfferRider string
 	var dispatchStarted, dispatchExhausted, expiredOffer bool
 	err := s.db.Transaction(ctx, func(tx *sqlx.Tx) error {
-		var state, orderID, localityID string
-		if err := tx.QueryRowxContext(ctx, `SELECT state,order_id::text,locality_id::text FROM delivery_jobs WHERE id=$1 FOR UPDATE`, jobID).Scan(&state, &orderID, &localityID); err != nil {
+		var state, orderID, localityID, orderSource, paymentMethod, paymentStatus string
+		var hasCODObligation bool
+		if err := tx.QueryRowxContext(ctx, `SELECT j.state,j.order_id::text,j.locality_id::text,COALESCE(o.order_source,''),COALESCE(o.payment_method,''),COALESCE(o.payment_status,''),EXISTS(SELECT 1 FROM cod_obligations c WHERE c.order_id=o.id) FROM delivery_jobs j JOIN customer_orders o ON o.id=j.order_id WHERE j.id=$1 FOR UPDATE OF j,o`, jobID).Scan(&state, &orderID, &localityID, &orderSource, &paymentMethod, &paymentStatus, &hasCODObligation); err != nil {
 			return err
+		}
+		if !dispatchPaymentEligible(orderSource, paymentMethod, paymentStatus, hasCODObligation) {
+			return nil
 		}
 		if err := tx.QueryRowxContext(ctx, `SELECT customer_user_id::text,business_id::text FROM customer_orders WHERE id=$1`, orderID).Scan(&customerID, &businessID); err != nil {
 			return err
@@ -378,6 +406,14 @@ func (s *Service) SetAvailability(w http.ResponseWriter, r *http.Request, riderI
 		writeFailure(w, err)
 		return
 	}
+	if in.Online {
+		// Reconcile immediately so a rider who just came online can receive an
+		// offer without waiting for the next background sweep.
+		if err := s.Process(r.Context()); err != nil {
+			writeError(w, 500, "INTERNAL_ERROR", "Availability changed, but dispatch could not be advanced.")
+			return
+		}
+	}
 	for _, jobID := range jobs {
 		if err := s.advanceJob(r.Context(), jobID); err != nil {
 			writeError(w, 500, "INTERNAL_ERROR", "Availability changed, but dispatch could not be advanced.")
@@ -480,7 +516,11 @@ func (s *Service) Offers(w http.ResponseWriter, r *http.Request, riderID string)
 }
 
 const offerSelect = `SELECT x.id::text id,j.id::text job_id,o.id::text order_id,o.reference_code,o.platform_vertical,
-	b.name pickup_business,b.address_text pickup_address,COALESCE(b.locality,b.city,'') pickup_locality,dl.name destination_locality,d.name destination_district,x.expires_at::text expires_at
+	b.name pickup_business,b.address_text pickup_address,COALESCE(b.locality,b.city,'') pickup_locality,dl.name destination_locality,d.name destination_district,
+	COALESCE(o.payment_method,'') payment_method,COALESCE(o.payment_status,'') payment_status,
+	COALESCE((SELECT ob.amount_minor FROM cod_obligations ob WHERE ob.order_id=o.id),0) cod_amount_minor,
+	CASE WHEN EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id) THEN 'collected' WHEN EXISTS(SELECT 1 FROM cod_obligations ob WHERE ob.order_id=o.id) THEN 'due' ELSE 'not_applicable' END cod_collection_state,
+	x.expires_at::text expires_at
 	FROM delivery_offers x JOIN delivery_jobs j ON j.id=x.job_id JOIN customer_orders o ON o.id=j.order_id
 	JOIN businesses b ON b.id=j.business_id JOIN platform_delivery_localities l ON l.id=j.locality_id JOIN platform_districts d ON d.id=l.district_id
 	JOIN platform_delivery_localities dl ON dl.id=j.locality_id`
@@ -575,6 +615,14 @@ func (s *Service) RespondOffer(w http.ResponseWriter, r *http.Request, riderID, 
 			return err
 		}
 		if decision == "accept" {
+			var orderSource, paymentMethod, paymentStatus string
+			var hasCODObligation bool
+			if err := tx.QueryRowxContext(r.Context(), `SELECT COALESCE(o.order_source,''),COALESCE(o.payment_method,''),COALESCE(o.payment_status,''),EXISTS(SELECT 1 FROM cod_obligations c WHERE c.order_id=o.id) FROM customer_orders o JOIN delivery_jobs j ON j.order_id=o.id WHERE j.id=$1 FOR UPDATE OF o`, jobID).Scan(&orderSource, &paymentMethod, &paymentStatus, &hasCODObligation); err != nil {
+				return err
+			}
+			if !dispatchPaymentEligible(orderSource, paymentMethod, paymentStatus, hasCODObligation) {
+				return failure(409, "PAYMENT_NOT_VERIFIED", "This delivery offer cannot be accepted until the order payment is eligible and verified.")
+			}
 			if err := riderEligibleForAcceptance(r.Context(), tx, riderID, offerID); err != nil {
 				return err
 			}
@@ -667,7 +715,9 @@ func (s *Service) ActiveAssignment(w http.ResponseWriter, r *http.Request, rider
 const assignmentSelect = `SELECT j.id::text job_id,o.id::text order_id,o.reference_code,o.platform_vertical,b.name pickup_business,b.address_text pickup_address,
 	COALESCE(b.locality,b.city,'') pickup_locality,l.name destination_locality,d.name destination_district,a.assigned_at::text assigned_at,j.execution_state,
 	concat_ws(', ',o.delivery_address_snapshot->>'address_line1',o.delivery_address_snapshot->>'locality',o.delivery_address_snapshot->>'landmark',o.delivery_address_snapshot->>'city',o.delivery_address_snapshot->>'state',o.delivery_address_snapshot->>'postal_code') destination_address,
-	COALESCE(o.delivery_address_snapshot->>'recipient_name','') recipient_name,COALESCE(o.delivery_address_snapshot->>'contact_phone','') contact_phone
+	COALESCE(o.delivery_address_snapshot->>'recipient_name','') recipient_name,COALESCE(o.delivery_address_snapshot->>'contact_phone','') contact_phone,
+	COALESCE(o.payment_method,'') payment_method,COALESCE(o.payment_status,'') payment_status,COALESCE((SELECT ob.amount_minor FROM cod_obligations ob WHERE ob.order_id=o.id),0) cod_amount_minor,
+	CASE WHEN EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id) THEN 'collected' WHEN EXISTS(SELECT 1 FROM cod_obligations ob WHERE ob.order_id=o.id) THEN 'due' ELSE 'not_applicable' END cod_collection_state
 	FROM delivery_assignments a JOIN delivery_jobs j ON j.id=a.job_id JOIN customer_orders o ON o.id=j.order_id JOIN businesses b ON b.id=j.business_id
 	JOIN platform_delivery_localities l ON l.id=j.locality_id JOIN platform_districts d ON d.id=l.district_id`
 
@@ -681,6 +731,8 @@ func (s *Service) AdminBoard(w http.ResponseWriter, r *http.Request, _ string) {
 	}
 	rows, err := queryMaps(r.Context(), s.db, `SELECT j.id::text id,j.order_id::text order_id,o.reference_code,o.customer_user_id::text customer_user_id,j.business_id::text business_id,b.name business_name,
 		j.locality_id::text locality_id,l.name locality,d.name district,j.state delivery_state,j.execution_state,o.status fulfillment_status,
+		COALESCE(o.payment_method,'') payment_method,COALESCE(o.payment_status,'not_collected') payment_status,
+		CASE WHEN EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id) THEN 'collected' WHEN EXISTS(SELECT 1 FROM cod_obligations ob WHERE ob.order_id=o.id) THEN 'due' ELSE 'not_applicable' END cod_collection_state,
 		x.id::text active_offer_id,ox.display_name offered_rider_name,x.expires_at::text offer_expires_at,
 		a.id::text assignment_id,ar.display_name assigned_rider_name,a.rider_user_id::text assigned_rider_user_id,j.created_at::text created_at
 		FROM delivery_jobs j JOIN customer_orders o ON o.id=j.order_id JOIN businesses b ON b.id=j.business_id
@@ -823,6 +875,14 @@ func (s *Service) ManualAssign(w http.ResponseWriter, r *http.Request, adminID s
 		}
 		if state == "assigned" || state == "cancelled" {
 			return failure(409, "INVALID_STATE", "This delivery job cannot be manually assigned.")
+		}
+		var orderSource, paymentMethod, paymentStatus string
+		var hasCODObligation bool
+		if err := tx.QueryRowxContext(r.Context(), `SELECT COALESCE(o.order_source,''),COALESCE(o.payment_method,''),COALESCE(o.payment_status,''),EXISTS(SELECT 1 FROM cod_obligations c WHERE c.order_id=o.id) FROM customer_orders o JOIN delivery_jobs j ON j.order_id=o.id WHERE j.id=$1 FOR UPDATE OF o`, jobID).Scan(&orderSource, &paymentMethod, &paymentStatus, &hasCODObligation); err != nil {
+			return err
+		}
+		if !dispatchPaymentEligible(orderSource, paymentMethod, paymentStatus, hasCODObligation) {
+			return failure(409, "PAYMENT_NOT_VERIFIED", "This delivery cannot be assigned until the order payment is eligible and verified.")
 		}
 		if err := requireActiveRider(r.Context(), tx, in.RiderUserID, ""); err != nil {
 			return err
@@ -1034,6 +1094,28 @@ const eligibleRidersSQL = `SELECT p.user_id::text,p.display_name,p.vehicle_type,
 		AND NOT EXISTS(SELECT 1 FROM rider_documents d WHERE d.rider_profile_id=p.id AND d.requirement_id=q.id AND d.review_status='accepted'))
 	ORDER BY (SELECT count(*) FROM delivery_assignments a WHERE a.rider_user_id=p.user_id),(SELECT max(a.assigned_at) FROM delivery_assignments a WHERE a.rider_user_id=p.user_id) ASC NULLS FIRST,p.user_id`
 
+// eligibleNoRiderJobsSQL reopens only the oldest exhausted job when capacity
+// has actually returned for its locality. It mirrors the offer eligibility
+// predicates so idle/no-rider jobs do not churn through dispatch runs.
+const eligibleNoRiderJobsSQL = `SELECT j.id::text
+	FROM delivery_jobs j
+	WHERE j.state='no_rider_available'
+	AND EXISTS (
+		SELECT 1 FROM rider_profiles p
+		JOIN users u ON u.id=p.user_id AND u.status='active'
+		JOIN user_roles ur ON ur.user_id=p.user_id AND ur.role='rider'
+		JOIN rider_profile_localities rl ON rl.rider_profile_id=p.id AND rl.locality_id=j.locality_id AND rl.status='approved'
+		JOIN platform_delivery_localities l ON l.id=rl.locality_id AND l.is_active AND l.delivery_enabled
+		JOIN rider_availability_sessions av ON av.rider_user_id=p.user_id AND av.is_online AND av.lease_expires_at>now()
+		WHERE p.status='approved'
+		AND NOT EXISTS (SELECT 1 FROM delivery_assignments a WHERE a.rider_user_id=p.user_id AND a.state='active')
+		AND NOT EXISTS (SELECT 1 FROM delivery_offers x WHERE x.rider_user_id=p.user_id AND x.state='offered')
+		AND NOT EXISTS (SELECT 1 FROM rider_document_requirements q WHERE q.is_active AND q.is_required AND q.vehicle_type IN ('any',p.vehicle_type)
+			AND NOT EXISTS (SELECT 1 FROM rider_documents d WHERE d.rider_profile_id=p.id AND d.requirement_id=q.id AND d.review_status='accepted'))
+	)
+	ORDER BY j.created_at,j.id
+	LIMIT 1`
+
 func requireActiveRider(ctx context.Context, tx *sqlx.Tx, riderID, localityID string) error {
 	var confirmed string
 	err := tx.GetContext(ctx, &confirmed, `SELECT u.id::text FROM users u JOIN user_roles ur ON ur.user_id=u.id AND ur.role='rider' JOIN rider_profiles p ON p.user_id=u.id AND p.status='approved' WHERE u.id=$1 AND u.status='active' FOR UPDATE OF u,ur,p`, riderID)
@@ -1045,6 +1127,34 @@ func requireActiveRider(ctx context.Context, tx *sqlx.Tx, riderID, localityID st
 	}
 	if localityID != "" {
 		return checkRiderLocality(ctx, tx, riderID, localityID)
+	}
+	return nil
+}
+
+func dispatchPaymentEligible(orderSource, method, paymentStatus string, hasCODObligation bool) bool {
+	if orderSource != "platform_catalog" {
+		return true
+	}
+	switch method {
+	case "": // Existing pre-payment-contract orders retain their historical workflow.
+		return true
+	case "upi":
+		return paymentStatus == "paid"
+	case "cash_on_delivery":
+		return hasCODObligation
+	default:
+		return false
+	}
+}
+
+func requireDispatchPaymentEligibility(ctx context.Context, tx *sqlx.Tx, jobID string) error {
+	var source, method, status string
+	var hasCOD bool
+	if err := tx.QueryRowxContext(ctx, `SELECT COALESCE(o.order_source,''),COALESCE(o.payment_method,''),COALESCE(o.payment_status,''),EXISTS(SELECT 1 FROM cod_obligations c WHERE c.order_id=o.id) FROM customer_orders o JOIN delivery_jobs j ON j.order_id=o.id WHERE j.id=$1 FOR UPDATE OF o`, jobID).Scan(&source, &method, &status, &hasCOD); err != nil {
+		return err
+	}
+	if !dispatchPaymentEligible(source, method, status, hasCOD) {
+		return failure(409, "PAYMENT_NOT_VERIFIED", "This delivery cannot proceed until the order payment is eligible and verified.")
 	}
 	return nil
 }

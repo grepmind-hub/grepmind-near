@@ -93,6 +93,10 @@ A single authenticated user may hold multiple roles:
 - Merchant owner/manager/staff: only with authorized business membership
 - Rider: only after approval
 
+Grepmind Near has exactly four application roles: Customer, Merchant, Rider, and Admin. Finance is not an application role; finance operations are Admin capabilities protected by fine-grained permissions, transaction-level authorization, audit history, and separation-of-duties controls.
+
+Merchant operations are mobile-first. The Android Merchant workspace must support daily orders, products, earnings, payable snapshots, and settlement visibility. Merchant Web is a complementary operations surface and must not be required to view financial information.
+
 Mode switch is a presentation/workspace choice, NOT a security grant.
 
 Requirements:
@@ -200,7 +204,7 @@ G. MERCHANT FLUTTER CAPABILITIES
 11. Order history and operational analytics
 12. Support, cancellation, refunds and disputes
 
-Preserve existing merchant web portal. Mobile mode should focus on fast daily operations; desktop retains advanced administration.
+Preserve the existing Merchant Web Portal as a complementary operations surface. Do not reserve essential Merchant finance visibility for desktop; the Android app is the primary Merchant experience for orders, products, earnings, and settlement status.
 
 ====================
 H. ORDER, PAYMENT, DELIVERY STATE MACHINES

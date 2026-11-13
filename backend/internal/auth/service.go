@@ -31,16 +31,22 @@ type sessionClaims struct {
 	jwt.RegisteredClaims
 }
 
-// OTPDeliveryProvider is the boundary for a future SMS gateway. The local
-// implementation intentionally does not send externally; production remains
-// unavailable until a provider is explicitly configured and implemented.
-type OTPDeliveryProvider interface {
-	SendOTP(context.Context, string, string) error
+// OTPDelivery is a server-generated challenge handed to a delivery transport.
+// The code must never be echoed through the authentication HTTP response.
+type OTPDelivery struct {
+	ChallengeID string
+	PhoneE164   string
+	Purpose     string
+	Code        string
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
+	RunID       string
 }
 
-type localOTPProvider struct{}
-
-func (localOTPProvider) SendOTP(context.Context, string, string) error { return nil }
+// OTPDeliveryProvider is the boundary for an SMS gateway or isolated QA inbox.
+type OTPDeliveryProvider interface {
+	SendOTP(context.Context, OTPDelivery) error
+}
 
 type Service struct {
 	db          *database.DB
@@ -52,8 +58,12 @@ type Service struct {
 
 func NewService(db *database.DB, cfg *config.Config) *Service {
 	var provider OTPDeliveryProvider
-	if cfg != nil && cfg.IsLocal() && (cfg.OTPProvider == "" || strings.EqualFold(cfg.OTPProvider, "stub")) {
-		provider = localOTPProvider{}
+	if cfg != nil {
+		if cfg.QAOTPDeliveryEnabled && strings.EqualFold(cfg.Env, "qa") && strings.EqualFold(cfg.OTPProvider, "qa_http") {
+			provider, _ = newQAHTTPOTPProvider(cfg.QAOTPDeliveryURL, cfg.QAOTPWriterToken)
+		} else if strings.EqualFold(cfg.Env, "production") && strings.EqualFold(cfg.OTPProvider, "fast2sms") {
+			provider, _ = newFast2SMSOTPProvider(cfg)
+		}
 	}
 	return NewServiceWithOTPProvider(db, cfg, provider)
 }

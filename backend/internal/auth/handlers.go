@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,6 +21,7 @@ type otpRequestBody struct {
 type otpVerifyBody struct {
 	PhoneE164      string `json:"phone_e164"`
 	OTPCode        string `json:"otp_code"`
+	ChallengeID    string `json:"challenge_id"`
 	IdempotencyKey string `json:"idempotency_key"`
 }
 
@@ -51,6 +53,7 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var code, otpID string
+	expiresAt := otpExpiry(s.now(), s.cfg.OTPTTL)
 	err = s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
 		// Serialize request checks by phone across API processes without a new
 		// service or table. The lock is held only through OTP row creation.
@@ -83,10 +86,16 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		if hashErr != nil {
 			return hashErr
 		}
+		if _, queryErr = tx.ExecContext(r.Context(), `
+			UPDATE otp_codes SET invalidated_at = $2
+			WHERE phone_e164 = $1 AND verified_at IS NULL AND invalidated_at IS NULL
+		`, phone, s.now()); queryErr != nil {
+			return queryErr
+		}
 		return tx.QueryRowxContext(r.Context(), `
-			INSERT INTO otp_codes (phone_e164, code_hash, attempts, max_attempts, expires_at)
-			VALUES ($1, $2, 0, $3, $4) RETURNING id::text
-		`, phone, string(codeHash), s.cfg.OTPMaxAttempts, s.now().Add(s.cfg.OTPTTL)).Scan(&otpID)
+			INSERT INTO otp_codes (phone_e164, code_hash, attempts, max_attempts, expires_at, purpose)
+			VALUES ($1, $2, 0, $3, $4, 'login') RETURNING id::text
+		`, phone, string(codeHash), s.cfg.OTPMaxAttempts, expiresAt).Scan(&otpID)
 	})
 	if errors.Is(err, errOTPRequestLimited) {
 		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Please wait before requesting another OTP.")
@@ -96,27 +105,36 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to store OTP.")
 		return
 	}
-	if err := s.otpProvider.SendOTP(r.Context(), phone, code); err != nil {
+	if err := s.otpProvider.SendOTP(r.Context(), OTPDelivery{
+		ChallengeID: otpID,
+		PhoneE164:   phone,
+		Purpose:     "login",
+		Code:        code,
+		CreatedAt:   s.now(),
+		ExpiresAt:   expiresAt,
+		RunID:       s.cfg.QAOTPRunID,
+	}); err != nil {
 		_, _ = s.db.ExecContext(r.Context(), `DELETE FROM otp_codes WHERE id = $1`, otpID)
 		writeError(w, http.StatusServiceUnavailable, "OTP_UNAVAILABLE", "Phone verification is currently unavailable.")
 		return
 	}
 
-	data := otpRequestResponseData(phone, code, s.cfg.IsLocal())
+	data := otpRequestResponseData(phone, otpID, expiresAt)
 	writeJSON(w, http.StatusAccepted, envelope{
 		"data": data,
 		"meta": map[string]string{"request_id": "otp-requested"},
 	})
 }
 
-func otpRequestResponseData(phone, code string, local bool) map[string]interface{} {
-	data := map[string]interface{}{"phone_e164": phone, "status": "otp_requested"}
-	// OTP echo is a local-only development affordance. Non-local environments
-	// never include it, even if a provider implementation is injected.
-	if local {
-		data["otp_code"] = code
-	}
-	return data
+func otpRequestResponseData(phone, challengeID string, expiresAt time.Time) map[string]interface{} {
+	return map[string]interface{}{"phone_e164": phone, "status": "otp_requested", "challenge_id": challengeID, "expires_at": expiresAt}
+}
+
+// PostgreSQL timestamps have microsecond precision. Normalize once so the
+// persisted challenge, private QA delivery, and public non-secret response all
+// carry the same expiry instant.
+func otpExpiry(now time.Time, ttl time.Duration) time.Time {
+	return now.Add(ttl).UTC().Truncate(time.Microsecond)
 }
 
 func (s *Service) allowOTPRequest(phone, ip string) bool {
@@ -162,7 +180,13 @@ func (s *Service) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
 		return
 	}
-	if body.OTPCode == "" || len(body.OTPCode) != 6 {
+	if len(body.ChallengeID) > 0 {
+		if _, parseErr := uuid.Parse(body.ChallengeID); parseErr != nil {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "challenge_id is invalid.")
+			return
+		}
+	}
+	if !sixDigits(body.OTPCode) {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "otp_code must contain six digits.")
 		return
 	}
@@ -182,10 +206,24 @@ func (s *Service) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		var attempts, maxAttempts int
 		var expiresAt time.Time
 		var verifiedAt sql.NullTime
-		queryErr := tx.QueryRowxContext(r.Context(), `
-			SELECT id::text, code_hash, attempts, max_attempts, expires_at, verified_at
-			FROM otp_codes WHERE phone_e164 = $1 ORDER BY created_at DESC LIMIT 1 FOR UPDATE
-		`, phone).Scan(&id, &codeHash, &attempts, &maxAttempts, &expiresAt, &verifiedAt)
+		var queryErr error
+		if body.ChallengeID != "" {
+			queryErr = tx.QueryRowxContext(r.Context(), `
+				SELECT id::text, code_hash, attempts, max_attempts, expires_at, verified_at
+				FROM otp_codes
+				WHERE id = $1 AND phone_e164 = $2 AND purpose = 'login' AND invalidated_at IS NULL
+				FOR UPDATE
+			`, body.ChallengeID, phone).Scan(&id, &codeHash, &attempts, &maxAttempts, &expiresAt, &verifiedAt)
+		} else {
+			// Backward-compatible path for older clients. New clients always send
+			// challenge_id so verification cannot select another concurrent login.
+			queryErr = tx.QueryRowxContext(r.Context(), `
+				SELECT id::text, code_hash, attempts, max_attempts, expires_at, verified_at
+				FROM otp_codes
+				WHERE phone_e164 = $1 AND purpose = 'login' AND invalidated_at IS NULL
+				ORDER BY created_at DESC LIMIT 1 FOR UPDATE
+			`, phone).Scan(&id, &codeHash, &attempts, &maxAttempts, &expiresAt, &verifiedAt)
+		}
 		if errors.Is(queryErr, sql.ErrNoRows) {
 			invalidOTP = true
 			return nil
@@ -256,6 +294,18 @@ func (s *Service) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		"data": map[string]interface{}{"access_token": accessToken, "refresh_token": refreshToken, "user": user},
 		"meta": map[string]string{"request_id": "otp-verified"},
 	})
+}
+
+func sixDigits(code string) bool {
+	if len(code) != 6 {
+		return false
+	}
+	for _, digit := range code {
+		if digit < '0' || digit > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Service) Refresh(w http.ResponseWriter, r *http.Request) {

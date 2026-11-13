@@ -1,0 +1,1 @@
+DELETE FROM otp_codes WHERE phone_e164 = '+919990000001';

@@ -33,6 +33,8 @@ export interface MerchantPlatformOrder {
   delivery_district: string;
   special_instructions?: string;
   payment_status: string;
+  payment_method?: string;
+  cod_collection_state?: string;
   created_at: string;
   updated_at: string;
   items: { product_name: string; variant_name: string; unit_label: string; quantity: number }[];
@@ -59,6 +61,31 @@ export interface MerchantDeliveryDispatchSummary {
   inventory_disposition?: 'pending' | 'restockable' | 'not_restockable' | '';
   return_received_at?: string | null;
   return_finalized_at?: string | null;
+}
+
+export interface MerchantFinanceOverview {
+  currency: string;
+  customer_gross_minor: number;
+  partner_gross_minor: number;
+  commission_minor: number;
+  net_payable_minor: number;
+  approved_adjustments_minor: number;
+  pending_payable_minor: number;
+  simulated_settlement_minor: number;
+  settlement_mode: 'simulated_only';
+  real_payouts_enabled: false;
+}
+export interface MerchantPayableRow {
+  id: string; order_id: string; reference_code: string; currency: string;
+  customer_gross_minor: number; partner_gross_minor: number; commission_minor: number;
+  net_payable_minor: number; payment_source: string; policy_version: number;
+  created_at: string; adjustment_minor: number; state: string;
+}
+export interface MerchantSettlementRow {
+  id: string; currency: string; period_start: string; period_end: string;
+  payable_minor: number; adjustment_minor: number; simulated_net_minor: number;
+  status: string; funding_mode: string; created_at: string; simulated_at?: string;
+  disclosure: string;
 }
 
 let refreshInFlight: Promise<string | null> | null = null;
@@ -146,6 +173,16 @@ export async function updateServiceRequestStatus(businessId: string, requestId: 
 
 export async function fetchMerchantPlatformOrders(businessId: string): Promise<MerchantPlatformOrder[]> {
   return merchantApi<MerchantPlatformOrder[]>(`/merchant/businesses/${encodeURIComponent(businessId)}/platform-orders?limit=50`);
+}
+
+export async function fetchMerchantFinanceOverview(businessId: string): Promise<MerchantFinanceOverview> {
+  return merchantApi<MerchantFinanceOverview>(`/merchant/businesses/${encodeURIComponent(businessId)}/finance/overview`);
+}
+export async function fetchMerchantFinancePayables(businessId: string): Promise<MerchantPayableRow[]> {
+  return merchantApi<MerchantPayableRow[]>(`/merchant/businesses/${encodeURIComponent(businessId)}/finance/payables`);
+}
+export async function fetchMerchantFinanceSettlements(businessId: string): Promise<MerchantSettlementRow[]> {
+  return merchantApi<MerchantSettlementRow[]>(`/merchant/businesses/${encodeURIComponent(businessId)}/finance/settlements`);
 }
 
 export async function fetchMerchantDeliveryDispatch(businessId: string): Promise<MerchantDeliveryDispatchSummary[]> {

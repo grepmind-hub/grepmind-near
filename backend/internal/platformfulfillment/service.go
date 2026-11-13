@@ -62,6 +62,8 @@ type order struct {
 	District            string        `json:"delivery_district" db:"delivery_district"`
 	SpecialInstructions string        `json:"special_instructions,omitempty" db:"customer_notes"`
 	PaymentStatus       string        `json:"payment_status" db:"payment_status"`
+	PaymentMethod       string        `json:"payment_method" db:"payment_method"`
+	CODCollectionState  string        `json:"cod_collection_state" db:"cod_collection_state"`
 	CreatedAt           string        `json:"created_at" db:"created_at"`
 	UpdatedAt           string        `json:"updated_at" db:"updated_at"`
 	Items               []item        `json:"items" db:"-"`
@@ -69,7 +71,8 @@ type order struct {
 }
 
 const orderColumns = `SELECT o.id::text,o.business_id::text,o.reference_code,o.status,o.platform_vertical,
-	COALESCE(l.name,'') AS delivery_locality,COALESCE(d.name,'') AS delivery_district,COALESCE(o.customer_notes,'') AS customer_notes,COALESCE(o.payment_status,'not_collected') AS payment_status,
+	COALESCE(l.name,'') AS delivery_locality,COALESCE(d.name,'') AS delivery_district,COALESCE(o.customer_notes,'') AS customer_notes,COALESCE(o.payment_status,'not_collected') AS payment_status,COALESCE(o.payment_method,'') AS payment_method,
+	CASE WHEN EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id) THEN 'collected' WHEN EXISTS(SELECT 1 FROM cod_obligations ob WHERE ob.order_id=o.id) THEN 'due' ELSE 'not_applicable' END AS cod_collection_state,
 	o.created_at::text AS created_at,o.updated_at::text AS updated_at
 	FROM customer_orders o
 	LEFT JOIN platform_delivery_localities l ON l.id=o.delivery_locality_id
@@ -116,7 +119,7 @@ func (s *Service) List(w http.ResponseWriter, r *http.Request, userID string) {
 	result := make([]order, 0)
 	for rows.Next() {
 		var value order
-		if err := rows.Scan(&value.ID, &value.BusinessID, &value.ReferenceCode, &value.Status, &value.Vertical, &value.Locality, &value.District, &value.SpecialInstructions, &value.PaymentStatus, &value.CreatedAt, &value.UpdatedAt); err != nil {
+		if err := rows.Scan(&value.ID, &value.BusinessID, &value.ReferenceCode, &value.Status, &value.Vertical, &value.Locality, &value.District, &value.SpecialInstructions, &value.PaymentStatus, &value.PaymentMethod, &value.CODCollectionState, &value.CreatedAt, &value.UpdatedAt); err != nil {
 			writeError(w, 500, "INTERNAL_ERROR", "Unable to read assigned orders.")
 			return
 		}
@@ -193,13 +196,13 @@ func (s *Service) transition(w http.ResponseWriter, r *http.Request, userID, tar
 		writeError(w, 404, "NOT_FOUND", "Platform order not found.")
 		return
 	}
-	var customerID, previous, lockedReference, lockedVertical, lockedLocality, lockedDistrict, lockedNotes, lockedPayment, lockedCreated, lockedUpdated string
+	var customerID, previous, lockedReference, lockedVertical, lockedLocality, lockedDistrict, lockedNotes, lockedPayment, lockedMethod, lockedCODState, lockedCreated, lockedUpdated string
 	changed := false
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
 		if !lockBusinessAccess(r.Context(), tx, userID, businessID) {
 			return fail(403, "FORBIDDEN", "Active membership in this business is required.")
 		}
-		if err := tx.QueryRowxContext(r.Context(), orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source='platform_catalog' FOR UPDATE OF o`, orderID, businessID).Scan(&orderID, &businessID, &lockedReference, &previous, &lockedVertical, &lockedLocality, &lockedDistrict, &lockedNotes, &lockedPayment, &lockedCreated, &lockedUpdated); err != nil {
+		if err := tx.QueryRowxContext(r.Context(), orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source='platform_catalog' FOR UPDATE OF o`, orderID, businessID).Scan(&orderID, &businessID, &lockedReference, &previous, &lockedVertical, &lockedLocality, &lockedDistrict, &lockedNotes, &lockedPayment, &lockedMethod, &lockedCODState, &lockedCreated, &lockedUpdated); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fail(404, "NOT_FOUND", "Platform order not found.")
 			}
@@ -210,6 +213,11 @@ func (s *Service) transition(w http.ResponseWriter, r *http.Request, userID, tar
 		}
 		if !transitionAllowed(previous, target) {
 			return fail(409, "INVALID_STATE", "This platform order cannot make that fulfillment transition.")
+		}
+		if target == "accepted" || target == "preparing" || target == "ready_for_pickup" {
+			if !paymentEligibleForFulfillment(lockedMethod, lockedPayment, lockedCODState) {
+				return fail(409, "PAYMENT_NOT_VERIFIED", "This order cannot enter fulfillment until its selected payment method is eligible and verified.")
+			}
 		}
 		if err := tx.QueryRowxContext(r.Context(), `SELECT customer_user_id::text FROM customer_orders WHERE id=$1 AND business_id=$2`, orderID, businessID).Scan(&customerID); err != nil {
 			return err
@@ -250,6 +258,19 @@ func (s *Service) transition(w http.ResponseWriter, r *http.Request, userID, tar
 		return
 	}
 	writeJSON(w, 200, map[string]any{"data": value, "meta": map[string]any{"changed": changed}})
+}
+
+func paymentEligibleForFulfillment(method, paymentStatus, codState string) bool {
+	switch method {
+	case "": // Preserve legacy platform orders created before payment selection was added.
+		return true
+	case "upi":
+		return paymentStatus == "paid"
+	case "cash_on_delivery":
+		return codState == "due" || codState == "collected"
+	default:
+		return false
+	}
 }
 
 func (s *Service) load(ctx context.Context, orderID, businessID string) (*order, error) {

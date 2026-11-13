@@ -202,7 +202,7 @@ class PlatformProductDetailScreen extends ConsumerWidget {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Grepmind verifies availability and final pricing before you place an order. Payment is not collected in the app.',
+                                  'Grepmind verifies availability and final pricing before checkout. Choose sandbox UPI or eligible cash on delivery when you place your order.',
                                 ),
                               ),
                             ],

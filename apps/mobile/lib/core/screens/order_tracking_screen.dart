@@ -13,6 +13,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/cart_provider.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
+import 'package:grepmind_mobile/core/screens/order_payment_card.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
@@ -461,7 +462,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             if (order.orderSource != 'platform_catalog')
               _StatusTimeline(order: order),
             _OrderItemsCard(order: order),
-            _PaymentCard(paymentStatus: order.paymentStatus),
+            OrderPaymentCard(
+              orderId: order.id,
+              paymentStatus: order.paymentStatus,
+              paymentMethod: order.paymentMethod,
+            ),
             const SizedBox(height: 12),
             if (_canCancel(order))
               OutlinedButton.icon(
@@ -1060,28 +1065,6 @@ class _OrderItemsCard extends StatelessWidget {
         _MoneyRow(label: 'Tax', value: order.tax),
         const Divider(),
         _MoneyRow(label: 'Total', value: order.grandTotal, bold: true),
-      ],
-    ),
-  );
-}
-
-class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.paymentStatus});
-  final String paymentStatus;
-  @override
-  Widget build(BuildContext context) => _Card(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.info_outline_rounded, color: AppTheme.primary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            paymentStatus == 'not_collected'
-                ? 'Payment is unavailable. No payment was collected or confirmed for this order.'
-                : 'Payment status: $paymentStatus',
-          ),
-        ),
       ],
     ),
   );

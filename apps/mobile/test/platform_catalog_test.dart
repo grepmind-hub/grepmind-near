@@ -98,6 +98,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(PlatformProductDetailScreen), findsOneWidget);
       expect(find.textContaining('₹125.50'), findsOneWidget);
+      expect(
+        find.textContaining('Choose sandbox UPI or eligible cash on delivery'),
+        findsOneWidget,
+      );
       final cartButton = tester.widget<FilledButton>(
         find.byKey(const ValueKey('platform_open_cart')),
       );

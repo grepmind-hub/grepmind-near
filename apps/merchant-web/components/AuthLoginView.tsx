@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Store, 
   ShieldCheck, 
@@ -25,9 +25,16 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
   const [phone, setPhone] = useState('+91 ');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [challengeId, setChallengeId] = useState('');
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [developmentOtp, setDevelopmentOtp] = useState('');
+
+  useEffect(() => {
+    if (step !== 'otp' || resendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds, step]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +44,10 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
       return;
     }
 
+    await requestOtp(cleanPhone);
+  };
+
+  const requestOtp = async (cleanPhone: string) => {
     setIsLoading(true);
     setErrorMessage('');
 
@@ -44,26 +55,12 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
       const response = await fetch('/api/v1/auth/otp/request', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone_e164:cleanPhone.replace(/\s+/g,'')}) });
       if (!response.ok) throw new Error('Unable to request a verification code.');
       const result = await response.json();
-      setDevelopmentOtp(typeof result?.data?.otp_code === 'string' ? result.data.otp_code : '');
+      setChallengeId(typeof result?.data?.challenge_id === 'string' ? result.data.challenge_id : '');
       setStep('otp');
       setOtpDigits(['', '', '', '', '', '']);
+      setResendSeconds(60);
     } catch (_) { setErrorMessage('Unable to request a verification code.'); }
     finally {setIsLoading(false);}
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value[value.length - 1];
-    }
-    const newDigits = [...otpDigits];
-    newDigits[index] = value;
-    setOtpDigits(newDigits);
-
-    // Auto advance focus
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -79,7 +76,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
 
     try {
       const cleanPhone = phone.replace(/\s+/g, '');
-      const response=await fetch('/api/v1/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_e164:cleanPhone,otp_code:enteredCode})});
+      const response=await fetch('/api/v1/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_e164:cleanPhone,otp_code:enteredCode,...(challengeId ? {challenge_id:challengeId} : {})})});
       if(!response.ok) throw new Error('Verification failed');
       const {data}=await response.json();
       setMerchantTokens(data.access_token, data.refresh_token);
@@ -200,7 +197,6 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
             </div>
           ) : (
             <div className="space-y-5">
-              {developmentOtp && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Local development OTP:</strong> <span className="font-mono font-bold tracking-widest">{developmentOtp}</span><p className="mt-1 text-xs">This code is provided only by the local development API.</p></div>}
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slateText-main">Enter 6-Digit OTP</h2>
@@ -218,18 +214,19 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
               </div>
 
               <form onSubmit={handleVerifyOtp} className="space-y-5">
-                <div className="flex justify-between gap-2">
-                  {otpDigits.map((digit, idx) => (
-                    <input
-                      key={idx}
-                      id={`otp-${idx}`}
-                      type="text"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(idx, e.target.value)}
-                      className="h-12 w-12 rounded-xl border border-borderMuted bg-background text-center text-lg font-black text-slateText-main focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
-                    />
-                  ))}
+                <div className="flex justify-center">
+                  <input
+                    id="merchant-otp"
+                    aria-label="Six-digit verification code"
+                    type="text"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={otpDigits.join('')}
+                    onChange={(e) => setOtpDigits(e.target.value.replace(/\D/g, '').slice(0, 6).split('').concat(Array(6).fill('')).slice(0, 6))}
+                    className="h-14 w-full max-w-sm rounded-xl border border-borderMuted bg-background text-center text-xl font-bold tracking-[.45em] text-slateText-main focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
+                  />
                 </div>
 
                 <div className="rounded-xl bg-blue-50/70 border border-blue-200/60 p-3 text-xs text-blue-900 flex items-center justify-between">
@@ -248,7 +245,7 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || otpDigits.join('').length !== 6}
                   className="w-full flex items-center justify-center space-x-2 rounded-xl bg-primary py-3 text-xs font-bold text-white hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
                 >
                   {isLoading ? (
@@ -259,6 +256,9 @@ export const AuthLoginView: React.FC<AuthLoginViewProps> = ({ onLoginSuccess }) 
                       <ChevronRight className="h-4 w-4" />
                     </>
                   )}
+                </button>
+                <button type="button" disabled={isLoading || resendSeconds > 0} onClick={() => requestOtp(phone.trim())} className="min-h-11 w-full text-xs font-bold text-primary disabled:text-slateText-muted">
+                  {resendSeconds > 0 ? `Resend code in 00:${String(resendSeconds).padStart(2, '0')}` : 'Resend code'}
                 </button>
               </form>
             </div>

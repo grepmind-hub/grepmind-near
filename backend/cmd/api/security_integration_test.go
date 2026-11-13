@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
@@ -1476,6 +1477,14 @@ func TestPlatformCheckoutPartnerSelectionIdempotencyAndStockRestoration(t *testi
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &order); err != nil || order.Data.PaymentStatus != "not_collected" || order.Data.Type != "platform_order" {
 		t.Fatalf("order=%+v err=%v", order, err)
+	}
+	var supplySnapshot sql.NullInt64
+	var supplyCurrency sql.NullString
+	if err := db.QueryRow(`SELECT partner_supply_price_minor,partner_supply_currency FROM platform_customer_order_items WHERE order_id=$1`, order.Data.ID).Scan(&supplySnapshot, &supplyCurrency); err != nil {
+		t.Fatal(err)
+	}
+	if !supplySnapshot.Valid || supplySnapshot.Int64 != 7000 || !supplyCurrency.Valid || strings.TrimSpace(supplyCurrency.String) != "INR" {
+		t.Fatalf("order-time partner supply snapshot=%v %q, want 7000 INR", supplySnapshot, supplyCurrency.String)
 	}
 	w = request(customerA, http.MethodPost, "/api/v1/platform/orders", submitBody, idem)
 	var replay struct {
