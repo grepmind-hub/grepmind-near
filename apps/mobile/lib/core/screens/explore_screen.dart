@@ -4,11 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
+import 'package:grepmind_mobile/core/providers/platform_cart_provider.dart';
+import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/business_card.dart';
+import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
+import 'package:grepmind_mobile/core/widgets/marketplace_cards.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/widgets/skeleton_loader.dart';
+import 'package:grepmind_mobile/core/widgets/sticky_cart_summary_bar.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
@@ -26,11 +30,44 @@ class ExploreScreen extends ConsumerStatefulWidget {
 class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchController = TextEditingController();
   String _selectedCategory = 'all';
+  String _activeQuickFilter = 'all'; // 'all', 'fast_delivery', 'grocery', 'food', 'services', 'open_now', 'top_rated'
   bool _isSearching = false;
   bool _isOpenNow = false;
   final bool _isAvailableNow = false;
   final String _sortBy = 'relevance';
   final int _radius = 5000; // meters
+
+  List<Business> _getFilteredBusinesses(List<Business> items) {
+    if (_activeQuickFilter == 'all') {
+      return items;
+    }
+    return items.where((b) {
+      switch (_activeQuickFilter) {
+        case 'fast_delivery':
+          return b.deliveryEnabled == true;
+        case 'grocery':
+          final slug = b.categorySlug.toLowerCase();
+          return slug.contains('grocer') ||
+              slug.contains('kirana') ||
+              slug.contains('supermarket');
+        case 'food':
+          final slug = b.categorySlug.toLowerCase();
+          return slug.contains('rest') ||
+              slug.contains('food') ||
+              slug.contains('cafe') ||
+              slug.contains('bake') ||
+              slug.contains('dine');
+        case 'services':
+          return b.shouldOpenServiceProfile;
+        case 'open_now':
+          return b.isOpenNow;
+        case 'top_rated':
+          return (b.rating ?? 0.0) >= 4.0;
+        default:
+          return true;
+      }
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -299,9 +336,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final recentBusinesses = ref.watch(
       recentlyAddedBusinessesProvider(appLocation.cityName),
     );
+    final userId = ref.watch(currentUserProvider)?.id ?? '';
+    final groceryScope = PlatformCartScope(
+      userId: userId,
+      vertical: 'grocery',
+      localityId: '',
+      locality: appLocation.localityName,
+      district: appLocation.cityName,
+    );
+    final foodScope = PlatformCartScope(
+      userId: userId,
+      vertical: 'food',
+      localityId: '',
+      locality: appLocation.localityName,
+      district: appLocation.cityName,
+    );
+    final groceryCart = ref.watch(platformCartProvider(groceryScope));
+    final foodCart = ref.watch(platformCartProvider(foodScope));
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      bottomNavigationBar: groceryCart.itemCount > 0
+          ? StickyCartSummaryBar(scope: groceryScope)
+          : foodCart.itemCount > 0
+              ? StickyCartSummaryBar(scope: foodScope)
+              : null,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _onFiltersChanged(),
@@ -347,7 +406,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       children: [
                                         const Icon(
                                           Icons.location_on_rounded,
-                                          color: AppTheme.secondary,
+                                          color: AppTheme.emerald,
                                           size: 17,
                                         ),
                                         const SizedBox(width: 4),
@@ -378,15 +437,30 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ],
                             ),
                           ),
-                          IconButton.filledTonal(
-                            tooltip: 'Nearby map',
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const NearbyMapScreen(),
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: const Color(0xFFA7F3D0)),
+                            ),
+                            child: IconButton(
+                              tooltip: 'Nearby map',
+                              padding: EdgeInsets.zero,
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NearbyMapScreen(),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.map_outlined,
+                                color: AppTheme.emerald,
+                                size: 20,
                               ),
                             ),
-                            icon: const Icon(Icons.map_outlined),
                           ),
                         ],
                       ),
@@ -442,7 +516,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                     tooltip: 'Search',
                                     icon: const Icon(
                                       Icons.arrow_forward_rounded,
-                                      color: AppTheme.primary,
+                                      color: AppTheme.emerald,
                                       size: 20,
                                     ),
                                     onPressed: _search,
@@ -553,7 +627,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
                     // Screen 7 Circular Category Buttons Row
                     SizedBox(
-                      height: 92,
+                      height: 114,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(
@@ -579,6 +653,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ? 'all'
                               : (isMore ? 'more' : category!.slug);
                           final isSel = _selectedCategory == slug;
+                          final theme = category != null
+                              ? CategoryThemedPlaceholder.resolveTheme(category.slug)
+                              : null;
                           return CategoryCircleItem(
                             key: Key('explore_category_$slug'),
                             label: isAll
@@ -592,19 +669,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                           category!.slug,
                                         )),
                             backgroundColor: isAll
-                                ? const Color(0xFFEEF2FF)
+                                ? const Color(0xFFECFDF5)
                                 : (isMore
-                                      ? const Color(0xFFEDE9FE)
-                                      : CategoriesScreen.getCategoryColor(
-                                          category!.slug,
-                                        ).withOpacity(0.13)),
+                                      ? const Color(0xFFF3E8FF)
+                                      : theme?.gradient.first ??
+                                          CategoriesScreen.getCategoryColor(
+                                            category!.slug,
+                                          ).withOpacity(0.13)),
                             iconColor: isAll
-                                ? const Color(0xFF4F46E5)
+                                ? AppTheme.emerald
                                 : (isMore
                                       ? const Color(0xFF7C3AED)
-                                      : CategoriesScreen.getCategoryColor(
-                                          category!.slug,
-                                        )),
+                                      : theme?.accent ??
+                                          CategoriesScreen.getCategoryColor(
+                                            category!.slug,
+                                          )),
                             isSelected: isSel,
                             onTap: () {
                               if (isMore) {
@@ -792,7 +871,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                                   child: const Text(
                                                     'NEW LISTING',
                                                     style: TextStyle(
-                                                      color: AppTheme.primary,
+                                                      color: AppTheme.emerald,
                                                       fontSize: 9,
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -845,6 +924,200 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                       const SizedBox(height: 8),
                     ],
+
+                    // 1. Featured Neighborhood Spotlight
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: FeaturedNeighborhoodCard(
+                        title: 'Fresh Winter Harvest & Specials',
+                        subtitle: 'Hand-picked daily from local farming cooperatives in ${appLocation.cityName}',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PlatformCatalogScreen(
+                                vertical: 'grocery',
+                                city: appLocation.cityName,
+                                locality: appLocation.localityName,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 2. Quick Grocery Essentials Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Fresh Groceries (15–30 mins)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.brandText,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PlatformCatalogScreen(
+                                    vertical: 'grocery',
+                                    city: appLocation.cityName,
+                                    locality: appLocation.localityName,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              child: Text(
+                                'View All',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.emerald,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // 2. Quick Grocery Cards Horizontal Carousel
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 165,
+                            height: 250,
+                            child: CompactGroceryCard(
+                              name: 'Fresh Red Tomatoes',
+                              unit: '1 kg',
+                              priceMinor: 4200,
+                              mrpMinor: 5000,
+                              badgeText: '16% OFF',
+                              quantityInCart: groceryCart.lines['4e300000-0000-4000-8000-000000000211']?.quantity ?? 0,
+                              onAdd: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 165,
+                            height: 250,
+                            child: CompactGroceryCard(
+                              name: 'Kalinga Cold-Pressed Mustard Oil',
+                              unit: '1 L',
+                              priceMinor: 18000,
+                              mrpMinor: 21000,
+                              badgeText: 'POPULAR',
+                              onAdd: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 165,
+                            height: 250,
+                            child: CompactGroceryCard(
+                              name: 'Odisha Fresh Toned Milk',
+                              unit: '500 ml',
+                              priceMinor: 2800,
+                              onAdd: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PlatformCatalogScreen(
+                                      vertical: 'grocery',
+                                      city: appLocation.cityName,
+                                      locality: appLocation.localityName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -866,41 +1139,151 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 SliverToBoxAdapter(
                   child: _buildUnservedOrEmptyState(appLocation),
                 )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    kScreenPadding,
-                    0,
-                    kScreenPadding,
-                    32,
+              else ...[
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyQuickFilterDelegate(
+                    activeFilter: _activeQuickFilter,
+                    onSelect: (filterKey) {
+                      setState(() {
+                        _activeQuickFilter = filterKey;
+                      });
+                    },
+                    totalCount: _getFilteredBusinesses(state.items).length,
                   ),
-                  sliver: SliverList.separated(
-                    itemCount: state.items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) {
-                      final b = state.items[i];
-                      return BusinessCard(
-                        business: b,
-                        onTap: () {
-                          if (b.shouldOpenServiceProfile) {
-                            Navigator.of(context).push(
+                ),
+                if (_getFilteredBusinesses(state.items).isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: kScreenPadding,
+                        vertical: 36,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8F5E9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.filter_alt_off_rounded,
+                                size: 36,
+                                color: AppTheme.emerald,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No matching businesses found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.brandText,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Try selecting another filter or show all nearby stores.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.secondaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () =>
+                                  setState(() => _activeQuickFilter = 'all'),
+                              icon: const Icon(Icons.clear_all_rounded, size: 18),
+                              label: const Text('Show all nearby'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.emerald,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      kScreenPadding,
+                      8,
+                      kScreenPadding,
+                      32,
+                    ),
+                    sliver: SliverList.separated(
+                      itemCount: _getFilteredBusinesses(state.items).length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final b = _getFilteredBusinesses(state.items)[i];
+                        if (b.shouldOpenServiceProfile) {
+                          return ServiceProCard(
+                            name: b.name,
+                            specialization:
+                                b.categoryName ?? 'Service Specialist',
+                            photoUrl: b.coverPhotoUrl,
+                            rating: b.rating,
+                            jobsCompleted: b.reviewCount,
+                            coverageLocality: b.locality ?? b.city,
+                            isVerified: b.verificationStatus == 'verified',
+                            onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => ServiceProScreen(business: b),
                               ),
-                            );
-                          } else {
-                            Navigator.of(context).push(
+                            ),
+                            onBook: () => Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    BusinessDetailScreen(businessId: b.id),
+                                builder: (_) => ServiceProScreen(business: b),
                               ),
-                            );
-                          }
-                        },
-                      );
-                    },
+                            ),
+                          );
+                        }
+                        return LocalBusinessDiscoveryCard(
+                          name: b.name,
+                          category: b.categoryName ??
+                              (b.categorySlug.isNotEmpty
+                                  ? '${b.categorySlug[0].toUpperCase()}${b.categorySlug.substring(1)}'
+                                  : 'Store'),
+                          categorySlug: b.categorySlug,
+                          coverPhotoUrl: b.coverPhotoUrl,
+                          rating: b.rating,
+                          reviewCount: b.reviewCount,
+                          distanceKm: b.distanceM != null
+                              ? b.distanceM! / 1000.0
+                              : null,
+                          locality: b.locality ?? b.addressText,
+                          operatingStatus: b.isOpenNow ? 'Open now' : 'Closed',
+                          isVerified: b.verificationStatus == 'verified',
+                          phoneNumber: b.phoneE164,
+                          latitude: b.latitude,
+                          longitude: b.longitude,
+                          primaryActionLabel: b.shopActionLabel,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  BusinessDetailScreen(businessId: b.id),
+                            ),
+                          ),
+                          onPrimaryAction: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  BusinessDetailScreen(businessId: b.id),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+              ],
             ],
           ),
         ),
@@ -1320,4 +1703,129 @@ class _RecentBusinessPlaceholder extends StatelessWidget {
       child: Icon(Icons.storefront_outlined, color: AppTheme.secondary),
     ),
   );
+}
+
+class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
+  final String activeFilter;
+  final ValueChanged<String> onSelect;
+  final int totalCount;
+
+  _StickyQuickFilterDelegate({
+    required this.activeFilter,
+    required this.onSelect,
+    required this.totalCount,
+  });
+
+  @override
+  double get minExtent => 48.0;
+
+  @override
+  double get maxExtent => 48.0;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    const filters = [
+      ('all', 'All', Icons.apps_rounded),
+      ('fast_delivery', '⚡ Fast Delivery', null),
+      ('grocery', '🛒 Grocery', null),
+      ('food', '🍲 Food', null),
+      ('services', '🛠️ Services', null),
+      ('open_now', '🕒 Open Now', null),
+      ('top_rated', '⭐ 4.0+', null),
+    ];
+
+    return Container(
+      color: AppTheme.brandCanvas,
+      alignment: Alignment.centerLeft,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: kScreenPadding,
+          vertical: 6,
+        ),
+        itemCount: filters.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = filters[index];
+          final key = item.$1;
+          final label = item.$2;
+          final icon = item.$3;
+          final isSelected = activeFilter == key;
+
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: Key('filter_pill_$key'),
+              onTap: () => onSelect(key),
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.emerald : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.emerald
+                        : const Color(0xFFE1EBE5),
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.emerald.withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(
+                        icon,
+                        size: 15,
+                        color: isSelected ? Colors.white : AppTheme.emerald,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w600,
+                        color: isSelected ? Colors.white : AppTheme.brandText,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyQuickFilterDelegate oldDelegate) {
+    return oldDelegate.activeFilter != activeFilter ||
+        oldDelegate.totalCount != totalCount;
+  }
 }

@@ -213,6 +213,12 @@ class _RiderApplicationScreenState
       appBar: AppBar(
         title: const Text('Rider application'),
         backgroundColor: Colors.white,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -225,14 +231,14 @@ class _RiderApplicationScreenState
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFD8E3F5)),
+                  border: Border.all(color: AppTheme.riderAmberBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
                       Icons.pedal_bike_rounded,
-                      color: AppTheme.primary,
+                      color: AppTheme.riderAmberDark,
                       size: 34,
                     ),
                     const SizedBox(height: 12),
@@ -389,22 +395,51 @@ class _RiderApplicationScreenState
                 SizedBox(
                   height: 52,
                   child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.riderAmberDark,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                     onPressed: _saving ? null : () => _save(submit: false),
                     child: _saving
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : const Text('Save application'),
+                        : const Text(
+                            'Save application',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   height: 52,
                   child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.riderAmberDark,
+                      side: const BorderSide(color: AppTheme.riderAmberDark),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                     onPressed: _saving ? null : () => _save(submit: true),
-                    child: const Text('Submit for review'),
+                    child: const Text(
+                      'Submit for review',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
               ] else ...[
@@ -416,19 +451,35 @@ class _RiderApplicationScreenState
                 ),
                 const SizedBox(height: 12),
                 if (status == 'approved')
-                  FilledButton.icon(
-                    onPressed: () async {
-                      final ok = await ref
-                          .read(authProvider.notifier)
-                          .setActiveRole('rider');
-                      if (mounted && !ok) {
-                        setState(
-                          () => _error = 'Rider authorization could not be verified. Refresh and retry.',
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.login),
-                    label: const Text('Open Rider workspace'),
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.riderAmberDark,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final ok = await ref
+                            .read(authProvider.notifier)
+                            .setActiveRole('rider');
+                        if (mounted && !ok) {
+                          setState(
+                            () => _error = 'Rider authorization could not be verified. Refresh and retry.',
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text(
+                        'Open Rider workspace',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ],

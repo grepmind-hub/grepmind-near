@@ -76,7 +76,7 @@ export function FinanceAccessGrantPanel() {
       <label className="text-xs font-semibold">Target Admin user ID<input required value={target} onChange={e=>setTarget(e.target.value)} className="mt-1 min-h-10 w-full rounded-lg border p-2" placeholder="UUID"/></label>
       <label className="text-xs font-semibold">Permission<select value={permission} onChange={e=>setPermission(e.target.value as 'finance.read'|'finance.post')} className="mt-1 min-h-10 w-full rounded-lg border bg-white p-2"><option value="finance.read">finance.read</option><option value="finance.post">finance.post</option></select></label>
       <label className="text-xs font-semibold">Request reason<input required minLength={10} maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} className="mt-1 min-h-10 w-full rounded-lg border p-2" placeholder="Why is this access needed?"/></label>
-      <button disabled={busy} className="min-h-10 rounded-lg bg-[#2457D6] px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-3">Submit access request</button>
+      <button disabled={busy} className="min-h-10 rounded-[14px] bg-[#123D36] px-4 text-sm font-semibold text-white hover:bg-[#0c2924] disabled:opacity-50 sm:col-span-3">Submit access request</button>
     </form>}
     <div className="mt-4 space-y-3">
       {rows.map(row=><div key={row.id} className="rounded-xl border p-3">

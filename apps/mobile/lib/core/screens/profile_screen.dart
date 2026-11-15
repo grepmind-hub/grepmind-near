@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:grepmind_mobile/core/models/customer_address.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
@@ -17,6 +19,8 @@ import 'package:grepmind_mobile/core/screens/order_history_screen.dart';
 import 'package:grepmind_mobile/core/screens/saved_screen.dart';
 import 'package:grepmind_mobile/core/screens/customer_addresses_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_earnings_screen.dart';
 
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -28,6 +32,42 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _savingPhoto = false;
+  String? _email;
+  List<CustomerAddress> _addresses = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileDetails();
+  }
+
+  Future<void> _loadProfileDetails() async {
+    final user = ref.read(authProvider).user;
+    if (user == null) return;
+    try {
+      final storedEmail = await const FlutterSecureStorage().read(
+        key: 'user_email_${user.id}',
+      );
+      final response = await apiClient.get('/customer/addresses');
+      final rows = response.data['data'] as List<dynamic>? ?? const [];
+      final addrs = rows
+          .map((e) => CustomerAddress.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _email = storedEmail;
+        _addresses = addrs;
+      });
+    } catch (_) {}
+  }
+
+  CustomerAddress? get _primaryAddress {
+    if (_addresses.isEmpty) return null;
+    return _addresses.firstWhere(
+      (a) => a.isDefault,
+      orElse: () => _addresses.first,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,125 +112,309 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(kScreenPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileHeader(authState.user!),
-            const SizedBox(height: 24),
-            _buildProfileInfo(
-              authState.user!,
-              authState.activeRole ?? 'customer',
-            ),
-            const SizedBox(height: 24),
-            _buildAccountSection(
-              context,
-              authState.activeRole ?? 'customer',
-              authState.user!,
-            ),
-            const SizedBox(height: 24),
-            _buildActions(context, ref),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _loadProfileDetails,
+        color: const Color(0xFF059669),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(kScreenPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileHeader(
+                authState.user!,
+                authState.activeRole ?? 'customer',
+              ),
+              const SizedBox(height: 20),
+              _buildProfileInfo(
+                authState.user!,
+                authState.activeRole ?? 'customer',
+              ),
+              const SizedBox(height: 20),
+              _buildAccountSection(
+                context,
+                authState.activeRole ?? 'customer',
+                authState.user!,
+              ),
+              const SizedBox(height: 24),
+              _buildActions(context, ref),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader(AppUser user) {
+  Widget _buildProfileHeader(AppUser user, String activeRole) {
+    final isMerchant = activeRole == 'merchant';
+    final isRider = activeRole == 'rider';
     final photoUrl = user.avatarUrl == null || user.avatarUrl!.isEmpty
         ? null
         : apiClient.resolveMediaUrl(user.avatarUrl!);
     return PremiumCard(
       padding: const EdgeInsets.all(20),
-      child: Row(
+      child: Column(
         children: [
-          Stack(
+          Row(
             children: [
-              CircleAvatar(
-                radius: 38,
-                backgroundColor: AppTheme.primaryContainer,
-                backgroundImage: photoUrl == null
-                    ? null
-                    : CachedNetworkImageProvider(photoUrl),
-                child: photoUrl == null
-                    ? const Icon(
-                        Icons.person_rounded,
-                        size: 38,
-                        color: AppTheme.primary,
-                      )
-                    : null,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Material(
-                  color: AppTheme.primary,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    key: const ValueKey('profile_photo_button'),
-                    customBorder: const CircleBorder(),
-                    onTap: _savingPhoto ? null : _chooseProfilePhoto,
-                    child: Padding(
-                      padding: const EdgeInsets.all(7),
-                      child: _savingPhoto
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 16,
-                              color: Colors.white,
-                            ),
+              Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: isRider
+                            ? const [
+                                AppTheme.riderAmber,
+                                Color(0xFFF59E0B),
+                                Color(0xFFD97706),
+                              ]
+                            : (isMerchant
+                                ? const [
+                                    AppTheme.coral,
+                                    Color(0xFFF97316),
+                                    Color(0xFFFB923C),
+                                  ]
+                                : const [
+                                    Color(0xFF059669),
+                                    Color(0xFF10B981),
+                                    Color(0xFF34D399),
+                                  ]),
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isRider
+                                  ? AppTheme.riderAmberDark
+                                  : (isMerchant
+                                      ? AppTheme.coral
+                                      : const Color(0xFF059669)))
+                              .withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 36,
+                      backgroundColor: Colors.white,
+                      child: CircleAvatar(
+                        radius: 33,
+                        backgroundColor: isRider
+                            ? AppTheme.riderAmberContainer
+                            : (isMerchant
+                                ? AppTheme.merchantCoralContainer
+                                : const Color(0xFFECFDF5)),
+                        backgroundImage: photoUrl == null
+                            ? null
+                            : CachedNetworkImageProvider(photoUrl),
+                        child: photoUrl == null
+                            ? Icon(
+                                Icons.person_rounded,
+                                size: 36,
+                                color: isRider
+                                    ? AppTheme.riderAmberDark
+                                    : (isMerchant
+                                        ? AppTheme.coral
+                                        : const Color(0xFF059669)),
+                              )
+                            : null,
+                      ),
                     ),
                   ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Material(
+                      color: isRider
+                          ? AppTheme.riderAmberDark
+                          : (isMerchant
+                              ? AppTheme.coral
+                              : const Color(0xFF059669)),
+                      shape: const CircleBorder(),
+                      elevation: 2,
+                      child: InkWell(
+                        key: const ValueKey('profile_photo_button'),
+                        customBorder: const CircleBorder(),
+                        onTap: _savingPhoto ? null : _chooseProfilePhoto,
+                        child: Padding(
+                          padding: const EdgeInsets.all(7),
+                          child: _savingPhoto
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.displayName?.trim().isNotEmpty == true
+                          ? user.displayName!
+                          : _getDisplayName(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mainText,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            user.phoneE164,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.secondaryText,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                size: 12,
+                                color: Color(0xFF059669),
+                              ),
+                              SizedBox(width: 3),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isRider
+                                ? AppTheme.riderAmberContainer
+                                : (isMerchant
+                                    ? AppTheme.merchantCoralContainer
+                                    : AppTheme.primaryContainer),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            activeRole.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isRider
+                                  ? AppTheme.riderAmberDeep
+                                  : (isMerchant
+                                      ? AppTheme.coral
+                                      : AppTheme.forestDark),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          onTap: () => _showEditDialog(context, user),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isRider
+                                  ? AppTheme.riderAmberContainer
+                                  : (isMerchant
+                                      ? AppTheme.merchantCoralContainer
+                                      : const Color(0xFFECFDF5)),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isRider
+                                    ? AppTheme.riderAmberBorder
+                                    : (isMerchant
+                                        ? AppTheme.merchantCoralBorder
+                                        : const Color(0xFF059669)
+                                            .withValues(alpha: 0.3)),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 14,
+                                  color: isRider
+                                      ? AppTheme.riderAmberDark
+                                      : (isMerchant
+                                          ? AppTheme.coral
+                                          : const Color(0xFF059669)),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Edit Profile',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isRider
+                                        ? AppTheme.riderAmberDark
+                                        : (isMerchant
+                                            ? AppTheme.coral
+                                            : const Color(0xFF059669)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.displayName?.trim().isNotEmpty == true
-                      ? user.displayName!
-                      : _getDisplayName(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  user.phoneE164,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.secondaryText,
-                  ),
-                ),
-                const SizedBox(height: 9),
-                TextButton.icon(
-                  onPressed: () => _showEditDialog(context, user),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit profile'),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(48, 36),
-                    tapTargetSize: MaterialTapTargetSize.padded,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -266,21 +490,176 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildProfileInfo(AppUser user, String activeRole) {
+    final isMerchant = activeRole == 'merchant';
+    final isRider = activeRole == 'rider';
+    final primaryAddr = _primaryAddress;
     return PremiumCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Text(
-                  'Account ID',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.secondaryText,
+              Row(
+                children: [
+                  Icon(
+                    Icons.badge_outlined,
+                    size: 20,
+                    color: isRider
+                        ? AppTheme.riderAmberDark
+                        : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
                   ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Personal Details',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => _showEditDialog(context, user),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'Edit',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isRider
+                          ? AppTheme.riderAmberDark
+                          : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildDetailRow(
+            icon: Icons.person_outline,
+            label: 'Full Name',
+            value: user.displayName?.trim().isNotEmpty == true
+                ? user.displayName!
+                : 'Add your name',
+            isPlaceholder: user.displayName?.trim().isNotEmpty != true,
+            isMerchant: isMerchant,
+            isRider: isRider,
+            onTap: () => _showEditDialog(context, user),
+          ),
+          const Divider(height: 20),
+          _buildDetailRow(
+            icon: Icons.phone_outlined,
+            label: 'Mobile Phone',
+            value: user.phoneE164,
+            isMerchant: isMerchant,
+            isRider: isRider,
+            badge: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isRider
+                    ? AppTheme.riderAmberContainer
+                    : (isMerchant
+                        ? AppTheme.merchantCoralContainer
+                        : const Color(0xFFECFDF5)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '✓ Verified',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isRider
+                      ? AppTheme.riderAmberDark
+                      : (isMerchant
+                          ? AppTheme.coral
+                          : const Color(0xFF059669)),
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 20),
+          _buildDetailRow(
+            icon: Icons.mail_outline_rounded,
+            label: 'Email Address',
+            value: (_email != null && _email!.isNotEmpty)
+                ? _email!
+                : 'Not added • Tap to add',
+            isPlaceholder: _email == null || _email!.isEmpty,
+            isMerchant: isMerchant,
+            isRider: isRider,
+            onTap: () => _showEditDialog(context, user),
+          ),
+          const Divider(height: 20),
+          _buildDetailRow(
+            icon: Icons.location_on_outlined,
+            label: 'Primary Address',
+            value: primaryAddr != null
+                ? '${primaryAddr.label}: ${primaryAddr.formatted}'
+                : 'No address saved • Tap to add',
+            isPlaceholder: primaryAddr == null,
+            isMerchant: isMerchant,
+            isRider: isRider,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CustomerAddressesScreen(),
+                ),
+              );
+              _loadProfileDetails();
+            },
+          ),
+          const Divider(height: 20),
+          _buildDetailRow(
+            icon: Icons.translate_rounded,
+            label: 'Language',
+            value: user.preferredLanguage == 'or' ? 'ଓଡ଼ିଆ (Odia)' : 'English',
+            isMerchant: isMerchant,
+            isRider: isRider,
+            onTap: () => _showEditDialog(context, user),
+          ),
+          const Divider(height: 20),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isRider
+                      ? AppTheme.riderAmberContainer
+                      : (isMerchant
+                          ? AppTheme.merchantCoralContainer
+                          : AppTheme.primaryContainer),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.tag_rounded,
+                  color: isRider
+                      ? AppTheme.riderAmberDark
+                      : (isMerchant ? AppTheme.coral : AppTheme.primary),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Account ID',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                  ],
                 ),
               ),
               Flexible(
@@ -289,15 +668,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   key: const ValueKey('short_account_id'),
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: AppTheme.mainText,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               IconButton(
                 tooltip: 'Copy account ID',
-                icon: const Icon(Icons.copy_outlined, size: 18),
+                icon: const Icon(Icons.copy_outlined, size: 16),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: user.id));
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -307,19 +686,108 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
-          const Divider(),
-          _buildInfoRow('Phone', user.phoneE164),
-          const Divider(),
-          _buildInfoRow('Active Mode', activeRole.toUpperCase()),
-          const Divider(),
-          _buildInfoRow('Status', _formatStatus(user.status)),
-          const Divider(),
-          _buildInfoRow('Language', user.preferredLanguage),
+          const Divider(height: 20),
+          _buildDetailRow(
+            icon: Icons.shield_outlined,
+            label: 'Account Status',
+            value: _formatStatus(user.status),
+            isMerchant: isMerchant,
+            isRider: isRider,
+          ),
           if (user.roles.isNotEmpty) ...[
-            const Divider(),
-            _buildInfoRow('Assigned Roles', user.roles.join(', ')),
+            const Divider(height: 20),
+            _buildDetailRow(
+              icon: Icons.admin_panel_settings_outlined,
+              label: 'Assigned Roles',
+              value: user.roles.join(', '),
+              isMerchant: isMerchant,
+              isRider: isRider,
+            ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isPlaceholder = false,
+    bool isMerchant = false,
+    bool isRider = false,
+    Widget? badge,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isRider
+                    ? AppTheme.riderAmberContainer
+                    : (isMerchant
+                        ? AppTheme.merchantCoralContainer
+                        : AppTheme.primaryContainer),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: isRider
+                    ? AppTheme.riderAmberDark
+                    : (isMerchant ? AppTheme.coral : AppTheme.primary),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight:
+                          isPlaceholder ? FontWeight.w400 : FontWeight.w600,
+                      color: isPlaceholder
+                          ? const Color(0xFF059669)
+                          : AppTheme.mainText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (badge != null) ...[
+              const SizedBox(width: 8),
+              badge,
+            ] else if (onTap != null) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppTheme.hintText,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -327,38 +795,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _shortAccountId(String id) => id.length <= 16
       ? id
       : '${id.substring(0, 8)}…${id.substring(id.length - 6)}';
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.secondaryText,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppTheme.mainText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   String _formatStatus(String status) {
     switch (status) {
@@ -399,13 +835,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Account & Portal',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.mainText,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.widgets_outlined,
+                    size: 20,
+                    color: Color(0xFF059669),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Account & Portal',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: const Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF059669),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -415,6 +882,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'My Orders & Bookings',
             subtitle:
                 'Track active food deliveries, table reservations & stays',
+            iconColor: const Color(0xFF059669),
+            iconBgColor: const Color(0xFFECFDF5),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
             ),
@@ -430,6 +899,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               subtitle: user.riderStatus == null
                   ? 'Apply to join the Grepmind rider network'
                   : 'Application status: ${user.riderStatus!.replaceAll('_', ' ')}',
+              iconColor: const Color(0xFF0D9488),
+              iconBgColor: const Color(0xFFCCFBF1),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const RiderApplicationScreen(),
@@ -441,6 +912,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.location_on_outlined,
               title: 'Saved addresses',
               subtitle: 'Manage delivery locations and contact details',
+              iconColor: const Color(0xFF2563EB),
+              iconBgColor: const Color(0xFFEFF6FF),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const CustomerAddressesScreen(),
@@ -453,6 +926,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.favorite_border_rounded,
               title: 'Saved businesses',
               subtitle: 'Open your bookmarked shops and services',
+              iconColor: const Color(0xFFE11D48),
+              iconBgColor: const Color(0xFFFFF1F2),
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => const SavedScreen())),
             ),
@@ -465,6 +940,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Switch Portal / Experience',
             subtitle:
                 'Current mode: ${activeRole.toUpperCase()} · Available: ${availableRoles.join(', ')}',
+            iconColor: const Color(0xFFD97706),
+            iconBgColor: const Color(0xFFFEF3C7),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const RoleSelectionScreen(isSwitching: true),
@@ -479,9 +956,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.storefront_outlined,
               title: 'Merchant Workspace',
               subtitle: 'Manage your storefront, requests & catalog',
+              iconColor: AppTheme.coral,
+              iconBgColor: AppTheme.merchantCoralContainer,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const MerchantWorkspaceScreen(),
+                ),
+              ),
+            ),
+            const Divider(),
+          ],
+
+          // Rider Workspace & Earnings - ONLY visible in Rider mode
+          if (activeRole == 'rider') ...[
+            _buildAccountOption(
+              icon: Icons.delivery_dining_outlined,
+              title: 'Rider Dashboard',
+              subtitle: 'Active deliveries, dispatch & availability',
+              iconColor: AppTheme.riderAmberDark,
+              iconBgColor: AppTheme.riderAmberContainer,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const RiderDashboardScreen(),
+                ),
+              ),
+            ),
+            const Divider(),
+            _buildAccountOption(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Rider Earnings & COD Liability',
+              subtitle: 'Delivery compensation, ledger summary & remittances',
+              iconColor: AppTheme.riderAmberDark,
+              iconBgColor: AppTheme.riderAmberContainer,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const RiderEarningsScreen(),
                 ),
               ),
             ),
@@ -494,6 +1003,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.admin_panel_settings_outlined,
               title: 'Admin Moderation Portal',
               subtitle: 'Review listings, claims & platform audit logs',
+              iconColor: const Color(0xFF7C3AED),
+              iconBgColor: const Color(0xFFF5F3FF),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AdminPortalScreen()),
               ),
@@ -506,6 +1017,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.add_business_outlined,
             title: 'Register / Claim Business',
             subtitle: 'List your shop or professional trade on Grepmind',
+            iconColor: isMerchantRole
+                ? AppTheme.coral
+                : const Color(0xFF059669),
+            iconBgColor: isMerchantRole
+                ? AppTheme.merchantCoralContainer
+                : const Color(0xFFECFDF5),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const MerchantRegistrationScreen(),
@@ -518,6 +1035,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.security,
             title: 'Sign-in & security',
             subtitle: 'Passwordless sign-in with a one-time code',
+            iconColor: const Color(0xFF475569),
+            iconBgColor: const Color(0xFFF1F5F9),
             onTap: () => _showSecurityDialog(context),
           ),
           const Divider(),
@@ -525,6 +1044,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.notifications_outlined,
             title: 'Notification Settings',
             subtitle: 'Choose updates for your account',
+            iconColor: const Color(0xFFEA580C),
+            iconBgColor: const Color(0xFFFFF7ED),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => const NotificationSettingsScreen(),
@@ -536,6 +1057,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy & data',
             subtitle: 'How account and location data are used',
+            iconColor: const Color(0xFF0891B2),
+            iconBgColor: const Color(0xFFECFEFF),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()),
             ),
@@ -551,24 +1074,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? iconColor,
+    Color? iconBgColor,
   }) {
+    final fg = iconColor ?? AppTheme.primary;
+    final bg = iconBgColor ?? AppTheme.primaryContainer;
     return InkWell(
       key: key,
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: AppTheme.primaryContainer,
+                color: bg,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: fg.withValues(alpha: 0.15),
+                ),
               ),
-              child: Icon(icon, color: AppTheme.primary, size: 20),
+              child: Icon(icon, color: fg, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,7 +1112,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: AppTheme.mainText,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     style: const TextStyle(
@@ -592,7 +1123,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.hintText, size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.hintText,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -631,76 +1166,454 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showEditDialog(BuildContext context, AppUser user) {
+    final activeRole = ref.read(authProvider).activeRole;
+    final isMerchant = activeRole == 'merchant';
+    final isRider = activeRole == 'rider';
     final nameController = TextEditingController(text: user.displayName ?? '');
+    final emailController = TextEditingController(text: _email ?? '');
     var language = user.preferredLanguage;
-    showDialog(
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Edit profile'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                maxLength: 80,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Display name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: language,
-                decoration: const InputDecoration(
-                  labelText: 'Preferred language',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'en', child: Text('English')),
-                  DropdownMenuItem(value: 'or', child: Text('ଓଡ଼ିଆ')),
-                ],
-                onChanged: (value) {
-                  if (value != null) setDialogState(() => language = value);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('CANCEL'),
+        builder: (ctx, setModalState) {
+          final primaryAddr = _primaryAddress;
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 8,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
             ),
-            FilledButton(
-              onPressed: () async {
-                final ok = await ref.read(authProvider.notifier).updateProfile({
-                  'display_name': nameController.text.trim(),
-                  'preferred_language': language,
-                });
-                if (!ctx.mounted) return;
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      ok
-                          ? 'Profile updated.'
-                          : 'Could not save your profile. Please retry.',
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: AppTheme.mainText,
+                          ),
+                          tooltip: 'Back',
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                        const SizedBox(width: 4),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Edit Profile',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.mainText,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Update your personal information',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.secondaryText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: AppTheme.secondaryText,
+                          ),
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                  ),
-                );
-              },
-              child: const Text('SAVE'),
+                    const SizedBox(height: 20),
+
+                    // Full Name Field
+                    TextFormField(
+                      controller: nameController,
+                      maxLength: 80,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        hintText: 'Enter your full name',
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          color: Color(0xFF059669),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF059669),
+                            width: 1.5,
+                          ),
+                        ),
+                        counterText: '',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Mobile Number Field (Read-only / Verified)
+                    TextFormField(
+                      initialValue: user.phoneE164,
+                      readOnly: true,
+                      enabled: false,
+                      decoration: InputDecoration(
+                        labelText: 'Mobile Number',
+                        prefixIcon: const Icon(
+                          Icons.phone_android_outlined,
+                          color: AppTheme.secondaryText,
+                        ),
+                        suffixIcon: const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.lock_outline,
+                                size: 16,
+                                color: AppTheme.hintText,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        helperText:
+                            'Verified with SMS OTP. Mobile number cannot be changed directly.',
+                        helperMaxLines: 2,
+                        filled: true,
+                        fillColor: const Color(0xFFF3F4F6),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email Field
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email Address',
+                        hintText: 'name@example.com',
+                        prefixIcon: const Icon(
+                          Icons.email_outlined,
+                          color: Color(0xFF059669),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF059669),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      validator: (val) {
+                        final trimmed = val?.trim() ?? '';
+                        if (trimmed.isEmpty) return null;
+                        final emailRegex = RegExp(
+                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                        );
+                        if (!emailRegex.hasMatch(trimmed)) {
+                          return 'Please enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Primary Delivery Address Section Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_outlined,
+                                    size: 18,
+                                    color: isMerchant
+                                        ? AppTheme.coral
+                                        : const Color(0xFF059669),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Delivery Address',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.mainText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CustomerAddressesScreen(),
+                                    ),
+                                  );
+                                  await _loadProfileDetails();
+                                  setModalState(() {});
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(50, 30),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  primaryAddr != null ? 'Change' : '+ Add',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isRider
+                                        ? AppTheme.riderAmberDark
+                                        : (isMerchant
+                                            ? AppTheme.coral
+                                            : const Color(0xFF059669)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            primaryAddr != null
+                                ? '${primaryAddr.label}: ${primaryAddr.formatted}'
+                                : 'No delivery address saved yet.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: primaryAddr != null
+                                  ? AppTheme.mainText
+                                  : AppTheme.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Language Selection Dropdown
+                    DropdownButtonFormField<String>(
+                      initialValue: language,
+                      decoration: InputDecoration(
+                        labelText: 'Preferred Language',
+                        prefixIcon: const Icon(
+                          Icons.translate_rounded,
+                          color: Color(0xFF059669),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF059669),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'en', child: Text('English')),
+                        DropdownMenuItem(
+                          value: 'or',
+                          child: Text('ଓଡ଼ିଆ (Odia)'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setModalState(() => language = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Save / Cancel Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              side: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            child: const Text(
+                              'CANCEL',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.secondaryText,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: isRider
+                                  ? AppTheme.riderAmberDark
+                                  : (isMerchant
+                                      ? AppTheme.coral
+                                      : const Color(0xFF059669)),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () async {
+                              if (!formKey.currentState!.validate()) return;
+                              final newName = nameController.text.trim();
+                              final newEmail = emailController.text.trim();
+
+                              final ok = await ref
+                                  .read(authProvider.notifier)
+                                  .updateProfile({
+                                    'display_name': newName,
+                                    'preferred_language': language,
+                                  });
+
+                              if (newEmail.isNotEmpty) {
+                                await const FlutterSecureStorage().write(
+                                  key: 'user_email_${user.id}',
+                                  value: newEmail,
+                                );
+                              } else {
+                                await const FlutterSecureStorage().delete(
+                                  key: 'user_email_${user.id}',
+                                );
+                              }
+
+                              await _loadProfileDetails();
+
+                              if (!ctx.mounted) return;
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: isRider
+                                      ? AppTheme.riderAmberDark
+                                      : (isMerchant
+                                          ? AppTheme.coral
+                                          : const Color(0xFF059669)),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  content: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        ok
+                                            ? 'Profile details updated successfully.'
+                                            : 'Email saved, but profile update failed. Please retry.',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'SAVE CHANGES',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     ).then((_) async {
-      // The dialog route completes before its reverse transition removes the
-      // TextField. Dispose only after the transition so the controller has no
-      // remaining EditableText dependents.
       await Future<void>.delayed(const Duration(milliseconds: 350));
       nameController.dispose();
+      emailController.dispose();
     });
   }
 
@@ -796,7 +1709,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.notifications_active_outlined,
-                  color: AppTheme.primary,
+                  color: AppTheme.emerald,
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -827,7 +1740,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(entry.value.$2),
-                        activeTrackColor: AppTheme.primary,
+                        activeTrackColor: AppTheme.emerald,
                         onChanged: (enabled) async {
                           final updated = {...preferences, entry.key: enabled};
                           final ok = await ref
@@ -895,7 +1808,7 @@ class PrivacySettingsScreen extends StatelessWidget {
           child: ListTile(
             leading: const Icon(
               Icons.location_on_outlined,
-              color: AppTheme.primary,
+              color: AppTheme.emerald,
             ),
             title: const Text('Location permission'),
             subtitle: const Text(

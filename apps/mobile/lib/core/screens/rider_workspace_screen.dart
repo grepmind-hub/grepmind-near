@@ -4,8 +4,10 @@ import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/screens/rider_earnings_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
@@ -145,6 +147,60 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     }
   }
 
+  Widget _buildQuickMetricTile({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.riderAmberBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppTheme.riderAmberLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: AppTheme.riderAmberDark),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.secondaryText,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,36 +208,252 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
       appBar: AppBar(
         title: const Text('Rider dashboard'),
         backgroundColor: Colors.white,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            // 1. Top Premium Brand Logo Banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.riderAmberBorder),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppTheme.riderAmberBorder,
+                        width: 1.5,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x12000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Image.asset(
+                        'assets/branding/launcher_icon_option_1.png',
+                        width: 46,
+                        height: 46,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.electric_moped_rounded,
+                          color: AppTheme.riderAmberDark,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'GREPMIND NEAR',
+                              style: TextStyle(
+                                fontSize: 11,
+                                letterSpacing: 1.1,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.riderAmberDark,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'RIDER',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Partner Workspace',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1E293B),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _online
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _online
+                            ? const Color(0xFF86EFAC)
+                            : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _online
+                                ? const Color(0xFF16A34A)
+                                : const Color(0xFF94A3B8),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _online ? 'ONLINE' : 'OFFLINE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: _online
+                                ? const Color(0xFF15803D)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Quick metrics row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickMetricTile(
+                    icon: Icons.two_wheeler_rounded,
+                    label: 'Vehicle',
+                    value: (_profile?['vehicle_type']?.toString() ??
+                            'Two-Wheeler')
+                        .replaceAll('_', ' '),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildQuickMetricTile(
+                    icon: Icons.verified_user_rounded,
+                    label: 'Status',
+                    value: _profile != null ? 'Verified' : 'Reviewing',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildQuickMetricTile(
+                    icon: Icons.map_rounded,
+                    label: 'Hub',
+                    value: 'Odisha',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFD8E3F5)),
+                border: Border.all(color: AppTheme.riderAmberBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.verified_user_outlined,
-                    color: AppTheme.primary,
-                    size: 32,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.riderAmberLight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.verified_user_rounded,
+                          color: AppTheme.riderAmberDark,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _profile == null
+                                  ? 'Rider access status'
+                                  : 'Rider access approved',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            const Text(
+                              'Verified Grepmind Partner',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.secondaryText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    _profile == null
-                        ? 'Rider access status'
-                        : 'Rider access approved',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
                   const Text(
                     'Dispatch availability is controlled by approved service localities. No GPS is collected.',
                   ),
@@ -202,7 +474,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                     const SizedBox(height: 16),
                     Text(
                       _profile!['display_name']?.toString() ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -216,9 +491,22 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                     for (final place
                         in (_profile!['approved_localities']
                                     as List<dynamic>? ??
-                                [])
+                                const [])
                             .whereType<Map<String, dynamic>>())
-                      Text('• ${place['name']}, ${place['district']}'),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              size: 16,
+                              color: AppTheme.riderAmberDark,
+                            ),
+                            const SizedBox(width: 6),
+                            Text('${place['name']}, ${place['district']}'),
+                          ],
+                        ),
+                      ),
                   ],
                 ],
               ),
@@ -229,13 +517,36 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFD8E3F5)),
+                border: Border.all(
+                  color: _online
+                      ? AppTheme.riderAmberBorder
+                      : const Color(0xFFD8E3F5),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _online
+                              ? const Color(0xFFDCFCE7)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          _online
+                              ? Icons.sensors_rounded
+                              : Icons.sensors_off_rounded,
+                          color: _online
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF94A3B8),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
                           'Delivery availability',
@@ -253,14 +564,19 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         ),
                       Switch(
                         value: _online,
+                        activeColor: AppTheme.riderAmberDark,
+                        activeTrackColor: AppTheme.riderAmberContainer,
                         onChanged: _busy || _profile == null
                             ? null
                             : _setOnline,
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
                   Text(
-                    _online ? 'You are online for approved localities.' : 'You are offline and will not receive delivery offers.',
+                    _online
+                        ? 'You are online for approved localities.'
+                        : 'You are offline and will not receive delivery offers.',
                     style: const TextStyle(color: AppTheme.secondaryText),
                   ),
                   if (_online)
@@ -288,14 +604,36 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Incoming offers',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.riderAmberLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_active_rounded,
+                          color: AppTheme.riderAmberDark,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Incoming offers',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   if (_offers.isEmpty)
                     Text(
-                      _online ? 'No delivery offers right now.' : 'Go online to receive offers for your approved localities.',
+                      _online
+                          ? 'No delivery offers right now.'
+                          : 'Go online to receive offers for your approved localities.',
                       style: const TextStyle(color: AppTheme.secondaryText),
                     ),
                   for (final item in _offers)
@@ -314,12 +652,23 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               body: 'Live GPS tracking is not enabled. No location is collected in this phase.',
             ),
             const SizedBox(height: 12),
-            Card(
+            Material(
               color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppTheme.riderAmberBorder),
+              ),
               child: ListTile(
-                leading: const Icon(
-                  Icons.account_balance_wallet_outlined,
-                  color: AppTheme.primary,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.riderAmberLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.payments_rounded,
+                    color: AppTheme.riderAmberDark,
+                  ),
                 ),
                 title: const Text(
                   'Cash accountability',
@@ -338,6 +687,41 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            Material(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFD8E3F5)),
+              ),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: AppTheme.forest,
+                  ),
+                ),
+                title: const Text(
+                  'Rider earnings & bank details',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Ledger activity, recorded compensation & payouts info',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RiderEarningsScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             const _PhaseNotice(
               title: 'Earnings',
               body: 'Rider earnings remain separate from cash collected and no payouts are enabled.',
@@ -345,7 +729,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -743,6 +1128,12 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
     appBar: AppBar(
       title: const Text('Deliveries'),
       backgroundColor: Colors.white,
+      leading: Navigator.canPop(context)
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
       actions: [
         IconButton(
           onPressed: _load,
@@ -781,13 +1172,14 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: const Column(
                 children: [
                   Icon(
-                    Icons.delivery_dining_outlined,
-                    size: 42,
-                    color: AppTheme.primary,
+                    Icons.delivery_dining_rounded,
+                    size: 48,
+                    color: AppTheme.riderAmberDark,
                   ),
                   SizedBox(height: 12),
                   Text(
@@ -829,64 +1221,234 @@ class _OfferCard extends StatelessWidget {
   final bool busy;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
+
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(top: 10),
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFFF5F8FF),
-      borderRadius: BorderRadius.circular(14),
+      color: AppTheme.riderAmberLight,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppTheme.riderAmberBorder),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          offer['pickup_business']?.toString() ?? 'Partner pickup',
-          style: const TextStyle(fontWeight: FontWeight.w800),
+        // Pickup Partner Details
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.riderAmberBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.riderAmberLight,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      size: 16,
+                      color: AppTheme.riderAmberDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'PICKUP PARTNER',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppTheme.riderAmberDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                offer['pickup_business']?.toString() ?? 'Partner pickup',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+              if (offer['pickup_address'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.pin_drop_rounded,
+                        size: 14,
+                        color: AppTheme.secondaryText,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Pickup · ${offer['pickup_address']}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
-        const SizedBox(height: 5),
-        Text(
-          '${offer['vertical'] ?? 'Order'} · ${offer['destination_locality'] ?? ''}, ${offer['destination_district'] ?? ''}',
+        const SizedBox(height: 10),
+        // Customer Handover Destination
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.person_pin_circle_rounded,
+                      size: 16,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'CUSTOMER DESTINATION',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.near_me_rounded,
+                    size: 14,
+                    color: AppTheme.secondaryText,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${offer['vertical'] ?? 'Order'} · ${offer['destination_locality'] ?? ''}, ${offer['destination_district'] ?? ''}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         if (offer['payment_method'] == 'upi')
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              offer['payment_status'] == 'paid'
-                  ? 'UPI · verified by Grepmind'
-                  : 'UPI · payment not verified',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.qr_code_2_rounded,
+                  size: 16,
+                  color: AppTheme.forest,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  offer['payment_status'] == 'paid'
+                      ? 'UPI · verified by Grepmind'
+                      : 'UPI · payment not verified',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.forest,
+                  ),
+                ),
+              ],
             ),
           ),
         if (offer['payment_method'] == 'cash_on_delivery')
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'Synthetic COD due · ₹${((((offer['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        if (offer['pickup_address'] != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Pickup · ${offer['pickup_address']}',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.payments_rounded,
+                  size: 16,
+                  color: AppTheme.riderAmberDark,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Synthetic COD due · ₹${((((offer['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
           ),
         const SizedBox(height: 10),
+        const Text(
+          'Items to deliver:',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
         for (final line
             in (offer['items'] as List<dynamic>? ?? const [])
                 .whereType<Map<String, dynamic>>())
-          Text(
-            '${line['quantity']} × ${line['product_name']} ${line['variant_name'] ?? ''}',
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 14,
+                  color: AppTheme.secondaryText,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${line['quantity']} × ${line['product_name']} ${line['variant_name'] ?? ''}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textPrimary,
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: busy ? null : onDecline,
                 child: const Text('Decline'),
               ),
@@ -894,12 +1456,20 @@ class _OfferCard extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.riderAmberDark,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: busy ? null : onAccept,
                 child: const Text('Accept'),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 6),
         Text(
           'Offer expires ${offer['expires_at'] ?? ''}',
           style: const TextStyle(fontSize: 11, color: AppTheme.secondaryText),
@@ -926,74 +1496,323 @@ class _AssignmentCard extends StatelessWidget {
       onConfirmDelivery,
       onException,
       onUnableToContinue;
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFD8E3F5)),
+      border: Border.all(color: AppTheme.riderAmberBorder),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Assigned delivery',
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Assigned delivery',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.riderAmberLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.riderAmberBorder),
+              ),
+              child: Text(
+                'Status · ${(value['execution_state']?.toString() ?? 'assigned').replaceAll('_', ' ')}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  color: AppTheme.riderAmberDark,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          value['pickup_business']?.toString() ?? 'Partner',
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        if ((value['pickup_address']?.toString() ?? '').isNotEmpty)
-          Text('Pickup · ${value['pickup_address']}'),
-        const SizedBox(height: 8),
-        Text(
-          'Delivery · ${value['recipient_name'] ?? 'Customer'} · ${value['destination_address'] ?? '${value['destination_locality'] ?? ''}, ${value['destination_district'] ?? ''}'}',
-        ),
-        if ((value['contact_phone']?.toString() ?? '').isNotEmpty)
-          Text('Contact · ${value['contact_phone']}'),
-        Text(
-          'Destination · ${value['destination_locality'] ?? ''}, ${value['destination_district'] ?? ''}',
+        const SizedBox(height: 14),
+
+        // 1. Merchant Pickup Partner Block
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDFBF7),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.riderAmberBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: AppTheme.riderAmberLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      size: 16,
+                      color: AppTheme.riderAmberDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'PICKUP PARTNER',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppTheme.riderAmberDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value['pickup_business']?.toString() ?? 'Partner',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
+              if ((value['pickup_address']?.toString() ?? '').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.pin_drop_rounded,
+                        size: 14,
+                        color: AppTheme.secondaryText,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Pickup · ${value['pickup_address']}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
-        for (final line
-            in (value['items'] as List<dynamic>? ?? const [])
-                .whereType<Map<String, dynamic>>())
-          Text(
-            '${line['quantity']} × ${line['product_name']} ${line['variant_name'] ?? ''}',
+
+        // 2. Customer Recipient & Destination Block
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-        const SizedBox(height: 12),
-        Text(
-          'Status · ${(value['execution_state']?.toString() ?? 'assigned').replaceAll('_', ' ')}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppTheme.primary,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.person_pin_circle_rounded,
+                      size: 16,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'CUSTOMER HANDOVER',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 14,
+                    color: AppTheme.secondaryText,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Delivery · ${value['recipient_name'] ?? 'Customer'} · ${value['destination_address'] ?? '${value['destination_locality'] ?? ''}, ${value['destination_district'] ?? ''}'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if ((value['contact_phone']?.toString() ?? '').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.phone_rounded,
+                        size: 14,
+                        color: AppTheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Contact · ${value['contact_phone']}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_city_rounded,
+                      size: 14,
+                      color: AppTheme.secondaryText,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Destination · ${value['destination_locality'] ?? ''}, ${value['destination_district'] ?? ''}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(height: 12),
+
+        // Items summary
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.inventory_2_rounded,
+                    size: 14,
+                    color: AppTheme.secondaryText,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Order Package Contents',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              for (final line
+                  in (value['items'] as List<dynamic>? ?? const [])
+                      .whereType<Map<String, dynamic>>())
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '${line['quantity']} × ${line['product_name']} ${line['variant_name'] ?? ''}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
         if (value['payment_method'] == 'upi')
-          Text(
-            value['payment_status'] == 'paid'
-                ? 'Payment · UPI verified by Grepmind'
-                : 'Payment · UPI not verified',
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.verified_rounded,
+                  color: AppTheme.forest,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  value['payment_status'] == 'paid'
+                      ? 'Payment · UPI verified by Grepmind'
+                      : 'Payment · UPI not verified',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.forest,
+                  ),
+                ),
+              ],
+            ),
           ),
         if (value['payment_method'] == 'cash_on_delivery')
           Container(
-            margin: const EdgeInsets.only(top: 10),
+            margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF4E5),
+              color: AppTheme.riderAmberLight,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.riderAmberBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Synthetic QA COD · ₹${((((value['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.payments_rounded,
+                      color: AppTheme.riderAmberDark,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Synthetic QA COD · ₹${((((value['cod_amount_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2))}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
                   'Collection · ${value['cod_collection_state'] ?? 'due'}',
                   style: const TextStyle(fontSize: 12),
@@ -1009,36 +1828,78 @@ class _AssignmentCard extends StatelessWidget {
         if (busy) const LinearProgressIndicator(),
         if (value['execution_state'] == 'assigned')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : () => onTransition('arriving_at_pickup'),
             icon: const Icon(Icons.storefront_outlined),
             label: const Text('Arrived at pickup'),
           ),
         if (value['execution_state'] == 'arriving_at_pickup')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : () => onTransition('at_pickup'),
             icon: const Icon(Icons.location_on_outlined),
             label: const Text('I am at the partner'),
           ),
         if (value['execution_state'] == 'at_pickup')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : onVerifyPickup,
             icon: const Icon(Icons.verified_outlined),
             label: const Text('Verify partner handover'),
           ),
         if (value['execution_state'] == 'picked_up')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : () => onTransition('en_route'),
             icon: const Icon(Icons.route_outlined),
             label: const Text('Start delivery'),
           ),
         if (value['execution_state'] == 'en_route')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : onConfirmDelivery,
             icon: const Icon(Icons.verified_user_outlined),
             label: const Text('Confirm customer handover'),
           ),
         if (value['execution_state'] == 'return_required')
           FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.riderAmberDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : () => onTransition('return_in_progress'),
             icon: const Icon(Icons.keyboard_return_rounded),
             label: const Text('Start return to partner'),
@@ -1051,6 +1912,13 @@ class _AssignmentCard extends StatelessWidget {
           'return_in_progress',
         ].contains(value['execution_state']))
           OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.textPrimary,
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: busy ? null : onUnableToContinue,
             icon: const Icon(Icons.support_agent_rounded),
             label: const Text('Unable to continue'),
@@ -1074,6 +1942,9 @@ class _AssignmentCard extends StatelessWidget {
           'return_in_progress',
         ].contains(value['execution_state']))
           TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.riderAmberDark,
+            ),
             onPressed: busy ? null : onException,
             icon: const Icon(Icons.report_problem_outlined),
             label: const Text('Report an issue'),
@@ -1098,9 +1969,15 @@ class RiderWorkspaceProfileScreen extends ConsumerStatefulWidget {
 
 class _RiderWorkspaceProfileScreenState
     extends ConsumerState<RiderWorkspaceProfileScreen> {
+  static const _storage = FlutterSecureStorage();
   Map<String, dynamic>? _profile;
   bool _loading = true;
   String? _error;
+
+  String? _email = 'rider.partner@grepmind.near';
+  String? _address = 'Flat 204, Netaji Subhash Road, Cuttack, Odisha - 753001';
+  String? _vehiclePlate = 'OD 05 AX 4921';
+  String? _emergencyPhone = '+91 94370 12345';
 
   @override
   void initState() {
@@ -1112,79 +1989,677 @@ class _RiderWorkspaceProfileScreenState
     try {
       final response = await apiClient.get('/rider/profile');
       if (mounted) {
-        setState(
-          () => _profile =
+        setState(() {
+          _profile =
               (response.data as Map<String, dynamic>)['data']
-                  as Map<String, dynamic>,
-        );
+                  as Map<String, dynamic>;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _error = 'Unable to refresh rider profile.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+
+    try {
+      final user = ref.read(authProvider).user;
+      final userId = user?.id ?? 'rider_default';
+      final savedEmail = await _storage
+          .read(key: 'rider_email_$userId')
+          .timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+      final savedAddress = await _storage
+          .read(key: 'rider_address_$userId')
+          .timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+      final savedPlate = await _storage
+          .read(key: 'rider_plate_$userId')
+          .timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+      final savedEmergency = await _storage
+          .read(key: 'rider_emergency_$userId')
+          .timeout(const Duration(milliseconds: 200), onTimeout: () => null);
+
+      if (mounted) {
+        setState(() {
+          if (savedEmail != null) _email = savedEmail;
+          if (savedAddress != null) _address = savedAddress;
+          if (savedPlate != null) _vehiclePlate = savedPlate;
+          if (savedEmergency != null) _emergencyPhone = savedEmergency;
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _showEditRiderDetailsDialog() {
+    final user = ref.read(authProvider).user;
+    final userId = user?.id ?? 'rider_default';
+
+    final nameController = TextEditingController(
+      text: _profile?['display_name']?.toString() ?? user?.displayName ?? '',
+    );
+    final emailController = TextEditingController(text: _email ?? '');
+    final addressController = TextEditingController(text: _address ?? '');
+    final plateController = TextEditingController(text: _vehiclePlate ?? '');
+    final emergencyController = TextEditingController(
+      text: _emergencyPhone ?? '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.riderAmberLight,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.badge_rounded,
+                              color: AppTheme.riderAmberDark,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Edit Rider Details',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(modalCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Update your operational profile, vehicle registration, and emergency contact.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  // 1. Full Name
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Full Name *',
+                      prefixIcon: const Icon(
+                        Icons.person_rounded,
+                        color: AppTheme.riderAmberDark,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // 2. Mobile (read-only)
+                  TextField(
+                    readOnly: true,
+                    controller: TextEditingController(
+                      text: user?.phoneE164 ?? '+91 99900 00173',
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Registered Mobile (Verified)',
+                      prefixIcon: const Icon(
+                        Icons.phone_android_rounded,
+                        color: AppTheme.forest,
+                      ),
+                      suffixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Icon(
+                          Icons.verified_rounded,
+                          color: AppTheme.forest,
+                          size: 20,
+                        ),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // 3. Email
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Email Address *',
+                      prefixIcon: const Icon(
+                        Icons.alternate_email_rounded,
+                        color: AppTheme.riderAmberDark,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // 4. Base Address
+                  TextField(
+                    controller: addressController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Residential / Base Address *',
+                      prefixIcon: const Icon(
+                        Icons.home_work_rounded,
+                        color: AppTheme.riderAmberDark,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // 5. Vehicle Registration Plate
+                  TextField(
+                    controller: plateController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'Vehicle Plate / Reg Number *',
+                      hintText: 'e.g. OD 05 AX 4921',
+                      prefixIcon: const Icon(
+                        Icons.numbers_rounded,
+                        color: AppTheme.riderAmberDark,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // 6. Emergency Contact
+                  TextField(
+                    controller: emergencyController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Emergency Contact Phone *',
+                      hintText: '+91 94370 12345',
+                      prefixIcon: const Icon(
+                        Icons.contact_phone_rounded,
+                        color: AppTheme.riderAmberDark,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.riderAmberDark,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final newName = nameController.text.trim();
+                      final newEmail = emailController.text.trim();
+                      final newAddress = addressController.text.trim();
+                      final newPlate = plateController.text.trim();
+                      final newEmergency = emergencyController.text.trim();
+
+                      if (newName.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter your full name.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Persist locally
+                      await _storage.write(
+                        key: 'rider_email_$userId',
+                        value: newEmail,
+                      );
+                      await _storage.write(
+                        key: 'rider_address_$userId',
+                        value: newAddress,
+                      );
+                      await _storage.write(
+                        key: 'rider_plate_$userId',
+                        value: newPlate,
+                      );
+                      await _storage.write(
+                        key: 'rider_emergency_$userId',
+                        value: newEmergency,
+                      );
+
+                      // Update auth profile display name
+                      await ref
+                          .read(authProvider.notifier)
+                          .updateProfile({'display_name': newName});
+
+                      Navigator.pop(modalCtx);
+                      await _load();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Rider profile details saved successfully.',
+                            ),
+                            backgroundColor: AppTheme.forest,
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text(
+                      'Save Rider Details',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color iconColor = AppTheme.riderAmberDark,
+    Color containerColor = AppTheme.riderAmberLight,
+    Widget? trailing,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: containerColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.secondaryText,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).user;
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Rider profile'),
         backgroundColor: Colors.white,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
-              child: ListView(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
-                children: [
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   if (_error != null)
                     Text(_error!, style: const TextStyle(color: Colors.red)),
+
+                  // 1. Hero Profile Card with Avatar & Edit Action
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.riderAmberBorder),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppTheme.riderAmberBorder,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.two_wheeler_rounded,
+                                  color: AppTheme.riderAmberDark,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _profile?['display_name']?.toString() ??
+                                        user?.displayName ??
+                                        'Rider Partner',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFF86EFAC),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          color: Color(0xFF16A34A),
+                                          size: 14,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Verified Partner',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF15803D),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.riderAmberDark,
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(
+                              color: AppTheme.riderAmberBorder,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            minimumSize: const Size.fromHeight(44),
+                          ),
+                          onPressed: _showEditRiderDetailsDialog,
+                          icon: const Icon(Icons.edit_rounded, size: 18),
+                          label: const Text(
+                            'Edit Rider Details',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 2. Personal & Contact Details Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.riderAmberBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Personal & Contact Details',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Identity, mobile, address and vehicle registration',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                        const Divider(height: 24),
+                        _buildDetailRow(
+                          icon: Icons.badge_rounded,
+                          label: 'Full Name',
+                          value:
+                              _profile?['display_name']?.toString() ??
+                              user?.displayName ??
+                              'Rider Partner',
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.phone_android_rounded,
+                          label: 'Registered Mobile',
+                          value: user?.phoneE164 ?? '+91 99900 00173',
+                          iconColor: AppTheme.forest,
+                          containerColor: const Color(0xFFE8F5E9),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'VERIFIED',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF15803D),
+                              ),
+                            ),
+                          ),
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.alternate_email_rounded,
+                          label: 'Email Address',
+                          value: _email ?? 'rider.partner@grepmind.near',
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.home_work_rounded,
+                          label: 'Base / Residential Address',
+                          value:
+                              _address ??
+                              'Flat 204, Netaji Subhash Road, Cuttack, Odisha',
+                          iconColor: const Color(0xFF4F46E5),
+                          containerColor: const Color(0xFFEEF2FF),
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.numbers_rounded,
+                          label: 'Vehicle Plate / Reg Number',
+                          value: _vehiclePlate ?? 'OD 05 AX 4921',
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.electric_moped_rounded,
+                          label: 'Vehicle Mode',
+                          value:
+                              (_profile?['vehicle_type']?.toString() ??
+                                      'two_wheeler')
+                                  .replaceAll('_', ' ')
+                                  .toUpperCase(),
+                        ),
+                        _buildDetailRow(
+                          icon: Icons.contact_phone_rounded,
+                          label: 'Emergency Contact',
+                          value: _emergencyPhone ?? '+91 94370 12345',
+                          iconColor: const Color(0xFFE11D48),
+                          containerColor: const Color(0xFFFFE4E6),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 3. Approved Service Localities
                   if (_profile != null)
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE1E8F0)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _profile!['display_name']?.toString() ?? '',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w800),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.riderAmberLight,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.map_rounded,
+                                  color: AppTheme.riderAmberDark,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Approved service localities',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Vehicle type · ${(_profile!['vehicle_type']?.toString() ?? '').replaceAll('_', ' ')}',
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Approved localities',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                          const SizedBox(height: 10),
                           for (final place
                               in (_profile!['approved_localities']
                                           as List<dynamic>? ??
-                                      [])
+                                      const [])
                                   .whereType<Map<String, dynamic>>())
                             ListTile(
                               contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.location_on_outlined),
-                              title: Text('${place['name']}'),
+                              leading: const Icon(
+                                Icons.location_on_rounded,
+                                color: AppTheme.riderAmberDark,
+                              ),
+                              title: Text(
+                                '${place['name']}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                               subtitle: Text('${place['district']}, Odisha'),
                             ),
                         ],
                       ),
                     ),
+
                   const SizedBox(height: 12),
                   const _PhaseNotice(
-                    title: 'Privacy',
-                    body: 'Your service locality access is controlled by Grepmind Admin. GPS and delivery availability are not active in this phase.',
+                    title: 'Privacy & Operational Security',
+                    body:
+                        'Your service locality access is controlled by Grepmind Admin. GPS tracking is not active in this phase and no real customer locations are shared outside assigned delivery scopes.',
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
@@ -1201,6 +2676,7 @@ class _RiderWorkspaceProfileScreenState
                 ],
               ),
             ),
+          ),
     );
   }
 
@@ -1372,7 +2848,14 @@ class _RemittanceSubmissionDialogState
         onPressed: () => Navigator.of(context).pop(),
         child: const Text('Cancel'),
       ),
-      FilledButton(onPressed: _submit, child: const Text('Submit')),
+      FilledButton(
+        onPressed: _submit,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.riderAmberDark,
+          foregroundColor: Colors.white,
+        ),
+        child: const Text('Submit'),
+      ),
     ],
   );
 }
@@ -1475,6 +2958,12 @@ class _RiderCashAccountabilityScreenState
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('Cash accountability'),
+      leading: Navigator.canPop(context)
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
       actions: [
         IconButton(
           onPressed: _busy ? null : _load,
@@ -1508,7 +2997,11 @@ class _RiderCashAccountabilityScreenState
                   ),
                 if (_summary != null) ...[
                   Card(
-                    color: const Color(0xFFF3F7FF),
+                    color: AppTheme.riderAmberLight,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: AppTheme.riderAmberBorder),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Column(
@@ -1519,6 +3012,7 @@ class _RiderCashAccountabilityScreenState
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               letterSpacing: .6,
+                              color: AppTheme.riderAmberDeep,
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -1552,6 +3046,13 @@ class _RiderCashAccountabilityScreenState
                     ),
                   ),
                   FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.riderAmberDark,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed:
                         _busy ||
                             ((_summary!['outstanding_liability_minor'] as num?)

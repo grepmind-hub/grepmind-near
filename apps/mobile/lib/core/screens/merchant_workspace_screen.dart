@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/merchant_catalog_screen.dart';
+import 'package:grepmind_mobile/core/screens/merchant_earnings_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
@@ -52,9 +53,20 @@ class _MerchantWorkspaceScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text('Merchant Workspace'),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: AppTheme.coral,
+          labelColor: AppTheme.coral,
+          unselectedLabelColor: AppTheme.secondaryText,
+          indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.dashboard_outlined), text: 'Dashboard'),
             Tab(icon: Icon(Icons.request_quote_outlined), text: 'Requests'),
@@ -129,12 +141,13 @@ class _MerchantWorkspaceScreenState
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryContainer,
+                    color: AppTheme.merchantCoralLight,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.merchantCoralBorder),
                   ),
                   child: const Icon(
                     Icons.store_outlined,
-                    color: AppTheme.primary,
+                    color: AppTheme.coral,
                     size: 32,
                   ),
                 ),
@@ -192,8 +205,8 @@ class _MerchantWorkspaceScreenState
                 child: _statCard(
                   'Completed',
                   completedCount.toString(),
-                  AppTheme.primary,
-                  AppTheme.primaryContainer,
+                  AppTheme.coral,
+                  AppTheme.merchantCoralLight,
                 ),
               ),
             ],
@@ -212,7 +225,7 @@ class _MerchantWorkspaceScreenState
                       ? analytics.profileViews30d
                       : null,
                   icon: Icons.storefront_outlined,
-                  color: AppTheme.primary,
+                  color: AppTheme.coral,
                 ),
               ),
               const SizedBox(width: 12),
@@ -225,7 +238,7 @@ class _MerchantWorkspaceScreenState
                       ? analytics.productCatalogViews30d
                       : null,
                   icon: Icons.inventory_2_outlined,
-                  color: AppTheme.secondary,
+                  color: AppTheme.coralDark,
                 ),
               ),
             ],
@@ -255,7 +268,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.request_quote,
                   'View Requests',
-                  AppTheme.primary,
+                  AppTheme.coral,
                   () => _tabController.animateTo(1),
                   key: const Key('merchant_view_requests'),
                 ),
@@ -265,7 +278,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.edit_outlined,
                   'Edit Profile',
-                  AppTheme.secondary,
+                  AppTheme.coral,
                   () => _tabController.animateTo(2),
                   key: const Key('merchant_edit_profile'),
                 ),
@@ -279,7 +292,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.inventory_2_outlined,
                   'Manage Catalog',
-                  const Color(0xFF0F766E),
+                  AppTheme.coral,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -293,7 +306,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.add_circle_outline,
                   '+ Add Item',
-                  const Color(0xFF2457D6),
+                  AppTheme.coral,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -311,7 +324,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.schedule,
                   'Hours & Coverage',
-                  const Color(0xFFD97706),
+                  AppTheme.coral,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -325,13 +338,47 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.radar,
                   'Service Radius',
-                  const Color(0xFF7C3AED),
+                  AppTheme.coral,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const MerchantHoursCoverageScreen(),
                     ),
                   ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _actionButton(
+                  Icons.payments_outlined,
+                  'Earnings & Payouts',
+                  AppTheme.coral,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantEarningsScreen(),
+                    ),
+                  ),
+                  key: const Key('merchant_earnings_action'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _actionButton(
+                  Icons.account_balance_outlined,
+                  'Bank Beneficiary',
+                  AppTheme.coral,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MerchantEarningsScreen(),
+                    ),
+                  ),
+                  key: const Key('merchant_beneficiary_action'),
                 ),
               ),
             ],
@@ -538,6 +585,13 @@ class _MerchantWorkspaceScreenState
               child: ElevatedButton.icon(
                 key: const Key('merchant_edit_business_profile'),
                 icon: const Icon(Icons.edit_outlined),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.coral,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
                 onPressed: () => _showEditProfileDialog(profile),
                 label: const Text('Edit Business Profile'),
               ),
@@ -558,10 +612,10 @@ class _MerchantWorkspaceScreenState
               icon: const Icon(Icons.schedule),
               label: const Text('Operating Hours & Service Coverage'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-                side: const BorderSide(color: AppTheme.primary, width: 1.5),
+                foregroundColor: AppTheme.coral,
+                side: const BorderSide(color: AppTheme.coral, width: 1.5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
               onPressed: () => Navigator.push(
@@ -900,6 +954,13 @@ class _MerchantWorkspaceScreenState
                 Expanded(
                   child: ElevatedButton.icon(
                     key: Key('merchant_complete_request_${r.id}'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.coral,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: () => _updateRequest(r.id, 'completed'),
                     icon: const Icon(Icons.check_rounded),
                     label: const Text('Mark complete'),
@@ -1116,6 +1177,12 @@ class _MerchantWorkspaceScreenState
                     width: double.infinity,
                     child: FilledButton(
                       key: const Key('merchant_reschedule_confirm'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.coral,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       onPressed: selectedSlotId == null
                           ? null
                           : () => Navigator.of(sheetContext).pop(
@@ -1286,7 +1353,7 @@ class _MerchantWorkspaceScreenState
             if (isNotFound)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.coral,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -1310,7 +1377,7 @@ class _MerchantWorkspaceScreenState
             else if (isAuthError)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.coral,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -1329,7 +1396,7 @@ class _MerchantWorkspaceScreenState
             else
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.coral,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -1609,6 +1676,12 @@ class _MerchantProfileEditDialogState
         ),
         FilledButton.icon(
           key: const Key('merchant_save_profile'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppTheme.coral,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           onPressed: _isSaving || _isUploading ? null : _save,
           icon: _isSaving
               ? const SizedBox(

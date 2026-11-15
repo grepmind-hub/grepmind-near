@@ -1,0 +1,145 @@
+{
+  "Run": "validation-8955b62e-513f-4acd-b38d-9eea58437842",
+  "Records": [
+    {
+      "id": "12e2a9f7-b503-4ac2-b008-3086cda6bcc9",
+      "type": "products",
+      "city": "Cuttack",
+      "business_id": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "name": "Sample \u00b7 Premium Sona Masoori Rice \u2014 5 kg"
+    },
+    {
+      "id": "84e57721-a0b0-4207-adc2-10ea4dfae43c",
+      "type": "products",
+      "city": "Cuttack",
+      "business_id": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "name": "Sample \u00b7 Cold-Pressed Mustard Oil \u2014 1 L"
+    },
+    {
+      "id": "598a67c1-a4e1-4aed-affb-919fabcf57ea",
+      "type": "products",
+      "city": "Cuttack",
+      "business_id": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "name": "Sample \u00b7 Organic Toor Dal \u2014 1 kg"
+    },
+    {
+      "id": "5a8aff59-b5c2-4886-b539-6f4c23ed74c1",
+      "type": "products",
+      "city": "Cuttack",
+      "business_id": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "name": "Sample \u00b7 Farm Fresh Cow Ghee \u2014 500 ml"
+    },
+    {
+      "id": "8c43ae4d-c684-46ef-81a5-16c1ee04cf51",
+      "type": "products",
+      "city": "Cuttack",
+      "business_id": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "name": "Sample \u00b7 Whole Cashew Nuts \u2014 250 g"
+    },
+    {
+      "id": "15396bbf-bfde-45f0-acaa-0a42d70696f0",
+      "type": "services",
+      "city": "Cuttack",
+      "business_id": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "name": "Sample \u00b7 Tap and Pipe Leak Repair"
+    },
+    {
+      "id": "5d4f9cc5-cb6b-4b68-bbc5-932f689c9477",
+      "type": "services",
+      "city": "Cuttack",
+      "business_id": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "name": "Sample \u00b7 Bathroom Fixture Installation"
+    },
+    {
+      "id": "37fbcf8a-d4e9-4d1d-9252-00ac06899d7a",
+      "type": "services",
+      "city": "Cuttack",
+      "business_id": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "name": "Sample \u00b7 Drain Blockage Clearing"
+    },
+    {
+      "id": "5304c0e1-cacf-4f4d-a841-9052635e73f3",
+      "type": "services",
+      "city": "Cuttack",
+      "business_id": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "name": "Sample \u00b7 Overhead Water Tank Cleaning"
+    },
+    {
+      "id": "ee769e58-de15-4628-8a21-7cef6c0095e9",
+      "type": "services",
+      "city": "Cuttack",
+      "business_id": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "name": "Sample \u00b7 Emergency Plumbing Visit"
+    },
+    {
+      "id": "7a04b0b6-f744-41f8-8b6f-9010f66ddfc5",
+      "type": "products",
+      "city": "Jajpur",
+      "business_id": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "name": "Sample \u00b7 Premium Sona Masoori Rice \u2014 5 kg"
+    },
+    {
+      "id": "3f38d0a7-07be-4498-9e56-0a322ff3cc63",
+      "type": "products",
+      "city": "Jajpur",
+      "business_id": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "name": "Sample \u00b7 Cold-Pressed Mustard Oil \u2014 1 L"
+    },
+    {
+      "id": "e6f5222d-cfbb-498d-97be-787c1dd24a40",
+      "type": "products",
+      "city": "Jajpur",
+      "business_id": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "name": "Sample \u00b7 Organic Toor Dal \u2014 1 kg"
+    },
+    {
+      "id": "050a0eba-e235-4b1f-bbea-6631a8938485",
+      "type": "products",
+      "city": "Jajpur",
+      "business_id": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "name": "Sample \u00b7 Farm Fresh Cow Ghee \u2014 500 ml"
+    },
+    {
+      "id": "fbe8cd6e-2507-4bc8-9ce4-2018f6552e68",
+      "type": "products",
+      "city": "Jajpur",
+      "business_id": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "name": "Sample \u00b7 Whole Cashew Nuts \u2014 250 g"
+    },
+    {
+      "id": "8505fe25-8e90-4403-b08b-d7adf7b65a32",
+      "type": "services",
+      "city": "Jajpur",
+      "business_id": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "name": "Sample \u00b7 Tap and Pipe Leak Repair"
+    },
+    {
+      "id": "bef57104-9fa6-4cee-9023-2a7e988e9949",
+      "type": "services",
+      "city": "Jajpur",
+      "business_id": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "name": "Sample \u00b7 Bathroom Fixture Installation"
+    },
+    {
+      "id": "5841cf19-b9c7-427a-a51b-41edfaaea9bd",
+      "type": "services",
+      "city": "Jajpur",
+      "business_id": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "name": "Sample \u00b7 Drain Blockage Clearing"
+    },
+    {
+      "id": "b221cd46-e1e7-46bc-ac4e-d60d28117a0b",
+      "type": "services",
+      "city": "Jajpur",
+      "business_id": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "name": "Sample \u00b7 Overhead Water Tank Cleaning"
+    },
+    {
+      "id": "c41af8ff-2bd9-47ee-92dd-25470ecc9fbc",
+      "type": "services",
+      "city": "Jajpur",
+      "business_id": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "name": "Sample \u00b7 Emergency Plumbing Visit"
+    }
+  ]
+}

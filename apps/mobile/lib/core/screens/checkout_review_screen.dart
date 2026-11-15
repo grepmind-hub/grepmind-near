@@ -454,6 +454,14 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.emerald,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              minimumSize: const Size.fromHeight(52),
+            ),
             onPressed: _quote == null || _quoting || _submitting
                 ? null
                 : _submit,

@@ -41,11 +41,11 @@ class SplashScreen extends StatelessWidget {
                           width: 54,
                           height: 54,
                           decoration: BoxDecoration(
-                            color: AppTheme.primary,
+                            color: AppTheme.emerald,
                             borderRadius: BorderRadius.circular(17),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primary.withValues(alpha: 0.18),
+                                color: AppTheme.emerald.withValues(alpha: 0.25),
                                 blurRadius: 22,
                                 offset: const Offset(0, 8),
                               ),
@@ -62,7 +62,7 @@ class SplashScreen extends StatelessWidget {
                           'GREPMIND NEAR',
                           style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(
-                                color: AppTheme.primary,
+                                color: AppTheme.emerald,
                                 letterSpacing: 1.4,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -99,7 +99,7 @@ class SplashScreen extends StatelessWidget {
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: AppTheme.primary,
+                            color: AppTheme.emerald,
                           ),
                         ),
                       ],

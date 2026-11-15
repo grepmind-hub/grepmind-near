@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';

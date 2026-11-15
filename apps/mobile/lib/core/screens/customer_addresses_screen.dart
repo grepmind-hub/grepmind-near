@@ -102,14 +102,27 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppTheme.background,
     appBar: AppBar(
+      leading: Navigator.canPop(context)
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          : null,
       title: Text(
         widget.selectAddress ? 'Delivery address' : 'Saved addresses',
       ),
     ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _edit(),
-      icon: const Icon(Icons.add),
-      label: const Text('Add address'),
+      backgroundColor: AppTheme.emerald,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      icon: const Icon(Icons.add_location_alt_outlined),
+      label: const Text(
+        'Add address',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
     ),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
@@ -119,8 +132,16 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(_error!),
-                TextButton.icon(
+                const SizedBox(height: 12),
+                FilledButton.icon(
                   onPressed: _load,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.emerald,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Retry'),
                 ),
@@ -128,12 +149,60 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
             ),
           )
         : _addresses.isEmpty
-        ? const Center(
+        ? Center(
             child: Padding(
-              padding: EdgeInsets.all(28),
-              child: Text(
-                'No saved addresses yet. Add one to continue to delivery checkout.',
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFECFDF5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.location_off_outlined,
+                      size: 40,
+                      color: AppTheme.emerald,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No saved addresses yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Add a delivery address to continue to quick checkout.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.secondaryText),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () => _edit(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.emerald,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text(
+                      'Add address',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
               ),
             ),
           )

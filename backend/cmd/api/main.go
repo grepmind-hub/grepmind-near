@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +30,7 @@ import (
 	"grepmind-near/backend/internal/notifications"
 	"grepmind-near/backend/internal/operations"
 	"grepmind-near/backend/internal/payments"
+	"grepmind-near/backend/internal/payouts"
 	"grepmind-near/backend/internal/platformcatalog"
 	"grepmind-near/backend/internal/platformcommerce"
 	"grepmind-near/backend/internal/platformfulfillment"
@@ -156,6 +158,13 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	catalogSvc := platformcatalog.NewService(authSvc.DB())
 	merchantFinanceSvc := merchantfinance.NewService(authSvc.DB(), config.Load().Env)
 	financeAccessSvc := financialaccess.NewService(authSvc.DB(), config.Load().Env)
+	var payoutProvider payouts.PayoutProvider
+	if config.Load().Env == "qa" || config.Load().Env == "test" {
+		payoutProvider = payouts.NewIsolatedQAPayoutProvider([]byte(os.Getenv("PAYOUT_SANDBOX_WEBHOOK_SECRET")))
+	} else {
+		payoutProvider = payouts.NewDisabledProductionProvider("production payouts disabled")
+	}
+	payoutSvc := payouts.NewService(authSvc.DB(), payoutProvider, config.Load().Env)
 	riderSvc, riderSvcErr := riders.NewService(authSvc.DB(), config.Load())
 	var dispatchSvc *deliverydispatch.Service
 	var earningsSvc *riderearnings.Service
@@ -698,6 +707,100 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/finance/settlements", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		merchantFinanceSvc.MerchantSettlements(w, r, uid, r.PathValue("businessId"))
 	}))
+
+	// Bank Beneficiaries
+	mux.HandleFunc("POST /api/v1/merchant/businesses/{businessId}/bank-beneficiary", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		payoutSvc.RegisterMerchantBeneficiary(w, r, uid, r.PathValue("businessId"))
+	}))
+	mux.HandleFunc("GET /api/v1/merchant/businesses/{businessId}/bank-beneficiary", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
+		payoutSvc.GetMerchantBeneficiary(w, r, r.PathValue("businessId"))
+	}))
+	mux.HandleFunc("POST /api/v1/rider/bank-beneficiary", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		payoutSvc.RegisterRiderBeneficiary(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/rider/bank-beneficiary", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		payoutSvc.GetRiderBeneficiary(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/beneficiaries/{id}/verify", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		payoutSvc.VerifyBeneficiary(w, r, uid, r.PathValue("id"))
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/beneficiaries/{id}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
+		payoutSvc.GetBeneficiary(w, r, r.PathValue("id"))
+	}))
+
+	// Payout Transfers & Settlement Execution
+	mux.HandleFunc("POST /api/v1/admin/finance/settlements/{batchId}/payout-transfer", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		transferID, err := payoutSvc.CreatePayoutTransfer(r.Context(), "merchant_settlement", r.PathValue("batchId"), uid)
+		if err != nil {
+			writeError(w, 400, "TRANSFER_CREATION_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 201, map[string]string{"transfer_id": transferID, "status": "ready"})
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/riders/{riderId}/settlement-batches", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		var req payouts.CreateRiderSettlementRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		batch, err := payoutSvc.CreateRiderSettlementBatch(r.Context(), r.PathValue("riderId"), req.PeriodStart, req.PeriodEnd, uid)
+		if err != nil {
+			writeError(w, 400, "BATCH_CREATION_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 201, batch)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/rider-settlements/{batchId}/approve", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		var in struct{ Reason string `json:"reason"` }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if err := payoutSvc.ApproveRiderSettlementBatch(r.Context(), r.PathValue("batchId"), uid, in.Reason); err != nil {
+			writeError(w, 400, "APPROVAL_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 200, map[string]string{"status": "approved"})
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/rider-settlements/{batchId}/payout-transfer", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		transferID, err := payoutSvc.CreatePayoutTransfer(r.Context(), "rider_earnings", r.PathValue("batchId"), uid)
+		if err != nil {
+			writeError(w, 400, "TRANSFER_CREATION_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 201, map[string]string{"transfer_id": transferID, "status": "ready"})
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/payout-transfers/{transferId}/approve", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		var in struct{ Reason string `json:"reason"` }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if err := payoutSvc.ApprovePayoutTransfer(r.Context(), r.PathValue("transferId"), uid, in.Reason); err != nil {
+			writeError(w, 400, "APPROVAL_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 200, map[string]string{"status": "approved"})
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/payout-transfers/{transferId}/execute", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		res, err := payoutSvc.ExecutePayoutTransfer(r.Context(), r.PathValue("transferId"), uid)
+		if err != nil {
+			if errors.Is(err, payouts.ErrProviderTimeout) {
+				writeError(w, 504, "PROVIDER_TIMEOUT", err.Error())
+				return
+			}
+			writeError(w, 400, "EXECUTION_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 200, res)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/finance/payout-transfers/{transferId}/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		res, err := payoutSvc.ReconcileTransfer(r.Context(), r.PathValue("transferId"), uid)
+		if err != nil {
+			writeError(w, 400, "RECONCILIATION_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 200, res)
+	}))
+	mux.HandleFunc("POST /api/v1/payouts/webhooks/grepmind_qa_payout", func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if err := payoutSvc.ProcessWebhook(r.Context(), r.Header, body); err != nil {
+			writeError(w, 400, "WEBHOOK_FAILED", err.Error())
+			return
+		}
+		writeJSON(w, 200, map[string]string{"status": "processed"})
+	})
 	mux.HandleFunc("GET /api/v1/customer/addresses", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		opsSvc.ListCustomerAddresses(w, r, userID)
 	}))

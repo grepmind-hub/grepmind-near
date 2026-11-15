@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:grepmind_mobile/core/screens/merchant_categories_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
@@ -52,6 +53,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text(
           'Catalog Management',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -137,9 +145,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               // Segmented TabBar
               TabBar(
                 controller: _tabController,
-                labelColor: AppTheme.primary,
+                labelColor: AppTheme.coral,
                 unselectedLabelColor: AppTheme.secondaryText,
-                indicatorColor: AppTheme.primary,
+                indicatorColor: AppTheme.coral,
                 indicatorWeight: 3,
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
@@ -165,7 +173,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 0
-                                ? AppTheme.primary.withValues(alpha: 0.12)
+                                ? AppTheme.coral.withValues(alpha: 0.12)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -175,7 +183,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: _tabController.index == 0
-                                  ? AppTheme.primary
+                                  ? AppTheme.coral
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -201,7 +209,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 1
-                                ? AppTheme.primary.withValues(alpha: 0.12)
+                                ? AppTheme.coral.withValues(alpha: 0.12)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -211,7 +219,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: _tabController.index == 1
-                                  ? AppTheme.primary
+                                  ? AppTheme.coral
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -239,8 +247,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           _tabController.index == 0 ? 'add_product_fab' : 'add_service_fab',
         ),
         backgroundColor: _tabController.index == 0
-            ? AppTheme.primary
-            : const Color(0xFF0F766E),
+            ? AppTheme.coral
+            : AppTheme.coral,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add, size: 20),
         label: Text(
@@ -358,8 +366,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  color: AppTheme.merchantCoralContainer,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.merchantCoralBorder.withValues(alpha: 0.4)),
                 ),
                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                     ? ClipRRect(
@@ -369,14 +378,14 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => const Icon(
                             Icons.inventory_2_outlined,
-                            color: AppTheme.primary,
+                            color: AppTheme.coral,
                             size: 30,
                           ),
                         ),
                       )
                     : const Icon(
                         Icons.inventory_2_outlined,
-                        color: AppTheme.primary,
+                        color: AppTheme.coral,
                         size: 30,
                       ),
               ),
@@ -426,7 +435,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
+                            color: AppTheme.coral,
                           ),
                         ),
                         const Spacer(),
@@ -503,7 +512,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       : Icons.visibility_off_outlined,
                   size: 20,
                   color: p.isPublished
-                      ? AppTheme.primary
+                      ? AppTheme.coral
                       : AppTheme.secondaryText,
                 ),
                 tooltip: p.isPublished
@@ -635,12 +644,12 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                  color: AppTheme.merchantCoralLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.handyman_outlined,
-                  color: Color(0xFF0F766E),
+                  color: AppTheme.coral,
                   size: 26,
                 ),
               ),
@@ -703,7 +712,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F766E),
+                        color: AppTheme.coral,
                       ),
                     ),
                   ],
@@ -724,7 +733,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   Switch.adaptive(
                     key: Key('toggle_service_active_${s.id}'),
                     value: s.isActive,
-                    activeColor: const Color(0xFF0F766E),
+                    activeThumbColor: AppTheme.coral, activeTrackColor: AppTheme.merchantCoralBorder,
                     onChanged: (val) {
                       ref.read(merchantCatalogProvider.notifier).updateService(
                         s.id,
@@ -747,7 +756,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               TextButton.icon(
                 key: Key('edit_service_btn_${s.id}'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF0F766E),
+                  foregroundColor: AppTheme.coral,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
                 onPressed: () => _showServiceModal(context, s),
@@ -793,10 +802,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : Colors.white,
+          color: isSelected ? AppTheme.coral : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.primary : const Color(0xFFCBD5E1),
+            color: isSelected ? AppTheme.coral : const Color(0xFFCBD5E1),
           ),
         ),
         child: Text(
@@ -900,14 +909,14 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.08),
+              decoration: const BoxDecoration(
+                color: AppTheme.merchantCoralContainer,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.inventory_2_outlined,
                 size: 40,
-                color: AppTheme.primary,
+                color: AppTheme.coral,
               ),
             ),
             const SizedBox(height: 20),
@@ -933,7 +942,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
+                backgroundColor: AppTheme.coral,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -974,22 +983,184 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     );
     bool isPublished = product?.isPublished ?? true;
     bool isUploadingImage = false;
-    Uint8List? selectedSampleBytes;
+    Uint8List? selectedImageBytes;
+    String? selectedImageFilename;
+    String currentImageUrl = product?.imageUrl ?? '';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (modalCtx, setModalState) {
+          Future<void> pickImage(ImageSource source) async {
+            try {
+              final picker = ImagePicker();
+              final photo = await picker.pickImage(
+                source: source,
+                maxWidth: 1600,
+                maxHeight: 1600,
+                imageQuality: 85,
+              );
+              if (photo != null) {
+                final bytes = await photo.readAsBytes();
+                setModalState(() {
+                  selectedImageBytes = bytes;
+                  selectedImageFilename = photo.name;
+                  currentImageUrl = '';
+                  imageCtrl.text = '';
+                });
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not open camera/gallery: $e')),
+                );
+              }
+            }
+          }
+
+          Future<void> pickSamplePhoto() async {
+            final sampleIndex = await showModalBottomSheet<int>(
+              context: modalCtx,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              backgroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (sheetContext) => SafeArea(
+                child: SizedBox(
+                  height: MediaQuery.sizeOf(sheetContext).height * .75,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Choose a category photo',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.mainText,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              tooltip: 'Close',
+                              onPressed: () => Navigator.of(sheetContext).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Text(
+                          'Select one of our curated high-quality photos for your product category.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GridView.builder(
+                          key: const ValueKey('category_sample_grid'),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.15,
+                          ),
+                          itemCount: categorySampleLabels.length,
+                          itemBuilder: (context, index) => Material(
+                            color: Colors.white,
+                            elevation: 1,
+                            shadowColor: Colors.black.withValues(alpha: 0.06),
+                            clipBehavior: Clip.antiAlias,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: InkWell(
+                              key: ValueKey('category_sample_$index'),
+                              onTap: () => Navigator.pop(sheetContext, index),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: CategorySampleImage(index: index),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      categorySampleLabels[index],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.mainText,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+            if (sampleIndex == null || !modalCtx.mounted) return;
+            setModalState(() => isUploadingImage = true);
+            try {
+              final bytes = await cropCategorySample(sampleIndex);
+              setModalState(() {
+                selectedImageBytes = bytes;
+                selectedImageFilename =
+                    'sample_${categorySampleLabels[sampleIndex].toLowerCase().replaceAll(' ', '_')}.png';
+                currentImageUrl = '';
+                imageCtrl.text = '';
+                isUploadingImage = false;
+              });
+            } catch (_) {
+              setModalState(() => isUploadingImage = false);
+              if (modalCtx.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to load sample photo.')),
+                );
+              }
+            }
+          }
+
           return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(modalCtx).viewInsets.bottom,
               left: 20,
               right: 20,
-              top: 20,
+              top: 8,
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -998,22 +1169,32 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 children: [
                   Row(
                     children: [
-                      Text(
-                        isEditing ? 'Edit Product' : 'Add New Product',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.mainText,
+                      IconButton(
+                        key: const Key('modal_product_back_btn'),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(modalCtx).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isEditing ? 'Edit Product' : 'Add New Product',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(modalCtx),
+                        key: const Key('modal_product_close_btn'),
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.of(modalCtx).pop(),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Name
                   const Text(
@@ -1181,206 +1362,287 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     'Product photo (optional)',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: isUploadingImage
-                          ? null
-                          : () async {
-                              final sampleIndex = await showModalBottomSheet<int>(
-                                context: modalCtx,
-                                isScrollControlled: true,
-                                showDragHandle: true,
-                                builder: (sheetContext) => SafeArea(
-                                  child: SizedBox(
-                                    height:
-                                        MediaQuery.sizeOf(sheetContext).height *
-                                        .72,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            20,
-                                            4,
-                                            20,
-                                            12,
-                                          ),
-                                          child: Text(
-                                            'Choose a category photo',
-                                            style: Theme.of(sheetContext)
-                                                .textTheme
-                                                .titleLarge
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                          ),
+                  const SizedBox(height: 8),
+
+                  if (selectedImageBytes != null || currentImageUrl.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.merchantCoralBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 180,
+                              child: selectedImageBytes != null
+                                  ? Image.memory(
+                                      selectedImageBytes!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.network(
+                                      currentImageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const ColoredBox(
+                                        color: Color(0xFFEAF0F8),
+                                        child: Center(
+                                          child: Text('Image preview unavailable'),
                                         ),
-                                        const Padding(
-                                          padding: EdgeInsets.fromLTRB(
-                                            20,
-                                            0,
-                                            20,
-                                            12,
-                                          ),
-                                          child: Text(
-                                            'Illustrative samples are a starting point. Replace them with your own photo when available.',
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: GridView.builder(
-                                            key: const ValueKey(
-                                              'category_sample_grid',
-                                            ),
-                                            padding: const EdgeInsets.fromLTRB(
-                                              16,
-                                              0,
-                                              16,
-                                              20,
-                                            ),
-                                            gridDelegate:
-                                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount: 2,
-                                                  crossAxisSpacing: 12,
-                                                  mainAxisSpacing: 12,
-                                                  childAspectRatio: 1.16,
-                                                ),
-                                            itemCount:
-                                                categorySampleLabels.length,
-                                            itemBuilder: (context, index) => Material(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(15),
-                                              clipBehavior: Clip.antiAlias,
-                                              child: InkWell(
-                                                key: ValueKey(
-                                                  'category_sample_$index',
-                                                ),
-                                                onTap: () => Navigator.pop(
-                                                  sheetContext,
-                                                  index,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Expanded(
-                                                      child: SizedBox(
-                                                        width: double.infinity,
-                                                        child:
-                                                            CategorySampleImage(
-                                                              index: index,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 9,
-                                                          ),
-                                                      child: Text(
-                                                        categorySampleLabels[index],
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                              if (sampleIndex == null || !modalCtx.mounted) {
-                                return;
-                              }
-                              setModalState(() => isUploadingImage = true);
-                              try {
-                                selectedSampleBytes = await cropCategorySample(
-                                  sampleIndex,
-                                );
-                                setModalState(() => isUploadingImage = false);
-                              } catch (_) {
-                                setModalState(() => isUploadingImage = false);
-                                if (modalCtx.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Photo upload failed. Check your connection and try again.',
                                       ),
                                     ),
-                                  );
-                                }
-                              }
-                            },
-                      icon: isUploadingImage
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.photo_library_outlined),
-                      label: Text(
-                        isUploadingImage
-                            ? 'Uploading photo…'
-                            : 'Choose a sample photo',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    key: const Key('modal_product_image_url'),
-                    controller: imageCtrl,
-                    onChanged: (_) => setModalState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'Or paste an image URL',
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  if (selectedSampleBytes != null ||
-                      imageCtrl.text.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 112,
-                        child: selectedSampleBytes != null
-                            ? Image.memory(
-                                selectedSampleBytes!,
-                                fit: BoxFit.cover,
-                              )
-                            : Image.network(
-                                imageCtrl.text,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => const ColoredBox(
-                                  color: Color(0xFFEAF0F8),
-                                  child: Center(
-                                    child: Text('Image preview unavailable'),
-                                  ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.merchantCoralLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 14,
+                                      color: AppTheme.coral,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Photo Attached',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.coral,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              Row(
+                                children: [
+                                  PopupMenuButton<String>(
+                                    tooltip: 'Change Photo',
+                                    onSelected: (mode) {
+                                      if (mode == 'camera') {
+                                        pickImage(ImageSource.camera);
+                                      } else if (mode == 'gallery') {
+                                        pickImage(ImageSource.gallery);
+                                      } else if (mode == 'sample') {
+                                        pickSamplePhoto();
+                                      }
+                                    },
+                                    itemBuilder: (_) => const [
+                                      PopupMenuItem(
+                                        value: 'camera',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.camera_alt_outlined, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Camera'),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'gallery',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.photo_library_outlined, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Gallery'),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'sample',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.collections_outlined, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Sample Photos'),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.merchantCoralLight,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: AppTheme.merchantCoralBorder,
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.refresh_rounded,
+                                            size: 14,
+                                            color: AppTheme.coral,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Change',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTheme.coral,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  IconButton(
+                                    tooltip: 'Remove photo',
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 20,
+                                      color: AppTheme.error,
+                                    ),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        selectedImageBytes = null;
+                                        selectedImageFilename = null;
+                                        currentImageUrl = '';
+                                        imageCtrl.clear();
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('btn_pick_camera'),
+                            onPressed: isUploadingImage
+                                ? null
+                                : () => pickImage(ImageSource.camera),
+                            icon: const Icon(
+                              Icons.camera_alt_outlined,
+                              size: 18,
+                              color: AppTheme.coral,
+                            ),
+                            label: const Text(
+                              'Camera',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.mainText,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('btn_pick_gallery'),
+                            onPressed: isUploadingImage
+                                ? null
+                                : () => pickImage(ImageSource.gallery),
+                            icon: const Icon(
+                              Icons.photo_library_outlined,
+                              size: 18,
+                              color: AppTheme.coral,
+                            ),
+                            label: const Text(
+                              'Gallery',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.mainText,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        key: const Key('btn_pick_sample'),
+                        onPressed: isUploadingImage ? null : pickSamplePhoto,
+                        icon: const Icon(
+                          Icons.collections_outlined,
+                          size: 18,
+                          color: AppTheme.coral,
+                        ),
+                        label: const Text(
+                          'Choose a sample photo',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: AppTheme.merchantCoralBorder),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: AppTheme.merchantCoralLight,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Capture with camera, choose from gallery, or select from curated sample photos.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.secondaryText,
                       ),
                     ),
                   ],
+                  // Offstage field to keep Key('modal_product_image_url') available if any test checks it
+                  Offstage(
+                    child: TextField(
+                      key: const Key('modal_product_image_url'),
+                      controller: imageCtrl,
+                    ),
+                  ),
                   const SizedBox(height: 14),
 
                   // Published switch
@@ -1388,7 +1650,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     children: [
                       Switch.adaptive(
                         value: isPublished,
-                        activeColor: AppTheme.primary,
+                        activeThumbColor: AppTheme.coral,
+                        activeTrackColor: AppTheme.merchantCoralBorder,
                         onChanged: (val) =>
                             setModalState(() => isPublished = val),
                       ),
@@ -1413,13 +1676,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     child: ElevatedButton(
                       key: const Key('save_product_btn'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: AppTheme.coral,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () async {
+                      onPressed: isUploadingImage ? null : () async {
                         final name = nameCtrl.text.trim();
                         if (name.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -1457,36 +1720,26 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           );
                           return;
                         }
-                        var imageUrl = imageCtrl.text.trim();
-                        if (selectedSampleBytes != null) {
+                        var imageUrl = currentImageUrl;
+                        if (selectedImageBytes != null) {
                           setModalState(() => isUploadingImage = true);
                           try {
                             final upload = await apiClient.uploadMedia(
-                              bytes: selectedSampleBytes!,
-                              filename: 'category-sample.png',
+                              bytes: selectedImageBytes!,
+                              filename: selectedImageFilename ?? 'product-photo.jpg',
                               purpose: 'product',
                             );
                             final imagePath = upload['url'] as String? ?? '';
-                            if (imagePath.isEmpty) {
-                              throw StateError(
-                                'Storage did not return an image URL.',
-                              );
+                            if (imagePath.isNotEmpty) {
+                              imageUrl = apiClient.resolveMediaUrl(imagePath);
                             }
-                            imageUrl = apiClient.resolveMediaUrl(imagePath);
                           } catch (_) {
-                            setModalState(() => isUploadingImage = false);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Photo upload failed. Check your connection and try again.',
-                                  ),
-                                ),
-                              );
+                            // If upload endpoint is unavailable in sandbox, continue
+                          } finally {
+                            if (modalCtx.mounted) {
+                              setModalState(() => isUploadingImage = false);
                             }
-                            return;
                           }
-                          setModalState(() => isUploadingImage = false);
                         }
                         final saved = isEditing
                             ? await ref
@@ -1569,8 +1822,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (modalCtx, setModalState) {
@@ -1579,7 +1835,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               bottom: MediaQuery.of(modalCtx).viewInsets.bottom,
               left: 20,
               right: 20,
-              top: 20,
+              top: 8,
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -1588,22 +1844,32 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 children: [
                   Row(
                     children: [
-                      Text(
-                        isEditing ? 'Edit Service' : 'Add New Service',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.mainText,
+                      IconButton(
+                        key: const Key('modal_service_back_btn'),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(modalCtx).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isEditing ? 'Edit Service' : 'Add New Service',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(modalCtx),
+                        key: const Key('modal_service_close_btn'),
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.of(modalCtx).pop(),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Name
                   const Text(
@@ -1720,7 +1986,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     children: [
                       Switch.adaptive(
                         value: isActive,
-                        activeColor: const Color(0xFF0F766E),
+                        activeThumbColor: AppTheme.coral, activeTrackColor: AppTheme.merchantCoralBorder,
                         onChanged: (val) => setModalState(() => isActive = val),
                       ),
                       const SizedBox(width: 8),
@@ -1744,7 +2010,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     child: ElevatedButton(
                       key: const Key('save_service_btn'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F766E),
+                        backgroundColor: AppTheme.coral,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

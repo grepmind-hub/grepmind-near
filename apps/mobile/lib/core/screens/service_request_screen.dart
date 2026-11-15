@@ -168,7 +168,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
             Material(
               color: Colors.transparent,
               child: ListTile(
-                leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.primary),
+                leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.emerald),
                 title: const Text('Preferred date & time'),
                 subtitle: Text(
                   _requestedFor == null ? 'Select when you need the service' : _requestedFor.toString(),
@@ -191,6 +191,13 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.emerald,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 onPressed: _isLoading ? null : _submit,
                 child: _isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))

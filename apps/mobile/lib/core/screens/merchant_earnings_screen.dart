@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/models/merchant_finance.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/merchant_finance_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/luxe_components.dart';
 
 class MerchantEarningsScreen extends ConsumerStatefulWidget {
   const MerchantEarningsScreen({super.key, this.businessId});
@@ -196,6 +198,8 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
               style: TextStyle(color: Colors.blueGrey.shade600, fontSize: 12),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 16),
+            _MerchantBeneficiarySection(businessId: widget.businessId),
           ],
         ],
       ),
@@ -276,11 +280,25 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
     ],
   );
 
-  Widget _filterChip(String label, int? days) => ChoiceChip(
-    label: Text(label),
-    selected: _historyDays == days,
-    onSelected: (_) => setState(() => _historyDays = days),
-  );
+  Widget _filterChip(String label, int? days) {
+    final isSelected = _historyDays == days;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : AppTheme.mainText,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: AppTheme.coral,
+      backgroundColor: Colors.white,
+      side: BorderSide(
+        color: isSelected ? AppTheme.coral : AppTheme.border,
+      ),
+      onSelected: (_) => setState(() => _historyDays = days),
+    );
+  }
 
   List<MerchantPayableRecord> _filterPayables(
     List<MerchantPayableRecord> values,
@@ -372,24 +390,328 @@ class _SimulationDisclosure extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 18),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFFEAF1FF),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFFC7D8FA)),
+      color: AppTheme.amberLight,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppTheme.amber.withValues(alpha: 0.4)),
     ),
     child: const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.info_outline_rounded, color: AppTheme.primary),
+        Icon(Icons.info_outline_rounded, color: Color(0xFFB45309)),
         SizedBox(width: 10),
         Expanded(
           child: Text(
             'Read-only financial information. Simulated settlements are not bank payouts; no payout controls are available in this app.',
-            style: TextStyle(fontSize: 13, height: 1.4),
+            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF78350F)),
           ),
         ),
       ],
     ),
   );
+}
+
+class _MerchantBeneficiarySection extends StatefulWidget {
+  const _MerchantBeneficiarySection({required this.businessId});
+  final String businessId;
+
+  @override
+  State<_MerchantBeneficiarySection> createState() =>
+      _MerchantBeneficiarySectionState();
+}
+
+class _MerchantBeneficiarySectionState
+    extends State<_MerchantBeneficiarySection> {
+  Map<String, dynamic>? _beneficiary;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    try {
+      final res = await apiClient.get(
+        '/merchant/businesses/${widget.businessId}/bank-beneficiary',
+      );
+      final data = res.data as Map<String, dynamic>?;
+      if (mounted) {
+        setState(() {
+          _beneficiary = data;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _beneficiary = null;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  void _openAddBankSheet() {
+    final nameCtrl = TextEditingController();
+    final acctCtrl = TextEditingController();
+    final bankCtrl = TextEditingController();
+    final ifscCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool submitting = false;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Register Bank Account',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.forestDark,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Account details will be verified via automated penny-drop validation before platform settlements.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Holder Name',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().length < 3)
+                      ? 'Enter valid account holder name'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: acctCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Bank Account Number',
+                    prefixIcon: Icon(Icons.numbers_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().length < 8)
+                      ? 'Enter valid 8–20 digit account number'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: bankCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Bank Name',
+                    prefixIcon: Icon(Icons.account_balance_rounded),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Enter bank name' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: ifscCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'IFSC Code',
+                    hintText: 'e.g. SBIN0001234',
+                    prefixIcon: Icon(Icons.pin_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().length < 11)
+                      ? 'Enter 11-character valid IFSC code'
+                      : null,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.coral,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: submitting
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+                            setModalState(() => submitting = true);
+                            final messenger = ScaffoldMessenger.of(context);
+                            final ctxMessenger = ScaffoldMessenger.of(ctx);
+                            try {
+                              await apiClient.post(
+                                '/merchant/businesses/${widget.businessId}/bank-beneficiary',
+                                data: {
+                                  'account_holder_name': nameCtrl.text.trim(),
+                                  'account_number': acctCtrl.text.trim(),
+                                  'bank_name': bankCtrl.text.trim(),
+                                  'ifsc_code':
+                                      ifscCtrl.text.trim().toUpperCase(),
+                                },
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Bank details submitted for verification.',
+                                    ),
+                                  ),
+                                );
+                                _fetch();
+                              }
+                            } catch (_) {
+                              setModalState(() => submitting = false);
+                              if (ctx.mounted) {
+                                ctxMessenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Failed to submit bank details. Try again.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    child: submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save Bank Account',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const SizedBox.shrink();
+    }
+    final b = _beneficiary;
+    if (b != null) {
+      return LuxeBeneficiaryCard(
+        accountHolderName:
+            b['account_holder_name']?.toString() ?? 'Merchant',
+        accountNumberMasked:
+            b['account_number_masked']?.toString() ?? '••••••••',
+        ifscCode: b['ifsc_code']?.toString() ?? '',
+        bankName: b['bank_name']?.toString(),
+        verificationStatus:
+            b['verification_status']?.toString() ?? 'pending',
+        onEdit: _openAddBankSheet,
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.mintLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.account_balance_outlined,
+              color: AppTheme.forest,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Settlement Bank Account',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Register your bank details for verified settlements.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.secondaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _openAddBankSheet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.coral,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            child: const Text(
+              'Add Bank',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Metric extends StatelessWidget {
@@ -417,7 +739,7 @@ class _Metric extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppTheme.primary, size: 20),
+        Icon(icon, color: AppTheme.coral, size: 20),
         const SizedBox(height: 8),
         Text(
           label,
@@ -451,8 +773,8 @@ class _PayableTile extends StatelessWidget {
     child: ListTile(
       minVerticalPadding: 12,
       leading: const CircleAvatar(
-        backgroundColor: Color(0xFFEAF1FF),
-        child: Icon(Icons.receipt_long_outlined, color: AppTheme.primary),
+        backgroundColor: AppTheme.merchantCoralContainer,
+        child: Icon(Icons.receipt_long_outlined, color: AppTheme.coral),
       ),
       title: Text(
         record.referenceCode,
@@ -495,7 +817,7 @@ class _SettlementTile extends StatelessWidget {
       minVerticalPadding: 12,
       leading: const CircleAvatar(
         backgroundColor: Color(0xFFE9F7F2),
-        child: Icon(Icons.account_balance_outlined, color: Color(0xFF0F766E)),
+        child: Icon(Icons.account_balance_outlined, color: AppTheme.coral),
       ),
       title: Text(
         '${_money(record.simulatedNetMinor, record.currency)} · ${_stateLabel(record.status)}',

@@ -46,7 +46,16 @@ class PlatformProductDetailScreen extends ConsumerWidget {
     );
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Product details')),
+      appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        title: const Text('Product details'),
+      ),
       body: product.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
@@ -214,6 +223,21 @@ class PlatformProductDetailScreen extends ConsumerWidget {
                           height: 52,
                           child: FilledButton.icon(
                             key: const ValueKey('platform_open_cart'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.emerald,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFFE2E8F0),
+                              disabledForegroundColor: const Color(0xFF94A3B8),
+                              elevation: cart.isEmpty ? 0 : 2,
+                              shadowColor: const Color(0x33059669),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             onPressed:
                                 userId.isEmpty ||
                                     localityId.isEmpty ||
@@ -230,7 +254,7 @@ class PlatformProductDetailScreen extends ConsumerWidget {
                             label: Text(
                               cart.isEmpty
                                   ? 'Add a product option above'
-                                  : 'View cart · ${cart.itemCount} items',
+                                  : 'View cart · ${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
                             ),
                           ),
                         ),

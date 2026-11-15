@@ -55,7 +55,7 @@ function Invoke-WslBashScript {
   # argument; the script content is decoded and executed only inside WSL.
   $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($ScriptText))
   $command = "printf '%s' '$encoded' | base64 --decode | bash"
-  $output = @(& wsl.exe --exec bash -lc $command)
+  $output = @(& wsl.exe -d Ubuntu -- bash -lc $command)
   $exitCode = $LASTEXITCODE
   return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
 }

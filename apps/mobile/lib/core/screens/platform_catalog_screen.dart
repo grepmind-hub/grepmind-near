@@ -11,6 +11,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/platform_cart_screen.dart';
 import 'package:grepmind_mobile/core/screens/platform_product_detail_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/sticky_cart_summary_bar.dart';
 
 class PlatformCatalogScreen extends ConsumerStatefulWidget {
   final String vertical;
@@ -109,6 +110,7 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
         : ref.watch(platformCatalogProductsProvider(_query));
     return Scaffold(
       backgroundColor: AppTheme.background,
+      bottomNavigationBar: StickyCartSummaryBar(scope: cartScope),
       appBar: AppBar(
         title: Text(title),
         actions: [
@@ -188,6 +190,87 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
+                      // Local Luxe Partner & Freshness Banner
+                      Container(
+                        margin: const EdgeInsets.only(top: 4, bottom: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.forest,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppTheme.mint,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.storefront_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _vertical == 'food' ? 'Kalinga Kitchens' : 'Kalinga Fresh Mart',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.verified, size: 13, color: AppTheme.amber),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        '★ 4.6 · 0.8 km',
+                                        style: TextStyle(fontSize: 10, color: Color(0xFFD0E8E3)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _vertical == 'food'
+                                        ? 'Authentic Odia dishes from neighborhood kitchens'
+                                        : 'Fresh from local farms · 20–30 min delivery',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFFD0E8E3),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.amber,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Partner',
+                                style: TextStyle(
+                                  color: AppTheme.forestDark,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       TextField(
                         controller: _search,
                         focusNode: _searchFocus,
@@ -656,13 +739,14 @@ class _CategoryChip extends StatelessWidget {
     label: Text(label),
     selected: selected,
     onSelected: (_) => onTap(),
-    selectedColor: AppTheme.primaryContainer,
+    selectedColor: AppTheme.mint,
+    backgroundColor: Colors.white,
     labelStyle: TextStyle(
-      color: selected ? AppTheme.primary : AppTheme.mainText,
+      color: selected ? Colors.white : AppTheme.mainText,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
     ),
-    side: BorderSide(color: selected ? AppTheme.primary : AppTheme.border),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    side: BorderSide(color: selected ? AppTheme.mint : AppTheme.border),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
   );
 }
 

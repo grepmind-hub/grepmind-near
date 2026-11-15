@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Verification / open-status badge chip.
@@ -315,17 +316,11 @@ class BusinessCard extends StatelessWidget {
   }
 
   Widget _placeholder() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFF2F4F7), Color(0xFFE4E7EC)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Center(
-        child: Icon(Icons.storefront_rounded, color: Color(0xFF9AA5B1), size: 30),
-      ),
+    return CategoryThemedPlaceholder(
+      categorySlug: business.categorySlug,
+      categoryName: business.categoryName,
+      businessName: business.name,
+      isAvatar: true,
     );
   }
 }

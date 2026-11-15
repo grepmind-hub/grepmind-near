@@ -185,7 +185,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 onClick={() => onSelectTab(item.id)}
                 className={`group flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-[#2457D6] text-white shadow-xs'
+                    ? 'bg-[#123D36] text-white shadow-xs'
                     : 'text-[#475467] hover:bg-[#F2F4F7] hover:text-[#172033]'
                 }`}
               >
@@ -211,7 +211,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   <span
                     className={`ml-2 rounded-full border px-2 py-0.5 text-[11px] font-bold ${
                       isActive
-                        ? 'bg-white text-[#2457D6] border-white/40'
+                        ? 'bg-white text-[#123D36] border-white/40'
                         : item.badgeColor || 'bg-gray-100 text-gray-700'
                     }`}
                   >

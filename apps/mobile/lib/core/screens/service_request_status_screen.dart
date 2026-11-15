@@ -1341,7 +1341,7 @@ class _ServiceRequestStatusScreenState
                     child: ElevatedButton.icon(
                       key: const Key('customer_confirm_reschedule'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: AppTheme.emerald,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -1411,7 +1411,7 @@ class _ServiceRequestStatusScreenState
                   height: 48,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
+                      backgroundColor: AppTheme.emerald,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

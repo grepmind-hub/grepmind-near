@@ -240,9 +240,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               _buildRoleCard(
                 roleId: 'merchant',
                 title: 'Merchant & Service Pro',
-                subtitle: 'Manage your storefront listing, accept customer service requests, manage inventory catalog & operating hours.',
+                subtitle: 'Manage storefront, fulfill catalog orders & track settlements.',
                 badgeText: 'Business Workspace',
-                themeColor: const Color(0xFF0F766E),
+                themeColor: AppTheme.coral,
                 icon: Icons.storefront_outlined,
                 features: [
                   'Incoming Service Requests',
@@ -267,7 +267,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     : user?.riderStatus == null
                     ? 'Application required'
                     : 'Application: ${user!.riderStatus}',
-                themeColor: const Color(0xFF334155),
+                themeColor: AppTheme.riderAmberDark,
                 icon: Icons.pedal_bike_outlined,
                 features: const [],
                 enabled:
@@ -278,6 +278,14 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const ValueKey('rider_application_entry'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.riderAmberDark,
+                  side: const BorderSide(color: AppTheme.riderAmberBorder),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
                 onPressed: _checkingPermissions || user == null
                     ? null
                     : () => Navigator.of(context).push(
@@ -290,6 +298,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   user?.riderStatus == null
                       ? 'Apply to become a rider'
                       : 'View rider application',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(height: 16),
@@ -320,10 +329,14 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                 child: ElevatedButton(
                   key: const ValueKey('continue_role_btn'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: _selectedRole == 'merchant'
+                        ? AppTheme.coral
+                        : (_selectedRole == 'rider'
+                            ? AppTheme.riderAmberDark
+                            : AppTheme.emerald),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 0,
                   ),

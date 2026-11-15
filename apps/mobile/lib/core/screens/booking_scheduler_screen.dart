@@ -430,7 +430,7 @@ class _BookingSchedulerScreenState
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppTheme.primary,
+                      backgroundColor: AppTheme.emerald,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -591,7 +591,7 @@ class _BookingSchedulerScreenState
                 height: 54,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF2457D6), Color(0xFF0F766E)],
+                    colors: [AppTheme.forest, AppTheme.mint],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -613,7 +613,7 @@ class _BookingSchedulerScreenState
                 child: Container(
                   padding: const EdgeInsets.all(3),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2457D6),
+                    color: AppTheme.mint,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check, size: 10, color: Colors.white),
@@ -648,7 +648,7 @@ class _BookingSchedulerScreenState
                     const Icon(
                       Icons.verified_rounded,
                       size: 15,
-                      color: Color(0xFF2457D6),
+                      color: AppTheme.mint,
                     ),
                   ],
                 ),
@@ -658,7 +658,7 @@ class _BookingSchedulerScreenState
                     const Icon(
                       Icons.star_rounded,
                       size: 14,
-                      color: Color(0xFFF59E0B),
+                      color: AppTheme.amber,
                     ),
                     const SizedBox(width: 3),
                     Flexible(
@@ -693,16 +693,16 @@ class _BookingSchedulerScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: AppTheme.mintLight,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFDBEAFE)),
+              border: Border.all(color: AppTheme.mint.withValues(alpha: 0.3)),
             ),
             child: const Text(
               '₹299/hr',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.primary,
+                color: AppTheme.forest,
               ),
             ),
           ),
@@ -830,12 +830,12 @@ class _BookingSchedulerScreenState
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFFEFF6FF)
+                                ? AppTheme.mintLight
                                 : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
-                                  ? AppTheme.primary
+                                  ? AppTheme.mint
                                   : const Color(0xFFE2E8F0),
                               width: isSelected ? 1.5 : 1,
                             ),
@@ -851,7 +851,7 @@ class _BookingSchedulerScreenState
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: isSelected
-                                      ? AppTheme.primary
+                                      ? AppTheme.forest
                                       : AppTheme.mainText,
                                 ),
                                 maxLines: 1,
@@ -880,7 +880,7 @@ class _BookingSchedulerScreenState
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                       color: isSelected
-                                          ? AppTheme.primary
+                                          ? AppTheme.forest
                                           : AppTheme.mainText,
                                     ),
                                   ),
@@ -1113,7 +1113,7 @@ class _BookingSchedulerScreenState
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF059669),
+                    color: Color(0xFF059669),
                   ),
                 ),
               ),
@@ -1479,7 +1479,7 @@ class _BookingSchedulerScreenState
                 height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: AppTheme.emerald,
                     minimumSize: const Size(120, 48),
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     shape: RoundedRectangleBorder(

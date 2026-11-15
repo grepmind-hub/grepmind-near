@@ -174,4 +174,119 @@ void main() {
       }
     },
   );
+
+  testWidgets('NearbyMapScreen filters between Shops and Services cleanly', (
+    WidgetTester tester,
+  ) async {
+    final businesses = _TestMapFilterNotifier();
+    final location = LocationNotifier()
+      ..setLocation(
+        const AppLocation(
+          cityName: 'Cuttack',
+          latitude: 20.46575,
+          longitude: 85.879,
+        ),
+      );
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appLocationProvider.overrideWith((ref) => location),
+          mapBusinessesProvider.overrideWith((ref) => businesses),
+          categoriesProvider.overrideWith((ref) => FixtureCategories()),
+        ],
+        child: const MaterialApp(home: NearbyMapScreen(initialRadarView: true)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify type filter pills are rendered
+    expect(find.byKey(const ValueKey('nearby_filter_all')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nearby_filter_shops')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nearby_filter_services')), findsOneWidget);
+    expect(find.byKey(const ValueKey('nearby_filter_open_now')), findsOneWidget);
+
+    // Open list view
+    await tester.tap(find.byKey(const ValueKey('nearby_list_view_toggle')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Initially both shop and service are listed
+    expect(find.text('Maa Mangala Hardware'), findsOneWidget);
+    expect(find.text('Bijay Electric Service'), findsOneWidget);
+    expect(find.text('Book Service'), findsOneWidget);
+    expect(find.text('View Store'), findsOneWidget);
+
+    // Filter to Services only
+    await tester.tap(find.byKey(const ValueKey('nearby_filter_services')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Bijay Electric Service'), findsOneWidget);
+    expect(find.text('Maa Mangala Hardware'), findsNothing);
+
+    // Filter to Shops only
+    await tester.tap(find.byKey(const ValueKey('nearby_filter_shops')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Maa Mangala Hardware'), findsOneWidget);
+    expect(find.text('Bijay Electric Service'), findsNothing);
+
+    // Reset to All
+    await tester.tap(find.byKey(const ValueKey('nearby_filter_all')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Maa Mangala Hardware'), findsOneWidget);
+    expect(find.text('Bijay Electric Service'), findsOneWidget);
+  });
+}
+
+class _TestMapFilterNotifier extends BusinessesNotifier {
+  @override
+  Future<void> nearby({
+    required double lat,
+    required double lng,
+    int radiusM = 5000,
+    String? city,
+    String? categorySlug,
+    bool reset = true,
+  }) async {
+    state = const BusinessesState(
+      items: [
+        Business(
+          id: 'shop-1',
+          name: 'Maa Mangala Hardware',
+          categorySlug: 'hardware',
+          categoryName: 'Hardware Store',
+          addressText: 'Badambadi, Cuttack',
+          locality: 'Badambadi',
+          city: 'Cuttack',
+          status: 'approved',
+          verificationStatus: 'verified',
+          distanceM: 450,
+          latitude: 20.466,
+          longitude: 85.88,
+          isOpenNow: true,
+        ),
+        Business(
+          id: 'service-1',
+          name: 'Bijay Electric Service',
+          categorySlug: 'electrician',
+          categoryName: 'Electrician',
+          addressText: 'Nayapalli, Cuttack',
+          locality: 'Nayapalli',
+          city: 'Cuttack',
+          status: 'approved',
+          verificationStatus: 'verified',
+          distanceM: 700,
+          latitude: 20.467,
+          longitude: 85.881,
+          isOpenNow: true,
+        ),
+      ],
+    );
+  }
 }

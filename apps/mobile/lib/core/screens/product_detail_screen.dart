@@ -291,13 +291,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       onPressed: () => _makeCall(biz?.phoneE164 ?? '+919876543210'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.primary, width: 1.5),
+                        side: const BorderSide(color: AppTheme.emerald, width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.call_rounded, size: 18, color: AppTheme.primary),
+                          Icon(Icons.call_rounded, size: 18, color: AppTheme.emerald),
                           SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -305,7 +305,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: AppTheme.primary,
+                                color: AppTheme.emerald,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -327,7 +327,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: AppTheme.emerald,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

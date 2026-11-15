@@ -19,6 +19,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with CodeAutoFill {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  bool _isMerchantMode = false;
   bool _sending = false;
   bool _otpSent = false;
   bool _otpRequestInFlight = false;
@@ -117,7 +118,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     });
     final success = await ref
         .read(authProvider.notifier)
-        .verifyOTP(_normalizedPhone, code, challengeId: _challengeId);
+        .verifyOTP(
+          _normalizedPhone,
+          code,
+          challengeId: _challengeId,
+          preferredRole: _isMerchantMode ? 'merchant' : null,
+        );
     if (!mounted) return;
     setState(() {
       _sending = false;
@@ -189,20 +195,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    height: 48,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: _otpSent
-                          ? IconButton(
-                              tooltip: 'Back to phone number',
-                              onPressed: _sending ? null : _useDifferentNumber,
-                              icon: const Icon(Icons.arrow_back_rounded),
-                            )
-                          : const SizedBox.shrink(),
+                  if (_otpSent)
+                    SizedBox(
+                      height: 48,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Back to phone number',
+                          onPressed: _sending ? null : _useDifferentNumber,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                  if (!_otpSent) ...[
+                    Align(
+                      child: TextButton.icon(
+                        key: const Key('toggleMerchantPartnerLogin'),
+                        onPressed: _sending
+                            ? null
+                            : () => setState(() => _isMerchantMode = !_isMerchantMode),
+                        icon: Icon(
+                          _isMerchantMode
+                              ? Icons.person_outline
+                              : Icons.storefront_outlined,
+                          size: 16,
+                          color: _isMerchantMode
+                              ? AppTheme.coral
+                              : AppTheme.secondaryText,
+                        ),
+                        label: Text(
+                          _isMerchantMode
+                              ? 'Switch to Customer Login'
+                              : 'Merchant Partner? Sign in here',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _isMerchantMode
+                                ? AppTheme.coralDark
+                                : AppTheme.secondaryText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
                   if (!_otpSent)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(24),
@@ -210,8 +246,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         height: 190,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryContainer,
-                          border: Border.all(color: AppTheme.border),
+                          color: _isMerchantMode
+                              ? AppTheme.merchantCoralLight
+                              : AppTheme.primaryContainer,
+                          border: Border.all(
+                            color: _isMerchantMode
+                                ? AppTheme.merchantCoralBorder
+                                : AppTheme.border,
+                          ),
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Image.asset(
@@ -227,12 +269,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryContainer,
+                          color: _isMerchantMode
+                              ? AppTheme.merchantCoralLight
+                              : const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _isMerchantMode
+                                ? AppTheme.merchantCoralBorder
+                                : const Color(0xFFA7F3D0),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          color: AppTheme.primary,
+                        child: Icon(
+                          _isMerchantMode
+                              ? Icons.storefront_outlined
+                              : Icons.shield_outlined,
+                          color: _isMerchantMode
+                              ? AppTheme.coral
+                              : AppTheme.emerald,
                           size: 32,
                         ),
                       ),
@@ -240,8 +293,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   const SizedBox(height: 20),
                   Text(
                     _otpSent
-                        ? 'Verify your number'
-                        : 'Welcome to Grepmind Near',
+                        ? (_isMerchantMode
+                            ? 'Verify Merchant Account'
+                            : 'Verify your number')
+                        : (_isMerchantMode
+                            ? 'Merchant Partner Portal'
+                            : 'Welcome to Grepmind Near'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -252,7 +309,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   Text(
                     _otpSent
                         ? 'Enter the 6-digit code we sent to\n$_normalizedPhone'
-                        : 'Discover trusted local shops and services around you.',
+                        : (_isMerchantMode
+                            ? 'Manage your storefront, live orders & daily settlements.'
+                            : 'Discover trusted local shops and services around you.'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppTheme.secondaryText,
@@ -382,8 +441,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           height: 54,
           child: ElevatedButton(
             key: const Key('sendOTPButton'),
+            style: _isMerchantMode
+                ? ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.coral,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  )
+                : null,
             onPressed: _sending ? null : _sendOTP,
-            child: _sending ? _loadingLabel() : const Text('Continue securely'),
+            child: _sending
+                ? _loadingLabel()
+                : Text(_isMerchantMode
+                    ? 'Continue to Merchant Workspace'
+                    : 'Continue securely'),
           ),
         ),
         const SizedBox(height: 12),
@@ -430,7 +502,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: selected ? AppTheme.primary : AppTheme.border,
+                          color: selected
+                              ? (_isMerchantMode
+                                  ? AppTheme.coral
+                                  : AppTheme.emerald)
+                              : AppTheme.border,
                           width: selected ? 1.8 : 1,
                         ),
                       ),
@@ -475,13 +551,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           height: 54,
           child: ElevatedButton(
             key: const Key('verifyOTPButton'),
+            style: _isMerchantMode
+                ? ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.coral,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  )
+                : null,
             onPressed:
                 _sending || !RegExp(r'^\d{6}$').hasMatch(_otpController.text)
                 ? null
                 : _verifyOTP,
             child: _sending
                 ? _loadingLabel()
-                : const Text('Verify and sign in'),
+                : Text(_isMerchantMode
+                    ? 'Verify & Open Workspace'
+                    : 'Verify and sign in'),
           ),
         ),
         const SizedBox(height: 10),

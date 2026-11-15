@@ -789,6 +789,13 @@ class _MerchantRegistrationScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text('Merchant Onboarding'),
         elevation: 0,
         backgroundColor: Colors.white,
@@ -985,7 +992,7 @@ class _MerchantRegistrationScreenState
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isDone
-                              ? const Color(0xFF0F766E)
+                              ? AppTheme.coral
                               : (isCurrent
                                     ? AppTheme.primary
                                     : const Color(0xFFE2E8F0)),
@@ -1033,7 +1040,7 @@ class _MerchantRegistrationScreenState
                     width: 16,
                     height: 2,
                     color: isDone
-                        ? const Color(0xFF0F766E)
+                        ? AppTheme.coral
                         : const Color(0xFFE2E8F0),
                     margin: const EdgeInsets.only(bottom: 14),
                   ),
@@ -1107,7 +1114,7 @@ class _MerchantRegistrationScreenState
           icon: Icons.handyman_outlined,
           title: 'Skilled Trade & Professional',
           subtitle: 'Electrician, plumber, technician, or artisan offering on-site work.',
-          color: const Color(0xFF0F766E),
+          color: AppTheme.coral,
         ),
         const SizedBox(height: 12),
         _buildEnterpriseTypeCard(
@@ -1775,7 +1782,7 @@ class _MerchantRegistrationScreenState
                         ),
                         const Text(
                           'Choose a real photo from your gallery or camera',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             color: AppTheme.hintText,
                           ),
@@ -2129,10 +2136,10 @@ class _MerchantRegistrationScreenState
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.coral,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 onPressed: _isSubmitting
@@ -2449,10 +2456,10 @@ class _MerchantRegistrationScreenState
             height: 42,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
+                backgroundColor: AppTheme.coral,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               onPressed: () => _showClaimConfirmationSheet(item),
@@ -2583,7 +2590,7 @@ class _MerchantRegistrationScreenState
                 height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: AppTheme.emerald,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

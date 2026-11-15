@@ -5,7 +5,8 @@ param(
   [Parameter(Mandatory = $false)][switch]$ManualEntry,
   [Parameter(Mandatory = $false)][switch]$KeepAppRunning,
   [Parameter(Mandatory = $false)][string]$AdbPath = 'D:\emulator\android-sdk\platform-tools\adb.exe',
-  [Parameter(Mandatory = $false)][string]$RunnerEnvFile
+  [Parameter(Mandatory = $false)][string]$RunnerEnvFile,
+  [Parameter(Mandatory = $false)][string]$Phone
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,6 +17,7 @@ $expected = @{
   rider = @{ Avd = 'Pixel_8_Rider_QA'; Phone = '+919990000173'; Workspace = 'Rider Dashboard' }
 }
 $target = $expected[$Role]
+if ($Phone) { $target.Phone = $Phone }
 if (-not (Test-Path -LiteralPath $AdbPath)) { throw 'Windows-host ADB executable is unavailable.' }
 
 function Invoke-WslBashScript([string]$ScriptText) {
@@ -25,7 +27,7 @@ function Invoke-WslBashScript([string]$ScriptText) {
   $previousErrorAction = $ErrorActionPreference
   try {
     $ErrorActionPreference = 'Continue'
-    $output = @(& wsl.exe --exec bash -lc $command 2>&1)
+    $output = @(& wsl.exe -d Ubuntu -- bash -lc $command 2>&1)
     $exitCode = $LASTEXITCODE
   } finally {
     $ErrorActionPreference = $previousErrorAction
@@ -278,8 +280,11 @@ if ($xml -notmatch 'Mobile number|Continue securely|otp-step|Verification code')
 
 Tap-Pattern 'Mobile number|Phone number' '500,950'
 Type-Text $target.Phone.Substring(3)
+$script:operation = 'dismiss phone keyboard'
+[void](Invoke-Adb @('-s', $Serial, 'shell', 'input', 'keyevent', '4'))
+Start-Sleep -Milliseconds 600
 $previousChallengeIds = @(Get-ChallengeIdsFromLog)
-Tap-Pattern 'Continue securely' '540,1140'
+Tap-Pattern 'Continue securely' '540,1413'
 
 $challenge = $null
  $otpUiVisible = $false
@@ -287,7 +292,7 @@ for ($i = 0; $i -lt 20 -and ($null -eq $challenge -or -not $otpUiVisible); $i++)
   Start-Sleep -Milliseconds 500
   $xml = Get-UiXml
   $otpUiVisible = $xml -match 'Verify and sign in|6-digit verification code|Six-digit verification code'
-  if ($xml -match 'Please wait before requesting another OTP|verification is currently unavailable|Could not send a verification code') {
+  if ($xml -match 'Please wait before requesting another OTP|verification is currently unavailable|Could not send a verification code|Could not send a code') {
     throw 'The normal OTP request was rejected or rate-limited; the scoped reader was not called.'
   }
   $challenge = Get-ChallengeFromLog $previousChallengeIds

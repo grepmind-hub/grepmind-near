@@ -118,7 +118,7 @@ class _MerchantHoursCoverageScreenState
                 Expanded(child: Text(next.successMessage!)),
               ],
             ),
-            backgroundColor: const Color(0xFF0F766E),
+            backgroundColor: AppTheme.coral,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -145,6 +145,13 @@ class _MerchantHoursCoverageScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -166,9 +173,9 @@ class _MerchantHoursCoverageScreenState
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppTheme.primary,
+          labelColor: AppTheme.coral,
           unselectedLabelColor: AppTheme.secondaryText,
-          indicatorColor: AppTheme.primary,
+          indicatorColor: AppTheme.coral,
           indicatorWeight: 3,
           tabs: const [
             Tab(icon: Icon(Icons.schedule), text: 'Operating Hours'),
@@ -361,7 +368,7 @@ class _MerchantHoursCoverageScreenState
                   children: [
                     const Icon(
                       Icons.event_busy,
-                      color: Color(0xFF0F766E),
+                      color: AppTheme.coral,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -459,7 +466,7 @@ class _MerchantHoursCoverageScreenState
                     color: hour.isClosed
                         ? const Color(0xFFF1F5F9)
                         : (isWeekend
-                              ? const Color(0xFF0F766E).withValues(alpha: 0.12)
+                              ? AppTheme.merchantCoralLight
                               : AppTheme.primary.withValues(alpha: 0.1)),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -472,7 +479,7 @@ class _MerchantHoursCoverageScreenState
                       color: hour.isClosed
                           ? AppTheme.secondaryText
                           : (isWeekend
-                                ? const Color(0xFF0F766E)
+                                ? AppTheme.coral
                                 : AppTheme.primary),
                     ),
                   ),
@@ -507,7 +514,8 @@ class _MerchantHoursCoverageScreenState
                 ),
                 Switch.adaptive(
                   value: !hour.isClosed,
-                  activeColor: AppTheme.primary,
+                  activeThumbColor: AppTheme.coral,
+                  activeTrackColor: AppTheme.merchantCoralBorder,
                   onChanged: (open) {
                     notifier.updateDayHour(hour.weekday, isClosed: !open);
                   },
@@ -653,12 +661,12 @@ class _MerchantHoursCoverageScreenState
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                    color: AppTheme.merchantCoralLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.location_on,
-                    color: Color(0xFF0F766E),
+                    color: AppTheme.coral,
                     size: 26,
                   ),
                 ),
@@ -753,7 +761,7 @@ class _MerchantHoursCoverageScreenState
                   min: 1000.0,
                   max: 50000.0,
                   divisions: 49,
-                  activeColor: AppTheme.primary,
+                  activeColor: AppTheme.coral,
                   inactiveColor: const Color(0xFFE2E8F0),
                   onChanged: (val) {
                     notifier.setServiceRadius(val.toInt());
@@ -769,7 +777,7 @@ class _MerchantHoursCoverageScreenState
                     return ChoiceChip(
                       label: Text('$km km'),
                       selected: isSelected,
-                      selectedColor: AppTheme.primary,
+                      selectedColor: AppTheme.coral,
                       labelStyle: TextStyle(
                         color: isSelected ? Colors.white : AppTheme.mainText,
                         fontWeight: FontWeight.w600,
@@ -826,7 +834,7 @@ class _MerchantHoursCoverageScreenState
                         avatar: const Icon(
                           Icons.check_circle,
                           size: 16,
-                          color: Color(0xFF0F766E),
+                          color: AppTheme.coral,
                         ),
                         label: Text(
                           loc,
@@ -851,7 +859,7 @@ class _MerchantHoursCoverageScreenState
                       ),
                       label: const Text(
                         'Add Area',
-                        style: TextStyle(color: AppTheme.primary, fontSize: 12),
+                        style: TextStyle(color: AppTheme.coral, fontSize: 12),
                       ),
                       onPressed: () => _showAddLocalityDialog(),
                     ),
@@ -910,7 +918,8 @@ class _MerchantHoursCoverageScreenState
                 ),
                 Switch.adaptive(
                   value: state.acceptsRequests,
-                  activeColor: const Color(0xFF16A34A),
+                  activeThumbColor: AppTheme.coral,
+                  activeTrackColor: AppTheme.merchantCoralBorder,
                   onChanged: (val) {
                     notifier.toggleAcceptsRequests(val);
                   },
@@ -950,7 +959,7 @@ class _MerchantHoursCoverageScreenState
           child: ElevatedButton(
             onPressed: isSaving ? null : onPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: AppTheme.coral,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),

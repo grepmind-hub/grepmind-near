@@ -122,13 +122,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 return ListTile(
                   leading: Icon(
                     isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-                    color: isSel ? AppTheme.primary : const Color(0xFF94A3B8),
+                    color: isSel ? AppTheme.emerald : const Color(0xFF94A3B8),
                   ),
                   title: Text(
                     'Within $km km',
                     style: TextStyle(
                       fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      color: isSel ? AppTheme.primary : AppTheme.mainText,
+                      color: isSel ? AppTheme.emeraldDark : AppTheme.mainText,
                     ),
                   ),
                   onTap: () {
@@ -185,13 +185,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     return ListTile(
       leading: Icon(
         isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-        color: isSel ? AppTheme.primary : const Color(0xFF94A3B8),
+        color: isSel ? AppTheme.emerald : const Color(0xFF94A3B8),
       ),
       title: Text(
         title,
         style: TextStyle(
           fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-          color: isSel ? AppTheme.primary : AppTheme.mainText,
+          color: isSel ? AppTheme.emeraldDark : AppTheme.mainText,
         ),
       ),
       onTap: () {
@@ -295,7 +295,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.map_outlined, color: AppTheme.primary),
+            icon: const Icon(Icons.map_outlined, color: AppTheme.emerald),
             tooltip: 'Map view',
             onPressed: () {
               Navigator.push(
@@ -336,9 +336,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryContainer,
+                            color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.primary),
+                            border: Border.all(color: AppTheme.emerald),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -346,7 +346,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               Text(
                                 _selectedCategoryName ?? _selectedCategory!,
                                 style: const TextStyle(
-                                  color: AppTheme.primary,
+                                  color: AppTheme.emeraldDark,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -355,7 +355,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               const Icon(
                                 Icons.close_rounded,
                                 size: 14,
-                                color: AppTheme.primary,
+                                color: AppTheme.emeraldDark,
                               ),
                             ],
                           ),
@@ -454,7 +454,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.primary,
+                        color: AppTheme.emerald,
                       ),
                     ),
                   ),
@@ -477,7 +477,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           Expanded(
             child: state.isLoading && items.isEmpty
                 ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary),
+                    child: CircularProgressIndicator(color: AppTheme.emerald),
                   )
                 : items.isEmpty
                 ? Center(
@@ -495,7 +495,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             ),
                             child: const Icon(
                               Icons.search_off_rounded,
-                              color: AppTheme.primary,
+                              color: AppTheme.emerald,
                               size: 36,
                             ),
                           ),
@@ -521,7 +521,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                           const SizedBox(height: 18),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
+                              backgroundColor: AppTheme.emerald,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              shadowColor: const Color(0x33059669),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -551,7 +554,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   )
                 : RefreshIndicator(
                     onRefresh: () async => _executeSearch(),
-                    color: AppTheme.primary,
+                    color: AppTheme.emerald,
                     child: SafeArea(
                       top: false,
                       child: ListView.separated(
@@ -589,11 +592,11 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? AppTheme.primary.withValues(alpha: 0.1)
+              ? const Color(0xFFDCFCE7)
               : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? AppTheme.primary : const Color(0xFFE2E8F0),
+            color: isActive ? AppTheme.emerald : const Color(0xFFE2E8F0),
           ),
         ),
         child: Row(
@@ -602,7 +605,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             Icon(
               icon,
               size: 14,
-              color: isActive ? AppTheme.primary : const Color(0xFF64748B),
+              color: isActive ? AppTheme.emerald : const Color(0xFF64748B),
             ),
             const SizedBox(width: 5),
             Text(
@@ -610,7 +613,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? AppTheme.primary : AppTheme.mainText,
+                color: isActive ? AppTheme.emeraldDark : AppTheme.mainText,
               ),
             ),
           ],

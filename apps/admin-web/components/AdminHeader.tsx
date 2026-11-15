@@ -27,13 +27,13 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       {/* Left: Branding & System Status */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#1E40AF] to-[#2457D6] text-white shadow-xs">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#123D36] to-[#16A085] text-white shadow-xs">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold tracking-tight text-[#172033]">Grepmind Near</span>
-              <span className="rounded-full bg-[#E3EEFF] px-2 py-0.5 text-[10px] font-semibold text-[#2457D6]">
+              <span className="rounded-full bg-[#123D36]/10 px-2 py-0.5 text-[10px] font-bold text-[#123D36]">
                 ADMIN
               </span>
             </div>
@@ -41,9 +41,9 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </div>
         </div>
 
-        <div className="hidden items-center gap-2 rounded-full border border-blue-100 bg-blue-50/70 px-3 py-1 lg:flex">
-          <ShieldCheck className="h-3.5 w-3.5 text-[#2457D6]" />
-          <span className="text-xs font-medium text-[#2457D6]">Authenticated workspace</span>
+        <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/70 px-3 py-1 lg:flex">
+          <ShieldCheck className="h-3.5 w-3.5 text-[#16A085]" />
+          <span className="text-xs font-semibold text-[#123D36]">Authenticated workspace</span>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               onClick={() => onSelectCity(city)}
               className={`rounded-md px-2.5 py-1 transition-all ${
                 selectedCity === city
-                  ? 'bg-white font-semibold text-[#2457D6] shadow-xs'
+                  ? 'bg-white font-semibold text-[#123D36] shadow-xs'
                   : 'text-[#667085] hover:text-[#172033]'
               }`}
             >
@@ -74,7 +74,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               onClick={() => onSelectRange(range)}
               className={`rounded-md px-2.5 py-1 transition-all ${
                 selectedRange === range
-                  ? 'bg-[#2457D6] font-semibold text-white shadow-xs'
+                  ? 'bg-[#123D36] font-semibold text-white shadow-xs'
                   : 'text-[#667085] hover:text-[#172033]'
               }`}
             >

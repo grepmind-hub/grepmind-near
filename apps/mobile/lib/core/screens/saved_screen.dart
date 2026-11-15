@@ -31,6 +31,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text('Saved'),
         actions: [
           if (state.items.isNotEmpty)
@@ -116,9 +123,18 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.emerald,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
               onPressed: () => ref.read(favoritesProvider.notifier).load(),
-              child: const Text('Retry'),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -127,11 +143,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   }
 
   Widget _buildEmpty() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: ScreenIllustrationCard(
               illustration: ScreenIllustration.customer,
@@ -141,8 +157,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               compact: true,
             ),
           ),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 16),
+          const Text(
             'No saved businesses yet',
             style: TextStyle(
               fontSize: 18,
@@ -150,11 +166,28 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               color: AppTheme.mainText,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Tap the heart on a business to save it here.',
             style: TextStyle(color: AppTheme.secondaryText),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.emerald,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.storefront_outlined),
+            label: const Text(
+              'Explore nearby businesses',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),

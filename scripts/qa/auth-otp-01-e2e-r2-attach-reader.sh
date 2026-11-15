@@ -11,8 +11,8 @@ readonly network=grepmind_3e_qa_net
 readonly inbox=grepmind_4c_qa_otp_inbox
 readonly image=grepmind-near:auth-otp-e2e-r2
 readonly inbox_image=grepmind-near:qa-otp-inbox
-readonly allowlist='+919990000171,+919990000172,+919990000173,+919990000174,+919990000175,+919990000176,+919990000177'
-readonly previous_allowlist='+919990000171,+919990000172,+919990000173,+919990000174,+919990000175,+919990000176'
+readonly allowlist='+919990000171,+919990000172,+919990000173,+919990000174,+919990000175,+919990000176,+919990000177,+919990000181,+919990000182,+919990000183'
+readonly previous_allowlist='+919990000171,+919990000172,+919990000173,+919990000174,+919990000175,+919990000176,+919990000177'
 
 for name in "$api" "$db"; do
   docker inspect "$name" >/dev/null 2>&1 || { echo "Required isolated QA container is missing: $name" >&2; exit 2; }
@@ -100,11 +100,11 @@ if [[ -n "$allowlist_env" && "$allowlist_env" != "$allowlist" && "$allowlist_env
 fi
 if grep -q '+910000000000' <<< "$allowlist"; then echo "Root superadmin must not be allowlisted." >&2; exit 2; fi
 docker exec "$db" psql -v ON_ERROR_STOP=1 -U qa3e -d grepmind_3e_qa -Atc \
-  "SELECT count(DISTINCT phone_e164) FROM users WHERE phone_e164 = ANY (ARRAY['+919990000171','+919990000172','+919990000173','+919990000174','+919990000175','+919990000176','+919990000177'])" | grep -qx 7 || {
+  "SELECT count(DISTINCT phone_e164) FROM users WHERE phone_e164 = ANY (ARRAY['+919990000171','+919990000172','+919990000173','+919990000174','+919990000175','+919990000176','+919990000177','+919990000181','+919990000182','+919990000183'])" | grep -qx 10 || {
   echo "Expected synthetic QA identities are not all present; refusing to proceed." >&2; exit 2;
 }
 
-grep -Ev '^(OTP_PROVIDER|QA_OTP_.*)=' "$old_env" > "$api_env"
+grep -Ev '^(OTP_PROVIDER|QA_OTP_.*|PAYMENT_SANDBOX_QA_USER_IDS)=' "$old_env" > "$api_env"
 cat >> "$api_env" <<EOF
 OTP_PROVIDER=qa_http
 QA_OTP_DELIVERY_ENABLED=true
@@ -112,6 +112,7 @@ QA_OTP_DELIVERY_URL=http://$inbox:8090
 QA_OTP_WRITER_TOKEN=$writer_secret
 QA_OTP_RUN_ID=$run_id
 QA_OTP_ALLOWLIST=$allowlist
+PAYMENT_SANDBOX_QA_USER_IDS=3e000000-0000-4000-8000-000000000001,4e300000-0000-4000-8000-000000000001
 EOF
 cat > "$runner_env" <<EOF
 QA_OTP_READER_URL=http://127.0.0.1:18085

@@ -316,12 +316,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppTheme.primary
+                                    ? AppTheme.emerald
                                     : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isSelected
-                                      ? AppTheme.primary
+                                      ? AppTheme.emerald
                                       : const Color(0xFFE2E8F0),
                                 ),
                               ),
@@ -358,7 +358,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             const SliverFillRemaining(
               hasScrollBody: false,
               child: Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
+                child: CircularProgressIndicator(color: AppTheme.emerald),
               ),
             )
           else if (filteredCategories.isEmpty)

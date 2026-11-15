@@ -282,7 +282,12 @@ class _DiscoveryAuthNotifier extends AuthNotifier {
   _DiscoveryAuthNotifier() : super.forTesting();
 
   @override
-  Future<bool> verifyOTP(String phone, String otpCode, {String? challengeId}) async {
+  Future<bool> verifyOTP(
+    String phone,
+    String otpCode, {
+    String? challengeId,
+    String? preferredRole,
+  }) async {
     try {
       final response = await apiClient.post(
         '/auth/otp/verify',

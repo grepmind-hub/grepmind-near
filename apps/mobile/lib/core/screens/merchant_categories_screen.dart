@@ -147,6 +147,13 @@ class _MerchantCategoriesScreenState extends State<MerchantCategoriesScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppTheme.background,
     appBar: AppBar(
+      leading: Navigator.canPop(context)
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          : null,
       title: const Text('Catalog categories'),
       actions: [
         IconButton(

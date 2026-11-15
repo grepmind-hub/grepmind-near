@@ -12,6 +12,7 @@ import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
+import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,8 +49,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   bool _hasGpsFix = false;
   StreamSubscription<Position>? _positionStream;
 
-  // Selected Category filter
+  // Selected Filters
   String _selectedCategorySlug = 'all';
+  String _typeFilter = 'all'; // 'all', 'shops', 'services'
+  bool _onlyOpenNow = false;
   int _radiusKm = 5;
   bool _showResultsList = false;
 
@@ -107,17 +110,20 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   void _useDefaultLocation() {
     final location = ref.read(appLocationProvider);
-    if (!const [
-      'cuttack',
-      'jajpur',
-    ].contains(location.cityName.toLowerCase())) {
-      if (mounted) {
-        setState(() {
-          _error =
-              'Choose Cuttack or Jajpur in Explore to browse listed shops.';
-          _isLoading = false;
-        });
-      }
+    if (location.cityName.isEmpty) {
+      ref.read(appLocationProvider.notifier).loadDefaultLocation().then((_) {
+        if (!mounted) return;
+        final updated = ref.read(appLocationProvider);
+        if (updated.cityName.isNotEmpty) {
+          _updateMapPosition(updated.latitude, updated.longitude);
+          _loadNearbyBusinesses(updated.latitude, updated.longitude);
+        } else {
+          setState(() {
+            _error = 'Please select a city in Explore to browse nearby.';
+            _isLoading = false;
+          });
+        }
+      });
       return;
     }
     final defLat = location.latitude;
@@ -158,10 +164,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   Future<void> _loadNearbyBusinesses(double lat, double lng) async {
     final sequence = ++_loadSequence;
     final city = ref.read(appLocationProvider).cityName;
-    if (!const ['cuttack', 'jajpur'].contains(city.toLowerCase())) {
+    if (city.isEmpty) {
       if (mounted) {
         setState(() {
-          _error = 'Select Cuttack or Jajpur in Explore.';
+          _error = 'Please select a city in Explore to browse nearby.';
           _isLoading = false;
         });
       }
@@ -212,13 +218,32 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   List<Business> get _filteredBusinesses {
     final city = ref.read(appLocationProvider).cityName.toLowerCase();
-    final list = ref
-        .read(mapBusinessesProvider)
-        .items
-        .where((b) => b.city?.toLowerCase() == city)
-        .toList();
-    if (_selectedCategorySlug == 'all') return list;
-    return list.where((b) => b.categorySlug == _selectedCategorySlug).toList();
+    final all = ref.read(mapBusinessesProvider).items;
+    final list = city.isEmpty
+        ? all
+        : all.where((b) {
+            final bCity = b.city?.toLowerCase();
+            return bCity == null || bCity.isEmpty || bCity == city;
+          }).toList();
+
+    return list.where((b) {
+      // 1. Entity type: All, Shops, or Services
+      if (_typeFilter == 'shops' && b.shouldOpenServiceProfile) {
+        return false;
+      }
+      if (_typeFilter == 'services' && !b.shouldOpenServiceProfile) {
+        return false;
+      }
+      // 2. Category slug filter
+      if (_selectedCategorySlug != 'all' && b.categorySlug != _selectedCategorySlug) {
+        return false;
+      }
+      // 3. Open Now filter
+      if (_onlyOpenNow && !b.isOpenNow) {
+        return false;
+      }
+      return true;
+    }).toList();
   }
 
   void _updateMarkers() {
@@ -243,7 +268,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             icon: BitmapDescriptor.defaultMarkerWithHue(
               isSelected
                   ? BitmapDescriptor.hueMagenta
-                  : _getCategoryHue(biz.categorySlug),
+                  : (biz.shouldOpenServiceProfile
+                      ? BitmapDescriptor.hueAzure
+                      : _getCategoryHue(biz.categorySlug)),
             ),
           ),
         );
@@ -256,7 +283,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           markerId: const MarkerId('my_location'),
           position: _currentPosition!.target,
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueAzure,
+            BitmapDescriptor.hueCyan,
           ),
           infoWindow: const InfoWindow(title: 'Search center'),
         ),
@@ -286,9 +313,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   }
 
   void _openBusinessDetail(Business biz) {
-    if (biz.categorySlug == 'electrician' ||
-        biz.categorySlug == 'plumber' ||
-        biz.categorySlug == 'carpenter') {
+    if (biz.shouldOpenServiceProfile) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ServiceProScreen(business: biz)),
       );
@@ -383,7 +408,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           children: [
             const Text(
               'Nearby Map',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.mainText,
@@ -405,7 +430,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: Icon(
               _useRadarView ? Icons.map_rounded : Icons.radar_rounded,
-              color: AppTheme.primary,
+              color: AppTheme.emerald,
             ),
             tooltip: _useRadarView ? 'Show Map Tiles' : 'Show Radar View',
             onPressed: () {
@@ -415,7 +440,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: const Icon(
               Icons.my_location_rounded,
-              color: AppTheme.primary,
+              color: AppTheme.emerald,
             ),
             onPressed: _centerOnUser,
             tooltip: 'Center on Me',
@@ -438,16 +463,24 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           else
             _buildInteractiveRadarCanvas(businesses),
 
-          // Top Floating Category Carousel
+          // Top Floating Type Filter Bar (All Places, Shops, Services, Open Now)
           Positioned(
-            top: 12,
+            top: 10,
+            left: 0,
+            right: 0,
+            child: _buildTypeFilterBar(),
+          ),
+
+          // Floating Category Carousel
+          Positioned(
+            top: 54,
             left: 0,
             right: 0,
             child: _buildCategoryCarousel(),
           ),
 
           Positioned(
-            top: 62,
+            top: 98,
             left: 16,
             right: 16,
             child: _buildResultsControls(businesses.length),
@@ -455,7 +488,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
           if (_showResultsList)
             Positioned(
-              top: 112,
+              top: 144,
               left: 0,
               right: 0,
               bottom: 0,
@@ -474,7 +507,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 onPressed: _centerOnUser,
                 child: const Icon(
                   Icons.gps_fixed_rounded,
-                  color: AppTheme.primary,
+                  color: AppTheme.emerald,
                 ),
               ),
             ),
@@ -494,7 +527,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           // Loading overlay
           if (!_isLoading && (_error != null || businesses.isEmpty))
             Positioned(
-              top: 112,
+              top: 148,
               left: 16,
               right: 16,
               child: Card(
@@ -504,7 +537,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _error ?? 'No approved shops or services are within 5 km of this search point.',
+                        _error ?? 'No approved shops or services are within $_radiusKm km of this search point.',
                         textAlign: TextAlign.center,
                       ),
                       TextButton(
@@ -520,7 +553,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             ),
           if (_isLoading)
             const Positioned(
-              top: 112,
+              top: 148,
               left: 0,
               right: 0,
               child: Center(
@@ -536,17 +569,125 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     );
   }
 
+  Widget _buildTypeFilterBar() {
+    final typeFilters = [
+      ('all', 'All Places', Icons.explore_rounded),
+      ('shops', '🛍️ Shops', null),
+      ('services', '🛠️ Services', null),
+      ('open_now', '🕒 Open Now', null),
+    ];
+
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: typeFilters.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = typeFilters[index];
+          final key = item.$1;
+          final label = item.$2;
+          final icon = item.$3;
+
+          final bool isSelected;
+          if (key == 'open_now') {
+            isSelected = _onlyOpenNow;
+          } else {
+            isSelected = _typeFilter == key;
+          }
+
+          return InkWell(
+            key: ValueKey('nearby_filter_$key'),
+            onTap: () {
+              setState(() {
+                if (key == 'open_now') {
+                  _onlyOpenNow = !_onlyOpenNow;
+                } else {
+                  _typeFilter = key;
+                }
+                final filtered = _filteredBusinesses;
+                if (_selectedBusiness != null &&
+                    !filtered.any((b) => b.id == _selectedBusiness!.id)) {
+                  _selectedBusiness =
+                      filtered.isNotEmpty ? filtered.first : null;
+                }
+              });
+              _updateMarkers();
+            },
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.emerald : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected
+                      ? AppTheme.emerald
+                      : const Color(0xFFE1EBE5),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? AppTheme.emerald.withValues(alpha: 0.22)
+                        : Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 15,
+                      color: isSelected ? Colors.white : AppTheme.emerald,
+                    ),
+                    const SizedBox(width: 5),
+                  ],
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? Colors.white : AppTheme.brandText,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildResultsControls(int count) {
+    String typeLabel = 'places';
+    if (_typeFilter == 'shops') typeLabel = 'shops';
+    if (_typeFilter == 'services') typeLabel = 'services';
     final isAll = _selectedCategorySlug == 'all';
     return Row(
       children: [
         Container(
-          height: 40,
+          height: 38,
           padding: const EdgeInsets.only(left: 8, right: 4),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE1EBE5)),
+            borderRadius: BorderRadius.circular(19),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
@@ -563,13 +704,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       const Icon(
                         Icons.radar_rounded,
                         size: 17,
-                        color: AppTheme.mainText,
+                        color: AppTheme.emerald,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Within $radius km',
                         style: const TextStyle(
-                          color: AppTheme.mainText,
+                          color: AppTheme.brandText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -593,15 +734,23 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.94),
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFE1EBE5)),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Text(
-              '$count ${isAll ? 'places' : 'results'}${isAll ? ' · All categories' : ''}',
+              '$count $typeLabel${isAll ? ' · All categories' : ''}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: AppTheme.secondaryText,
+                color: AppTheme.brandText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -618,7 +767,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           ),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: AppTheme.primary,
+            foregroundColor: AppTheme.emerald,
+            side: const BorderSide(color: Color(0xFFE1EBE5)),
           ),
         ),
       ],
@@ -629,15 +779,80 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     return Container(
       color: const Color(0xFFF1F5F9),
       child: businesses.isEmpty
-          ? const Center(child: Text('No places match these filters.'))
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.filter_alt_off_rounded,
+                        size: 36,
+                        color: AppTheme.emerald,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No matching places nearby',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.brandText,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Try resetting your shop/service filters or expanding search radius.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _typeFilter = 'all';
+                          _selectedCategorySlug = 'all';
+                          _onlyOpenNow = false;
+                        });
+                        _updateMarkers();
+                      },
+                      icon: const Icon(Icons.clear_all_rounded, size: 18),
+                      label: const Text('Show all nearby'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.emerald,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
               itemCount: businesses.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final business = businesses[index];
+                final isService = business.shouldOpenServiceProfile;
                 return Card(
                   margin: EdgeInsets.zero,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFE1EBE5)),
+                  ),
                   color: Colors.white,
                   child: ListTile(
                     key: ValueKey('nearby_result_${business.id}'),
@@ -650,18 +865,92 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         child: _businessThumbnail(business),
                       ),
                     ),
-                    title: Text(
-                      business.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            business.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.brandText,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isService
+                                ? const Color(0xFFF0FDF4)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isService
+                                  ? AppTheme.emerald.withValues(alpha: 0.3)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Text(
+                            isService ? 'Service' : 'Shop',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: isService
+                                  ? AppTheme.emerald
+                                  : AppTheme.secondaryText,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    subtitle: Text(
-                      '${business.categoryName ?? business.categorySlug} · ${business.distanceText}${business.locality == null ? '' : ' · ${business.locality}'}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 3),
+                        Text(
+                          '${business.categoryName ?? business.categorySlug} · ${business.distanceText}${business.locality == null ? '' : ' · ${business.locality}'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              isService
+                                  ? 'Book Service'
+                                  : business.shopActionLabel,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: isService
+                                    ? AppTheme.emerald
+                                    : const Color(0xFF2457D6),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 13,
+                              color: isService
+                                  ? AppTheme.emerald
+                                  : const Color(0xFF2457D6),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppTheme.secondaryText,
+                    ),
                     onTap: () => _openBusinessDetail(business),
                   ),
                 );
@@ -737,12 +1026,12 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primary : Colors.white,
+                color: isSelected ? AppTheme.emerald : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.primary
-                      : const Color(0xFFE2E8F0),
+                      ? AppTheme.emerald
+                      : const Color(0xFFE1EBE5),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -768,7 +1057,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : AppTheme.mainText,
+                      color: isSelected ? Colors.white : AppTheme.brandText,
                     ),
                   ),
                 ],
@@ -785,12 +1074,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     final reviewCount = biz.reviewCount;
     final distanceText = biz.distanceText;
     final categoryName = biz.categoryName ?? biz.categorySlug;
+    final isService = biz.shouldOpenServiceProfile;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE1EBE5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -806,32 +1096,35 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         children: [
           Row(
             children: [
-              // Business Category Icon Avatar
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2457D6), Color(0xFF0F766E)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  biz.name.isNotEmpty ? biz.name[0] : 'G',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
+              // Business Category Icon Avatar with CategoryThemedPlaceholder
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: (biz.coverPhotoUrl?.isNotEmpty ?? false)
+                      ? Image.network(
+                          apiClient.resolveMediaUrl(biz.coverPhotoUrl!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => CategoryThemedPlaceholder(
+                            categorySlug: biz.categorySlug,
+                            categoryName: biz.categoryName,
+                            businessName: biz.name,
+                            isAvatar: true,
+                          ),
+                        )
+                      : CategoryThemedPlaceholder(
+                          categorySlug: biz.categorySlug,
+                          categoryName: biz.categoryName,
+                          businessName: biz.name,
+                          isAvatar: true,
+                        ),
                 ),
               ),
 
               const SizedBox(width: 12),
 
-              // Title, rating, distance
+              // Title, rating, distance, status
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +1138,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.mainText,
+                              color: AppTheme.brandText,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -877,10 +1170,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                            color: AppTheme.brandText,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             '• $categoryName',
@@ -894,14 +1187,45 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$distanceText • ${biz.locality ?? biz.city ?? ''}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primary,
-                      ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '$distanceText • ${biz.locality ?? biz.city ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.emerald,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: biz.isOpenNow
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            biz.isOpenNow ? 'Open now' : 'Closed',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: biz.isOpenNow
+                                  ? AppTheme.emerald
+                                  : AppTheme.secondaryText,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -944,7 +1268,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         Icon(
                           Icons.directions_rounded,
                           size: 18,
-                          color: AppTheme.mainText,
+                          color: AppTheme.brandText,
                         ),
                         SizedBox(width: 6),
                         Flexible(
@@ -953,7 +1277,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.mainText,
+                              color: AppTheme.brandText,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -967,32 +1291,34 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
               const SizedBox(width: 10),
 
-              // View Profile / Book CTA
+              // Contextual Action: Book Service for services, Shop Now / View Store for shops
               Expanded(
                 child: SizedBox(
                   height: 44,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
+                      backgroundColor: AppTheme.emerald,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: () => _openBusinessDetail(biz),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.person_pin_circle_rounded,
+                          isService
+                              ? Icons.calendar_month_rounded
+                              : Icons.storefront_rounded,
                           size: 18,
                           color: Colors.white,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            'View Profile',
-                            style: TextStyle(
+                            isService ? 'Book Service' : biz.shopActionLabel,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -1086,13 +1412,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primary : Colors.white,
+                          color: isSelected ? AppTheme.emerald : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
                                 ? Colors.white
-                                : const Color(0xFFCBD5E1),
-                            width: 1.5,
+                                : (biz.shouldOpenServiceProfile
+                                    ? const Color(0xFF0D9488)
+                                    : const Color(0xFFCBD5E1)),
+                            width: isSelected ? 2 : 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -1110,7 +1438,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               size: 13,
                               color: isSelected
                                   ? Colors.white
-                                  : AppTheme.primary,
+                                  : (biz.shouldOpenServiceProfile
+                                      ? AppTheme.emerald
+                                      : const Color(0xFF2457D6)),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -1120,7 +1450,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                                 fontWeight: FontWeight.w800,
                                 color: isSelected
                                     ? Colors.white
-                                    : AppTheme.mainText,
+                                    : AppTheme.brandText,
                               ),
                             ),
                           ],
@@ -1131,7 +1461,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primary : Colors.white,
+                          color: isSelected ? AppTheme.emerald : Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),

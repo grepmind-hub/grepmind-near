@@ -30,6 +30,13 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text('Your cart'),
         actions: [
           if (cart.hasLines)
@@ -46,7 +53,7 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                     const Icon(
                       Icons.shopping_bag_outlined,
                       size: 56,
-                      color: AppTheme.primary,
+                      color: AppTheme.emerald,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -60,6 +67,13 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                     ),
                     const SizedBox(height: 20),
                     FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.emerald,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Explore businesses'),
                     ),
@@ -85,7 +99,7 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                           backgroundColor: Color(0xFFEAF0FF),
                           child: Icon(
                             Icons.storefront_rounded,
-                            color: AppTheme.primary,
+                            color: AppTheme.emerald,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -203,6 +217,11 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                   icon: const Icon(Icons.arrow_forward_rounded),
                   label: const Text('Continue to order'),
                   style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.emerald,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     minimumSize: const Size.fromHeight(52),
                   ),
                 ),

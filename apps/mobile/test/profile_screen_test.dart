@@ -57,6 +57,53 @@ void main() {
   );
 
   testWidgets(
+    'profile screen displays personal details card with complete profile information',
+    (tester) async {
+      final scope = container();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: scope,
+          child: const MaterialApp(home: ProfileScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Personal Details'), findsOneWidget);
+      expect(find.text('Full Name'), findsOneWidget);
+      expect(
+        find.text('A Grepmind Customer With A Long Name'),
+        findsNWidgets(2), // header + personal details
+      );
+      expect(find.text('Mobile Phone'), findsOneWidget);
+      expect(find.text('+919876543210'), findsNWidgets(2)); // header + details
+      expect(find.text('Email Address'), findsOneWidget);
+      expect(find.text('Primary Address'), findsOneWidget);
+      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('English'), findsOneWidget);
+      expect(find.text('Edit Profile'), findsOneWidget);
+
+      // Open Edit Profile modal
+      await tester.tap(find.text('Edit Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Update your personal information'), findsOneWidget);
+      expect(find.text('SAVE CHANGES'), findsOneWidget);
+      expect(find.text('CANCEL'), findsOneWidget);
+      expect(
+        find.textContaining('Verified with SMS OTP. Mobile number cannot be changed directly.'),
+        findsOneWidget,
+      );
+
+      // Dismiss modal via close button
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      expect(find.text('Update your personal information'), findsNothing);
+
+      scope.dispose();
+    },
+  );
+
+  testWidgets(
     'security option explains OTP sign-in rather than offering a password change',
     (tester) async {
       final scope = container();

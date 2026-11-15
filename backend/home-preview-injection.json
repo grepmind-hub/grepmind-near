@@ -1,0 +1,198 @@
+{
+  "Run": "validation-8955b62e-513f-4acd-b38d-9eea58437842",
+  "CustomerPhone": "",
+  "Users": [
+    {
+      "ID": "07379386-323b-4e62-8d6a-b3892b8daf8a",
+      "Phone": "+919346395161"
+    },
+    {
+      "ID": "ec1330f5-fd81-41e8-9593-4815929924d5",
+      "Phone": "+919408751734"
+    },
+    {
+      "ID": "ed18090e-9625-4655-8967-897e0ff83b14",
+      "Phone": "+919365541429"
+    },
+    {
+      "ID": "1f3fb832-0a83-4ed8-b796-c59791bf6b92",
+      "Phone": "+919966517878"
+    },
+    {
+      "ID": "b9c0ecc0-ca0d-43a4-aef0-c1cdb86a8fb5",
+      "Phone": "+919465293739"
+    },
+    {
+      "ID": "b704a714-f254-4b84-86ac-d505c742279d",
+      "Phone": "+919298531622"
+    },
+    {
+      "ID": "5d0e1de2-7b1e-40ae-95f3-a2fb6abb0458",
+      "Phone": "+919379384089"
+    },
+    {
+      "ID": "2fb462ef-2ba8-44f7-8413-e3a7f8486a6a",
+      "Phone": "+919279739206"
+    }
+  ],
+  "Cases": [
+    {
+      "City": "Cuttack",
+      "CategorySlug": "grocery",
+      "CategoryName": "Grocery",
+      "BusinessID": "87266917-98dd-41e3-af6d-d9da8c075714",
+      "Phone": "+919346395161",
+      "BusinessName": "QA PREVIEW · Fresh Market · Cuttack",
+      "Address": "Badambadi Main Road, Near Bus Stand",
+      "Locality": "Badambadi",
+      "PostalCode": "753012",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-00.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Cuttack",
+      "CategorySlug": "restaurant",
+      "CategoryName": "Restaurant \u0026 Food",
+      "BusinessID": "a37af4f0-0df0-4dcb-89b3-f5d9405e2a7c",
+      "Phone": "+919408751734",
+      "BusinessName": "QA PREVIEW · Neighborhood Kitchen · Cuttack",
+      "Address": "Badambadi Main Road, Near Bus Stand",
+      "Locality": "Badambadi",
+      "PostalCode": "753012",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-03.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Cuttack",
+      "CategorySlug": "plumber",
+      "CategoryName": "Plumber",
+      "BusinessID": "e107e745-6c17-411b-a989-90226dfc0a7b",
+      "Phone": "+919365541429",
+      "BusinessName": "QA PREVIEW · Home Service Professional · Cuttack",
+      "Address": "Badambadi Main Road, Near Bus Stand",
+      "Locality": "Badambadi",
+      "PostalCode": "753012",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-05.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Cuttack",
+      "CategorySlug": "tailor",
+      "CategoryName": "Tailor",
+      "BusinessID": "b776298e-e528-4362-99e1-015e7d17cfc6",
+      "Phone": "+919966517878",
+      "BusinessName": "QA PREVIEW · Local Loom \u0026 Style · Cuttack",
+      "Address": "Badambadi Main Road, Near Bus Stand",
+      "Locality": "Badambadi",
+      "PostalCode": "753012",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-11.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Jajpur",
+      "CategorySlug": "grocery",
+      "CategoryName": "Grocery",
+      "BusinessID": "bc5c26ad-3899-42a2-a943-05732a331414",
+      "Phone": "+919465293739",
+      "BusinessName": "QA PREVIEW · Fresh Market · Jajpur",
+      "Address": "Station Road, Near Railway Station",
+      "Locality": "Jajpur Road",
+      "PostalCode": "755019",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-00.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Jajpur",
+      "CategorySlug": "restaurant",
+      "CategoryName": "Restaurant \u0026 Food",
+      "BusinessID": "57f3b1db-8f3e-411d-8fce-377b65bcb716",
+      "Phone": "+919298531622",
+      "BusinessName": "QA PREVIEW · Neighborhood Kitchen · Jajpur",
+      "Address": "Station Road, Near Railway Station",
+      "Locality": "Jajpur Road",
+      "PostalCode": "755019",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-03.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Jajpur",
+      "CategorySlug": "plumber",
+      "CategoryName": "Plumber",
+      "BusinessID": "1f5b52e6-6c0f-4564-8e45-ddb6593c5849",
+      "Phone": "+919379384089",
+      "BusinessName": "QA PREVIEW · Home Service Professional · Jajpur",
+      "Address": "Station Road, Near Railway Station",
+      "Locality": "Jajpur Road",
+      "PostalCode": "755019",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-05.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    },
+    {
+      "City": "Jajpur",
+      "CategorySlug": "tailor",
+      "CategoryName": "Tailor",
+      "BusinessID": "74feafc5-d5d4-4a43-b4c3-70a30f2d5b36",
+      "Phone": "+919279739206",
+      "BusinessName": "QA PREVIEW · Local Loom \u0026 Style · Jajpur",
+      "Address": "Station Road, Near Railway Station",
+      "Locality": "Jajpur Road",
+      "PostalCode": "755019",
+      "Description": "",
+      "ProductName": "",
+      "ProductDescription": "",
+      "ImageURL": "http://10.0.2.2:80/media/ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-11.jpg",
+      "OfferTitle": "",
+      "Price": 0,
+      "Latitude": 0,
+      "Longitude": 0
+    }
+  ],
+  "ImageKeys": [
+    "ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-00.jpg",
+    "ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-03.jpg",
+    "ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-05.jpg",
+    "ui-fixtures/8955b62e-513f-4acd-b38d-9eea58437842/home-sample-11.jpg"
+  ]
+}

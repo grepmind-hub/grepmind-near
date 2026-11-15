@@ -23,6 +23,7 @@ class _FakeAuthNotifier extends AuthNotifier {
     String phone,
     String otpCode, {
     String? challengeId,
+    String? preferredRole,
   }) async => true;
 }
 

@@ -124,6 +124,11 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
           key: const ValueKey('workspace_bottom_navigation'),
           type: BottomNavigationBarType.fixed,
           currentIndex: selectedIndex,
+          selectedItemColor: widget.activeRole == 'merchant'
+              ? AppTheme.coral
+              : (widget.activeRole == 'rider'
+                  ? AppTheme.riderAmberDark
+                  : AppTheme.emerald),
           onTap: (i) => setState(() {
             _mountedPageIndices.add(i);
             _selectedIndex = i;

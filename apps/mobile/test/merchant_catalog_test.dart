@@ -55,6 +55,14 @@ void main() {
     expect(find.byKey(const Key('modal_product_price')), findsOneWidget);
     expect(find.byKey(const Key('save_product_btn')), findsOneWidget);
 
+    // Verify photo buttons and back/close buttons
+    expect(find.byKey(const Key('modal_product_back_btn')), findsOneWidget);
+    expect(find.byKey(const Key('modal_product_close_btn')), findsOneWidget);
+    expect(find.byKey(const Key('btn_pick_camera')), findsOneWidget);
+    expect(find.byKey(const Key('btn_pick_gallery')), findsOneWidget);
+    expect(find.byKey(const Key('btn_pick_sample')), findsOneWidget);
+    expect(find.text('Choose a sample photo'), findsOneWidget);
+
     // Enter details
     await tester.enterText(find.byKey(const Key('modal_product_name')), 'Organic Herbal Tea 250g');
     await tester.enterText(find.byKey(const Key('modal_product_price')), '350');
@@ -62,6 +70,32 @@ void main() {
 
     expect(find.text('Organic Herbal Tea 250g'), findsOneWidget);
     expect(find.text('350'), findsOneWidget);
+
+    // Verify tapping close button dismisses the modal
+    await tester.tap(find.byKey(const Key('modal_product_close_btn')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add New Product'), findsNothing);
+  });
+
+  testWidgets('Tapping Add Product FAB and then back button dismisses modal', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: MerchantCatalogScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('add_product_fab')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add New Product'), findsOneWidget);
+
+    // Tap back button
+    await tester.tap(find.byKey(const Key('modal_product_back_btn')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add New Product'), findsNothing);
   });
 
   testWidgets('Tapping Add Service FAB on Services tab opens service modal', (tester) async {
@@ -96,5 +130,33 @@ void main() {
 
     expect(find.text('Split AC Deep Cleaning'), findsOneWidget);
     expect(find.text('750'), findsOneWidget);
+  });
+
+  testWidgets('Tapping Choose a sample photo opens category sample photo sheet', (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: MerchantCatalogScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Open Add Product modal
+    await tester.tap(find.byKey(const Key('add_product_fab')));
+    await tester.pumpAndSettle();
+
+    // Verify sample photo button exists and tap it
+    expect(find.byKey(const Key('btn_pick_sample')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('btn_pick_sample')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('btn_pick_sample')));
+    await tester.pumpAndSettle();
+
+    // Verify category sample grid opens
+    expect(find.text('Choose a category photo'), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_sample_grid')), findsOneWidget);
+    expect(find.byKey(const ValueKey('category_sample_0')), findsOneWidget);
   });
 }

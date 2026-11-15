@@ -267,6 +267,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String phone,
     String otpCode, {
     String? challengeId,
+    String? preferredRole,
   }) async {
     try {
       final res = await apiClient.post(
@@ -283,7 +284,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final refreshToken = resultData['refresh_token'] as String;
       final userMap = resultData['user'] as Map<String, dynamic>;
       final user = AppUser.fromJson(userMap);
-      await setSession(token: accessToken, user: user);
+      final targetRole = preferredRole != null &&
+              (preferredRole == 'merchant'
+                  ? (user.roles.contains('merchant') ||
+                      user.roles.contains('professional'))
+                  : user.roles.contains(preferredRole))
+          ? preferredRole
+          : (user.roles.contains('merchant') && !user.roles.contains('customer')
+              ? 'merchant'
+              : null);
+      await setSession(
+        token: accessToken,
+        user: user,
+        activeRole: targetRole,
+      );
       await _storeRefreshToken(refreshToken);
       return true;
     } catch (e) {
@@ -1616,7 +1630,7 @@ class MerchantHoursCoverageNotifier
   }
 
   void clearMessages() {
-    state = state.copyWith(successMessage: null);
+    state = state.copyWith();
   }
 }
 

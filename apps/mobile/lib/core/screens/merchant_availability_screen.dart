@@ -707,7 +707,7 @@ class _MerchantAvailabilityScreenState
               child: Icon(
                 status == 'open' ? Icons.event_available : Icons.event_busy,
                 color: status == 'open'
-                    ? const Color(0xFF0F766E)
+                    ? AppTheme.coral
                     : AppTheme.secondaryText,
               ),
             ),

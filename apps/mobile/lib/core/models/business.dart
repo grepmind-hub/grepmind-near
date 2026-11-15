@@ -157,19 +157,56 @@ class Business extends Equatable {
     return '${(distanceM! / 1000).toStringAsFixed(1)} km';
   }
 
+  /// Categories that represent service professionals / artisans rather than retail or food shops.
+  static const serviceTradeCategories = {
+    'electrician',
+    'plumber',
+    'carpenter',
+    'tailor',
+    'painter',
+    'home-services',
+    'services',
+    'appliance-repair',
+    'cleaning',
+    'pest-control',
+    'salon',
+    'beauty',
+    'beautician',
+  };
+
+  /// Whether this business represents an on-demand artisan / service professional.
+  bool get isServiceProvider =>
+      serviceTradeCategories.contains(categorySlug.toLowerCase().trim());
+
   bool get supportsFoodOrdering =>
       deliveryEnabled &&
       (categorySlug == 'restaurant' || categorySlug == 'cafe');
 
-  bool get shouldOpenServiceProfile =>
-      !supportsFoodOrdering &&
-      (const {
-            'electrician',
-            'plumber',
-            'carpenter',
-            'tailor',
-          }.contains(categorySlug) ||
-          acceptsRequests);
+  /// Only route to ServiceProScreen if it is an actual service trade provider.
+  bool get shouldOpenServiceProfile => !supportsFoodOrdering && isServiceProvider;
+
+  /// Context-aware call-to-action label for local businesses.
+  String get shopActionLabel {
+    if (isServiceProvider) {
+      return 'Book Service';
+    }
+    final slug = categorySlug.toLowerCase().trim();
+    if (slug == 'restaurant' ||
+        slug == 'cafe' ||
+        slug == 'bakery' ||
+        slug == 'food') {
+      return deliveryEnabled ? 'Order Food' : 'View Menu';
+    }
+    if (slug == 'hotel') {
+      return (roomBookingEnabled || tableBookingEnabled)
+          ? 'Book Stay'
+          : 'View Hotel';
+    }
+    if (deliveryEnabled) {
+      return 'Shop Now';
+    }
+    return 'View Store';
+  }
 
   @override
   List<Object?> get props => [

@@ -12,6 +12,10 @@ import 'package:grepmind_mobile/core/screens/customer_addresses_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
+/// 2026 Mint + Emerald redesign of the Customer Cart & Checkout experience.
+/// Implements the approved UI showcase mockup with separate Grocery/Food tabs,
+/// itemized rows with direct quantity steppers, transparent bill details,
+/// and a sticky checkout action footer.
 class PlatformCartScreen extends ConsumerStatefulWidget {
   const PlatformCartScreen({super.key, required this.scope});
   final PlatformCartScope scope;
@@ -21,6 +25,7 @@ class PlatformCartScreen extends ConsumerStatefulWidget {
 }
 
 class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
+  late String _activeVertical;
   CustomerAddress? _address;
   Map<String, dynamic>? _quote;
   bool _busy = false;
@@ -30,10 +35,24 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   final _notes = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _activeVertical = widget.scope.vertical;
+  }
+
+  @override
   void dispose() {
     _notes.dispose();
     super.dispose();
   }
+
+  PlatformCartScope get _currentScope => PlatformCartScope(
+        userId: widget.scope.userId,
+        vertical: _activeVertical,
+        localityId: widget.scope.localityId,
+        locality: widget.scope.locality,
+        district: widget.scope.district,
+      );
 
   String _newUUID() {
     final random = Random.secure();
@@ -44,7 +63,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     return '${value.substring(0, 8)}-${value.substring(8, 12)}-${value.substring(12, 16)}-${value.substring(16, 20)}-${value.substring(20)}';
   }
 
-  String _money(int minor) => '₹${(minor / 100).toStringAsFixed(2)}';
+  String _money(int minor) => '₹${(minor / 100).toStringAsFixed(0)}';
 
   String _errorMessage(Object error) {
     if (error is DioException) {
@@ -72,9 +91,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         builder: (_) => const CustomerAddressesScreen(selectAddress: true),
       ),
     );
-    if (!mounted || selected == null) {
-      return;
-    }
+    if (!mounted || selected == null) return;
     if (selected.localityId != widget.scope.localityId) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -97,9 +114,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
 
   Future<void> _refreshQuote() async {
     final address = _address;
-    final cart = ref.read(platformCartProvider(widget.scope));
+    final cart = ref.read(platformCartProvider(_currentScope));
     if (address == null ||
-        address.localityId != widget.scope.localityId ||
+        address.localityId != _currentScope.localityId ||
         cart.isEmpty) {
       return;
     }
@@ -110,7 +127,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     });
     try {
       final quote = await ref
-          .read(platformCartProvider(widget.scope).notifier)
+          .read(platformCartProvider(_currentScope).notifier)
           .quote(address.id);
       if (!mounted) return;
       setState(() {
@@ -118,8 +135,8 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         _paymentMethod = quote['upi_sandbox_available'] == true
             ? 'upi'
             : quote['cash_on_delivery_available'] == true
-            ? 'cash_on_delivery'
-            : null;
+                ? 'cash_on_delivery'
+                : null;
         _idempotencyKey = _newUUID();
         _busy = false;
       });
@@ -143,14 +160,14 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     });
     try {
       final order = await ref
-          .read(platformCartProvider(widget.scope).notifier)
+          .read(platformCartProvider(_currentScope).notifier)
           .submit(
             quote['quote_id'] as String,
             key,
             _notes.text.trim(),
             paymentMethod: _paymentMethod,
           );
-      await ref.read(platformCartProvider(widget.scope).notifier).clear();
+      await ref.read(platformCartProvider(_currentScope).notifier).clear();
       ref.invalidate(customerOrdersProvider);
       if (!mounted) return;
       await showDialog<void>(
@@ -159,15 +176,16 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         builder: (context) => AlertDialog(
           icon: const Icon(
             Icons.check_circle_outline_rounded,
-            color: AppTheme.primary,
+            color: AppTheme.emerald,
             size: 48,
           ),
           title: const Text('Order request received'),
           content: Text(
-            'Your ${widget.scope.vertical == 'food' ? 'Food' : 'Grocery'} order was sent to the selected fulfillment partner. ${_paymentMethod == 'cash_on_delivery' ? 'Synthetic Cash on Delivery is due at delivery; no cash is collected now.' : 'Sandbox UPI payment is not confirmed yet. Complete it from the order screen; fulfillment starts only after backend verification.'}\n\nReference: ${order['reference_code'] ?? order['id']}',
+            'Your ${_activeVertical == 'food' ? 'Food' : 'Grocery'} order was sent to the selected fulfillment partner. ${_paymentMethod == 'cash_on_delivery' ? 'Synthetic Cash on Delivery is due at delivery; no cash is collected now.' : 'Sandbox UPI payment is not confirmed yet. Complete it from the order screen; fulfillment starts only after backend verification.'}\n\nReference: ${order['reference_code'] ?? order['id']}',
           ),
           actions: [
             FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.emerald),
               onPressed: () => Navigator.pop(context),
               child: const Text('Continue to order'),
             ),
@@ -204,392 +222,800 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     });
   }
 
+  void _switchVertical(String vertical) {
+    if (_activeVertical == vertical) return;
+    setState(() {
+      _activeVertical = vertical;
+      _quote = null;
+      _idempotencyKey = null;
+      _paymentMethod = null;
+      _error = null;
+    });
+    if (_address != null) {
+      _refreshQuote();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cart = ref.watch(platformCartProvider(widget.scope));
-    final title = widget.scope.vertical == 'food'
-        ? 'Food cart'
-        : 'Grocery cart';
+    final cart = ref.watch(platformCartProvider(_currentScope));
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.brandCanvas,
       appBar: AppBar(
-        title: Text(title),
+        backgroundColor: AppTheme.brandCanvas,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.brandText),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Your Cart',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.brandText,
+              ),
+            ),
+            Text(
+              'GrepMind Near · ${_currentScope.locality}, ${_currentScope.district}',
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.brandTextMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            tooltip: 'Refresh availability and prices',
-            onPressed: _busy || cart.isEmpty ? null : _refreshQuote,
-            icon: const Icon(Icons.refresh_rounded),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.brandMint.withValues(alpha: 0.4),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.shopping_basket_outlined,
+              size: 20,
+              color: AppTheme.emerald,
+            ),
           ),
         ],
       ),
-      body: !cart.loaded || _busy && cart.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : cart.isEmpty
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(28),
-                child: Text(
-                  'Your cart is empty. Browse the Grepmind catalog to add products.',
-                  textAlign: TextAlign.center,
+      bottomNavigationBar: cart.isEmpty ? null : _buildStickyCheckoutFooter(cart),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            // Vertical Segmented Switcher (Grocery vs Food)
+            _buildVerticalSwitcher(),
+            const SizedBox(height: 14),
+
+            if (!cart.loaded || (_busy && cart.isEmpty))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: AppTheme.emerald),
                 ),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-              children: [
-                _locationCard(),
-                const SizedBox(height: 12),
-                for (final line in cart.lines.values) _lineCard(line),
-                const SizedBox(height: 8),
-                Card(
-                  color: Colors.white,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Cart estimate',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${cart.itemCount} items · ${_money(cart.subtotalHintMinor)}',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Estimate only. Final price and partner availability are verified by Grepmind at checkout.',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (_address != null)
-                  Card(
-                    color: Colors.white,
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.location_on_outlined,
-                        color: AppTheme.primary,
-                      ),
-                      title: Text(_address!.label),
-                      subtitle: Text(_address!.formatted),
-                      trailing: const Icon(Icons.edit_location_alt_outlined),
-                      onTap: _chooseAddress,
-                    ),
-                  ),
-                if (_quote != null) _quoteCard(),
-                if (_quote != null) _paymentMethodCard(),
-                if (_error != null)
-                  Card(
-                    color: const Color(0xFFFFF1F0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Color(0xFFB42318)),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                if (_quote == null)
-                  FilledButton.icon(
-                    onPressed: _busy ? null : _chooseAddress,
-                    icon: const Icon(Icons.receipt_long_outlined),
-                    label: Text(
-                      _busy
-                          ? 'Checking availability…'
-                          : 'Choose address & get verified total',
-                    ),
-                  )
-                else ...[
-                  TextField(
-                    controller: _notes,
-                    maxLength: 300,
-                    decoration: const InputDecoration(
-                      labelText: 'Order note (optional)',
-                      hintText: 'Add a short instruction',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: _busy || _paymentMethod == null ? null : _submit,
-                    icon: const Icon(Icons.check_circle_outline_rounded),
-                    label: Text(
-                      _busy
-                          ? 'Placing order…'
-                          : 'Place order · ${_money((_quote!['grand_total_minor'] as num).toInt())}',
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                const Text(
-                  'Payment availability and order eligibility are checked again by Grepmind when you continue.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.secondaryText),
-                ),
+              )
+            else if (cart.isEmpty)
+              _buildEmptyCartView()
+            else ...[
+              // Items List Card
+              _buildItemsCard(cart),
+              const SizedBox(height: 14),
+
+              // Bill Details Card
+              _buildBillDetailsCard(cart),
+              const SizedBox(height: 14),
+
+              // Delivery Address Card
+              _buildAddressCard(),
+              const SizedBox(height: 14),
+
+              // Verified Quote Card (Fulfillment Partner Breakdown)
+              if (_quote != null) ...[
+                _buildQuoteDetailsCard(),
+                const SizedBox(height: 14),
+                _buildPaymentMethodCard(),
+                const SizedBox(height: 14),
               ],
-            ),
+
+              // Order Notes
+              if (_quote != null) ...[
+                TextField(
+                  controller: _notes,
+                  maxLength: 300,
+                  decoration: InputDecoration(
+                    labelText: 'Order note (optional)',
+                    hintText: 'Add an instruction for delivery or packing',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppTheme.brandBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppTheme.brandBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppTheme.emerald, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Error display
+              if (_error != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: AppTheme.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const Text(
+                'Illustrative interaction with verified local partners. Grepmind Near fulfills orders with double-entry accountability.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.brandTextMuted, fontSize: 11),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _locationCard() => Card(
-    color: AppTheme.primaryContainer,
-    child: ListTile(
-      leading: const Icon(Icons.location_on_outlined, color: AppTheme.primary),
-      title: const Text('Delivery locality'),
-      subtitle: Text(
-        '${widget.scope.locality}, ${widget.scope.district} · ${widget.scope.vertical == 'food' ? 'Food' : 'Grocery'} cart',
+  Widget _buildVerticalSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEBEFEA),
+        borderRadius: BorderRadius.circular(14),
       ),
-    ),
-  );
-
-  Widget _lineCard(PlatformCartLine line) => Card(
-    color: Colors.white,
-    margin: const EdgeInsets.only(bottom: 10),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
       child: Row(
         children: [
+          Expanded(
+            child: _switcherPill(
+              title: 'Grocery',
+              active: _activeVertical == 'grocery',
+              onTap: () => _switchVertical('grocery'),
+            ),
+          ),
+          Expanded(
+            child: _switcherPill(
+              title: 'Food',
+              active: _activeVertical == 'food',
+              onTap: () => _switchVertical('food'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _switcherPill({required String title, required bool active, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: active
+              ? const [
+                  BoxShadow(
+                    color: Color(0x0C17352C),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+              color: active ? AppTheme.brandText : AppTheme.brandTextMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyCartView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8F6F3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.shopping_basket_outlined,
+                size: 48,
+                color: AppTheme.emerald,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your ${_activeVertical == 'food' ? 'Food' : 'Grocery'} cart is empty',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.brandText,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Browse the verified catalog to add products or meals from local neighborhood partners.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppTheme.brandTextMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemsCard(PlatformCartState cart) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.brandBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0817352C),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          for (int i = 0; i < cart.lines.values.length; i++) ...[
+            _buildCartLineRow(cart.lines.values.elementAt(i)),
+            if (i < cart.lines.values.length - 1)
+              const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F3)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartLineRow(PlatformCartLine line) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          // Thumbnail / Icon container
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: line.imageUrl == null
-                  ? const ColoredBox(
-                      color: AppTheme.surfaceVariant,
-                      child: Icon(Icons.shopping_bag_outlined),
-                    )
-                  : CachedNetworkImage(
+            child: Container(
+              width: 52,
+              height: 52,
+              color: const Color(0xFFF1F5F3),
+              child: line.imageUrl != null && line.imageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
                       imageUrl: apiClient.resolveMediaUrl(line.imageUrl!),
                       fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => const ColoredBox(
-                        color: AppTheme.surfaceVariant,
-                        child: Icon(Icons.shopping_bag_outlined),
-                      ),
-                    ),
+                      errorWidget: (_, _, _) => _linePlaceholder(),
+                    )
+                  : _linePlaceholder(),
             ),
           ),
           const SizedBox(width: 12),
+
+          // Product Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   line.productName,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.brandText,
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  '${line.variantName} · ${line.unitLabel}',
-                  style: const TextStyle(color: AppTheme.secondaryText),
+                  line.variantName.isNotEmpty && line.variantName != line.unitLabel
+                      ? '${line.variantName} · ${line.unitLabel}'
+                      : line.unitLabel,
+                  style: const TextStyle(fontSize: 11, color: AppTheme.brandTextMuted),
                 ),
+                const SizedBox(height: 3),
                 Text(
                   _money(line.priceHintMinor),
                   style: const TextStyle(
-                    color: AppTheme.primary,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
+                    color: AppTheme.brandText,
                   ),
                 ),
               ],
             ),
           ),
-          Column(
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Decrease quantity',
-                    onPressed: () => _changeCart(
-                      () => ref
-                          .read(platformCartProvider(widget.scope).notifier)
-                          .setQuantity(line.variantId, line.quantity - 1),
-                    ),
-                    icon: const Icon(Icons.remove_circle_outline),
-                    visualDensity: VisualDensity.compact,
+
+          // Stepper: [-] qty [+] with 48dp touch targets
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFD1D5DB)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InkWell(
+                  onTap: () => _changeCart(
+                    () => ref
+                        .read(platformCartProvider(_currentScope).notifier)
+                        .setQuantity(line.variantId, line.quantity - 1),
                   ),
-                  Text(
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.remove, size: 14, color: AppTheme.brandTextMuted),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
                     '${line.quantity}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.brandText,
+                    ),
                   ),
-                  IconButton(
-                    tooltip: 'Increase quantity',
-                    onPressed: line.quantity >= 50
-                        ? null
-                        : () => _changeCart(
+                ),
+                InkWell(
+                  onTap: line.quantity >= 50
+                      ? null
+                      : () => _changeCart(
                             () => ref
-                                .read(
-                                  platformCartProvider(widget.scope).notifier,
-                                )
+                                .read(platformCartProvider(_currentScope).notifier)
                                 .setQuantity(line.variantId, line.quantity + 1),
                           ),
-                    icon: const Icon(Icons.add_circle_outline),
-                    visualDensity: VisualDensity.compact,
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(20)),
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.emerald,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add, size: 14, color: Colors.white),
+                    ),
                   ),
-                ],
-              ),
-              TextButton(
-                onPressed: () => _changeCart(
-                  () => ref
-                      .read(platformCartProvider(widget.scope).notifier)
-                      .remove(line.variantId),
                 ),
-                child: const Text('Remove'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _linePlaceholder() {
+    return Center(
+      child: Icon(
+        _activeVertical == 'food' ? Icons.restaurant_rounded : Icons.eco_rounded,
+        size: 26,
+        color: AppTheme.emerald,
+      ),
+    );
+  }
+
+  Widget _buildBillDetailsCard(PlatformCartState cart) {
+    final quote = _quote;
+    final itemTotal = quote != null
+        ? (quote['item_subtotal_minor'] as num).toInt()
+        : cart.subtotalHintMinor;
+    final deliveryFee = quote != null
+        ? (quote['delivery_fee_minor'] as num).toInt()
+        : null;
+    final grandTotal = quote != null
+        ? (quote['grand_total_minor'] as num).toInt()
+        : cart.subtotalHintMinor;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.brandBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0617352C),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bill details',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.brandText,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Item total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Item total',
+                style: TextStyle(fontSize: 13, color: AppTheme.brandTextMuted),
+              ),
+              Text(
+                _money(itemTotal),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.brandText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Delivery fee
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Delivery and other fees',
+                style: TextStyle(fontSize: 13, color: AppTheme.brandTextMuted),
+              ),
+              Text(
+                deliveryFee != null
+                    ? (deliveryFee == 0 ? 'FREE' : _money(deliveryFee))
+                    : 'Calculated at checkout',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: deliveryFee != null && deliveryFee == 0
+                      ? AppTheme.emerald
+                      : AppTheme.brandTextMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0xFFF1F5F3)),
+          ),
+
+          // Items subtotal
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                quote != null ? 'Grand total' : 'Items subtotal',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.brandText,
+                ),
+              ),
+              Text(
+                _money(grandTotal),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.brandText,
+                ),
               ),
             ],
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 
-  Widget _quoteCard() {
-    final quote = _quote!;
-    final partner = quote['partner'] as Map<String, dynamic>? ?? const {};
-    return Card(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Verified checkout',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Fulfilled by ${partner['name'] ?? 'an approved local partner'}',
-            ),
-            const SizedBox(height: 8),
-            for (final raw in quote['items'] as List<dynamic>? ?? const [])
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Text(
-                  '${raw['quantity']} × ${raw['product_name']} · ${raw['variant_name']} — ${_money((raw['unit_price_minor'] as num).toInt() * (raw['quantity'] as num).toInt())}',
+  Widget _buildAddressCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F6F3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFB8F2DC)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _chooseAddress,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: AppTheme.emerald,
+                  ),
                 ),
-              ),
-            const Divider(height: 22),
-            _totalRow('Items', (quote['item_subtotal_minor'] as num).toInt()),
-            _totalRow(
-              'Delivery fee',
-              (quote['delivery_fee_minor'] as num).toInt(),
-            ),
-            _totalRow('Tax', (quote['tax_minor'] as num).toInt()),
-            const Divider(height: 22),
-            _totalRow(
-              'Total',
-              (quote['grand_total_minor'] as num).toInt(),
-              strong: true,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Quote expires ${DateTime.parse(quote['expires_at'] as String).toLocal().toString().substring(0, 16)}. Prices and stock are checked again when you place the order.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (quote['tax_status'] == 'not_configured')
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  'Tax is not separately calculated in this build.',
-                  style: TextStyle(color: AppTheme.secondaryText),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _address != null ? _address!.label : 'Delivery address',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.brandText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _address != null
+                            ? _address!.formatted
+                            : 'Select or confirm your address at checkout',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, color: AppTheme.brandTextMuted),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppTheme.emerald,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _paymentMethodCard() {
+  Widget _buildQuoteDetailsCard() {
+    final quote = _quote!;
+    final partner = quote['partner'] as Map<String, dynamic>? ?? const {};
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.brandBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_outlined, size: 16, color: AppTheme.emerald),
+              const SizedBox(width: 6),
+              Text(
+                'Fulfilled by ${partner['name'] ?? 'Local Partner'}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.brandText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final raw in quote['items'] as List<dynamic>? ?? const [])
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                '${raw['quantity']} × ${raw['product_name']} · ${_money((raw['unit_price_minor'] as num).toInt() * (raw['quantity'] as num).toInt())}',
+                style: const TextStyle(fontSize: 12, color: AppTheme.brandTextMuted),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodCard() {
     final quote = _quote!;
     final upiAvailable = quote['upi_sandbox_available'] == true;
     final codAvailable = quote['cash_on_delivery_available'] == true;
-    return Card(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                'Payment method',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.brandBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Payment method',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.brandText,
             ),
-            if (upiAvailable || codAvailable)
-              RadioGroup<String>(
-                groupValue: _paymentMethod,
-                onChanged: (value) {
-                  if (_busy || value == null) return;
-                  setState(() => _paymentMethod = value);
-                },
-                child: Column(
-                  children: [
-                    if (upiAvailable)
-                      RadioListTile<String>(
-                        value: 'upi',
-                        enabled: !_busy,
-                        title: const Text('UPI'),
-                        subtitle: const Text(
-                          'Sandbox payment · no real money is charged',
-                        ),
-                        secondary: const Icon(Icons.account_balance_outlined),
-                      ),
-                    if (codAvailable)
-                      RadioListTile<String>(
-                        value: 'cash_on_delivery',
-                        enabled: !_busy,
-                        title: const Text('Cash on Delivery'),
-                        subtitle: Text(
-                          'Synthetic QA only · ${_money((quote['grand_total_minor'] as num).toInt())} due at delivery; no cash collected now',
-                        ),
-                        secondary: const Icon(Icons.payments_outlined),
-                      ),
-                  ],
-                ),
-              ),
-            if (!upiAvailable && !codAvailable)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'No payment method is currently available for this order.',
-                ),
-              ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          RadioGroup<String>(
+            groupValue: _paymentMethod,
+            onChanged: (val) {
+              if (val != null) setState(() => _paymentMethod = val);
+            },
+            child: Column(
+              children: [
+                if (codAvailable)
+                  const RadioListTile<String>(
+                    value: 'cash_on_delivery',
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Cash on Delivery', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text('Synthetic COD · due at doorstep handover', style: TextStyle(fontSize: 11)),
+                    secondary: Icon(Icons.payments_outlined, color: AppTheme.emerald),
+                  ),
+                if (upiAvailable)
+                  const RadioListTile<String>(
+                    value: 'upi',
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('UPI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text('Sandbox simulation payment', style: TextStyle(fontSize: 11)),
+                    secondary: Icon(Icons.account_balance_outlined, color: AppTheme.emerald),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _totalRow(String label, int minor, {bool strong = false}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 3),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: strong ? const TextStyle(fontWeight: FontWeight.w700) : null,
+  Widget _buildStickyCheckoutFooter(PlatformCartState cart) {
+    final total = _quote != null
+        ? (_quote!['grand_total_minor'] as num).toInt()
+        : cart.subtotalHintMinor;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        decoration: BoxDecoration(
+          color: AppTheme.emerald,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x28059669),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _busy
+                ? null
+                : (_quote == null ? _chooseAddress : _submit),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              child: Row(
+                children: [
+                  // Left side: Subtotal & items count
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${_money(total)} subtotal',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+
+                  // Right side: Continue / Place order action
+                  if (_busy)
+                    const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  else
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _quote == null ? 'Continue' : 'Place order',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
-        Text(
-          _money(minor),
-          style: strong
-              ? const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primary,
-                  fontSize: 17,
-                )
-              : null,
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }

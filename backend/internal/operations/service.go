@@ -757,34 +757,155 @@ func (s *Service) CreateOrderSupportReport(w http.ResponseWriter, r *http.Reques
 func (s *Service) CancelOrder(w http.ResponseWriter, r *http.Request, userID string) {
 	var cancelled bool
 	var alreadyCancelled bool
+	var businessID string
 	orderID := r.PathValue("id")
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		var kind string
-		if err := tx.QueryRowx(`UPDATE customer_orders SET status='cancelled',cancelled_at=now(),updated_at=now() WHERE id=$1 AND customer_user_id=$2 AND status IN ('placed','accepted','confirmed') RETURNING order_type`, orderID, userID).Scan(&kind); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				var currentStatus string
-				if err := tx.QueryRowx(`SELECT status FROM customer_orders WHERE id=$1 AND customer_user_id=$2 FOR UPDATE`, orderID, userID).Scan(&currentStatus); errors.Is(err, sql.ErrNoRows) {
-					return nil
-				} else if err != nil {
-					return err
-				} else if currentStatus == "cancelled" {
-					cancelled, alreadyCancelled = true, true
-				}
-				return nil
-			}
+		// 1. Lock the order row and fetch authoritative status
+		var ord struct {
+			ID             string  `db:"id"`
+			Status         string  `db:"status"`
+			OrderType      string  `db:"order_type"`
+			OrderSource    string  `db:"order_source"`
+			PaymentStatus  string  `db:"payment_status"`
+			GrandTotal     float64 `db:"grand_total"`
+			BusinessID     string  `db:"business_id"`
+			CustomerUserID string  `db:"customer_user_id"`
+		}
+		err := tx.GetContext(r.Context(), &ord, `
+			SELECT id::text, status, order_type, order_source,
+			       COALESCE(payment_status, 'not_collected') as payment_status,
+			       grand_total, business_id::text, customer_user_id::text
+			FROM customer_orders
+			WHERE id=$1 AND customer_user_id=$2
+			FOR UPDATE`, orderID, userID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil // handled outside as 404
+		}
+		if err != nil {
 			return err
+		}
+		businessID = ord.BusinessID
+
+		// Replay check: already cancelled
+		if ord.Status == "cancelled" {
+			cancelled = true
+			alreadyCancelled = true
+			return nil
+		}
+
+		// 2. Verify cancellation eligibility: pre-pickup states only
+		cancellable := map[string]bool{
+			"placed":           true,
+			"accepted":         true,
+			"confirmed":        true,
+			"preparing":        true,
+			"ready_for_pickup": true,
+		}
+		if !cancellable[ord.Status] {
+			return checkoutError(409, "INVALID_STATE", "Only a new order or reservation can be cancelled.")
+		}
+
+		// 3. Reject cancellation after Rider pickup
+		var pickedUp bool
+		err = tx.GetContext(r.Context(), &pickedUp, `
+			SELECT EXISTS(
+				SELECT 1 FROM delivery_jobs
+				WHERE order_id=$1 AND execution_state IN ('picked_up', 'en_route', 'delivered', 'returned')
+			)`, orderID)
+		if err != nil {
+			return err
+		}
+		if pickedUp {
+			return checkoutError(409, "INVALID_STATE", "Order cannot be cancelled after rider pickup.")
+		}
+
+		// 4. If paid platform catalog order: create or reuse cancellation refund
+		if ord.OrderSource == "platform_catalog" && ord.PaymentStatus == "paid" {
+			var intentID, attemptID, currency string
+			var captured, refunded int64
+			err = tx.QueryRowxContext(r.Context(), `
+				SELECT i.id::text, a.id::text, a.currency, a.amount_minor,
+				       COALESCE((SELECT sum(pr.amount_minor) FROM payment_refunds pr WHERE pr.payment_attempt_id=a.id AND pr.status IN ('requested','approved','processing','succeeded','reconciliation_required')), 0)
+				FROM payment_intents i
+				JOIN payment_attempts a ON a.payment_intent_id=i.id
+				WHERE i.order_id=$1 AND i.customer_user_id=$2 AND a.status='succeeded' AND a.provider='grepmind_sandbox'
+				ORDER BY a.attempt_number DESC LIMIT 1 FOR UPDATE OF i, a`, orderID, userID).Scan(&intentID, &attemptID, &currency, &captured, &refunded)
+			if errors.Is(err, sql.ErrNoRows) {
+				return checkoutError(409, "REFUND_NOT_ELIGIBLE", "No verified sandbox capture is available to refund.")
+			}
+			if err != nil {
+				return err
+			}
+			remaining := captured - refunded
+			if remaining <= 0 {
+				return checkoutError(409, "REFUND_AMOUNT_EXCEEDED", "No remaining refundable balance on this order.")
+			}
+
+			// Check if cancellation refund already exists
+			var existingRefundID string
+			err = tx.GetContext(r.Context(), &existingRefundID, `SELECT id::text FROM payment_refunds WHERE order_id=$1 AND reason_code='order_cancelled' AND status IN ('requested','approved','processing','succeeded') LIMIT 1`, orderID)
+			if errors.Is(err, sql.ErrNoRows) {
+				refundID := uuid.NewString()
+				idempotencyKey := uuid.NewSHA1(uuid.NameSpaceOID, []byte("cancellation-refund:"+orderID))
+				fpBytes := sha256.Sum256([]byte(fmt.Sprintf("%s|%d|order_cancelled", orderID, remaining)))
+				_, err = tx.ExecContext(r.Context(), `
+					INSERT INTO payment_refunds(id, payment_intent_id, payment_attempt_id, order_id, customer_user_id, amount_minor, currency, reason_code, status, idempotency_key, request_fingerprint, requested_by)
+					VALUES($1, $2, $3, $4, $5, $6, $7, 'order_cancelled', 'requested', $8, $9, $5)`,
+					refundID, intentID, attemptID, orderID, userID, remaining, currency, idempotencyKey.String(), fpBytes[:])
+				if err != nil {
+					return err
+				}
+				_, err = tx.ExecContext(r.Context(), `
+					INSERT INTO payment_refund_audit_events(refund_id, actor_user_id, event_type, reason, metadata)
+					VALUES($1, $2, 'requested', 'Customer cancelled order; cancellation refund requested awaiting finance review', jsonb_build_object('amount_minor', $3::bigint, 'currency', $4::text, 'reason_code', 'order_cancelled'))`,
+					refundID, userID, remaining, currency)
+				if err != nil {
+					return err
+				}
+			} else if err != nil {
+				return err
+			}
+		}
+
+		// 5. Update order status to cancelled
+		res, err := tx.ExecContext(r.Context(), `
+			UPDATE customer_orders
+			SET status='cancelled', cancelled_at=now(), updated_at=now()
+			WHERE id=$1 AND customer_user_id=$2 AND status IN ('placed','accepted','confirmed','preparing','ready_for_pickup')`,
+			orderID, userID)
+		if err != nil {
+			return err
+		}
+		n, _ := res.RowsAffected()
+		if n != 1 {
+			return checkoutError(409, "INVALID_STATE", "Order state changed; reload before cancellation.")
 		}
 		cancelled = true
-		if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_order_status_events(order_id,status,event_kind,actor_user_id) VALUES($1,'cancelled','status_change',$2)`, orderID, userID); err != nil {
+
+		// 6. Cancel pending delivery jobs/assignments/offers/runs if any exist
+		_, _ = tx.ExecContext(r.Context(), `UPDATE delivery_assignments SET state='cancelled', ended_at=now() WHERE job_id IN (SELECT id FROM delivery_jobs WHERE order_id=$1) AND state='active'`, orderID)
+		_, _ = tx.ExecContext(r.Context(), `UPDATE delivery_offers SET state='cancelled', responded_at=now() WHERE job_id IN (SELECT id FROM delivery_jobs WHERE order_id=$1) AND state='offered'`, orderID)
+		_, _ = tx.ExecContext(r.Context(), `UPDATE delivery_dispatch_runs SET state='cancelled', completed_at=now() WHERE job_id IN (SELECT id FROM delivery_jobs WHERE order_id=$1) AND state='searching'`, orderID)
+		_, _ = tx.ExecContext(r.Context(), `UPDATE delivery_jobs SET state='cancelled', updated_at=now() WHERE order_id=$1 AND execution_state IN ('created','assigned','at_pickup')`, orderID)
+
+		// 7. Audit event
+		if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_order_status_events(order_id,status,event_kind,actor_user_id,reason) VALUES($1,'cancelled','status_change',$2,'Order cancelled by customer')`, orderID, userID); err != nil {
 			return err
 		}
-		if kind == "food_delivery" || kind == "platform_order" {
+
+		// 8. Restore inventory
+		if ord.OrderType == "food_delivery" || ord.OrderType == "platform_order" || ord.OrderSource == "platform_catalog" {
 			return restoreOrderInventory(tx, orderID)
 		}
 		return nil
 	})
 	if err != nil {
-		writeError(w, 500, "INTERNAL_ERROR", "Unable to cancel order.")
+		var failure *checkoutFailure
+		if errors.As(err, &failure) {
+			writeError(w, failure.status, failure.code, failure.message)
+		} else {
+			writeError(w, 500, "INTERNAL_ERROR", "Unable to cancel order.")
+		}
 		return
 	}
 	if !cancelled {
@@ -801,8 +922,6 @@ func (s *Service) CancelOrder(w http.ResponseWriter, r *http.Request, userID str
 		return
 	}
 	if !alreadyCancelled {
-		var businessID string
-		_ = s.db.QueryRowxContext(r.Context(), `SELECT business_id::text FROM customer_orders WHERE id=$1 AND customer_user_id=$2`, orderID, userID).Scan(&businessID)
 		s.publishStatus(r.Context(), userID, businessID, orderID, "cancelled")
 	}
 	s.GetOrder(w, r, userID)

@@ -78,8 +78,8 @@ void main() {
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: const MaterialApp(
-          home: const BookingSchedulerScreen(
+        child: MaterialApp(
+          home: BookingSchedulerScreen(
             business: dummyBiz,
             businessName:
                 'Generated Cuttack Business With A Very Long Validation Name',

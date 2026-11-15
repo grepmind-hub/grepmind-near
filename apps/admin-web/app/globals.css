@@ -3,26 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --background: 210 29% 95%; /* #F0F4F8 */
-  --foreground: 223 35% 15%; /* #172033 */
+  --background: 75 15% 96%; /* Canvas #F5F6F2 */
+  --foreground: 221 37% 15%; /* #172033 */
   --card: 0 0% 100%;
-  --card-foreground: 223 35% 15%;
+  --card-foreground: 221 37% 15%;
   --popover: 0 0% 100%;
-  --popover-foreground: 223 35% 15%;
-  --primary: 223 70% 49%; /* #2457D6 */
+  --popover-foreground: 221 37% 15%;
+  --primary: 170 54% 15%; /* Forest #123D36 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 175 77% 24%; /* #0F766E */
+  --secondary: 168 76% 36%; /* Mint #16A085 */
   --secondary-foreground: 0 0% 100%;
-  --muted: 222 13% 45%; /* #667085 */
-  --muted-foreground: 222 13% 45%;
-  --accent: 210 27% 96%;
-  --accent-foreground: 223 35% 15%;
-  --destructive: 4 66% 42%; /* #B42318 */
+  --muted: 220 13% 46%; /* #667085 */
+  --muted-foreground: 220 13% 46%;
+  --accent: 168 50% 95%; /* Mint Light */
+  --accent-foreground: 170 54% 15%;
+  --destructive: 9 76% 62%; /* Coral #E66B55 */
   --destructive-foreground: 0 0% 100%;
+  --warning: 39 89% 61%; /* Amber #F4B544 */
+  --warning-foreground: 39 80% 15%;
   --border: 220 14% 92%; /* #E4E7EC */
   --input: 220 14% 92%;
-  --ring: 223 70% 49%;
-  --radius: 0.75rem;
+  --ring: 168 76% 36%;
+  --radius: 1.25rem; /* 20px */
 }
 
 @layer base {

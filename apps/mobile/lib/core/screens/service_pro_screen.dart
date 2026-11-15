@@ -106,9 +106,9 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Color(0xFF1E3A8A),
-                            Color(0xFF2457D6),
-                            Color(0xFF0F766E),
+                            AppTheme.forestDark,
+                            AppTheme.forest,
+                            AppTheme.mint,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -237,10 +237,10 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     width: 76,
                                     height: 76,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFEFF6FF),
+                                      color: AppTheme.mintLight,
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: const Color(0xFFDBEAFE),
+                                        color: AppTheme.mint.withValues(alpha: 0.3),
                                         width: 2,
                                       ),
                                     ),
@@ -250,7 +250,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             ? Icons.plumbing_rounded
                                             : Icons.engineering_rounded,
                                         size: 42,
-                                        color: AppTheme.primary,
+                                        color: AppTheme.forest,
                                       ),
                                     ),
                                   ),
@@ -260,7 +260,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(3),
                                       decoration: const BoxDecoration(
-                                        color: Color(0xFF10B981),
+                                        color: AppTheme.mint,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -294,7 +294,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                           const SizedBox(width: 4),
                                           const Icon(
                                             Icons.verified_rounded,
-                                            color: AppTheme.primary,
+                                            color: AppTheme.mint,
                                             size: 18,
                                           ),
                                         ],
@@ -308,7 +308,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.primary,
+                                        color: AppTheme.mint,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -317,7 +317,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                         if (biz.rating != null) ...[
                                           const Icon(
                                             Icons.star_rounded,
-                                            color: Color(0xFFF59E0B),
+                                            color: AppTheme.amber,
                                             size: 18,
                                           ),
                                           const SizedBox(width: 4),
@@ -355,7 +355,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFDCFCE7),
+                                            color: AppTheme.mintLight,
                                             borderRadius: BorderRadius.circular(
                                               6,
                                             ),
@@ -364,8 +364,10 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             biz.acceptsRequests
                                                 ? 'Accepting requests'
                                                 : 'Unavailable',
-                                            style: const TextStyle(
-                                              color: Color(0xFF15803D),
+                                            style: TextStyle(
+                                              color: biz.acceptsRequests
+                                                  ? AppTheme.forest
+                                                  : AppTheme.secondaryText,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 11,
                                             ),
@@ -503,12 +505,12 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? const Color(0xFFEFF6FF)
+                                          ? AppTheme.mintLight
                                           : const Color(0xFFF8FAFC),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isSelected
-                                            ? AppTheme.primary
+                                            ? AppTheme.mint
                                             : const Color(0xFFE2E8F0),
                                         width: isSelected ? 1.5 : 1,
                                       ),
@@ -522,7 +524,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                               ? Icons.check_circle_rounded
                                               : Icons.radio_button_unchecked,
                                           color: isSelected
-                                              ? AppTheme.primary
+                                              ? AppTheme.mint
                                               : const Color(0xFF94A3B8),
                                           size: 20,
                                         ),
@@ -563,7 +565,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 13,
-                                            color: AppTheme.primary,
+                                            color: AppTheme.forest,
                                           ),
                                         ),
                                       ],
@@ -654,14 +656,14 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
+                          color: AppTheme.mintLight,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFDBEAFE)),
+                          border: Border.all(color: AppTheme.mint.withValues(alpha: 0.3)),
                         ),
                         child: IconButton(
                           icon: const Icon(
                             Icons.call_rounded,
-                            color: AppTheme.primary,
+                            color: AppTheme.forest,
                             size: 22,
                           ),
                           onPressed: biz.phoneE164?.isNotEmpty == true
@@ -730,7 +732,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           height: 48,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
+                              backgroundColor: AppTheme.emerald,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -923,58 +925,5 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
     );
   }
 
-  Widget _buildReviewSnippet({
-    required String name,
-    required int rating,
-    required String timeAgo,
-    required String comment,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              name,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppTheme.mainText,
-              ),
-            ),
-            Text(
-              timeAgo,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.secondaryText,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: List.generate(
-            5,
-            (index) => Icon(
-              Icons.star_rounded,
-              color: index < rating
-                  ? const Color(0xFFF59E0B)
-                  : const Color(0xFFE2E8F0),
-              size: 15,
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          comment,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppTheme.secondaryText,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
-  }
+
 }

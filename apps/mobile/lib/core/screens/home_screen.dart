@@ -9,7 +9,7 @@ import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
+import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 
 /// Customer Home is a live local feed: current offers, categories and approved
 /// businesses are loaded from the API for the selected supported city.
@@ -82,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 104,
+                  height: 118,
                   child: categories.isLoading
                       ? const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
@@ -106,6 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             final category = categories.items[index];
                             return _CategoryTile(
                               name: category.name,
+                              slug: category.slug,
                               icon: CategoriesScreen.getCategoryIcon(
                                 category.slug,
                               ),
@@ -151,7 +152,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ? const _InlineState(
                           icon: Icons.local_offer_outlined,
                           title: 'No live offers right now',
-                          message: 'Approved offers from local businesses will appear here while they are active.',
+                          message:
+                              'Approved offers from local businesses will appear here while they are active.',
                         )
                       : SizedBox(
                           height: 154,
@@ -175,6 +177,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                 ),
+              ),
+              SliverToBoxAdapter(
+                child: _BuyLocalBanner(city: location.cityName),
               ),
               SliverToBoxAdapter(
                 child: _SectionHeading(
@@ -427,7 +432,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+    padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
     child: Row(
       children: [
         Expanded(
@@ -437,7 +442,7 @@ class _Header extends StatelessWidget {
               Text(
                 'GREPMIND NEAR',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.primary,
+                  color: AppTheme.emerald,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.1,
                 ),
@@ -453,7 +458,7 @@ class _Header extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.location_on_rounded,
-                        color: AppTheme.secondary,
+                        color: AppTheme.emerald,
                         size: 19,
                       ),
                       const SizedBox(width: 4),
@@ -480,17 +485,105 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        IconButton.filledTonal(
-          tooltip: 'Search businesses',
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFA7F3D0)),
           ),
-          icon: const Icon(Icons.search_rounded),
+          child: IconButton(
+            tooltip: 'Search businesses',
+            padding: EdgeInsets.zero,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+            ),
+            icon: const Icon(
+              Icons.search_rounded,
+              color: AppTheme.emerald,
+              size: 20,
+            ),
+          ),
         ),
       ],
     ),
   );
+}
+
+class _BuyLocalBanner extends StatelessWidget {
+  const _BuyLocalBanner({required this.city});
+  final String city;
+
+  @override
+  Widget build(BuildContext context) {
+    final cityName = city.isEmpty ? 'Local' : city;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 22),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.forest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.amber,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'BUY LOCAL',
+                    style: TextStyle(
+                      color: AppTheme.forestDark,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Support $cityName\nBusinesses ❤️',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Fresh groceries, local food & trusted pros nearby.',
+                  style: TextStyle(color: Color(0xFFD0E8E3), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.emerald,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              minimumSize: const Size(0, 38),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Shop Local', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _WelcomePanel extends StatelessWidget {
@@ -544,7 +637,7 @@ class _WelcomePanel extends StatelessWidget {
                 icon: const Icon(Icons.arrow_forward_rounded, size: 17),
                 label: const Text('Explore nearby'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.emerald,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -608,63 +701,68 @@ class _SectionHeading extends StatelessWidget {
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
     required this.name,
+    required this.slug,
     required this.icon,
     required this.onTap,
   });
   final String name;
+  final String slug;
   final IconData icon;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 76,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(17),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CategorySampleImage(index: categorySampleIndex('', name)),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: AppTheme.secondary, size: 15),
-                    ),
+  Widget build(BuildContext context) {
+    final theme = CategoryThemedPlaceholder.resolveTheme(slug);
+
+    return SizedBox(
+      width: 76,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: theme.gradient,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE1EBE5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.accent.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
+              child: Center(
+                child: Icon(icon, color: theme.accent, size: 26),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: AppTheme.mainText),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              name,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11.5,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.brandText,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _OfferCard extends StatelessWidget {

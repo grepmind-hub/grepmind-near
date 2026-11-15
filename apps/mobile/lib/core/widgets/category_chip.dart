@@ -22,14 +22,14 @@ class CategoryCircleItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? (isSelected ? AppTheme.primary : const Color(0xFFF2F4F7));
-    final fg = iconColor ?? (isSelected ? Colors.white : AppTheme.primary);
+    final bg = backgroundColor ?? (isSelected ? AppTheme.emerald : const Color(0xFFF2F4F7));
+    final fg = iconColor ?? (isSelected ? Colors.white : AppTheme.emerald);
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -38,15 +38,17 @@ class CategoryCircleItem extends StatelessWidget {
               height: 58,
               decoration: BoxDecoration(
                 color: bg,
-                shape: BoxShape.circle,
-                border: isSelected
-                    ? Border.all(color: AppTheme.primary, width: 2.5)
-                    : Border.all(color: Colors.transparent),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? AppTheme.emerald : const Color(0xFFE1EBE5),
+                  width: isSelected ? 2.0 : 1.0,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: (backgroundColor ?? AppTheme.primary).withValues(alpha: 0.18),
+                    color: (isSelected ? AppTheme.emerald : (backgroundColor ?? Colors.black))
+                        .withValues(alpha: isSelected ? 0.22 : 0.06),
                     blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -54,18 +56,19 @@ class CategoryCircleItem extends StatelessWidget {
                 child: Icon(icon, size: 26, color: fg),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             SizedBox(
-              width: 64,
+              width: 72,
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11.5,
+                  height: 1.2,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected ? AppTheme.primary : AppTheme.mainText,
+                  color: isSelected ? AppTheme.emerald : AppTheme.mainText,
                   letterSpacing: -0.2,
                 ),
               ),

@@ -316,6 +316,12 @@ class _MerchantPlatformOrdersScreenState
             child: const Text('Keep order'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.coral,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             onPressed: () {
               final text = controller.text.trim();
               if (text.length >= 10 && text.length <= 500) {
@@ -360,13 +366,54 @@ class _MerchantPlatformOrdersScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
-            const Card(
-              color: AppTheme.primaryContainer,
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Orders assigned by Grepmind appear here. Customer prices stay platform-controlled. UPI orders require backend-verified payment; COD orders show the amount due at delivery. Marking ready does not mean delivered.',
-                ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.merchantCoralLight,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.merchantCoralBorder),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      color: AppTheme.coral,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Partner Fulfillment Orders',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Fulfill catalog orders, verify payment & issue pickup codes.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             if (_error != null) ...[
@@ -412,7 +459,7 @@ class _MerchantPlatformOrdersScreenState
                     Icon(
                       Icons.inventory_2_outlined,
                       size: 52,
-                      color: AppTheme.primary,
+                      color: AppTheme.coral,
                     ),
                     SizedBox(height: 12),
                     Text(
@@ -521,6 +568,12 @@ class _MerchantPlatformOrdersScreenState
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.coral,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: busy || !fulfillmentPaymentAllowed
                         ? null
                         : () => _act(order, 'accept'),
@@ -543,6 +596,12 @@ class _MerchantPlatformOrdersScreenState
             SizedBox(
               width: double.infinity,
               child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.coral,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: busy || !fulfillmentPaymentAllowed
                     ? null
                     : () => _act(order, 'prepare'),
@@ -563,6 +622,12 @@ class _MerchantPlatformOrdersScreenState
             SizedBox(
               width: double.infinity,
               child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.coral,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: busy || !fulfillmentPaymentAllowed
                     ? null
                     : () => _act(order, 'ready'),
@@ -584,6 +649,12 @@ class _MerchantPlatformOrdersScreenState
                 width: double.infinity,
                 child: FilledButton.icon(
                   key: ValueKey('issue_pickup_code_${order['id']}'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.coral,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onPressed: busy || confirmingPickup
                       ? null
                       : () => _issuePickupCode(order),
@@ -702,7 +773,7 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
             letterSpacing: 6,
-            color: AppTheme.primary,
+            color: AppTheme.coral,
           ),
         ),
         const SizedBox(height: 12),

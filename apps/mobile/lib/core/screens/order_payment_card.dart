@@ -54,7 +54,7 @@ class OrderPaymentCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.payments_outlined, color: AppTheme.primary),
+                const Icon(Icons.payments_outlined, color: AppTheme.emerald),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
@@ -126,6 +126,13 @@ class OrderPaymentCard extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.emerald,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
                     onPressed:
                         state.isBusy ||
                             attempt == 'pending' ||
@@ -429,7 +436,7 @@ class _CODStatusCardState extends ConsumerState<_CODStatusCard> {
           children: [
             Row(
               children: [
-                const Icon(Icons.payments_outlined, color: AppTheme.primary),
+                const Icon(Icons.payments_outlined, color: AppTheme.emerald),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(

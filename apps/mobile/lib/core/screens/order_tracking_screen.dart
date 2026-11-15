@@ -15,6 +15,7 @@ import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_payment_card.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -345,7 +346,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 5,
-                  color: AppTheme.primary,
+                  color: AppTheme.emerald,
                 ),
               ),
               const SizedBox(height: 8),
@@ -406,9 +407,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     }
     final order = _order!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6FB),
+      backgroundColor: const Color(0xFFF8FAF9),
       appBar: AppBar(
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
         title: const Text('Order details'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
         actions: [
           IconButton(
             onPressed: _loading ? null : () => _loadOrder(),
@@ -452,12 +463,26 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 events: _deliveryHistory,
                 error: _deliveryHistoryError,
               ),
-              if (_deliveryExecutionState == 'en_route')
+              if (_deliveryExecutionState == 'en_route') ...[
+                const SizedBox(height: 4),
                 FilledButton.icon(
                   onPressed: _showDeliveryCode,
-                  icon: const Icon(Icons.key_rounded),
-                  label: const Text('Show delivery verification code'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F766E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.key_rounded, size: 18),
+                  label: const Text(
+                    'Show delivery verification code',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
+                const SizedBox(height: 10),
+              ],
             ],
             if (order.orderSource != 'platform_catalog')
               _StatusTimeline(order: order),
@@ -468,30 +493,70 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               paymentMethod: order.paymentMethod,
             ),
             const SizedBox(height: 12),
-            if (_canCancel(order))
+            if (_canCancel(order)) ...[
               OutlinedButton.icon(
                 onPressed: () => _confirmCancel(order),
-                icon: const Icon(Icons.cancel_outlined),
-                label: const Text('Cancel order'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                  side: const BorderSide(color: Color(0xFFFECACA)),
+                  backgroundColor: const Color(0xFFFEF2F2),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.cancel_outlined, size: 18),
+                label: const Text(
+                  'Cancel order',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
+              const SizedBox(height: 10),
+            ],
             if (order.orderType == OrderType.foodDelivery &&
-                order.status != OrderStatus.cancelled)
+                order.status != OrderStatus.cancelled) ...[
               FilledButton.icon(
                 onPressed: _reordering ? null : () => _reorder(order),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 icon: _reordering
                     ? const SizedBox.square(
                         dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.replay_rounded),
+                    : const Icon(Icons.replay_rounded, size: 18),
                 label: Text(
                   _reordering ? 'Checking catalog…' : 'Reorder available items',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
+              const SizedBox(height: 10),
+            ],
             OutlinedButton.icon(
               onPressed: _supportSubmitting ? null : _showSupportForm,
-              icon: const Icon(Icons.support_agent_rounded),
-              label: const Text('Report an order issue'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF334155),
+                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.support_agent_rounded, size: 18),
+              label: const Text(
+                'Report an order issue',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
@@ -673,28 +738,147 @@ class _SummaryCard extends StatelessWidget {
       OrderType.hotelBooking => 'Hotel stay',
       OrderType.serviceBooking => 'Service booking',
     };
+    final formattedDate = DateFormat('d MMM yyyy, h:mm a').format(order.createdAt.toLocal());
+
+    final (statusBg, statusBorder, statusColor, statusIcon) = switch (order.status) {
+      OrderStatus.delivered || OrderStatus.completed => (
+        const Color(0xFFECFDF5),
+        const Color(0xFFA7F3D0),
+        const Color(0xFF047857),
+        Icons.check_circle_rounded,
+      ),
+      OrderStatus.cancelled || OrderStatus.rejected => (
+        const Color(0xFFFEF2F2),
+        const Color(0xFFFECACA),
+        const Color(0xFFB91C1C),
+        Icons.cancel_rounded,
+      ),
+      OrderStatus.readyForPickup || OrderStatus.preparing || OrderStatus.accepted => (
+        const Color(0xFFEFF6FF),
+        const Color(0xFFBFDBFE),
+        const Color(0xFF1D4ED8),
+        Icons.schedule_rounded,
+      ),
+      _ => (
+        const Color(0xFFF0FDFA),
+        const Color(0xFF99F6E4),
+        const Color(0xFF0F766E),
+        Icons.receipt_rounded,
+      ),
+    };
+
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            order.statusDisplay,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CategoryThemedPlaceholder(
+                    categorySlug: order.platformVertical ??
+                        (order.orderType == OrderType.foodDelivery
+                            ? 'food'
+                            : 'grocery'),
+                    businessName: order.businessName,
+                    isAvatar: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.businessName,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$kind · $formattedDate',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            order.businessName,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          Text('$kind · ${order.createdAt.toLocal()}'),
-          const SizedBox(height: 5),
-          Text(
-            'Reference ${order.voucherCode}',
-            style: const TextStyle(color: AppTheme.secondaryText),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, size: 14, color: statusColor),
+                    const SizedBox(width: 5),
+                    Text(
+                      order.statusDisplay,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (order.voucherCode?.isNotEmpty == true)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.tag_rounded,
+                        size: 13,
+                        color: AppTheme.secondaryText,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        order.voucherCode!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -710,28 +894,97 @@ class _DeliveryTruthCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Delivery updates',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: const Icon(
+                Icons.update_rounded,
+                color: Color(0xFF2563EB),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Delivery updates',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           order.etaMinutes > 0
               ? 'Merchant estimate: ${order.etaMinutes} minutes'
               : 'Delivery estimate is not available.',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1E293B),
+          ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         const Text(
           'Live rider location is not available for this order.',
-          style: TextStyle(color: AppTheme.secondaryText),
+          style: TextStyle(color: AppTheme.secondaryText, fontSize: 12),
         ),
         if (order.deliveryAddress?.isNotEmpty == true) ...[
-          const Divider(height: 20),
-          const Text(
-            'Delivery address',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
           ),
-          Text(order.deliveryAddress!),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.location_on_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 17,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Delivery address',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      order.deliveryAddress!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF475569),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ],
     ),
@@ -752,15 +1005,32 @@ class _DispatchStatusCard extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.delivery_dining_outlined, color: AppTheme.primary),
-        const SizedBox(width: 12),
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFA7F3D0)),
+          ),
+          child: const Icon(
+            Icons.delivery_dining_rounded,
+            color: Color(0xFF059669),
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Delivery dispatch',
-                style: TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 5),
               Text(
@@ -769,11 +1039,16 @@ class _DispatchStatusCard extends StatelessWidget {
                   riderAssigned: riderAssigned,
                   executionState: executionState,
                 ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF334155),
+                  height: 1.35,
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
               const Text(
                 'Rider location and delivery time are not available yet.',
-                style: TextStyle(color: AppTheme.secondaryText, fontSize: 12),
+                style: TextStyle(color: AppTheme.secondaryText, fontSize: 11),
               ),
             ],
           ),
@@ -796,48 +1071,75 @@ class _LiveConnectionCard extends StatelessWidget {
   final bool terminal;
 
   @override
-  Widget build(BuildContext context) => _Card(
-    child: Row(
-      children: [
-        Icon(
-          connected
-              ? Icons.wifi_rounded
-              : terminal
-              ? Icons.check_circle_outline_rounded
-              : Icons.sync_rounded,
-          color: connected || terminal
-              ? const Color(0xFF138A53)
-              : AppTheme.primary,
+  Widget build(BuildContext context) {
+    final isGood = connected || terminal;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: isGood ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isGood ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                connected
-                    ? 'Live order updates connected'
-                    : terminal
-                    ? 'Order updates complete'
-                    : hasConnected
-                    ? 'Reconnecting to live updates'
-                    : 'Connecting to live order updates',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              if (lastUpdatedAt != null)
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: isGood ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              connected
+                  ? Icons.wifi_rounded
+                  : terminal
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.sync_rounded,
+              size: 16,
+              color: isGood ? const Color(0xFF059669) : const Color(0xFFD97706),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Last checked ${TimeOfDay.fromDateTime(lastUpdatedAt!.toLocal()).format(context)}',
-                  style: const TextStyle(
-                    color: AppTheme.secondaryText,
-                    fontSize: 12,
+                  connected
+                      ? 'Live order updates connected'
+                      : terminal
+                      ? 'Order updates complete'
+                      : hasConnected
+                      ? 'Reconnecting to live updates'
+                      : 'Connecting to live order updates',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: isGood
+                        ? const Color(0xFF065F46)
+                        : const Color(0xFF92400E),
                   ),
                 ),
-            ],
+                if (lastUpdatedAt != null)
+                  Text(
+                    'Last checked ${TimeOfDay.fromDateTime(lastUpdatedAt!.toLocal()).format(context)}',
+                    style: TextStyle(
+                      color: isGood
+                          ? const Color(0xFF047857).withValues(alpha: 0.8)
+                          : const Color(0xFFB45309),
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 @visibleForTesting
@@ -864,6 +1166,216 @@ String customerDeliveryDispatchMessage({
     'cancelled' => 'Delivery dispatch was cancelled with this order.',
     _ => 'Dispatch status is being updated.',
   };
+}
+
+IconData _iconForTimelineStep(String label) {
+  final l = label.toLowerCase();
+  if (l.contains('placed')) return Icons.shopping_bag_outlined;
+  if (l.contains('accept')) return Icons.storefront_outlined;
+  if (l.contains('prepar')) return Icons.soup_kitchen_outlined;
+  if (l.contains('ready') ||
+      l.contains('pickup verified') ||
+      l.contains('handover')) {
+    return Icons.inventory_2_outlined;
+  }
+  if (l.contains('heading') || l.contains('arrived at partner')) {
+    return Icons.store_outlined;
+  }
+  if (l.contains('rider') || l.contains('assign')) {
+    return Icons.two_wheeler_outlined;
+  }
+  if (l.contains('way') || l.contains('en route') || l.contains('picked up')) {
+    return Icons.delivery_dining_outlined;
+  }
+  if (l.contains('delivered') || l.contains('completed')) {
+    return Icons.check_circle_outline_rounded;
+  }
+  if (l.contains('issue') ||
+      l.contains('cancel') ||
+      l.contains('fail') ||
+      l.contains('rejected') ||
+      l.contains('unreachable')) {
+    return Icons.error_outline_rounded;
+  }
+  return Icons.check_rounded;
+}
+
+class _TimelineStepItem extends StatelessWidget {
+  const _TimelineStepItem({
+    required this.title,
+    required this.subtitle,
+    this.detail,
+    required this.isFirst,
+    required this.isLast,
+    required this.isCompleted,
+    required this.isActive,
+    this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? detail;
+  final bool isFirst;
+  final bool isLast;
+  final bool isCompleted;
+  final bool isActive;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Vertical connector line and circular node
+          SizedBox(
+            width: 32,
+            child: Column(
+              children: [
+                // Top line
+                Container(
+                  width: 2.5,
+                  height: 6,
+                  color: isFirst
+                      ? Colors.transparent
+                      : (isCompleted || isActive
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFE2E8F0)),
+                ),
+                // Indicator Node
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive
+                        ? const Color(0xFF059669)
+                        : isCompleted
+                            ? const Color(0xFFECFDF5)
+                            : const Color(0xFFF8FAFC),
+                    border: Border.all(
+                      color: isActive
+                          ? const Color(0xFF047857)
+                          : isCompleted
+                              ? const Color(0xFF059669)
+                              : const Color(0xFFCBD5E1),
+                      width: isActive ? 2.5 : 1.5,
+                    ),
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF059669).withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon ??
+                          (isCompleted || isActive
+                              ? Icons.check_rounded
+                              : Icons.circle),
+                      size: icon != null ? 13 : (isCompleted || isActive ? 14 : 6),
+                      color: isActive
+                          ? Colors.white
+                          : isCompleted
+                              ? const Color(0xFF059669)
+                              : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+                // Bottom connecting vertical line
+                Expanded(
+                  child: isLast
+                      ? const SizedBox.shrink()
+                      : Container(
+                          width: 2.5,
+                          color: isCompleted
+                              ? const Color(0xFF059669)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: 2,
+                bottom: isLast ? 0 : 18,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                isActive ? FontWeight.w800 : FontWeight.w700,
+                            color: isActive
+                                ? const Color(0xFF065F46)
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      if (isActive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                          ),
+                          child: const Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF047857),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  if (detail != null && detail!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      detail!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _UnifiedOrderTimeline extends StatelessWidget {
@@ -929,57 +1441,123 @@ class _UnifiedOrderTimeline extends StatelessWidget {
         (eventType?.replaceAll('_', ' ') ?? 'Delivery update');
   }
 
+  bool get _isOrderTerminal =>
+      order.status == OrderStatus.delivered ||
+      order.status == OrderStatus.completed ||
+      order.status == OrderStatus.cancelled ||
+      order.status == OrderStatus.rejected;
+
   @override
-  Widget build(BuildContext context) => _Card(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Order and delivery timeline',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              error!,
-              style: const TextStyle(color: Colors.deepOrange),
+  Widget build(BuildContext context) {
+    final timelineEntries = _entries();
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: const Icon(
+                  Icons.alt_route_rounded,
+                  size: 18,
+                  color: Color(0xFF059669),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Order and delivery timeline',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                error!,
+                style: const TextStyle(color: Colors.deepOrange),
+              ),
+            ),
+          if (timelineEntries.isEmpty && error == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: Text(
+                'Order updates will appear here as the partner and rider progress.',
+                style: TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+              ),
+            )
+          else ...[
+            const SizedBox(height: 14),
+            for (var i = 0; i < timelineEntries.length; i++)
+              _TimelineStepItem(
+                title: timelineEntries[i].title,
+                subtitle: formatOrderTrackingTimestamp(timelineEntries[i].at),
+                isFirst: i == 0,
+                isLast: i == timelineEntries.length - 1,
+                isCompleted: i < timelineEntries.length - 1 || _isOrderTerminal,
+                isActive: i == timelineEntries.length - 1 && !_isOrderTerminal,
+                icon: _iconForTimelineStep(timelineEntries[i].title),
+              ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (state != null) ...[
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF059669),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Current delivery state · ${_deliveryLabels[state] ?? state!.replaceAll('_', ' ')}',
+                          style: const TextStyle(
+                            color: Color(0xFF334155),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                const Text(
+                  'No live location or estimated arrival time is shown.',
+                  style: TextStyle(color: AppTheme.secondaryText, fontSize: 11),
+                ),
+              ],
             ),
           ),
-        if (_entries().isEmpty && error == null)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              'Order updates will appear here as the partner and rider progress.',
-            ),
-          ),
-        for (final event in _entries())
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            leading: const Icon(
-              Icons.check_circle_outline_rounded,
-              color: AppTheme.primary,
-            ),
-            title: Text(
-              event.title,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(formatOrderTrackingTimestamp(event.at)),
-          ),
-        if (state != null)
-          Text(
-            'Current delivery state · ${_deliveryLabels[state] ?? state!.replaceAll('_', ' ')}',
-            style: const TextStyle(color: AppTheme.secondaryText, fontSize: 12),
-          ),
-        const SizedBox(height: 4),
-        const Text(
-          'No live location or estimated arrival time is shown.',
-          style: TextStyle(color: AppTheme.secondaryText, fontSize: 12),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _TimelineEntry {
@@ -998,38 +1576,57 @@ class _StatusTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Status history',
-            style: TextStyle(fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: const Icon(
+                  Icons.history_rounded,
+                  size: 18,
+                  color: Color(0xFF059669),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Status history',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           if (events.isEmpty)
-            const Text('No status history is available for this order yet.'),
-          for (final event in events)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              leading: Icon(
-                event.status == order.status
-                    ? Icons.radio_button_checked
-                    : Icons.check_circle_outline,
-                color: event.status == order.status
-                    ? AppTheme.primary
-                    : const Color(0xFF138A53),
-              ),
-              title: Text(
-                event.status.statusLabel,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                event.eventKind == 'history_snapshot'
+            const Text(
+              'No status history is available for this order yet.',
+              style: TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+            )
+          else
+            for (var i = 0; i < events.length; i++)
+              _TimelineStepItem(
+                title: events[i].status.statusLabel,
+                subtitle: events[i].eventKind == 'history_snapshot'
                     ? 'Earlier status history was not recorded for this order.'
-                    : [
-                        event.createdAt.toLocal().toString(),
-                        if (event.reason?.isNotEmpty == true) event.reason!,
-                      ].join('\n'),
+                    : formatOrderTrackingTimestamp(events[i].createdAt),
+                detail: events[i].reason?.isNotEmpty == true
+                    ? events[i].reason
+                    : null,
+                isFirst: i == 0,
+                isLast: i == events.length - 1,
+                isCompleted: i < events.length - 1 ||
+                    events[i].status == OrderStatus.delivered,
+                isActive: i == events.length - 1 &&
+                    events[i].status != OrderStatus.delivered,
+                icon: _iconForTimelineStep(events[i].status.statusLabel),
               ),
-            ),
         ],
       ),
     );
@@ -1044,27 +1641,113 @@ class _OrderItemsCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Order summary',
-          style: TextStyle(fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                size: 18,
+                color: Color(0xFF059669),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Order summary',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${order.items.length} ${order.items.length == 1 ? 'item' : 'items'}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         for (final item in order.items)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
             child: Row(
               children: [
-                Expanded(child: Text('${item.quantity} × ${item.name}')),
-                Text('₹${item.subtotal.toStringAsFixed(2)}'),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    '${item.quantity}×',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                ),
+                Text(
+                  '₹${item.subtotal.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
               ],
             ),
           ),
-        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
         _MoneyRow(label: 'Items', value: order.itemTotal),
         _MoneyRow(label: 'Delivery', value: order.deliveryFee),
         _MoneyRow(label: 'Tax', value: order.tax),
-        const Divider(),
-        _MoneyRow(label: 'Total', value: order.grandTotal, bold: true),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ),
+        _MoneyRow(
+          label: 'Total',
+          value: order.grandTotal,
+          bold: true,
+          highlight: true,
+        ),
       ],
     ),
   );
@@ -1075,10 +1758,12 @@ class _MoneyRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.bold = false,
+    this.highlight = false,
   });
   final String label;
   final double value;
   final bool bold;
+  final bool highlight;
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
@@ -1088,13 +1773,19 @@ class _MoneyRow extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
+            fontSize: highlight ? 15 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
+            color:
+                highlight ? const Color(0xFF0F172A) : const Color(0xFF475569),
           ),
         ),
         Text(
           '₹${value.toStringAsFixed(2)}',
           style: TextStyle(
+            fontSize: highlight ? 16 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
+            color:
+                highlight ? const Color(0xFF047857) : const Color(0xFF0F172A),
           ),
         ),
       ],
@@ -1106,12 +1797,19 @@ class _Card extends StatelessWidget {
   const _Card({required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 12),
-    color: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-      side: const BorderSide(color: Color(0xFFD8E2F1)),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
     ),
     child: Padding(padding: const EdgeInsets.all(16), child: child),
   );
@@ -1148,6 +1846,13 @@ class _LoadFailure extends StatelessWidget {
           if (!notFound) ...[
             const SizedBox(height: 14),
             FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.emerald,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: const Text('Try again'),
