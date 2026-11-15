@@ -2,7 +2,8 @@
 
 This directory keeps phase goals, evidence, scope boundaries, and approval gates in one place. These documents describe repository state at the date shown; current source, tests, and runtime evidence take precedence over older claims.
 
-Current consolidated status and next-step summary: [PROJECT_STATUS_AND_NEXT_STEPS_2026-11-14.md](PROJECT_STATUS_AND_NEXT_STEPS_2026-11-14.md).
+Current consolidated status and next-step summary: [PROJECT_STATUS_AND_NEXT_STEPS_2026-11-14.md](PROJECT_STATUS_AND_NEXT_STEPS_2026-11-14.md).  
+Complete E2E UI & Platform Automation Suite Guide: [COMPLETE_E2E_AUTOMATION_SUITE_GUIDE.md](../qa/COMPLETE_E2E_AUTOMATION_SUITE_GUIDE.md).
 
 | Phase | Document | State |
 |---|---|---|
