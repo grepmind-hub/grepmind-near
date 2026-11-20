@@ -4,6 +4,7 @@ import React from 'react';
 import { ShieldCheck, RefreshCw, LogOut } from 'lucide-react';
 
 interface AdminHeaderProps {
+  compactOnNarrow?: boolean;
   selectedCity: string;
   onSelectCity: (city: string) => void;
   selectedRange: '7d' | '14d' | '30d';
@@ -14,6 +15,7 @@ interface AdminHeaderProps {
 }
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({
+  compactOnNarrow = false,
   selectedCity,
   onSelectCity,
   selectedRange,
@@ -32,12 +34,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-bold tracking-tight text-[#172033]">Grepmind Near</span>
-              <span className="rounded-full bg-[#123D36]/10 px-2 py-0.5 text-[10px] font-bold text-[#123D36]">
+              <span className={`text-base font-bold tracking-tight text-[#172033] ${compactOnNarrow ? 'whitespace-nowrap' : ''}`}>Grepmind Near</span>
+              <span className={`rounded-full bg-[#123D36]/10 px-2 py-0.5 text-[10px] font-bold text-[#123D36] ${compactOnNarrow ? 'hidden sm:inline' : ''}`}>
                 ADMIN
               </span>
             </div>
-            <p className="text-[11px] font-medium text-[#667085]">Odisha Central Operations Hub</p>
+            <p className={`text-[11px] font-medium text-[#667085] ${compactOnNarrow ? 'hidden sm:block' : ''}`}>Odisha Central Operations Hub</p>
           </div>
         </div>
 
@@ -50,7 +52,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       {/* Center/Right: Interactive Filters & Admin Identity */}
       <div className="flex items-center gap-3">
         {/* City Filter Switcher */}
-        <div className="flex items-center rounded-lg border border-[#E4E7EC] bg-[#F7F8FA] p-0.5 text-xs font-medium">
+        <div className={`${compactOnNarrow ? 'hidden sm:flex' : 'flex'} items-center rounded-lg border border-[#E4E7EC] bg-[#F7F8FA] p-0.5 text-xs font-medium`}>
           {['All Cities', 'Cuttack', 'Jajpur'].map((city) => (
             <button
               key={city}

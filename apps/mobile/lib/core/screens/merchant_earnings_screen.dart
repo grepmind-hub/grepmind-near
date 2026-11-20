@@ -293,9 +293,7 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
       selected: isSelected,
       selectedColor: AppTheme.coral,
       backgroundColor: Colors.white,
-      side: BorderSide(
-        color: isSelected ? AppTheme.coral : AppTheme.border,
-      ),
+      side: BorderSide(color: isSelected ? AppTheme.coral : AppTheme.border),
       onSelected: (_) => setState(() => _historyDays = days),
     );
   }
@@ -373,12 +371,33 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
           ),
           _DetailRow('State', _stateLabel(row.status)),
           _DetailRow('Funding source', _stateLabel(row.fundingMode)),
+          _DetailRow('Payout workflow', _merchantPayoutLabel(row)),
+          if (row.latestAttemptStatus != null)
+            _DetailRow(
+              'Latest transfer attempt',
+              _stateLabel(row.latestAttemptStatus!),
+            ),
           if (row.simulatedAt != null)
             _DetailRow('Simulation recorded', _date(row.simulatedAt!)),
+          if (row.payoutCompletedAt != null)
+            _DetailRow(
+              'Transfer status recorded',
+              _date(row.payoutCompletedAt!),
+            ),
         ],
-        disclosure: row.disclosure,
+        disclosure:
+            '${row.disclosure} Payout workflow status does not confirm bank credit.',
       ),
     );
+  }
+
+  String _merchantPayoutLabel(MerchantSettlementRecord row) {
+    final status = row.payoutStatus;
+    if (status == null || status.isEmpty) return 'No payout transfer record';
+    if (row.payoutSimulationOnly) {
+      return '${_stateLabel(status)} · isolated QA simulation only';
+    }
+    return 'Unverified transfer status: ${_stateLabel(status)} · no bank confirmation';
   }
 }
 
@@ -402,7 +421,11 @@ class _SimulationDisclosure extends StatelessWidget {
         Expanded(
           child: Text(
             'Read-only financial information. Simulated settlements are not bank payouts; no payout controls are available in this app.',
-            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF78350F)),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: Color(0xFF78350F),
+            ),
           ),
         ),
       ],
@@ -533,8 +556,9 @@ class _MerchantBeneficiarySectionState
                     labelText: 'Bank Name',
                     prefixIcon: Icon(Icons.account_balance_rounded),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Enter bank name' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter bank name'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -575,8 +599,9 @@ class _MerchantBeneficiarySectionState
                                   'account_holder_name': nameCtrl.text.trim(),
                                   'account_number': acctCtrl.text.trim(),
                                   'bank_name': bankCtrl.text.trim(),
-                                  'ifsc_code':
-                                      ifscCtrl.text.trim().toUpperCase(),
+                                  'ifsc_code': ifscCtrl.text
+                                      .trim()
+                                      .toUpperCase(),
                                 },
                               );
                               if (ctx.mounted) Navigator.pop(ctx);
@@ -637,14 +662,12 @@ class _MerchantBeneficiarySectionState
     final b = _beneficiary;
     if (b != null) {
       return LuxeBeneficiaryCard(
-        accountHolderName:
-            b['account_holder_name']?.toString() ?? 'Merchant',
+        accountHolderName: b['account_holder_name']?.toString() ?? 'Merchant',
         accountNumberMasked:
             b['account_number_masked']?.toString() ?? '••••••••',
         ifscCode: b['ifsc_code']?.toString() ?? '',
         bankName: b['bank_name']?.toString(),
-        verificationStatus:
-            b['verification_status']?.toString() ?? 'pending',
+        verificationStatus: b['verification_status']?.toString() ?? 'pending',
         onEdit: _openAddBankSheet,
       );
     }
@@ -685,10 +708,7 @@ class _MerchantBeneficiarySectionState
                 SizedBox(height: 2),
                 Text(
                   'Register your bank details for verified settlements.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.secondaryText,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
                 ),
               ],
             ),
@@ -826,12 +846,21 @@ class _SettlementTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: Text(
-        '${record.periodStart} – ${record.periodEnd} · simulation only',
+        '${record.periodStart} – ${record.periodEnd} · ${_merchantPayoutSummary(record)}',
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: onTap,
     ),
   );
+}
+
+String _merchantPayoutSummary(MerchantSettlementRecord record) {
+  final status = record.payoutStatus;
+  if (status == null || status.isEmpty) return 'no transfer record';
+  if (record.payoutSimulationOnly) {
+    return 'QA payout simulation: ${_stateLabel(status)}';
+  }
+  return 'unverified transfer status: ${_stateLabel(status)}';
 }
 
 class _DetailsSheet extends StatelessWidget {

@@ -384,6 +384,11 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 			earningsSvc.RiderDetail(w, r, uid)
 		}))
 	}
+	if payoutSvc != nil && riderSvc != nil {
+		mux.HandleFunc("GET /api/v1/rider/settlements", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			payoutSvc.RiderSettlementHistory(w, r, uid)
+		}))
+	}
 	if earningsSvc != nil {
 		// Rider financial data and mutations are restricted to the protected
 		// primary superadmin until granular financial reviewer roles are approved.
@@ -574,6 +579,10 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 
 	mux.HandleFunc("POST /api/v1/auth/otp/request", authSvc.RequestOTP)
 	mux.HandleFunc("POST /api/v1/auth/otp/verify", authSvc.VerifyOTP)
+	mux.HandleFunc("GET /api/v1/auth/admin-mpin", authSvc.AdminMPINStatus)
+	mux.HandleFunc("POST /api/v1/auth/admin-mpin/enroll", authSvc.EnrollAdminMPIN)
+	mux.HandleFunc("POST /api/v1/auth/admin-mpin/remove", authSvc.RemoveAdminMPIN)
+	mux.HandleFunc("POST /api/v1/auth/admin-mpin/verify", authSvc.VerifyAdminMPIN)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authSvc.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authSvc.Logout)
 
@@ -619,6 +628,12 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		paymentSvc.RequestRefund(w, r, userID)
 	}))
 	mux.HandleFunc("POST /api/v1/payments/webhooks/{provider}", paymentSvc.ReceiveSandboxWebhook)
+	mux.HandleFunc("GET /api/v1/admin/payments/reconciliation-queue", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.AdminReconciliationQueue(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/payments/orders/{reference}", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		paymentSvc.AdminTrackOrder(w, r, userID)
+	}))
 	mux.HandleFunc("POST /api/v1/admin/payments/attempts/{id}/reconcile", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
 		paymentSvc.ReconcileSandboxPayment(w, r, userID)
 	}))
@@ -643,6 +658,9 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	// require explicit finance permissions in addition to authentication.
 	mux.HandleFunc("GET /api/v1/admin/finance/access-grants", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		financeAccessSvc.List(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/finance/capabilities", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		financeAccessSvc.Capabilities(w, r, uid)
 	}))
 	mux.HandleFunc("POST /api/v1/admin/finance/access-grant-requests", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		financeAccessSvc.Create(w, r, uid)
@@ -748,7 +766,9 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		writeJSON(w, 201, batch)
 	}))
 	mux.HandleFunc("POST /api/v1/admin/finance/rider-settlements/{batchId}/approve", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
-		var in struct{ Reason string `json:"reason"` }
+		var in struct {
+			Reason string `json:"reason"`
+		}
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		if err := payoutSvc.ApproveRiderSettlementBatch(r.Context(), r.PathValue("batchId"), uid, in.Reason); err != nil {
 			writeError(w, 400, "APPROVAL_FAILED", err.Error())
@@ -765,7 +785,9 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		writeJSON(w, 201, map[string]string{"transfer_id": transferID, "status": "ready"})
 	}))
 	mux.HandleFunc("POST /api/v1/admin/finance/payout-transfers/{transferId}/approve", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
-		var in struct{ Reason string `json:"reason"` }
+		var in struct {
+			Reason string `json:"reason"`
+		}
 		_ = json.NewDecoder(r.Body).Decode(&in)
 		if err := payoutSvc.ApprovePayoutTransfer(r.Context(), r.PathValue("transferId"), uid, in.Reason); err != nil {
 			writeError(w, 400, "APPROVAL_FAILED", err.Error())
@@ -1609,7 +1631,8 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		return
 	}
 	rows, err := db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at
+		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at,
+		       COALESCE(unit_label, ''), mrp, COALESCE(barcode, ''), COALESCE(grocery_category, '')
 		FROM products
 		WHERE business_id = $1
 		ORDER BY updated_at DESC
@@ -1623,12 +1646,14 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 	products := make([]discovery.Product, 0)
 	for rows.Next() {
 		var p discovery.Product
-		var price sql.NullFloat64
+		var price, mrp sql.NullFloat64
 		var desc, image sql.NullString
 		var updated sql.NullTime
 		var available sql.NullInt64
+		var unitLabel, barcode, groceryCategory string
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
-			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated); err != nil {
+			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated,
+			&unitLabel, &mrp, &barcode, &groceryCategory); err != nil {
 			continue
 		}
 		if desc.Valid {
@@ -1637,6 +1662,12 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		if price.Valid {
 			p.Price = &price.Float64
 		}
+		if mrp.Valid {
+			p.MRP = &mrp.Float64
+		}
+		p.UnitLabel = unitLabel
+		p.Barcode = barcode
+		p.GroceryCategory = groceryCategory
 		if image.Valid {
 			p.ImageURL = image.String
 		}
@@ -1664,6 +1695,10 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		StockStatus       string   `json:"stock_status"`
 		InventoryMode     string   `json:"inventory_mode"`
 		AvailableQuantity *int     `json:"available_quantity"`
+		UnitLabel         *string  `json:"unit_label"`
+		MRP               *float64 `json:"mrp"`
+		Barcode           *string  `json:"barcode"`
+		GroceryCategory   *string  `json:"grocery_category"`
 		IsPublished       bool     `json:"is_published"`
 		ImageURL          *string  `json:"image_url"`
 	}
@@ -1695,10 +1730,10 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	req.Name = strings.TrimSpace(req.Name)
 	var newID string
 	err := db.QueryRowxContext(r.Context(), `
-		INSERT INTO products (business_id, name, description, price, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), CASE WHEN $8 THEN now() ELSE NULL END)
+		INSERT INTO products (business_id, name, description, price, stock_status, inventory_mode, available_quantity, unit_label, mrp, barcode, grocery_category, is_published, image_url, updated_at, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now(), CASE WHEN $12 THEN now() ELSE NULL END)
 		RETURNING id
-	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.InventoryMode, req.AvailableQuantity, req.IsPublished, req.ImageURL).Scan(&newID)
+	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.InventoryMode, req.AvailableQuantity, req.UnitLabel, req.MRP, req.Barcode, req.GroceryCategory, req.IsPublished, req.ImageURL).Scan(&newID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product.")
 		return
@@ -1722,6 +1757,10 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		StockStatus       *string  `json:"stock_status"`
 		InventoryMode     *string  `json:"inventory_mode"`
 		AvailableQuantity *int     `json:"available_quantity"`
+		UnitLabel         *string  `json:"unit_label"`
+		MRP               *float64 `json:"mrp"`
+		Barcode           *string  `json:"barcode"`
+		GroceryCategory   *string  `json:"grocery_category"`
 		IsPublished       *bool    `json:"is_published"`
 		ImageURL          *string  `json:"image_url"`
 	}
@@ -1737,7 +1776,7 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		trimmed := strings.TrimSpace(*req.Name)
 		req.Name = &trimmed
 	}
-	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.InventoryMode == nil && req.AvailableQuantity == nil && req.IsPublished == nil && req.ImageURL == nil {
+	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.InventoryMode == nil && req.AvailableQuantity == nil && req.IsPublished == nil && req.ImageURL == nil && req.UnitLabel == nil && req.MRP == nil && req.Barcode == nil && req.GroceryCategory == nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No product fields to update.")
 		return
 	}
@@ -1814,6 +1853,26 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	if req.ImageURL != nil {
 		setParts = append(setParts, fmt.Sprintf("image_url = $%d", argIdx))
 		args = append(args, *req.ImageURL)
+		argIdx++
+	}
+	if req.UnitLabel != nil {
+		setParts = append(setParts, fmt.Sprintf("unit_label = $%d", argIdx))
+		args = append(args, *req.UnitLabel)
+		argIdx++
+	}
+	if req.MRP != nil {
+		setParts = append(setParts, fmt.Sprintf("mrp = $%d", argIdx))
+		args = append(args, *req.MRP)
+		argIdx++
+	}
+	if req.Barcode != nil {
+		setParts = append(setParts, fmt.Sprintf("barcode = $%d", argIdx))
+		args = append(args, *req.Barcode)
+		argIdx++
+	}
+	if req.GroceryCategory != nil {
+		setParts = append(setParts, fmt.Sprintf("grocery_category = $%d", argIdx))
+		args = append(args, *req.GroceryCategory)
 		argIdx++
 	}
 	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $1 AND business_id = $2", strings.Join(setParts, ", "))

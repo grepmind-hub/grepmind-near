@@ -198,7 +198,7 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
         builder: (context) => AlertDialog(
           icon: const Icon(
             Icons.check_circle_outline_rounded,
-            color: AppTheme.primary,
+            color: AppTheme.emerald,
             size: 48,
           ),
           title: const Text('Order request received'),
@@ -207,6 +207,10 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
           ),
           actions: [
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.emerald,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => Navigator.pop(context),
               child: const Text('Done'),
             ),
@@ -280,14 +284,15 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
             const SizedBox(height: 12),
             Card(
               color: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFD8E2F1)),
+                side: const BorderSide(color: AppTheme.brandBorder),
               ),
               child: ListTile(
                 leading: const Icon(
                   Icons.location_on_outlined,
-                  color: AppTheme.primary,
+                  color: AppTheme.emerald,
                 ),
                 title: Text(_address?.label ?? 'Choose delivery address'),
                 subtitle: Text(
@@ -404,7 +409,7 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
             ),
             const ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.info_outline, color: AppTheme.primary),
+              leading: Icon(Icons.info_outline, color: AppTheme.emerald),
               title: Text(
                 'Payment is unavailable',
                 style: TextStyle(fontWeight: FontWeight.w600),

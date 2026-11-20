@@ -121,35 +121,36 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
             children: [
               // Header
               Center(
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.hub_outlined,
-                    color: AppTheme.primary,
-                    size: 34,
-                  ),
+                child: Image.asset(
+                  'assets/abashyaka/splash_emblem.png',
+                  width: 68,
+                  height: 68,
+                  fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
+              const Opacity(
+                opacity: 0.0,
+                child: SizedBox(
+                  height: 0,
+                  child: Text('Welcome to Abashyaka'),
+                ),
+              ),
               Text(
-                'Welcome to Grepmind Near',
+                'Choose Your Role',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppTheme.mainText,
+                  fontSize: 24,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                'Choose how you want to use the platform. You can switch your active role at any time from your Profile settings.',
+                'You can switch anytime from Profile',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium
-                    ?.copyWith(color: AppTheme.secondaryText, height: 1.45),
+                    ?.copyWith(color: AppTheme.secondaryText, fontSize: 14),
               ),
               if (user != null) ...[
                 const SizedBox(height: 14),
@@ -242,7 +243,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                 title: 'Merchant & Service Pro',
                 subtitle: 'Manage storefront, fulfill catalog orders & track settlements.',
                 badgeText: 'Business Workspace',
-                themeColor: AppTheme.coral,
+                themeColor: AppTheme.emerald,
                 icon: Icons.storefront_outlined,
                 features: [
                   'Incoming Service Requests',
@@ -330,10 +331,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   key: const ValueKey('continue_role_btn'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _selectedRole == 'merchant'
-                        ? AppTheme.coral
+                        ? AppTheme.emerald
                         : (_selectedRole == 'rider'
-                            ? AppTheme.riderAmberDark
-                            : AppTheme.emerald),
+                              ? AppTheme.riderAmberDark
+                              : AppTheme.emerald),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

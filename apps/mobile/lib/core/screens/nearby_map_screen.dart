@@ -927,21 +927,17 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               isService
                                   ? 'Book Service'
                                   : business.shopActionLabel,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: isService
-                                    ? AppTheme.emerald
-                                    : const Color(0xFF2457D6),
+                                color: AppTheme.emerald,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(
+                            const Icon(
                               Icons.arrow_forward_rounded,
                               size: 13,
-                              color: isService
-                                  ? AppTheme.emerald
-                                  : const Color(0xFF2457D6),
+                              color: AppTheme.emerald,
                             ),
                           ],
                         ),
@@ -1149,7 +1145,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           const Icon(
                             Icons.verified_rounded,
                             size: 15,
-                            color: Color(0xFF2457D6),
+                            color: AppTheme.emerald,
                           ),
                         ],
                       ],
@@ -1438,9 +1434,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               size: 13,
                               color: isSelected
                                   ? Colors.white
-                                  : (biz.shouldOpenServiceProfile
-                                      ? AppTheme.emerald
-                                      : const Color(0xFF2457D6)),
+                                  : AppTheme.emerald,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -1546,8 +1540,8 @@ class _RadarMapPainter extends CustomPainter {
       ..shader = SweepGradient(
         center: FractionalOffset.center,
         colors: [
-          const Color(0xFF2457D6).withValues(alpha: 0.0),
-          const Color(0xFF2457D6).withValues(alpha: 0.15),
+          AppTheme.emerald.withValues(alpha: 0.0),
+          AppTheme.emerald.withValues(alpha: 0.15),
         ],
         stops: const [0.85, 1.0],
         transform: GradientRotation(sweepAngle),

@@ -992,9 +992,9 @@ class _MerchantRegistrationScreenState
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isDone
-                              ? AppTheme.coral
+                              ? AppTheme.emerald
                               : (isCurrent
-                                    ? AppTheme.primary
+                                    ? AppTheme.emerald
                                     : const Color(0xFFE2E8F0)),
                         ),
                         child: Center(
@@ -1040,7 +1040,7 @@ class _MerchantRegistrationScreenState
                     width: 16,
                     height: 2,
                     color: isDone
-                        ? AppTheme.coral
+                        ? AppTheme.emerald
                         : const Color(0xFFE2E8F0),
                     margin: const EdgeInsets.only(bottom: 14),
                   ),
@@ -2136,7 +2136,7 @@ class _MerchantRegistrationScreenState
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.coral,
+                  backgroundColor: AppTheme.emerald,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -2456,7 +2456,7 @@ class _MerchantRegistrationScreenState
             height: 42,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.coral,
+                backgroundColor: AppTheme.emerald,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -2488,37 +2488,72 @@ class _MerchantRegistrationScreenState
             children: [
               const SizedBox(height: 30),
               Container(
-                width: 80,
-                height: 80,
+                width: 88,
+                height: 88,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFFECFDF5),
+                  color: Color(0xFF0B6B4A),
                 ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  size: 52,
-                  color: Color(0xFF059669),
+                child: const Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 54,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
               Text(
                 _mode == 0
-                    ? 'Business Application Submitted'
-                    : 'Claim request submitted',
+                    ? 'Verification Under Review'
+                    : 'Claim Request Submitted',
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.mainText,
+                  color: Color(0xFF111827),
+                  letterSpacing: -0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Application Ref: $_generatedAppId',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+              const SizedBox(height: 8),
+              const Text(
+                'Your business details have been submitted. We will verify and activate your store shortly.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF4B5563),
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: Color(0xFF0B6B4A),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'This usually takes up to 24 hours.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -2527,6 +2562,14 @@ class _MerchantRegistrationScreenState
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   children: [
+                    if (_generatedAppId.isNotEmpty) ...[
+                      _buildSuccessRow(
+                        Icons.tag_rounded,
+                        'Application ID',
+                        _generatedAppId,
+                      ),
+                      const Divider(height: 18),
+                    ],
                     _buildSuccessRow(
                       Icons.business,
                       'Business',
@@ -2553,47 +2596,18 @@ class _MerchantRegistrationScreenState
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      color: Color(0xFF16A34A),
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Your listing is pending review. Prepare your products and services while it is reviewed; it will be published after approval.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF15803D),
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton.icon(
+                  key: const Key('goToDashboardButton'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.emerald,
+                    backgroundColor: const Color(0xFF0B6B4A),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   onPressed: () {
@@ -2606,8 +2620,8 @@ class _MerchantRegistrationScreenState
                   },
                   icon: const Icon(Icons.dashboard_outlined),
                   label: const Text(
-                    'Open Merchant Workspace',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    'Go to Dashboard',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

@@ -28,11 +28,28 @@ class _FakeAuthNotifier extends AuthNotifier {
 }
 
 void main() {
-  testWidgets('splash uses the local discovery illustration', (tester) async {
+  testWidgets('splash presents the approved Abashyaka identity', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
 
-    expect(find.byType(Image), findsOneWidget);
-    expect(find.text('Everything nearby.\nOne tap away.'), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.text('ସବୁ ଆବଶ୍ୟକତା,\nଆପଣଙ୍କ ପାଖରେ।'), findsOneWidget);
+    final images = tester.widgetList<Image>(find.byType(Image));
+    expect(
+      images.map((image) {
+        final provider = image.image;
+        final asset = provider is ResizeImage
+            ? provider.imageProvider
+            : provider;
+        return (asset as AssetImage).assetName;
+      }),
+      containsAll([
+        'assets/abashyaka/splash_emblem.png',
+        'assets/abashyaka/splash_landscape.png',
+      ]),
+    );
+    expect(find.text('Everything You Need, Locally.'), findsOneWidget);
   });
 
   testWidgets('OTP step presents six cells without exposing a code', (
@@ -105,4 +122,41 @@ void main() {
       findsOneWidget,
     );
   });
+  testWidgets(
+    'OTP adapts to 200 percent text and Android Back returns to phone',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final auth = _FakeAuthNotifier();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [authProvider.overrideWith((ref) => auth)],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(2),
+                disableAnimations: true,
+              ),
+              child: child!,
+            ),
+            home: const OnboardingScreen(),
+          ),
+        ),
+      );
+      await tester.enterText(find.byKey(const Key('phoneInput')), '9876543210');
+      await tester.ensureVisible(find.byKey(const Key('sendOTPButton')));
+      await tester.tap(find.byKey(const Key('sendOTPButton')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('otpInput')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('phoneInput')), findsOneWidget);
+      expect(find.byKey(const Key('otpInput')), findsNothing);
+      expect(auth.requestCount, 1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

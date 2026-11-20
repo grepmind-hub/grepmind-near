@@ -70,7 +70,7 @@ type order struct {
 	StatusEvents        []statusEvent `json:"status_events" db:"-"`
 }
 
-const orderColumns = `SELECT o.id::text,o.business_id::text,o.reference_code,o.status,o.platform_vertical,
+const orderColumns = `SELECT o.id::text,o.business_id::text,o.reference_code,o.status,COALESCE(o.platform_vertical, CASE WHEN o.order_type='food_delivery' THEN 'food' ELSE 'grocery' END) AS platform_vertical,
 	COALESCE(l.name,'') AS delivery_locality,COALESCE(d.name,'') AS delivery_district,COALESCE(o.customer_notes,'') AS customer_notes,COALESCE(o.payment_status,'not_collected') AS payment_status,COALESCE(o.payment_method,'') AS payment_method,
 	CASE WHEN EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id) THEN 'collected' WHEN EXISTS(SELECT 1 FROM cod_obligations ob WHERE ob.order_id=o.id) THEN 'due' ELSE 'not_applicable' END AS cod_collection_state,
 	o.created_at::text AS created_at,o.updated_at::text AS updated_at
@@ -102,7 +102,7 @@ func (s *Service) List(w http.ResponseWriter, r *http.Request, userID string) {
 		}
 		limit = parsed
 	}
-	query := orderColumns + ` WHERE o.business_id=$1 AND o.order_source='platform_catalog'`
+	query := orderColumns + ` WHERE o.business_id=$1 AND o.order_source IN ('platform_catalog', 'merchant_catalog')`
 	args := []any{businessID}
 	if filter != "" {
 		query += ` AND o.status=$2`
@@ -202,7 +202,7 @@ func (s *Service) transition(w http.ResponseWriter, r *http.Request, userID, tar
 		if !lockBusinessAccess(r.Context(), tx, userID, businessID) {
 			return fail(403, "FORBIDDEN", "Active membership in this business is required.")
 		}
-		if err := tx.QueryRowxContext(r.Context(), orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source='platform_catalog' FOR UPDATE OF o`, orderID, businessID).Scan(&orderID, &businessID, &lockedReference, &previous, &lockedVertical, &lockedLocality, &lockedDistrict, &lockedNotes, &lockedPayment, &lockedMethod, &lockedCODState, &lockedCreated, &lockedUpdated); err != nil {
+		if err := tx.QueryRowxContext(r.Context(), orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source IN ('platform_catalog', 'merchant_catalog') FOR UPDATE OF o`, orderID, businessID).Scan(&orderID, &businessID, &lockedReference, &previous, &lockedVertical, &lockedLocality, &lockedDistrict, &lockedNotes, &lockedPayment, &lockedMethod, &lockedCODState, &lockedCreated, &lockedUpdated); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fail(404, "NOT_FOUND", "Platform order not found.")
 			}
@@ -222,7 +222,7 @@ func (s *Service) transition(w http.ResponseWriter, r *http.Request, userID, tar
 		if err := tx.QueryRowxContext(r.Context(), `SELECT customer_user_id::text FROM customer_orders WHERE id=$1 AND business_id=$2`, orderID, businessID).Scan(&customerID); err != nil {
 			return err
 		}
-		res, err := tx.ExecContext(r.Context(), `UPDATE customer_orders SET status=$1,updated_at=now() WHERE id=$2 AND business_id=$3 AND order_source='platform_catalog' AND status=$4`, target, orderID, businessID, previous)
+		res, err := tx.ExecContext(r.Context(), `UPDATE customer_orders SET status=$1,updated_at=now() WHERE id=$2 AND business_id=$3 AND order_source IN ('platform_catalog', 'merchant_catalog') AND status=$4`, target, orderID, businessID, previous)
 		if err != nil {
 			return err
 		}
@@ -275,7 +275,7 @@ func paymentEligibleForFulfillment(method, paymentStatus, codState string) bool 
 
 func (s *Service) load(ctx context.Context, orderID, businessID string) (*order, error) {
 	var value order
-	if err := s.db.GetContext(ctx, &value, orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source='platform_catalog'`, orderID, businessID); err != nil {
+	if err := s.db.GetContext(ctx, &value, orderColumns+` WHERE o.id=$1 AND o.business_id=$2 AND o.order_source IN ('platform_catalog', 'merchant_catalog')`, orderID, businessID); err != nil {
 		return nil, err
 	}
 	if err := s.loadOrderParts(ctx, &value); err != nil {
@@ -287,8 +287,9 @@ func (s *Service) load(ctx context.Context, orderID, businessID string) (*order,
 
 func (s *Service) loadOrderParts(ctx context.Context, value *order) error {
 	value.Items = make([]item, 0)
-	if err := s.db.SelectContext(ctx, &value.Items, `SELECT product_name,variant_name,unit_label,quantity FROM platform_customer_order_items WHERE order_id=$1 ORDER BY product_name,variant_name`, value.ID); err != nil {
-		return err
+	err := s.db.SelectContext(ctx, &value.Items, `SELECT product_name,variant_name,unit_label,quantity FROM platform_customer_order_items WHERE order_id=$1 ORDER BY product_name,variant_name`, value.ID)
+	if err != nil || len(value.Items) == 0 {
+		_ = s.db.SelectContext(ctx, &value.Items, `SELECT product_name,'' AS variant_name,COALESCE(dietary_type,'') AS unit_label,quantity FROM customer_order_items WHERE order_id=$1 ORDER BY product_name`, value.ID)
 	}
 	value.StatusEvents = make([]statusEvent, 0)
 	return s.db.SelectContext(ctx, &value.StatusEvents, `SELECT status,event_kind,COALESCE(reason,'') AS reason,created_at::text AS created_at FROM customer_order_status_events WHERE order_id=$1 ORDER BY created_at,id`, value.ID)
@@ -371,6 +372,13 @@ func releaseInventory(ctx context.Context, tx *sqlx.Tx, orderID string) error {
 			return err
 		}
 	}
+	// For merchant-owned orders, restore products.available_quantity
+	_, _ = tx.ExecContext(ctx, `UPDATE products p
+		SET available_quantity = p.available_quantity + coi.quantity,
+		    stock_status = CASE WHEN p.stock_status = 'out_of_stock' THEN 'in_stock' ELSE p.stock_status END,
+		    updated_at = now()
+		FROM customer_order_items coi
+		WHERE coi.order_id = $1 AND coi.product_id = p.id AND p.inventory_mode = 'finite'`, orderID)
 	return nil
 }
 

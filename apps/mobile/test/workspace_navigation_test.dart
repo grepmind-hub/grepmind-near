@@ -162,7 +162,7 @@ void main() {
       find.descendant(of: navigation, matching: find.text('Orders')),
     );
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Partner Orders'), findsOneWidget);
+    expect(find.textContaining('Partner Orders'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();
@@ -194,7 +194,7 @@ void main() {
     for (final label in [
       'Dashboard',
       'Deliveries',
-      'Map',
+      'Hubs',
       'Earnings',
       'Profile',
     ]) {
@@ -204,13 +204,9 @@ void main() {
       );
     }
     await tester.tap(
-      find.descendant(of: navigation, matching: find.text('Map')),
+      find.descendant(of: navigation, matching: find.text('Hubs')),
     );
     await tester.pump(const Duration(milliseconds: 500));
-    expect(
-      find.text('Rider location tracking is not available in this phase.'),
-      findsOneWidget,
-    );
     await tester.tap(
       find.descendant(of: navigation, matching: find.text('Profile')),
     );

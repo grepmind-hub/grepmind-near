@@ -336,7 +336,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
+                            color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: AppTheme.emerald),
                           ),
@@ -490,7 +490,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Icon(
@@ -510,7 +510,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Try expanding your radius, clearing category filters, or searching a different term.',
+                            'Try expanding your radius, searching nearby hubs like Chhatia or Kuanpal, or clearing filters.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 13,
@@ -592,7 +592,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFFDCFCE7)
+              ? const Color(0xFFE8F5E9)
               : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(

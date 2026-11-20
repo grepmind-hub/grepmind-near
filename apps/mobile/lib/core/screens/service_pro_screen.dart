@@ -106,9 +106,8 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppTheme.forestDark,
-                            AppTheme.forest,
-                            AppTheme.mint,
+                            AppTheme.emeraldDark,
+                            AppTheme.emerald,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -237,10 +236,10 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     width: 76,
                                     height: 76,
                                     decoration: BoxDecoration(
-                                      color: AppTheme.mintLight,
+                                      color: AppTheme.brandMint,
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: AppTheme.mint.withValues(alpha: 0.3),
+                                        color: AppTheme.emerald.withValues(alpha: 0.3),
                                         width: 2,
                                       ),
                                     ),
@@ -250,7 +249,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             ? Icons.plumbing_rounded
                                             : Icons.engineering_rounded,
                                         size: 42,
-                                        color: AppTheme.forest,
+                                        color: AppTheme.emerald,
                                       ),
                                     ),
                                   ),
@@ -260,7 +259,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(3),
                                       decoration: const BoxDecoration(
-                                        color: AppTheme.mint,
+                                        color: AppTheme.emerald,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -294,7 +293,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                           const SizedBox(width: 4),
                                           const Icon(
                                             Icons.verified_rounded,
-                                            color: AppTheme.mint,
+                                            color: AppTheme.emerald,
                                             size: 18,
                                           ),
                                         ],
@@ -308,7 +307,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.mint,
+                                        color: AppTheme.emerald,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -355,7 +354,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.mintLight,
+                                            color: AppTheme.brandMint,
                                             borderRadius: BorderRadius.circular(
                                               6,
                                             ),
@@ -473,7 +472,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                               child: Padding(
                                 padding: EdgeInsets.all(20),
                                 child: CircularProgressIndicator(
-                                  color: AppTheme.primary,
+                                  color: AppTheme.emerald,
                                 ),
                               ),
                             )
@@ -505,12 +504,12 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? AppTheme.mintLight
+                                          ? AppTheme.brandMint
                                           : const Color(0xFFF8FAFC),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isSelected
-                                            ? AppTheme.mint
+                                            ? AppTheme.emerald
                                             : const Color(0xFFE2E8F0),
                                         width: isSelected ? 1.5 : 1,
                                       ),
@@ -524,7 +523,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                               ? Icons.check_circle_rounded
                                               : Icons.radio_button_unchecked,
                                           color: isSelected
-                                              ? AppTheme.mint
+                                              ? AppTheme.emerald
                                               : const Color(0xFF94A3B8),
                                           size: 20,
                                         ),
@@ -565,7 +564,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
                                             fontSize: 13,
-                                            color: AppTheme.forest,
+                                            color: AppTheme.emerald,
                                           ),
                                         ),
                                       ],
@@ -656,14 +655,14 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppTheme.mintLight,
+                          color: AppTheme.brandMint,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppTheme.mint.withValues(alpha: 0.3)),
                         ),
                         child: IconButton(
                           icon: const Icon(
                             Icons.call_rounded,
-                            color: AppTheme.forest,
+                            color: AppTheme.emerald,
                             size: 22,
                           ),
                           onPressed: biz.phoneE164?.isNotEmpty == true
@@ -677,14 +676,14 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
+                          color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                          border: Border.all(color: AppTheme.emerald.withValues(alpha: 0.3)),
                         ),
                         child: IconButton(
                           icon: const Icon(
                             Icons.chat_bubble_outline_rounded,
-                            color: Color(0xFF15803D),
+                            color: AppTheme.emeraldDark,
                             size: 22,
                           ),
                           onPressed:
@@ -792,7 +791,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
   Widget _buildMetricItem(IconData icon, String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: AppTheme.primary, size: 22),
+        Icon(icon, color: AppTheme.emerald, size: 22),
         const SizedBox(height: 4),
         Text(
           value,
@@ -879,7 +878,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    color: AppTheme.emerald,
                   ),
                 ),
             ],
@@ -895,7 +894,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppTheme.primary, size: 18),
+        Icon(icon, color: AppTheme.emerald, size: 18),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

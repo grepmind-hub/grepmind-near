@@ -119,7 +119,7 @@ func (s *Service) RequestRefund(w http.ResponseWriter, r *http.Request, userID s
 			return e
 		}
 		var platform, paid bool
-		if e = tx.QueryRowxContext(r.Context(), `SELECT (o.order_source='platform_catalog'),(o.payment_status='paid') FROM customer_orders o WHERE o.id=$1 AND o.customer_user_id=$2 FOR UPDATE`, orderID.String(), userID).Scan(&platform, &paid); e != nil {
+		if e = tx.QueryRowxContext(r.Context(), `SELECT (o.order_source IN ('platform_catalog', 'merchant_catalog')),(o.payment_status='paid') FROM customer_orders o WHERE o.id=$1 AND o.customer_user_id=$2 FOR UPDATE`, orderID.String(), userID).Scan(&platform, &paid); e != nil {
 			if errors.Is(e, sql.ErrNoRows) {
 				return &apiFailure{404, "ORDER_NOT_FOUND", "Order was not found for this account."}
 			}
@@ -327,8 +327,8 @@ func (s *Service) ReviewRefund(w http.ResponseWriter, r *http.Request, userID st
 }
 
 func (s *Service) ListAdminRefunds(w http.ResponseWriter, r *http.Request, userID string) {
-	if err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error { return financialledger.AuthorizeTx(r.Context(), tx, userID, "finance.read") }); err != nil {
-		writeFailure(w, 403, "FORBIDDEN", "Finance read permission is required.")
+	if err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error { return financialledger.AuthorizeReadTx(r.Context(), tx, userID) }); err != nil {
+		writeFailure(w, 403, "FORBIDDEN", "Active Platform Admin access is required.")
 		return
 	}
 	status := r.URL.Query().Get("status")
@@ -348,7 +348,7 @@ func (s *Service) ListAdminRefunds(w http.ResponseWriter, r *http.Request, userI
 		}
 		limit = parsed
 	}
-	rows, err := s.db.QueryxContext(r.Context(), `SELECT id::text,order_id::text,customer_user_id::text,amount_minor,currency,status,reason_code,created_at FROM payment_refunds WHERE status=$1 ORDER BY created_at LIMIT $2`, status, limit)
+	rows, err := s.db.QueryxContext(r.Context(), `SELECT r.id::text,r.order_id::text,r.customer_user_id::text,r.amount_minor,r.currency,r.status,r.reason_code,r.created_at,o.reference_code,r.provider FROM payment_refunds r JOIN customer_orders o ON o.id=r.order_id WHERE r.status=$1 ORDER BY r.created_at LIMIT $2`, status, limit)
 	if err != nil {
 		writeFailure(w, 500, "INTERNAL_ERROR", "Refund queue could not be loaded.")
 		return
@@ -356,14 +356,14 @@ func (s *Service) ListAdminRefunds(w http.ResponseWriter, r *http.Request, userI
 	defer rows.Close()
 	data := []map[string]any{}
 	for rows.Next() {
-		var id, orderID, customerID, currency, state, reason string
+		var id, orderID, customerID, currency, state, reason, reference, provider string
 		var amount int64
 		var created time.Time
-		if err := rows.Scan(&id, &orderID, &customerID, &amount, &currency, &state, &reason, &created); err != nil {
+		if err := rows.Scan(&id, &orderID, &customerID, &amount, &currency, &state, &reason, &created, &reference, &provider); err != nil {
 			writeFailure(w, 500, "INTERNAL_ERROR", "Refund queue could not be loaded.")
 			return
 		}
-		data = append(data, map[string]any{"id": id, "order_id": orderID, "customer_user_id": customerID, "amount_minor": amount, "currency": currency, "status": state, "reason_code": reason, "created_at": created.UTC()})
+		data = append(data, map[string]any{"id": id, "order_id": orderID, "customer_user_id": customerID, "reference_code": reference, "provider": provider, "amount_minor": amount, "currency": currency, "status": state, "reason_code": reason, "created_at": created.UTC()})
 	}
 	if err := rows.Err(); err != nil {
 		writeFailure(w, 500, "INTERNAL_ERROR", "Refund queue could not be loaded.")

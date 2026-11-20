@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { FinanceOrderLink } from '@/components/FinanceOrderLink';
 
 type Remittance = {
   id: string;
@@ -25,7 +26,7 @@ type Collection = {
   financial_journal_id: string;
 };
 
-export function CODFinanceView() {
+export function CODFinanceView({ canPost = false }: { canPost?: boolean }) {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [remittances, setRemittances] = useState<Remittance[]>([]);
   const [audit, setAudit] = useState<Record<string, unknown>[]>([]);
@@ -47,7 +48,7 @@ export function CODFinanceView() {
       setIssues(reconciliationResponse.data?.data?.issues ?? []);
     } catch (e: any) {
       setError(e?.response?.status === 403
-        ? 'Your account does not have the approved finance.read grant.'
+        ? 'Active Platform Admin access is required.'
         : e?.response?.status === 503
           ? 'Synthetic COD finance is disabled for this API environment.'
           : 'COD finance data could not be loaded. Retry to read current server state.');
@@ -77,13 +78,16 @@ export function CODFinanceView() {
       <button onClick={() => void load()} disabled={loading} className="min-h-11 rounded-[14px] border border-[#D0D5DD] px-4 text-sm font-semibold text-[#344054] hover:bg-slate-50 disabled:opacity-50">{loading ? 'Refreshing…' : 'Refresh data'}</button>
     </header>
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">No physical cash is handled here. Submitted remittances are claims until finance verifies them. Rider cash liabilities are separate from earnings; payouts, COD production mode and merchant settlements are disabled.</div>
+    {!canPost && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-[#475467]">Read-only finance access. Remittance review controls are hidden until the API grants finance posting permission.</p>}
     {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div>}
     {loading ? <div className={card}>Loading finance records…</div> : error && !collections.length && !remittances.length ? null : <>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className={card}><h2 className="font-bold">Synthetic collections</h2><div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs text-[#667085]"><th className="pb-2">Order</th><th className="pb-2">Rider</th><th className="pb-2">Amount</th><th className="pb-2">Journal</th></tr></thead><tbody>{collections.map((c) => <tr key={c.id} className="border-b last:border-0"><td className="py-3 font-semibold">{c.reference_code}</td><td>{c.rider_name}</td><td>{money(c.amount_minor)}</td><td className="max-w-28 truncate font-mono text-xs">{c.financial_journal_id}</td></tr>)}</tbody></table>{collections.length === 0 && <p className="py-4 text-sm text-[#667085]">No synthetic COD collections recorded.</p>}</div></div>
-        <div className={card}><h2 className="font-bold">Rider remittances</h2><div className="mt-4 space-y-3">{remittances.map((r) => <article key={r.id} className="rounded-xl border border-[#EAECF0] p-4"><div className="flex flex-wrap justify-between gap-2"><div><p className="font-semibold">{r.rider_name} · {money(r.amount_minor)}</p><p className="text-xs text-[#667085]">{r.submission_reference} · {r.submitted_at}</p></div><span className="h-fit rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-semibold capitalize">{r.state}</span></div>{r.state === 'submitted' && <><textarea aria-label={`Review reason for ${r.submission_reference}`} value={reason[r.id] ?? ''} onChange={(e) => setReason((current) => ({ ...current, [r.id]: e.target.value }))} maxLength={300} rows={2} className="mt-3 min-h-16 w-full rounded-lg border border-[#D0D5DD] p-2 text-sm" placeholder="Required finance review reason (5–300 characters)"/><div className="mt-2 flex flex-wrap gap-2">{(['verify','dispute','reject'] as const).map((action) => <button key={action} onClick={() => void review(r, action)} disabled={busy === r.id || (reason[r.id]?.trim().length ?? 0) < 5} className={`min-h-10 rounded-lg px-3 text-xs font-bold capitalize disabled:opacity-50 ${action === 'verify' ? 'bg-[#123D36] text-white hover:bg-[#0c2924]' : 'border border-[#D0D5DD] text-[#344054] hover:bg-slate-50'}`}>{busy === r.id ? 'Saving…' : action}</button>)}</div></>}</article>)}{remittances.length === 0 && <p className="py-4 text-sm text-[#667085]">No remittance submissions.</p>}</div></div>
+        <div className={card}><h2 className="font-bold">Synthetic collections</h2><div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-xs text-[#667085]"><th className="pb-2">Order</th><th className="pb-2">Rider</th><th className="pb-2">Amount</th><th className="pb-2">Journal</th></tr></thead><tbody>{collections.map((c) => <tr key={c.id} className="border-b last:border-0"><td className="py-3 font-semibold"><FinanceOrderLink reference={c.reference_code} orderId={c.order_id} from="cod-finance" /></td><td>{c.rider_name}</td><td>{money(c.amount_minor)}</td><td className="max-w-28 truncate font-mono text-xs">{c.financial_journal_id}</td></tr>)}</tbody></table>{collections.length === 0 && <p className="py-4 text-sm text-[#667085]">No synthetic COD collections recorded.</p>}</div></div>
+        <div className={card}><h2 className="font-bold">Rider remittances</h2><div className="mt-4 space-y-3">{remittances.map((r) => <article key={r.id} className="rounded-xl border border-[#EAECF0] p-4"><div className="flex flex-wrap justify-between gap-2"><div><p className="font-semibold">{r.rider_name} · {money(r.amount_minor)}</p><p className="text-xs text-[#667085]">{r.submission_reference} · {r.submitted_at}</p></div><span className="h-fit rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-semibold capitalize">{r.state}</span></div>{canPost && r.state === 'submitted' && <><textarea aria-label={`Review reason for ${r.submission_reference}`} value={reason[r.id] ?? ''} onChange={(e) => setReason((current) => ({ ...current, [r.id]: e.target.value }))} maxLength={300} rows={2} className="mt-3 min-h-16 w-full rounded-lg border border-[#D0D5DD] p-2 text-sm" placeholder="Required finance review reason (5–300 characters)"/><div className="mt-2 flex flex-wrap gap-2">{(['verify','dispute','reject'] as const).map((action) => <button key={action} onClick={() => void review(r, action)} disabled={busy === r.id || (reason[r.id]?.trim().length ?? 0) < 5} className={`min-h-10 rounded-lg px-3 text-xs font-bold capitalize disabled:opacity-50 ${action === 'verify' ? 'bg-[#123D36] text-white hover:bg-[#0c2924]' : 'border border-[#D0D5DD] text-[#344054] hover:bg-slate-50'}`}>{busy === r.id ? 'Saving…' : action}</button>)}</div></>}</article>)}{remittances.length === 0 && <p className="py-4 text-sm text-[#667085]">No remittance submissions.</p>}</div></div>
       </div>
-      <div className={card}><h2 className="font-bold">Reconciliation exceptions</h2><p className="mt-1 text-xs text-[#667085]">Read-only detection. This view never repairs financial records automatically.</p>{issues.length ? <ul className="mt-3 space-y-2">{issues.map((issue, i) => <li key={`${String(issue.issue)}-${i}`} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm"><strong>{String(issue.issue).replaceAll('_',' ')}</strong> · {String(issue.reference_code ?? issue.order_id ?? 'Reference unavailable')}</li>)}</ul> : <p className="mt-3 text-sm text-emerald-700">No reconciliation exceptions detected.</p>}</div>
+      <div className={card}><h2 className="font-bold">Reconciliation exceptions</h2><p className="mt-1 text-xs text-[#667085]">Read-only detection. This view never repairs financial records automatically.</p>{issues.length ? <ul className="mt-3 space-y-2">{issues.map((issue, i) => <li key={`${String(issue.issue)}-${i}`} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm"><strong>{String(issue.issue).replaceAll('_',' ')}</strong> · {typeof issue.reference_code === 'string'
+          ? <FinanceOrderLink reference={issue.reference_code} from="cod-finance" />
+          : 'Order reference unavailable'}</li>)}</ul> : <p className="mt-3 text-sm text-emerald-700">No reconciliation exceptions detected.</p>}</div>
       <details className={card}><summary className="cursor-pointer font-bold">Audit history ({audit.length})</summary><div className="mt-3 max-h-80 space-y-2 overflow-auto">{audit.map((event, i) => <div key={String(event.id ?? i)} className="border-b py-2 text-xs"><strong>{String(event.event_type)}</strong> · {String(event.reason)} · {String(event.created_at)}</div>)}</div></details>
     </>}
   </section>;

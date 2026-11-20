@@ -168,7 +168,7 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                           const Icon(
                             Icons.location_on_outlined,
                             size: 18,
-                            color: AppTheme.primary,
+                            color: AppTheme.emerald,
                           ),
                           const SizedBox(width: 5),
                           Expanded(
@@ -190,12 +190,16 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Local Luxe Partner & Freshness Banner
+                      // Keep catalog context authoritative; partner identity,
+                      // ratings, distance and ETA are not available in this API response.
                       Container(
                         margin: const EdgeInsets.only(top: 4, bottom: 10),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppTheme.forest,
+                          color: AppTheme.emeraldDark,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -204,7 +208,7 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: AppTheme.mint,
+                                color: AppTheme.emerald,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
@@ -221,27 +225,20 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                                   Row(
                                     children: [
                                       Text(
-                                        _vertical == 'food' ? 'Kalinga Kitchens' : 'Kalinga Fresh Mart',
+                                        _vertical == 'food'
+                                            ? 'Food catalog'
+                                            : 'Grocery catalog',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                           color: Colors.white,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.verified, size: 13, color: AppTheme.amber),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        '★ 4.6 · 0.8 km',
-                                        style: TextStyle(fontSize: 10, color: Color(0xFFD0E8E3)),
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    _vertical == 'food'
-                                        ? 'Authentic Odia dishes from neighborhood kitchens'
-                                        : 'Fresh from local farms · 20–30 min delivery',
+                                    'Published items available for ${_locality.isEmpty ? _city : _locality}',
                                     style: const TextStyle(
                                       fontSize: 10,
                                       color: Color(0xFFD0E8E3),
@@ -254,13 +251,16 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
                             ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppTheme.amber,
+                                color: const Color(0xFFFF8A00),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
-                                'Partner',
+                                'Live',
                                 style: TextStyle(
                                   color: AppTheme.forestDark,
                                   fontSize: 9,
@@ -656,7 +656,7 @@ class _ProductCard extends StatelessWidget {
                         ),
                         child: const Icon(
                           Icons.arrow_outward_rounded,
-                          color: AppTheme.primary,
+                          color: AppTheme.emerald,
                           size: 17,
                         ),
                       ),
@@ -689,7 +689,7 @@ class _ProductCard extends StatelessWidget {
                       Text(
                         'From ₹${(amount / 100).toStringAsFixed(2)}',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.primary,
+                          color: AppTheme.emerald,
                           fontWeight: FontWeight.w700,
                         ),
                       )
@@ -739,13 +739,13 @@ class _CategoryChip extends StatelessWidget {
     label: Text(label),
     selected: selected,
     onSelected: (_) => onTap(),
-    selectedColor: AppTheme.mint,
+    selectedColor: AppTheme.emerald,
     backgroundColor: Colors.white,
     labelStyle: TextStyle(
       color: selected ? Colors.white : AppTheme.mainText,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
     ),
-    side: BorderSide(color: selected ? AppTheme.mint : AppTheme.border),
+    side: BorderSide(color: selected ? AppTheme.emerald : AppTheme.border),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
   );
 }

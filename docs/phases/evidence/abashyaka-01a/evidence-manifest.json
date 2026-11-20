@@ -1,0 +1,99 @@
+{
+  "candidate_sha256": "5935cbe0966a908756c5380aab3da35e8662d3bcc2f42ded4fc4711c01ff7bdc",
+  "versionCode": 9101,
+  "package": "local.grepmind.grepmind_mobile",
+  "screenshots": [
+    {
+      "file": "customer-final-workspace.png",
+      "sha256": "6c96bb46579aa3a3698291e4a2eb3e554b98e7136864a6c26f02e07563d86a9e"
+    },
+    {
+      "file": "customer-food-catalog.png",
+      "sha256": "dcffbb58f3cdfa80b1de22a6951ad537973e25aa4a3e33b12cdd8a531511c7f3"
+    },
+    {
+      "file": "customer-fresh-login-workspace.png",
+      "sha256": "7f1e8b377f817aae43ca27797d7f6eb0a25bfbd5982c5226cdc2489cf00be0b2"
+    },
+    {
+      "file": "customer-grocery-catalog.png",
+      "sha256": "2f82717e9734e3bfdfb3cfaac57c37d541370c0a25f5bcce5be8e60edca79aa6"
+    },
+    {
+      "file": "customer-installed-icon.png",
+      "sha256": "14331f8ed6af4f55a20600aea69e173a4cfed6cba1fe606aca4d01597b067721"
+    },
+    {
+      "file": "customer-launch.png",
+      "sha256": "d399b4a4af1d63dbc91cc25b81b04eba6c45b50166fba7fef43bd58e081fc2ec"
+    },
+    {
+      "file": "customer-login-entry.png",
+      "sha256": "7b7b5ed8c353ed318075e7f60b1adcbf01e43e16c81d94184141003248c5f9d6"
+    },
+    {
+      "file": "customer-onboarding.png",
+      "sha256": "35f57b7da1ff7c71724f1a60a9309db8339a337496af5ad55c612edae4715d11"
+    },
+    {
+      "file": "customer-orders.png",
+      "sha256": "b606b1e68832b4f92047cae4736ccf195505340f574cceaeaf49b72eb7b9f95d"
+    },
+    {
+      "file": "customer-profile.png",
+      "sha256": "c5fb96ea846530adbba46fc3ff542d58f2f7d53ea83b7d68bd8d97d9b2bdc72e"
+    },
+    {
+      "file": "customer-returning.png",
+      "sha256": "621e3d6b2664ae26983a58be32fe01c33cf4221258a477240990c315e29a76fa"
+    },
+    {
+      "file": "merchant-after-restore.png",
+      "sha256": "b12aeae4a02bd17ebdbb7e3df812766f64f96c9c8862fb9c1b054f7b3fb51291"
+    },
+    {
+      "file": "merchant-catalog.png",
+      "sha256": "51a091145393f6ddb0569f8d01f2381961ae31d46c1a6a3bf53a2bb5d6006fe1"
+    },
+    {
+      "file": "merchant-final-workspace.png",
+      "sha256": "a967a67201e82c4a2bd92b68ed4b4dae1cc9e763a02395ab70c1632df97f377e"
+    },
+    {
+      "file": "merchant-fresh-login-workspace.png",
+      "sha256": "2459523043c0e098606e42863193c9ae374456436a5c162d72f1e5d6dbeba726"
+    },
+    {
+      "file": "merchant-launch.png",
+      "sha256": "2f7ec44dffb108b8ee96d17d2d467843b0b1d3b6ba8807f06ab28cb33fa01e2a"
+    },
+    {
+      "file": "merchant-login-entry.png",
+      "sha256": "c03bbf1da3471dec6a5348102bedc14c7002cea419a9ecf3dccf501422fd7de1"
+    },
+    {
+      "file": "merchant-onboarding.png",
+      "sha256": "b6560e085dd392d6d27d52371985a976e57d15da2e99f9abd5e730ad558caf7b"
+    },
+    {
+      "file": "merchant-orders.png",
+      "sha256": "4e939c708f519141b9cfcfc76a0d350e654b42b434560dd607333467b99a91ab"
+    },
+    {
+      "file": "merchant-profile.png",
+      "sha256": "35c954bbd688fb6e2067fa9514ea5c963148340641f326d099e38ca0c08a9f3f"
+    },
+    {
+      "file": "merchant-returning-workspace.png",
+      "sha256": "be913c8aec66272f4148a327bcef67a36fb4ba7d0ea49d40054f996df06f15db"
+    },
+    {
+      "file": "merchant-returning.png",
+      "sha256": "edf2cc32ff0543ec537a7b9afa1ce5e78b0212f1ec5b22bdc922a1f3782afbe4"
+    },
+    {
+      "file": "merchant-splash.png",
+      "sha256": "edf2cc32ff0543ec537a7b9afa1ce5e78b0212f1ec5b22bdc922a1f3782afbe4"
+    }
+  ]
+}

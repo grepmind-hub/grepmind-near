@@ -88,6 +88,10 @@ MerchantFinanceData _qaFinanceData({
           disclosure: 'SIMULATED ONLY — NOT A REAL PAYOUT',
           createdAt: now,
           simulatedAt: now,
+          payoutStatus: null,
+          latestAttemptStatus: null,
+          payoutCompletedAt: null,
+          payoutSimulationOnly: true,
         ),
       if (includeOldOrder)
         MerchantSettlementRecord(
@@ -103,6 +107,10 @@ MerchantFinanceData _qaFinanceData({
           disclosure: 'SIMULATED ONLY — NOT A REAL PAYOUT',
           createdAt: now.subtract(const Duration(days: 120)),
           simulatedAt: now.subtract(const Duration(days: 120)),
+          payoutStatus: null,
+          latestAttemptStatus: null,
+          payoutCompletedAt: null,
+          payoutSimulationOnly: true,
         ),
     ],
   );
@@ -125,6 +133,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.textContaining('Simulated settlements are not bank payouts'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('no payout controls are available in this app'),
+      findsOneWidget,
+    );
     expect(find.text('Pending payable'), findsOneWidget);
     expect(find.text('Net payable snapshots'), findsOneWidget);
     expect(find.text('Simulated / reconciled'), findsOneWidget);
@@ -136,19 +152,6 @@ void main() {
     await _scrollTo(
       tester,
       find.text('2026-11-01 – 2026-11-13 · simulation only'),
-    );
-    expect(find.textContaining('simulation only'), findsWidgets);
-    await _scrollTo(
-      tester,
-      find.text(
-        'No amount is available for withdrawal. Real payouts are disabled.',
-      ),
-    );
-    expect(
-      find.text(
-        'No amount is available for withdrawal. Real payouts are disabled.',
-      ),
-      findsOneWidget,
     );
     expect(find.text('Paid to bank'), findsNothing);
     expect(repository.calls, 1);

@@ -18,6 +18,11 @@ import { PlatformCatalogView } from '@/components/PlatformCatalogView';
 import { RiderManagementView } from '@/components/RiderManagementView';
 import { DispatchBoardView } from '@/components/DispatchBoardView';
 import { RiderEarningsView } from '@/components/RiderEarningsView';
+import { AdminReconciliationQueue } from '@/components/AdminReconciliationQueue';
+import { AdminPaymentTracking } from '@/components/AdminPaymentTracking';
+import { FinanceOverview } from '@/components/FinanceOverview';
+import type { FinanceReturn } from '@/components/FinanceOrderLink';
+import type { RelatedAttempt } from '@/components/AdminReconciliationQueue';
 import { CODFinanceView } from '@/components/CODFinanceView';
 import { MerchantSettlementFinanceView } from '@/components/MerchantSettlementFinanceView';
 import {
@@ -57,7 +62,16 @@ import {
   UserAccessRecord,
 } from '@/lib/api';
 
-export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: AdminTab }) {
+export function AdminPortalClient({ initialTab = 'overview', initialPaymentOrder, financeReturn = 'reconciliation-queue', initialRefundStatus = 'requested' }: {
+  initialTab?: AdminTab;
+  initialPaymentOrder?: string;
+  financeReturn?: FinanceReturn;
+  initialRefundStatus?: string;
+}) {
+  const [refundStatus, setRefundStatus] = useState(initialRefundStatus);
+  const [relatedAttempt, setRelatedAttempt] = useState<RelatedAttempt>();
+  const [lastTrackingOrder, setLastTrackingOrder] = useState(initialPaymentOrder);
+  const [historyFromTracking, setHistoryFromTracking] = useState(false);
   const router = useRouter();
   const [currentTab, setCurrentTab] = useState<AdminTab>(initialTab);
   const [selectedCity, setSelectedCity] = useState<string>('All Cities');
@@ -78,6 +92,7 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
   const [canManageRoles, setCanManageRoles] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [financeCapabilities, setFinanceCapabilities] = useState({ finance_read: false, finance_post: false });
 
   // Live state from API
   const [stats, setStats] = useState<Stats | null>(null);
@@ -98,7 +113,7 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
     setIsRefreshing(true);
     setLoadError(null);
     try {
-      const [s, t, p, b, r, o, l, a, c, activity, access] = await Promise.all([
+      const [s, t, p, b, r, o, l, a, c, activity, access, capabilities] = await Promise.all([
         getStats(selectedCity, selectedRange),
         getAdminTrends(selectedCity, selectedRange),
         getPendingBusinesses(),
@@ -110,6 +125,7 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
         getBusinessClaims(),
         getListingActivity(selectedCity, selectedRange),
         getUserAccess(),
+        api.get<{ data: { finance_read?: boolean; finance_post?: boolean } }>('/admin/finance/capabilities'),
       ]);
 
       setStats(s);
@@ -130,6 +146,7 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
       setActivityLoading(false);
       setUserAccess(access.users);
       setCanManageRoles(access.canManageRoles);
+      setFinanceCapabilities({ finance_read: capabilities.data?.data?.finance_read === true, finance_post: capabilities.data?.data?.finance_post === true });
       setAccessError(null);
       setAccessLoading(false);
     } catch (err) {
@@ -290,10 +307,19 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
     });
   }
 
+  const reconciliationLayout = ['reconciliation-queue', 'payment-tracking', 'finance-overview'].includes(currentTab);
+  const financeReturnLabels = {
+    'finance-overview': 'Back to Finance Overview',
+    'cod-finance': 'Back to COD accountability',
+    'merchant-finance': 'Back to merchant finance',
+    'reconciliation-queue': 'Back to reconciliation queue',
+  };
+
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F7F8FA]">
       {/* Top Header */}
       <AdminHeader
+        compactOnNarrow={reconciliationLayout}
         selectedCity={selectedCity}
         onSelectCity={setSelectedCity}
         selectedRange={selectedRange}
@@ -304,9 +330,10 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
       />
 
       {/* Main Layout: Sidebar + Dynamic View */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <AdminSidebar
           currentTab={currentTab}
+          hideOnNarrow={reconciliationLayout}
           onSelectTab={(tab) => {
             if (tab === 'claims') {
               router.push('/dashboard/businesses');
@@ -316,6 +343,8 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
               router.push('/dashboard');
               return;
             }
+            setRelatedAttempt(undefined);
+            setHistoryFromTracking(false);
             setCurrentTab(tab);
           }}
           pendingCount={stats?.pending_verifications ?? 0}
@@ -323,7 +352,7 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
           offersCount={stats?.pending_offers ?? 0}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className={`min-w-0 flex-1 overflow-y-auto ${currentTab === 'reconciliation-queue' ? 'p-3 sm:p-6 md:p-8' : 'p-6 md:p-8'}`}>
           {actionError && <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{actionError}</span><button onClick={() => setActionError(null)} className="min-h-10 rounded-lg px-3 font-semibold">Dismiss</button></div>}
           {loadError && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{loadError}</span><button onClick={() => void initSessionAndLoad()} className="min-h-10 rounded-lg bg-white px-4 font-semibold text-rose-700 shadow-sm">Retry</button></div>}
           {!loadError && !stats && <div className="mb-5 animate-pulse rounded-2xl border border-[#E4E7EC] bg-white p-5 text-sm text-[#667085]">Loading live operational data…</div>}
@@ -401,8 +430,32 @@ export function AdminPortalClient({ initialTab = 'overview' }: { initialTab?: Ad
           {currentTab === 'riders' && <RiderManagementView />}
           {currentTab === 'dispatch' && <DispatchBoardView />}
           {currentTab === 'rider-earnings' && <RiderEarningsView />}
-          {currentTab === 'cod-finance' && <CODFinanceView />}
-          {currentTab === 'merchant-finance' && <MerchantSettlementFinanceView />}
+          {currentTab === 'finance-overview' && <FinanceOverview onSelectTab={setCurrentTab}
+            refundStatus={refundStatus} onRefundStatusChange={setRefundStatus} />}
+          {currentTab === 'payment-tracking' && <>
+            <button type="button" onClick={() => {
+              setRelatedAttempt(undefined);
+              setHistoryFromTracking(false);
+              setCurrentTab(initialPaymentOrder ? financeReturn : 'overview');
+            }} className="mb-4 min-h-11 rounded-xl border border-[#D0D5DD] bg-white px-4 text-sm font-semibold text-[#2457D6]">
+              {initialPaymentOrder ? financeReturnLabels[financeReturn] : 'Back to Admin dashboard'}
+            </button>
+            <AdminPaymentTracking initialReference={lastTrackingOrder} onViewHistory={(attempt, order) => {
+              setRelatedAttempt(attempt);
+              setLastTrackingOrder(order);
+              setHistoryFromTracking(true);
+              setCurrentTab('reconciliation-queue');
+            }} />
+          </>}
+          {currentTab === 'reconciliation-queue' && <>
+            {historyFromTracking && <button type="button" onClick={() => setCurrentTab('payment-tracking')}
+              className="mb-4 min-h-11 rounded-xl border border-[#D0D5DD] bg-white px-4 text-sm font-semibold text-[#2457D6]">
+              Back to payment tracking
+            </button>}
+            <AdminReconciliationQueue initialRelated={relatedAttempt} onExit={() => setCurrentTab('overview')} />
+          </>}
+          {currentTab === 'cod-finance' && <CODFinanceView canPost={financeCapabilities.finance_post} />}
+          {currentTab === 'merchant-finance' && <MerchantSettlementFinanceView canPost={financeCapabilities.finance_post} />}
         </main>
       </div>
     </div>

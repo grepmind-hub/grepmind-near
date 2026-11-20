@@ -91,12 +91,12 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFD8E2F1)),
+                      border: Border.all(color: const Color(0xFFE1EBE5)),
                     ),
                     child: Row(
                       children: [
                         const CircleAvatar(
-                          backgroundColor: Color(0xFFEAF0FF),
+                          backgroundColor: Color(0xFFE8F5E9),
                           child: Icon(
                             Icons.storefront_rounded,
                             color: AppTheme.emerald,
@@ -166,7 +166,7 @@ class _CustomerCartScreenState extends ConsumerState<CustomerCartScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFD8E2F1)),
+                        border: Border.all(color: const Color(0xFFE1EBE5)),
                       ),
                       child: Column(
                         children: [
@@ -257,7 +257,7 @@ class _CartLineCard extends StatelessWidget {
         border: Border.all(
           color: unavailable
               ? const Color(0xFFFFC7C7)
-              : const Color(0xFFD8E2F1),
+              : const Color(0xFFE1EBE5),
         ),
       ),
       child: Row(
@@ -267,7 +267,7 @@ class _CartLineCard extends StatelessWidget {
             height: 58,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4FC),
+              color: const Color(0xFFF8FAF9),
               borderRadius: BorderRadius.circular(12),
             ),
             child: line.imageUrl == null || line.imageUrl!.isEmpty

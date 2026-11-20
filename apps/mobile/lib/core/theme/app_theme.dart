@@ -33,9 +33,9 @@ class AppTheme {
   static const Color riderAmberBorder = Color(0xFFFDE68A);
 
   // ---------- 2026 Mint + Emerald Quick-Commerce Tokens ----------
-  static const Color emerald = Color(0xFF059669);
-  static const Color emeraldDark = Color(0xFF047857);
-  static const Color brandMint = Color(0xFFB8F2DC);
+  static const Color emerald = Color(0xFF0B6B4A);
+  static const Color emeraldDark = Color(0xFF064D3A);
+  static const Color brandMint = Color(0xFFE8F5E9);
   static const Color brandCanvas = Color(0xFFF8FAF9);
   static const Color brandBorder = Color(0xFFE1EBE5);
   static const Color brandText = Color(0xFF17352C);

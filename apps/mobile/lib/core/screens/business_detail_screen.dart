@@ -549,7 +549,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 Icon(
                                   Icons.hotel_rounded,
                                   size: 14,
-                                  color: Color(0xFF0F766E),
+                                  color: AppTheme.emerald,
                                 ),
                                 SizedBox(width: 5),
                                 Text(
@@ -557,7 +557,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0F766E),
+                                    color: AppTheme.emerald,
                                   ),
                                 ),
                               ],
@@ -574,7 +574,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'Call',
                           Icons.phone_rounded,
-                          const Color(0xFFE3EEFF),
+                          const Color(0xFFE8F5E9),
                           AppTheme.primary,
                           contactPhone != null
                               ? () => _launchContact(
@@ -587,7 +587,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'Directions',
                           Icons.directions_rounded,
-                          const Color(0xFFE3EEFF),
+                          const Color(0xFFE8F5E9),
                           AppTheme.primary,
                           () => _launchUrl(
                             'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}',
@@ -611,7 +611,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           isFavorited
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
-                          const Color(0xFFE3EEFF),
+                          const Color(0xFFE8F5E9),
                           AppTheme.primary,
                           () => _toggleFavorite(biz.id),
                         ),
@@ -631,9 +631,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   onTap: (index) {
                     if (index == 1) _recordView('catalog');
                   },
-                  labelColor: AppTheme.primary,
+                  labelColor: AppTheme.emerald,
                   unselectedLabelColor: AppTheme.secondaryText,
-                  indicatorColor: AppTheme.primary,
+                  indicatorColor: AppTheme.emerald,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(
                     fontSize: 14,
@@ -796,19 +796,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       icon: const Icon(
                         Icons.table_restaurant_rounded,
                         size: 18,
-                        color: Color(0xFF0F766E),
+                        color: AppTheme.emerald,
                       ),
                       label: const Text(
                         'Reserve Table',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F766E),
+                          color: AppTheme.emerald,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
-                          color: Color(0xFF0F766E),
+                          color: AppTheme.emerald,
                           width: 1.5,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -1241,19 +1241,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       );
     }
 
-    // Food Menu View with Course Filter Pills & Dietary Toggle
+    // Food & Grocery Menu View with Course Filter Pills & Dietary Toggle
     final categories = <String>['All'];
     for (final p in products) {
-      if (p.foodCategory != null &&
-          p.foodCategory!.isNotEmpty &&
-          !categories.contains(p.foodCategory)) {
-        categories.add(p.foodCategory!);
+      final cat = p.foodCategory ?? p.groceryCategory;
+      if (cat != null && cat.isNotEmpty && !categories.contains(cat)) {
+        categories.add(cat);
       }
     }
 
     final filtered = products.where((p) {
+      final cat = p.foodCategory ?? p.groceryCategory;
       if (_selectedFoodCategory != 'All' &&
-          p.foodCategory != _selectedFoodCategory) {
+          cat != _selectedFoodCategory) {
         return false;
       }
       if (_vegOnly && !p.isVeg) {
@@ -1430,9 +1430,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (p.foodCategory != null && p.foodCategory!.isNotEmpty)
+                  if ((p.foodCategory ?? p.groceryCategory) != null &&
+                      (p.foodCategory ?? p.groceryCategory)!.isNotEmpty)
                     Text(
-                      p.foodCategory!,
+                      (p.foodCategory ?? p.groceryCategory)!,
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1465,13 +1466,62 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                p.priceText,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.mainText,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    p.priceText,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.mainText,
+                    ),
+                  ),
+                  if (p.unitLabel != null && p.unitLabel!.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      '· ${p.unitLabel}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                  ],
+                  if (p.mrp != null && p.mrp! > (p.price ?? 0)) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      '₹${p.mrp!.round()}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.hintText,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ],
+                  if (p.discountPercent != null && p.discountPercent! > 0) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${p.discountPercent}% OFF',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               if (p.description != null && p.description!.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -1617,7 +1667,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             height: 120,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0F766E), Color(0xFF115E59)],
+                colors: [AppTheme.emerald, AppTheme.emeraldDark],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -1670,7 +1720,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F766E),
+                      color: AppTheme.emerald,
                     ),
                   ),
                 ),
@@ -1866,7 +1916,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selected: isSel,
                                   onSelected: (val) =>
                                       setSheetState(() => guests = count),
-                                  selectedColor: const Color(0xFF0F766E),
+                                  selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
                                         ? Colors.white
@@ -1910,7 +1960,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                       selected: isSel,
                                       onSelected: (val) =>
                                           setSheetState(() => selectedDate = d),
-                                      selectedColor: const Color(0xFF0F766E),
+                                      selectedColor: AppTheme.emerald,
                                       labelStyle: TextStyle(
                                         color: isSel
                                             ? Colors.white
@@ -1953,7 +2003,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selected: isSel,
                                   onSelected: (val) =>
                                       setSheetState(() => selectedSlot = slot),
-                                  selectedColor: const Color(0xFF0F766E),
+                                  selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
                                         ? Colors.white
@@ -1991,7 +2041,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selected: isSel,
                                   onSelected: (val) =>
                                       setSheetState(() => seatingArea = area),
-                                  selectedColor: const Color(0xFF0F766E),
+                                  selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
                                         ? Colors.white
@@ -2043,7 +2093,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   const Icon(
                                     Icons.table_restaurant_rounded,
                                     size: 54,
-                                    color: Color(0xFF0F766E),
+                                    color: AppTheme.emerald,
                                   ),
                                   const SizedBox(height: 12),
                                   const Text(
@@ -2080,7 +2130,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   ElevatedButton(
                                     onPressed: () => Navigator.pop(c),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0F766E),
+                                      backgroundColor: AppTheme.emerald,
                                     ),
                                     child: const Text(
                                       'Awesome, Done!',
@@ -2101,7 +2151,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F766E),
+                        backgroundColor: AppTheme.emerald,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -2872,10 +2922,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isHotel
-              ? [const Color(0xFF0F766E), const Color(0xFF134E4A)]
+              ? [AppTheme.emerald, AppTheme.emeraldDark]
               : (isFood
                     ? [const Color(0xFFEA580C), const Color(0xFFC2410C)]
-                    : [const Color(0xFF2457D6), const Color(0xFF1D4ED8)]),
+                    : [AppTheme.emerald, AppTheme.emeraldDark]),
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

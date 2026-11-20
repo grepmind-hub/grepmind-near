@@ -261,7 +261,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
               ),
             ),
             Text(
-              'GrepMind Near · ${_currentScope.locality}, ${_currentScope.district}',
+              'Abashyaka · ${_currentScope.locality}, ${_currentScope.district}',
               style: const TextStyle(
                 fontSize: 11,
                 color: AppTheme.brandTextMuted,
@@ -377,7 +377,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                 ),
 
               const Text(
-                'Illustrative interaction with verified local partners. Grepmind Near fulfills orders with double-entry accountability.',
+                'Orders fulfilled with verified local partners under Abashyaka verified accountability.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppTheme.brandTextMuted, fontSize: 11),
               ),

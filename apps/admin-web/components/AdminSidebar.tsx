@@ -35,10 +35,14 @@ export type AdminTab =
   | 'riders'
   | 'dispatch'
   | 'rider-earnings'
+  | 'finance-overview'
+  | 'payment-tracking'
+  | 'reconciliation-queue'
   | 'cod-finance'
   | 'merchant-finance';
 
 interface AdminSidebarProps {
+  hideOnNarrow?: boolean;
   currentTab: AdminTab;
   onSelectTab: (tab: AdminTab) => void;
   pendingCount: number;
@@ -48,6 +52,7 @@ interface AdminSidebarProps {
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   currentTab,
+  hideOnNarrow = false,
   onSelectTab,
   pendingCount,
   reportsCount,
@@ -149,6 +154,27 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: null,
     },
     {
+      id: 'finance-overview' as AdminTab,
+      label: 'Finance overview',
+      description: 'Refunds, payables & remittances',
+      icon: BarChart3,
+      badge: null,
+    },
+    {
+      id: 'payment-tracking' as AdminTab,
+      label: 'Payment tracking',
+      description: 'Order attempts & reconciliation',
+      icon: Banknote,
+      badge: null,
+    },
+    {
+      id: 'reconciliation-queue' as AdminTab,
+      label: 'Reconciliation queue',
+      description: 'Attempts & recorded exceptions',
+      icon: FileCheck2,
+      badge: null,
+    },
+    {
       id: 'cod-finance' as AdminTab,
       label: 'COD accountability',
       description: 'Synthetic remittance review',
@@ -166,7 +192,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const merchantPortalUrl = process.env.NEXT_PUBLIC_MERCHANT_PORTAL_URL || '/merchant/';
 
   return (
-    <aside className="w-64 shrink-0 border-r border-[#E4E7EC] bg-white flex flex-col justify-between py-4">
+    <aside className={`w-64 shrink-0 overflow-y-auto border-r border-[#E4E7EC] bg-white flex-col justify-between py-4 ${hideOnNarrow ? 'hidden xl:flex' : 'flex'}`}>
       <div>
         <div className="px-5 mb-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">

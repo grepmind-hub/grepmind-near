@@ -1,10 +1,9 @@
 # Grepmind Near — Phase 4E Commerce Integration
 
-**Current gate:** 4E.2 — Payment-Aware Checkout & Fulfillment Gating
-**4E.1 gate result:** PASS — G1 policy decision approved on 13 November 2026.
-**4E.2 gate result:** PARTIAL — implementation and a live UPI-to-rider-assignment journey are evidenced; COD journey, database/journal reconciliation, Admin operational review, and complete regression/runtime cleanup remain unverified.
-**Overall Phase 4E:** Not accepted. 4E.3 and 4E.4 are not started and remain unauthorized.
-**Scope of this record:** 4E.1 remains a historical design/policy record; the appended 4E.2 section records implementation and acceptance evidence separately.
+**Current status (reconciled 16 November 2026):** Phase 4E.1 PASS (G1); Phase 4E.2 PASS for isolated QA (G2); Phase 4E.3 PASS for isolated QA (G3); Phase 4E.4 PASS for isolated QA through G4-B, including its hardening suite.
+**Production provider activation (G4-C):** Disabled and not authorized. No live payout or real-money movement is approved.
+**Overall isolated-QA status:** The documented 4E.1–4E.4 isolated-QA gates are closed. This does not authorize production activation or deployment. Phase 3H remains deferred.
+**Reconciliation note:** Earlier status statements below describe the state at the date they were written. The dated G2, G3, and G4-B acceptance evidence later in this record supersedes earlier “PARTIAL,” “not started,” or “unauthorized” summaries for those isolated-QA gates. G4-C remains disabled and unauthorized.
 
 ## Executive summary
 

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -373,5 +374,51 @@ func TestFinancialFoundationPostGISAcceptance(t *testing.T) {
 	}
 	if grantAudit != 4 {
 		t.Fatalf("expected three grants plus a revocation in financial audit, got %d", grantAudit)
+	}
+}
+
+func TestPlatformAdminReadAccessDoesNotGrantPostingPostGIS(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN is required for disposable PostgreSQL acceptance")
+	}
+	db, err := sqlx.Connect("pgx", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+
+	admin, customer := uuid.NewString(), uuid.NewString()
+	for _, id := range []string{admin, customer} {
+		phone := "+1555" + strings.ReplaceAll(id, "-", "")[:10]
+		if _, err := tx.ExecContext(ctx, "INSERT INTO users (id,phone_e164,status) VALUES ($1,$2,'active')", id, phone); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, "INSERT INTO user_roles (user_id,role) VALUES ($1,'admin'),($2,'customer')", admin, customer); err != nil {
+		t.Fatal(err)
+	}
+	if err := AuthorizeReadTx(ctx, tx, admin); err != nil {
+		t.Fatal("active Platform Admin should have read access", err)
+	}
+	if err := AuthorizeReadTx(ctx, tx, customer); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("Customer read authorization returned %v", err)
+	}
+	for _, permission := range []string{"finance.read", "finance.post", "finance.configure", "finance.reverse"} {
+		if err := AuthorizeTx(ctx, tx, admin, permission); !errors.Is(err, ErrUnauthorized) {
+			t.Fatalf("Admin without a grant should be denied %s on protected operations, got %v", permission, err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM user_roles WHERE user_id=$1 AND role='admin'", admin); err != nil {
+		t.Fatal(err)
+	}
+	if err := AuthorizeReadTx(ctx, tx, admin); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("Admin role removal must revoke read access, got %v", err)
 	}
 }

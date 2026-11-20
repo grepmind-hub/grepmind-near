@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { FinanceOrderLink } from '@/components/FinanceOrderLink';
 import { FinanceAccessGrantPanel } from '@/components/FinanceAccessGrantPanel';
 
 type Row = Record<string, any>;
 const money = (minor: number) => `₹${(Number(minor || 0) / 100).toFixed(2)}`;
 const card = 'rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-sm';
 
-export function MerchantSettlementFinanceView() {
+export function MerchantSettlementFinanceView({ canPost = false }: { canPost?: boolean }) {
   const [policies, setPolicies] = useState<Row[]>([]);
   const [eligible, setEligible] = useState<Row[]>([]);
   const [payables, setPayables] = useState<Row[]>([]);
@@ -51,6 +52,12 @@ export function MerchantSettlementFinanceView() {
     period_end: '',
   });
 
+  function financeWriteAllowed() {
+    if (canPost) return true;
+    setError('Read-only finance access. This action requires finance posting permission.');
+    return false;
+  }
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -73,7 +80,7 @@ export function MerchantSettlementFinanceView() {
       setError(
         e?.response?.data?.error?.message ??
           (e?.response?.status === 403
-            ? 'Your finance.read grant is required for these records.'
+            ? 'Active Platform Admin access is required.'
             : e?.response?.status === 503
             ? 'Settlement simulation is disabled. Verify the isolated QA feature flags.'
             : 'Merchant finance data could not be loaded from the API. No totals are estimated locally.'),
@@ -92,6 +99,7 @@ export function MerchantSettlementFinanceView() {
     action: () => Promise<unknown>,
     success: string,
   ) {
+    if (!financeWriteAllowed()) return;
     setBusy(key);
     setError(null);
     setNotice(null);
@@ -766,7 +774,7 @@ export function MerchantSettlementFinanceView() {
                       <div className="flex flex-wrap justify-between gap-2">
                         <div>
                           <strong className="text-sm">
-                            {o.reference_code} · {o.merchant_name}
+                            <FinanceOrderLink reference={o.reference_code} orderId={o.order_id} from="merchant-finance" /> · {o.merchant_name}
                           </strong>
                           <p className="mt-1 text-xs text-[#667085]">
                             {o.payment_method} · customer{' '}
@@ -850,7 +858,7 @@ export function MerchantSettlementFinanceView() {
                           />
                         </td>
                         <td className="py-3">
-                          <strong>{p.reference_code}</strong>
+                          <FinanceOrderLink reference={p.reference_code} orderId={p.order_id} from="merchant-finance" />
                           <p className="text-xs text-[#667085]">
                             {p.merchant_name}
                           </p>

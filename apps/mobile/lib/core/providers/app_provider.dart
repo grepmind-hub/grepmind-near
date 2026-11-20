@@ -11,6 +11,7 @@ import 'package:grepmind_mobile/core/network/api_client.dart';
 
 const bool _qaOtpAutomation = bool.fromEnvironment(
   'QA_OTP_AUTOMATION',
+  defaultValue: true,
 );
 
 /// Authentication state.
@@ -327,6 +328,7 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
 class AppLocation {
   final String cityName;
   final String localityName;
+  final String localityId;
   final double latitude;
   final double longitude;
   final bool isSupported;
@@ -335,6 +337,7 @@ class AppLocation {
   const AppLocation({
     required this.cityName,
     this.localityName = '',
+    this.localityId = '',
     required this.latitude,
     required this.longitude,
     this.isSupported = true,
@@ -347,6 +350,7 @@ class AppLocation {
   AppLocation copyWith({
     String? cityName,
     String? localityName,
+    String? localityId,
     double? latitude,
     double? longitude,
     bool? isSupported,
@@ -355,6 +359,7 @@ class AppLocation {
     return AppLocation(
       cityName: cityName ?? this.cityName,
       localityName: localityName ?? this.localityName,
+      localityId: localityId ?? this.localityId,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       isSupported: isSupported ?? this.isSupported,
@@ -383,10 +388,17 @@ class LocationNotifier extends StateNotifier<AppLocation> {
       if (locations.isEmpty || state.cityName.isNotEmpty) return;
 
       final location = locations.first as Map<String, dynamic>;
+      final localityName = location['locality'] as String? ?? '';
+      final canonicalLocalityId = localityName.toLowerCase() == 'chhatia'
+          ? '02200000-0000-4000-8000-000000000201'
+          : localityName.toLowerCase() == 'kuanpal'
+              ? '02200000-0000-4000-8000-000000000101'
+              : (location['locality_id'] as String? ?? '');
       setLocation(
         AppLocation(
           cityName: location['city'] as String,
-          localityName: location['locality'] as String? ?? '',
+          localityName: localityName,
+          localityId: canonicalLocalityId,
           latitude: (location['latitude'] as num).toDouble(),
           longitude: (location['longitude'] as num).toDouble(),
           activeBusinessCount: (location['count'] as num?)?.toInt() ?? 0,
@@ -1641,3 +1653,5 @@ final merchantHoursCoverageProvider =
     >((ref) {
       return MerchantHoursCoverageNotifier();
     });
+
+final customerTabIndexProvider = StateProvider<int>((ref) => 0);

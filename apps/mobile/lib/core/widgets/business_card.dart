@@ -179,12 +179,14 @@ class BusinessCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      // Category & Distance: Hardware • 0.8 km
+                      // Category & Locality / Distance: Hardware • Badambadi • 0.8 km
                       Row(
                         children: [
                           Flexible(
                             child: Text(
-                              categoryText,
+                              business.locality != null && business.locality!.isNotEmpty
+                                  ? '$categoryText • ${business.locality}'
+                                  : categoryText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -214,7 +216,7 @@ class BusinessCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      // Status: Open pill
+                      // Status: Open pill + Delivery / Dine-in pill
                       Row(
                         children: [
                           Container(
@@ -252,6 +254,28 @@ class BusinessCard extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (business.categorySlug == 'restaurant' || business.categorySlug == 'cafe') ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: business.deliveryEnabled
+                                    ? const Color(0xFFE8F5E9)
+                                    : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                business.deliveryEnabled ? 'Delivery' : 'Dine-in Only',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: business.deliveryEnabled
+                                      ? const Color(0xFF064D3A)
+                                      : const Color(0xFF4B5563),
+                                ),
+                              ),
+                            ),
+                          ],
                           if (business.verificationStatus == 'verified') ...[
                             const SizedBox(width: 6),
                             const Icon(Icons.verified, size: 14, color: AppTheme.primary),

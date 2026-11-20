@@ -10,6 +10,9 @@ param(
   [switch]$KeepBrowserOpen,
 
   [Parameter(Mandatory = $false)]
+  [switch]$UseOtp,
+
+  [Parameter(Mandatory = $false)]
   [ValidateSet('+919990000174', '+919990000175', '+919990000176', '+919990000177')]
   [string]$AdminPhone = '+919990000174',
 
@@ -44,6 +47,10 @@ if ($ManualEntry -and -not $Headed) {
 if ($KeepBrowserOpen -and -not $Headed) {
   throw 'KeepBrowserOpen requires -Headed so the authenticated Admin page remains visible.'
 }
+if ($UseOtp -and (-not $KeepBrowserOpen -or $TestFile -ne 'auth-otp-02.admin.spec.ts')) {
+  throw 'UseOtp applies to the persistent Admin browser and requires -Headed -KeepBrowserOpen.'
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $adminWeb = Join-Path $repoRoot 'apps\admin-web'
 
@@ -148,7 +155,7 @@ if (-not [Uri]::TryCreate($qa.QA_OTP_READER_URL, [UriKind]::Absolute, [ref]$read
   throw 'The QA OTP reader must use an authenticated loopback-only HTTP origin.'
 }
 
-$names = @('PLAYWRIGHT_BASE_URL', 'E2E_ADMIN_PHONE_E164', 'QA_OTP_READER_URL', 'QA_OTP_RUN_ID', 'QA_OTP_RUNNER_ID', 'QA_OTP_RUNNER_SECRET', 'QA_OTP_MANUAL_ENTRY', 'QA_ADMIN_KEEP_BROWSER_OPEN', 'E2E_FINANCE_GRANT_ACTION', 'E2E_FINANCE_GRANT_TARGET_ID', 'E2E_SETTLEMENT_BATCH_IDS')
+$names = @('PLAYWRIGHT_BASE_URL', 'E2E_ADMIN_PHONE_E164', 'QA_OTP_READER_URL', 'QA_OTP_RUN_ID', 'QA_OTP_RUNNER_ID', 'QA_OTP_RUNNER_SECRET', 'QA_OTP_MANUAL_ENTRY', 'QA_ADMIN_KEEP_BROWSER_OPEN', 'QA_ADMIN_CHROME_PROFILE', 'QA_ADMIN_USE_OTP', 'E2E_FINANCE_GRANT_ACTION', 'E2E_FINANCE_GRANT_TARGET_ID', 'E2E_SETTLEMENT_BATCH_IDS')
 $isGrantTest = $TestFile -eq 'phase4d-finance-access.qa.spec.ts'
 if ($isGrantTest -and -not $FinanceGrantAction) {
   throw 'The finance access UI test requires FinanceGrantAction.'
@@ -182,6 +189,16 @@ try {
   else { Remove-Item Env:QA_OTP_MANUAL_ENTRY -ErrorAction SilentlyContinue }
   if ($KeepBrowserOpen) { $env:QA_ADMIN_KEEP_BROWSER_OPEN = '1' }
   else { Remove-Item Env:QA_ADMIN_KEEP_BROWSER_OPEN -ErrorAction SilentlyContinue }
+  if ($KeepBrowserOpen -and $TestFile -eq 'auth-otp-02.admin.spec.ts') {
+    $portal = [Uri]$BaseUrl
+    $profileName = '{0}-{1}-{2}' -f $portal.Host, $portal.Port, $AdminPhone.TrimStart('+')
+    $env:QA_ADMIN_CHROME_PROFILE = Join-Path $env:LOCALAPPDATA (Join-Path 'Grepmind\Admin-QA-Chrome' $profileName)
+  } else {
+    Remove-Item Env:QA_ADMIN_CHROME_PROFILE -ErrorAction SilentlyContinue
+  }
+  if ($UseOtp) { $env:QA_ADMIN_USE_OTP = '1' }
+  else { Remove-Item Env:QA_ADMIN_USE_OTP -ErrorAction SilentlyContinue }
+
   foreach ($key in @('QA_OTP_READER_URL', 'QA_OTP_RUN_ID', 'QA_OTP_RUNNER_ID', 'QA_OTP_RUNNER_SECRET')) {
     Set-Item -Path "Env:$key" -Value $qa[$key]
   }
@@ -198,7 +215,7 @@ try {
       Write-Output 'Admin QA browser mode: headless Chrome.'
     }
     if ($KeepBrowserOpen) { Write-Output 'Admin session will remain open until you close the Chrome window.' }
-    if ($ManualEntry) { Write-Warning 'Manual OTP mode is enabled: a short-lived QA OTP will be displayed in this PowerShell session.' }
+    if ($ManualEntry) { Write-Warning 'Manual OTP mode is enabled: if OTP is needed, its short-lived code will be displayed in this PowerShell session.' }
     npm.cmd @playwrightArgs
     if ($LASTEXITCODE -ne 0) { throw "Admin Playwright failed with exit code $LASTEXITCODE." }
   } finally {

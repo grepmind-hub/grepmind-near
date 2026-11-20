@@ -382,7 +382,7 @@ func (s *Service) CreateCheckoutQuote(w http.ResponseWriter, r *http.Request, us
 		if err != nil {
 			return checkoutError(404, "NOT_FOUND", "Orderable business not found.")
 		}
-		if !business.DeliveryEnabled || (business.Category != "restaurant" && business.Category != "cafe") {
+		if !business.DeliveryEnabled || (business.Category != "restaurant" && business.Category != "cafe" && business.Category != "grocery" && business.Category != "supermarket" && business.Category != "bakery") {
 			return checkoutError(409, "ORDERING_UNAVAILABLE", "This business does not currently support food ordering.")
 		}
 		open, err := isBusinessOpen(tx, r.PathValue("id"), time.Now())

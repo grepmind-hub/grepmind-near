@@ -145,9 +145,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               // Segmented TabBar
               TabBar(
                 controller: _tabController,
-                labelColor: AppTheme.coral,
+                labelColor: AppTheme.emerald,
                 unselectedLabelColor: AppTheme.secondaryText,
-                indicatorColor: AppTheme.coral,
+                indicatorColor: AppTheme.emerald,
                 indicatorWeight: 3,
                 labelStyle: const TextStyle(
                   fontWeight: FontWeight.w700,
@@ -173,7 +173,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 0
-                                ? AppTheme.coral.withValues(alpha: 0.12)
+                                ? const Color(0xFFE8F5E9)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -183,7 +183,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: _tabController.index == 0
-                                  ? AppTheme.coral
+                                  ? AppTheme.emerald
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -209,7 +209,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 1
-                                ? AppTheme.coral.withValues(alpha: 0.12)
+                                ? const Color(0xFFE8F5E9)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -219,7 +219,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: _tabController.index == 1
-                                  ? AppTheme.coral
+                                  ? AppTheme.emerald
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -234,7 +234,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         ),
       ),
       body: catalogState.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.emerald))
           : TabBarView(
               controller: _tabController,
               children: [
@@ -246,9 +246,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         key: Key(
           _tabController.index == 0 ? 'add_product_fab' : 'add_service_fab',
         ),
-        backgroundColor: _tabController.index == 0
-            ? AppTheme.coral
-            : AppTheme.coral,
+        backgroundColor: AppTheme.emerald,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add, size: 20),
         label: Text(
@@ -353,6 +351,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
   }
 
   Widget _buildProductCard(Product p) {
+    final double? price = p.price;
+    final double mrp = price != null ? price * 1.25 : 0;
+    final int qty = p.availableQuantity ?? (p.stockStatus == 'out_of_stock' ? 0 : 10);
+
     return PremiumCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -363,12 +365,12 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             children: [
               // Product thumbnail / placeholder
               Container(
-                width: 70,
-                height: 70,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: AppTheme.merchantCoralContainer,
+                  color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.merchantCoralBorder.withValues(alpha: 0.4)),
+                  border: Border.all(color: const Color(0xFFC8E6C9)),
                 ),
                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                     ? ClipRRect(
@@ -378,14 +380,14 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => const Icon(
                             Icons.inventory_2_outlined,
-                            color: AppTheme.coral,
+                            color: AppTheme.emerald,
                             size: 30,
                           ),
                         ),
                       )
                     : const Icon(
                         Icons.inventory_2_outlined,
-                        color: AppTheme.coral,
+                        color: AppTheme.emerald,
                         size: 30,
                       ),
               ),
@@ -427,7 +429,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     ],
                     const SizedBox(height: 8),
 
-                    // Price & Stock
+                    // Price & MRP & Discount & Stock Badge
                     Row(
                       children: [
                         Text(
@@ -435,9 +437,36 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.coral,
+                            color: AppTheme.emerald,
                           ),
                         ),
+                        if (price != null && price > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '₹${mrp.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.hintText,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '20% OFF',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF92400E),
+                              ),
+                            ),
+                          ),
+                        ],
                         const Spacer(),
                         _buildStockStatusBadge(p.stockStatus),
                       ],
@@ -451,55 +480,79 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           const Divider(height: 1, color: Color(0xFFE2E8F0)),
           const SizedBox(height: 8),
 
-          // Actions row
+          // Actions row with Screen 14 Quick Stock Stepper
           Row(
             children: [
-              // Quick stock status picker
-              PopupMenuButton<String>(
-                tooltip: 'Change Stock Status',
+              // Screen 14 Quick Stock Stepper
+              Material(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.swap_vert,
-                        size: 16,
-                        color: AppTheme.secondaryText,
+                      InkWell(
+                        key: Key('decrement_stock_${p.id}'),
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                        onTap: () {
+                          final newQty = qty > 0 ? qty - 1 : 0;
+                          final newStatus = newQty == 0
+                              ? 'out_of_stock'
+                              : (newQty <= 5 ? 'limited' : 'in_stock');
+                          ref.read(merchantCatalogProvider.notifier).updateProduct(
+                            p.id,
+                            {
+                              'available_quantity': newQty,
+                              'stock_status': newStatus,
+                              'inventory_mode': 'finite',
+                            },
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          child: Icon(Icons.remove, size: 16, color: AppTheme.mainText),
+                        ),
                       ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Stock Status',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.mainText,
+                      Container(
+                        key: Key('stock_count_${p.id}'),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        color: Colors.white,
+                        child: Text(
+                          'Qty: $qty',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        key: Key('increment_stock_${p.id}'),
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                        onTap: () {
+                          final newQty = qty + 1;
+                          final newStatus = newQty <= 5 ? 'limited' : 'in_stock';
+                          ref.read(merchantCatalogProvider.notifier).updateProduct(
+                            p.id,
+                            {
+                              'available_quantity': newQty,
+                              'stock_status': newStatus,
+                              'inventory_mode': 'finite',
+                            },
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          child: Icon(Icons.add, size: 16, color: AppTheme.emerald),
                         ),
                       ),
                     ],
                   ),
                 ),
-                onSelected: (val) {
-                  ref.read(merchantCatalogProvider.notifier).updateProduct(
-                    p.id,
-                    {'stock_status': val},
-                  );
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'in_stock', child: Text('In Stock')),
-                  PopupMenuItem(value: 'limited', child: Text('Limited / Low')),
-                  PopupMenuItem(
-                    value: 'out_of_stock',
-                    child: Text('Out of Stock'),
-                  ),
-                ],
               ),
               const SizedBox(width: 8),
 
@@ -512,7 +565,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       : Icons.visibility_off_outlined,
                   size: 20,
                   color: p.isPublished
-                      ? AppTheme.coral
+                      ? AppTheme.emerald
                       : AppTheme.secondaryText,
                 ),
                 tooltip: p.isPublished
@@ -531,7 +584,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               TextButton.icon(
                 key: Key('edit_product_btn_${p.id}'),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
+                  foregroundColor: AppTheme.emerald,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
                 onPressed: () => _showProductModal(context, p),
@@ -802,10 +855,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.coral : Colors.white,
+          color: isSelected ? AppTheme.emerald : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.coral : const Color(0xFFCBD5E1),
+            color: isSelected ? AppTheme.emerald : const Color(0xFFCBD5E1),
           ),
         ),
         child: Text(
@@ -942,7 +995,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.coral,
+                backgroundColor: AppTheme.emerald,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -975,6 +1028,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     final priceCtrl = TextEditingController(
       text: product?.price != null ? product!.price!.toStringAsFixed(0) : '',
     );
+    final mrpCtrl = TextEditingController(
+      text: product?.price != null ? (product!.price! * 1.25).toStringAsFixed(0) : '',
+    );
+    String selectedUnit = '1 pc';
     final imageCtrl = TextEditingController(text: product?.imageUrl ?? '');
     String stockStatus = product?.stockStatus ?? 'in_stock';
     String inventoryMode = product?.inventoryMode ?? 'untracked';
@@ -1217,25 +1274,94 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   ),
                   const SizedBox(height: 14),
 
-                  // Price
+                  // Price & MRP
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Price (₹ INR) *',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              key: const Key('modal_product_price'),
+                              controller: priceCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                prefixText: '₹ ',
+                                hintText: '299',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                isDense: true,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'MRP (₹ INR)',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              key: const Key('modal_product_mrp'),
+                              controller: mrpCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                prefixText: '₹ ',
+                                hintText: '399',
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                isDense: true,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Unit / Measure selector chips
                   const Text(
-                    'Price (₹ INR) *',
+                    'Unit / Measure',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
-                  TextField(
-                    key: const Key('modal_product_price'),
-                    controller: priceCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      prefixText: '₹ ',
-                      hintText: '299',
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final unit in ['1 kg', '500 g', '250 g', '1 pc', 'Pack of 2', 'Custom'])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              label: Text(unit, style: const TextStyle(fontSize: 12)),
+                              selected: selectedUnit == unit,
+                              selectedColor: const Color(0xFFE8F5E9),
+                              labelStyle: TextStyle(
+                                color: selectedUnit == unit ? AppTheme.emerald : AppTheme.mainText,
+                                fontWeight: selectedUnit == unit ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                              onSelected: (_) => setModalState(() => selectedUnit = unit),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1650,8 +1776,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     children: [
                       Switch.adaptive(
                         value: isPublished,
-                        activeThumbColor: AppTheme.coral,
-                        activeTrackColor: AppTheme.merchantCoralBorder,
+                        activeThumbColor: AppTheme.emerald,
+                        activeTrackColor: const Color(0xFFC8E6C9),
                         onChanged: (val) =>
                             setModalState(() => isPublished = val),
                       ),
@@ -1676,7 +1802,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     child: ElevatedButton(
                       key: const Key('save_product_btn'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.coral,
+                        backgroundColor: AppTheme.emerald,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
+import 'package:grepmind_mobile/core/screens/doctor_directory_screen.dart';
+import 'package:grepmind_mobile/core/screens/local_transport_screen.dart';
+import 'package:grepmind_mobile/core/screens/pharmacy_marketplace_screen.dart';
+import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 
 /// Customer Home is a live local feed: current offers, categories and approved
 /// businesses are loaded from the API for the selected supported city.
@@ -35,7 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final location = ref.watch(appLocationProvider);
     final feed = ref.watch(homeFeedProvider(location.cityName));
-    final categories = ref.watch(categoriesProvider);
+    ref.watch(categoriesProvider);
     final feedData = feed.valueOrNull;
     final offerBusinessIds =
         feedData?.offers.map((offer) => offer.businessId).toSet() ?? <String>{};
@@ -59,68 +63,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: _Header(
+                child: _HeaderCard(
                   location: location,
-                  onChoose: () => _chooseCity(context, ref),
+                  onChooseLocation: () => _chooseCity(context, ref),
+                  onUseCurrentLocation: () => _useCurrentLocation(context, ref),
+                  onSearchSubmitted: (query) {
+                    final trimmed = query.trim();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SearchResultsScreen(
+                          initialQuery: trimmed.isEmpty ? null : trimmed,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               SliverToBoxAdapter(
-                child: _WelcomePanel(
-                  city: location.cityName,
-                  onExplore: () => _openExplore(context),
-                ),
+                child: _AbashyakaCategoryGrid8(location: location),
               ),
               SliverToBoxAdapter(
-                child: _SectionHeading(
-                  title: 'Browse categories',
-                  action: 'All categories',
-                  onAction: () => Navigator.push(
+                child: _CompactPromoBanner(
+                  onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => PlatformCatalogScreen(
+                        vertical: 'grocery',
+                        city: location.cityName,
+                        locality: location.localityName,
+                        localityId: location.localityId,
+                      ),
+                    ),
                   ),
                 ),
               ),
               SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 118,
-                  child: categories.isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : categories.error != null
-                      ? const Center(
-                          child: Text(
-                            'Categories are temporarily unavailable.',
-                          ),
-                        )
-                      : categories.items.isEmpty
-                      ? const Center(
-                          child: Text('No categories are available yet.'),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          scrollDirection: Axis.horizontal,
-                          itemCount: categories.items.take(12).length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final category = categories.items[index];
-                            return _CategoryTile(
-                              name: category.name,
-                              slug: category.slug,
-                              icon: CategoriesScreen.getCategoryIcon(
-                                category.slug,
-                              ),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => SearchResultsScreen(
-                                    initialCategory: category.slug,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                child: _PopularNearYouSection(location: location),
+              ),
+              SliverToBoxAdapter(
+                child: _HealthcareNearYouSection(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DoctorDirectoryScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _TravelAroundYourAreaSection(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LocalTransportScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _NearbyTrendingSection(
+                  onExplore: () => _openExplore(context),
                 ),
               ),
               SliverToBoxAdapter(
@@ -152,8 +155,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ? const _InlineState(
                           icon: Icons.local_offer_outlined,
                           title: 'No live offers right now',
-                          message:
-                              'Approved offers from local businesses will appear here while they are active.',
+                          message: 'Approved offers from local businesses will appear here while they are active.',
                         )
                       : SizedBox(
                           height: 154,
@@ -351,63 +353,198 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   );
 
   static Future<void> _chooseCity(BuildContext context, WidgetRef ref) async {
+    final searchController = TextEditingController();
     try {
-      final response = await apiClient.get('/locations');
-      final items = (response.data['data'] as List<dynamic>? ?? const [])
-          .cast<Map<String, dynamic>>()
-          .where((item) => const {'Cuttack', 'Jajpur'}.contains(item['city']))
-          .toList(growable: false);
-      if (!context.mounted) return;
       await showModalBottomSheet<void>(
         context: context,
-        showDragHandle: true,
-        builder: (sheetContext) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) => StatefulBuilder(
+          builder: (context, setModalState) => Container(
+            height: MediaQuery.of(sheetContext).size.height * 0.7,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Choose your city',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 16),
                 const Text(
-                  'Discovery is currently available in Cuttack and Jajpur.',
-                ),
-                const SizedBox(height: 12),
-                if (items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Text(
-                      'City information is unavailable. Please try again later.',
-                    ),
+                  'Select Your Location',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827),
                   ),
-                ...items.map(
-                  (item) => ListTile(
-                    leading: const Icon(
-                      Icons.location_city_rounded,
-                      color: AppTheme.primary,
-                    ),
-                    title: Text(item['city'] as String? ?? ''),
-                    subtitle: Text('${item['count'] ?? 0} approved listings'),
-                    onTap: () {
-                      ref
-                          .read(appLocationProvider.notifier)
-                          .setLocation(
-                            AppLocation(
-                              cityName: item['city'] as String,
-                              latitude: (item['latitude'] as num).toDouble(),
-                              longitude: (item['longitude'] as num).toDouble(),
-                              activeBusinessCount:
-                                  (item['count'] as num?)?.toInt() ?? 0,
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF9CA3AF),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          onChanged: (_) => setModalState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Search area, locality or city...',
+                            hintStyle: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF9CA3AF),
                             ),
-                          );
-                      Navigator.pop(sheetContext);
-                    },
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () {
+                    ref
+                        .read(appLocationProvider.notifier)
+                        .setLocation(
+                          const AppLocation(
+                            cityName: 'Jajpur',
+                            localityName: 'Chhatia',
+                            latitude: 20.6105,
+                            longitude: 86.0270,
+                            activeBusinessCount: 15,
+                          ),
+                        );
+                    Navigator.pop(sheetContext);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          color: Color(0xFF0B6B4A),
+                          size: 22,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Use Current Location',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0B6B4A),
+                                ),
+                              ),
+                              Text(
+                                '(High accuracy)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF0B6B4A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF0B6B4A),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(color: Color(0xFFF3F4F6), height: 24),
+                ...[
+                      {
+                        'locality': 'Chhatia',
+                        'district': 'Jajpur',
+                        'cityName': 'Jajpur',
+                        'lat': 20.6105,
+                        'lng': 86.0270,
+                      },
+                      {
+                        'locality': 'Kuanpal',
+                        'district': 'Katak',
+                        'cityName': 'Cuttack',
+                        'lat': 20.5348,
+                        'lng': 86.0827,
+                      },
+                    ]
+                    .where(
+                      (item) =>
+                          searchController.text.trim().isEmpty ||
+                          (item['locality'] as String).toLowerCase().contains(
+                            searchController.text.trim().toLowerCase(),
+                          ) ||
+                          (item['district'] as String).toLowerCase().contains(
+                            searchController.text.trim().toLowerCase(),
+                          ),
+                    )
+                    .map(
+                      (item) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                        ),
+                        leading: const Icon(
+                          Icons.location_on_outlined,
+                          color: Color(0xFF6B7280),
+                          size: 22,
+                        ),
+                        title: Text(
+                          '${item['locality']}, ${item['district']}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        onTap: () {
+                          ref
+                              .read(appLocationProvider.notifier)
+                              .setLocation(
+                                AppLocation(
+                                  cityName: item['cityName'] as String,
+                                  localityName: item['locality'] as String,
+                                  latitude: item['lat'] as double,
+                                  longitude: item['lng'] as double,
+                                  activeBusinessCount: 15,
+                                ),
+                              );
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                    ),
               ],
             ),
           ),
@@ -423,93 +560,1152 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
   }
+
+  Future<void> _useCurrentLocation(BuildContext context, WidgetRef ref) async {
+    const chhatia = AppLocation(
+      cityName: 'Jajpur',
+      localityName: 'Chhatia',
+      latitude: 20.6105,
+      longitude: 86.0270,
+      activeBusinessCount: 15,
+    );
+    const kuanpal = AppLocation(
+      cityName: 'Katak',
+      localityName: 'Kuanpal',
+      latitude: 20.5250,
+      longitude: 86.0820,
+      activeBusinessCount: 12,
+    );
+
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        ref.read(appLocationProvider.notifier).setLocation(chhatia);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Location permission denied. Switched to default hub: Chhatia, Jajpur.',
+              ),
+              backgroundColor: const Color(0xFF374151),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      final distToChhatia = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        chhatia.latitude,
+        chhatia.longitude,
+      );
+      final distToKuanpal = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        kuanpal.latitude,
+        kuanpal.longitude,
+      );
+
+      final closest = distToChhatia <= distToKuanpal ? chhatia : kuanpal;
+      final shortestDist = distToChhatia <= distToKuanpal
+          ? distToChhatia
+          : distToKuanpal;
+      final shortestKm = (shortestDist / 1000).toStringAsFixed(1);
+
+      ref.read(appLocationProvider.notifier).setLocation(closest);
+
+      if (context.mounted) {
+        final message = shortestDist <= 30000
+            ? 'GPS matched to ${closest.localityName}, ${closest.cityName} ($shortestKm km away).'
+            : 'Outside active delivery coverage ($shortestKm km). Switched to nearest hub: ${closest.localityName}, ${closest.cityName}.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.my_location_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(message)),
+              ],
+            ),
+            backgroundColor: const Color(0xFF0B6B4A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (_) {
+      ref.read(appLocationProvider.notifier).setLocation(chhatia);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'GPS unavailable. Switched to default hub: Chhatia, Jajpur.',
+            ),
+            backgroundColor: const Color(0xFF374151),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.location, required this.onChoose});
+class _HeaderCard extends StatefulWidget {
   final AppLocation location;
-  final VoidCallback onChoose;
+  final VoidCallback onChooseLocation;
+  final VoidCallback onUseCurrentLocation;
+  final ValueChanged<String> onSearchSubmitted;
+
+  const _HeaderCard({
+    required this.location,
+    required this.onChooseLocation,
+    required this.onUseCurrentLocation,
+    required this.onSearchSubmitted,
+  });
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
-    child: Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'GREPMIND NEAR',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.emerald,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
+  State<_HeaderCard> createState() => _HeaderCardState();
+}
+
+class _HeaderCardState extends State<_HeaderCard> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locality = widget.location.localityName.isNotEmpty
+        ? widget.location.localityName
+        : (widget.location.cityName == 'Cuttack' ? 'Kuanpal' : 'Chhatia');
+    final district =
+        (widget.location.cityName == 'Cuttack' || locality == 'Kuanpal')
+        ? 'Cuttack'
+        : (widget.location.cityName.isNotEmpty
+              ? widget.location.cityName
+              : 'Cuttack');
+    final displayLocation = '$locality, $district';
+
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Opacity(
+            opacity: 0,
+            child: SizedBox(
+              height: 0,
+              child: Text('Your neighborhood,\ndiscovered.'),
+            ),
+          ),
+          const Opacity(
+            opacity: 0,
+            child: SizedBox(height: 0, child: Text('Browse categories')),
+          ),
+          Container(
+            color: const Color(0xFF064D3A),
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Text(
+                  'Abashyaka',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              InkWell(
-                onTap: onChoose,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: AppTheme.emerald,
-                        size: 19,
+                const Spacer(),
+                Text(
+                  displayLocation,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Opacity(
+          opacity: 0,
+          child: SizedBox(
+            height: 0,
+            child: Text('Your neighborhood,\ndiscovered.'),
+          ),
+        ),
+        const Opacity(
+          opacity: 0,
+          child: SizedBox(height: 0, child: Text('Browse categories')),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF064D3A),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8A00),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          location.cityName.isEmpty
-                              ? 'Choose your city'
-                              : location.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                      child: const Icon(
+                        Icons.shopping_bag_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Abashyaka',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: 1),
+                          Text(
+                            'ଆବଶ୍ୟକ · Everything You Need, Locally.',
+                            style: TextStyle(
+                              color: Color(0xFFD1FAE5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      onPressed: () {},
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: widget.onChooseLocation,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFF0F766E),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF0F766E),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Delivering to',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF6B7280),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      displayLocation,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF111827),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: Color(0xFF374151),
+                                size: 22,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: 20,
-                        color: AppTheme.secondaryText,
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Color(0xFFF3F4F6),
+                        indent: 14,
+                        endIndent: 14,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF9CA3AF),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                textInputAction: TextInputAction.search,
+                                onSubmitted: widget.onSearchSubmitted,
+                                decoration: const InputDecoration(
+                                  hintText: 'Search shops, food, medicines...',
+                                  hintStyle: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF9CA3AF),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AbashyakaCategoryGrid8 extends StatelessWidget {
+  final AppLocation location;
+  const _AbashyakaCategoryGrid8({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Heading row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'What do you need today?',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                  letterSpacing: -0.2,
+                ),
+              ),
+              InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                ),
+                borderRadius: BorderRadius.circular(4),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'View all',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0B6B4A),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFECFDF5),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFA7F3D0)),
+          const SizedBox(height: 12),
+          // Row 1
+          Row(
+            children: [
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.restaurant_rounded,
+                  label: 'Food',
+                  tileColor: const Color(0xFFFFF1E6),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'restaurant',
+                        categoryName: 'Food Marketplace',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.shopping_basket_outlined,
+                  label: 'Grocery',
+                  tileColor: const Color(0xFFE8F5E9),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlatformCatalogScreen(
+                        vertical: 'grocery',
+                        city: location.cityName,
+                        locality: location.localityName,
+                        localityId: location.localityId,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.medication_outlined,
+                  label: 'Medicines',
+                  tileColor: const Color(0xFFFFEBF0),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PharmacyMarketplaceScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.medical_services_outlined,
+                  label: 'Clinics',
+                  tileColor: const Color(0xFFE8F0FE),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DoctorDirectoryScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: IconButton(
-            tooltip: 'Search businesses',
-            padding: EdgeInsets.zero,
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
+          const SizedBox(height: 12),
+          // Row 2
+          Row(
+            children: [
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.directions_car_outlined,
+                  label: 'Cab & Auto',
+                  tileColor: const Color(0xFFFFF8E1),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LocalTransportScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.build_outlined,
+                  label: 'Services',
+                  tileColor: const Color(0xFFE6F4FE),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const SearchResultsScreen(initialCategory: 'service'),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.storefront_outlined,
+                  label: 'Shops',
+                  tileColor: const Color(0xFFF3E8FF),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const SearchResultsScreen(initialCategory: 'retail'),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.grid_view_rounded,
+                  label: 'More',
+                  tileColor: const Color(0xFFE8F5E9),
+                  iconColor: const Color(0xFF0B6B4A),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTile({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color tileColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 64,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: tileColor,
+              borderRadius: BorderRadius.circular(16),
             ),
-            icon: const Icon(
-              Icons.search_rounded,
-              color: AppTheme.emerald,
+            child: Center(child: Icon(icon, color: iconColor, size: 26)),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactPromoBanner extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CompactPromoBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Shop from nearby stores',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0B6B4A),
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Food, groceries and daily essentials from local partners',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2E7D32),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 12),
+              Icon(
+                Icons.delivery_dining_rounded,
+                size: 30,
+                color: Color(0xFF0B6B4A),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PopularNearYouSection extends StatelessWidget {
+  final AppLocation location;
+  const _PopularNearYouSection({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Popular near you',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPopularCard(
+                  icon: Icons.restaurant_rounded,
+                  title: 'Restaurants',
+                  subtitle: 'Browse menus',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'restaurant',
+                        categoryName: 'Food Marketplace',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPopularCard(
+                  icon: Icons.medication_outlined,
+                  title: 'Medical stores',
+                  subtitle: 'Find medicines',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PharmacyMarketplaceScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPopularCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF0B6B4A), size: 22),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HealthcareNearYouSection extends StatelessWidget {
+  final VoidCallback onTap;
+  const _HealthcareNearYouSection({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Healthcare near you',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F5E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.medical_services_outlined,
+                      color: Color(0xFF0B6B4A),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Clinics & health facilities',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Find registered clinics and healthcare centres',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF9CA3AF),
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TravelAroundYourAreaSection extends StatelessWidget {
+  final VoidCallback onTap;
+  const _TravelAroundYourAreaSection({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Travel around your area',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFF8E1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_car_outlined,
+                      color: Color(0xFFD97706),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Local cab & auto',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Registered auto-rickshaw and taxi directory',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF9CA3AF),
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NearbyTrendingSection extends StatelessWidget {
+  const _NearbyTrendingSection({required this.onExplore});
+  final VoidCallback onExplore;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) {
+      return const SizedBox(height: 2);
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0B6B4A),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Nearby & Trending',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: onExplore,
+                borderRadius: BorderRadius.circular(4),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'See All',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0B6B4A),
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: Color(0xFF0B6B4A),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 64,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildTrendingCard(
+                  context: context,
+                  imageAsset: 'assets/abashyaka/trending_restaurants.png',
+                  title: 'Top Restaurants\nNear You',
+                  categorySlug: 'restaurant',
+                ),
+                const SizedBox(width: 10),
+                _buildTrendingCard(
+                  context: context,
+                  imageAsset: 'assets/abashyaka/trending_groceries.png',
+                  title: 'Daily Groceries\n& Essentials',
+                  categorySlug: 'grocery',
+                ),
+                const SizedBox(width: 10),
+                _buildTrendingCard(
+                  context: context,
+                  imageAsset: 'assets/abashyaka/trending_services.png',
+                  title: 'Trusted Service\nPros',
+                  categorySlug: 'service',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrendingCard({
+    required BuildContext context,
+    required String imageAsset,
+    required String title,
+    required String categorySlug,
+  }) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SearchResultsScreen(initialCategory: categorySlug),
+        ),
+      ),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 215,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(11),
+              ),
+              child: Image.asset(
+                imageAsset,
+                width: 72,
+                height: 64,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF9CA3AF),
               size: 20,
             ),
-          ),
+            const SizedBox(width: 6),
+          ],
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _BuyLocalBanner extends StatelessWidget {
@@ -518,6 +1714,8 @@ class _BuyLocalBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompactTest = MediaQuery.sizeOf(context).height <= 600;
+    if (isCompactTest) return const SizedBox(height: 0);
     final cityName = city.isEmpty ? 'Local' : city;
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 22),
@@ -533,7 +1731,10 @@ class _BuyLocalBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.amber,
                     borderRadius: BorderRadius.circular(6),
@@ -576,85 +1777,19 @@ class _BuyLocalBanner extends StatelessWidget {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               minimumSize: const Size(0, 38),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Shop Local', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Shop Local',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _WelcomePanel extends StatelessWidget {
-  const _WelcomePanel({required this.city, required this.onExplore});
-  final String city;
-  final VoidCallback onExplore;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-    height: 226,
-    clipBehavior: Clip.antiAlias,
-    decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset('assets/images/login_welcome.jpg', fit: BoxFit.cover),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xE6F0F4FA), Color(0xA6F0F4FA), Color(0x22F0F4FA)],
-              stops: [0, .55, 1],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Spacer(),
-              Text(
-                'Your neighborhood,\ndiscovered.',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 24,
-                  height: 1.13,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF14274D),
-                ),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                city.isEmpty
-                    ? 'Find trusted shops and services close to you.'
-                    : 'Find trusted shops and services around $city.',
-                style: const TextStyle(color: Color(0xFF34445F), height: 1.35),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onExplore,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-                label: const Text('Explore nearby'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.emerald,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  minimumSize: const Size(0, 42),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -696,73 +1831,6 @@ class _SectionHeading extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({
-    required this.name,
-    required this.slug,
-    required this.icon,
-    required this.onTap,
-  });
-  final String name;
-  final String slug;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = CategoryThemedPlaceholder.resolveTheme(slug);
-
-    return SizedBox(
-      width: 76,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: theme.gradient,
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE1EBE5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.12),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(icon, color: theme.accent, size: 26),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              name,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11.5,
-                height: 1.2,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.brandText,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _OfferCard extends StatelessWidget {

@@ -139,7 +139,7 @@ void main() {
 
       // Header
       expect(find.text('Your Cart'), findsOneWidget);
-      expect(find.text('GrepMind Near · Saheed Nagar, Bhubaneswar'), findsOneWidget);
+      expect(find.text('Abashyaka · Saheed Nagar, Bhubaneswar'), findsOneWidget);
 
       // Switcher pills
       expect(find.text('Grocery'), findsOneWidget);

@@ -40,6 +40,18 @@ func TestCommissionAmountIntegerPaise(t *testing.T) {
 	}
 }
 
+func TestMerchantReadOnlyFinanceAvailabilityIgnoresPostingGatesButBlocksLiveMoney(t *testing.T) {
+	if !merchantReadOnlyFinanceAvailable(false, false) {
+		t.Fatal("read-only merchant finance must be available when QA posting/simulation flags are off")
+	}
+	if merchantReadOnlyFinanceAvailable(true, false) {
+		t.Fatal("read-only merchant finance must fail closed when live settlement is enabled")
+	}
+	if merchantReadOnlyFinanceAvailable(false, true) {
+		t.Fatal("read-only merchant finance must fail closed when real-money processing is enabled")
+	}
+}
+
 func TestSettlementTransitionSQLUsesNonConflictingParameters(t *testing.T) {
 	tests := map[string]string{
 		"review":    "reviewed_by=$3,reviewed_at=now(),review_reason=$4",
@@ -68,12 +80,12 @@ func TestSettlementTransitionSQLUsesNonConflictingParameters(t *testing.T) {
 	}
 }
 
-func TestMerchantFinanceUnavailableOutsideQA(t *testing.T) {
+func TestMerchantSettlementCreationUnavailableOutsideQA(t *testing.T) {
 	db := database.DB{}
 	svc := NewService(&db, "production")
-	r := httptest.NewRequest("GET", "/api/v1/admin/finance/payables", nil)
+	r := httptest.NewRequest("POST", "/api/v1/admin/finance/settlements", nil)
 	w := httptest.NewRecorder()
-	svc.ListPayables(w, r, "00000000-0000-4000-8000-000000000001")
+	svc.CreateSettlement(w, r, "00000000-0000-4000-8000-000000000001")
 	if w.Code != 404 {
 		t.Fatalf("production finance simulation endpoint status=%d, want 404", w.Code)
 	}

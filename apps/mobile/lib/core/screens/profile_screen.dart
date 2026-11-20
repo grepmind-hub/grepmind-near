@@ -171,27 +171,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Color(0xFFD97706),
                               ]
                             : (isMerchant
-                                ? const [
-                                    AppTheme.coral,
-                                    Color(0xFFF97316),
-                                    Color(0xFFFB923C),
-                                  ]
-                                : const [
-                                    Color(0xFF059669),
-                                    Color(0xFF10B981),
-                                    Color(0xFF34D399),
-                                  ]),
+                                  ? const [
+                                      AppTheme.coral,
+                                      Color(0xFFF97316),
+                                      Color(0xFFFB923C),
+                                    ]
+                                  : const [
+                                      Color(0xFF059669),
+                                      Color(0xFF10B981),
+                                      Color(0xFF34D399),
+                                    ]),
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (isRider
-                                  ? AppTheme.riderAmberDark
-                                  : (isMerchant
-                                      ? AppTheme.coral
-                                      : const Color(0xFF059669)))
-                              .withValues(alpha: 0.25),
+                          color:
+                              (isRider
+                                      ? AppTheme.riderAmberDark
+                                      : (isMerchant
+                                            ? AppTheme.coral
+                                            : const Color(0xFF059669)))
+                                  .withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -205,8 +206,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         backgroundColor: isRider
                             ? AppTheme.riderAmberContainer
                             : (isMerchant
-                                ? AppTheme.merchantCoralContainer
-                                : const Color(0xFFECFDF5)),
+                                  ? AppTheme.merchantCoralContainer
+                                  : const Color(0xFFECFDF5)),
                         backgroundImage: photoUrl == null
                             ? null
                             : CachedNetworkImageProvider(photoUrl),
@@ -217,8 +218,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 color: isRider
                                     ? AppTheme.riderAmberDark
                                     : (isMerchant
-                                        ? AppTheme.coral
-                                        : const Color(0xFF059669)),
+                                          ? AppTheme.coral
+                                          : const Color(0xFF059669)),
                               )
                             : null,
                       ),
@@ -231,8 +232,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: isRider
                           ? AppTheme.riderAmberDark
                           : (isMerchant
-                              ? AppTheme.coral
-                              : const Color(0xFF059669)),
+                                ? AppTheme.coral
+                                : const Color(0xFF059669)),
                       shape: const CircleBorder(),
                       elevation: 2,
                       child: InkWell(
@@ -337,8 +338,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: isRider
                                 ? AppTheme.riderAmberContainer
                                 : (isMerchant
-                                    ? AppTheme.merchantCoralContainer
-                                    : AppTheme.primaryContainer),
+                                      ? AppTheme.merchantCoralContainer
+                                      : const Color(0xFFE8F5E9)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -349,8 +350,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               color: isRider
                                   ? AppTheme.riderAmberDeep
                                   : (isMerchant
-                                      ? AppTheme.coral
-                                      : AppTheme.forestDark),
+                                        ? AppTheme.coral
+                                        : AppTheme.emeraldDark),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -368,16 +369,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               color: isRider
                                   ? AppTheme.riderAmberContainer
                                   : (isMerchant
-                                      ? AppTheme.merchantCoralContainer
-                                      : const Color(0xFFECFDF5)),
+                                        ? AppTheme.merchantCoralContainer
+                                        : const Color(0xFFECFDF5)),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isRider
                                     ? AppTheme.riderAmberBorder
                                     : (isMerchant
-                                        ? AppTheme.merchantCoralBorder
-                                        : const Color(0xFF059669)
-                                            .withValues(alpha: 0.3)),
+                                          ? AppTheme.merchantCoralBorder
+                                          : const Color(0xFF059669)
+                                                .withValues(alpha: 0.3)),
                               ),
                             ),
                             child: Row(
@@ -389,8 +390,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   color: isRider
                                       ? AppTheme.riderAmberDark
                                       : (isMerchant
-                                          ? AppTheme.coral
-                                          : const Color(0xFF059669)),
+                                            ? AppTheme.coral
+                                            : const Color(0xFF059669)),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -401,8 +402,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     color: isRider
                                         ? AppTheme.riderAmberDark
                                         : (isMerchant
-                                            ? AppTheme.coral
-                                            : const Color(0xFF059669)),
+                                              ? AppTheme.coral
+                                              : const Color(0xFF059669)),
                                   ),
                                 ),
                               ],
@@ -508,7 +509,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     size: 20,
                     color: isRider
                         ? AppTheme.riderAmberDark
-                        : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
+                        : (isMerchant
+                              ? AppTheme.coral
+                              : const Color(0xFF059669)),
                   ),
                   const SizedBox(width: 8),
                   const Text(
@@ -525,7 +528,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () => _showEditDialog(context, user),
                 borderRadius: BorderRadius.circular(6),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Text(
                     'Edit',
                     style: TextStyle(
@@ -533,7 +539,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       fontWeight: FontWeight.w600,
                       color: isRider
                           ? AppTheme.riderAmberDark
-                          : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
+                          : (isMerchant
+                                ? AppTheme.coral
+                                : const Color(0xFF059669)),
                     ),
                   ),
                 ),
@@ -565,8 +573,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 color: isRider
                     ? AppTheme.riderAmberContainer
                     : (isMerchant
-                        ? AppTheme.merchantCoralContainer
-                        : const Color(0xFFECFDF5)),
+                          ? AppTheme.merchantCoralContainer
+                          : const Color(0xFFECFDF5)),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -576,9 +584,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   fontWeight: FontWeight.w700,
                   color: isRider
                       ? AppTheme.riderAmberDark
-                      : (isMerchant
-                          ? AppTheme.coral
-                          : const Color(0xFF059669)),
+                      : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
                 ),
               ),
             ),
@@ -633,15 +639,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: isRider
                       ? AppTheme.riderAmberContainer
                       : (isMerchant
-                          ? AppTheme.merchantCoralContainer
-                          : AppTheme.primaryContainer),
+                            ? AppTheme.merchantCoralContainer
+                            : const Color(0xFFE8F5E9)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.tag_rounded,
                   color: isRider
                       ? AppTheme.riderAmberDark
-                      : (isMerchant ? AppTheme.coral : AppTheme.primary),
+                      : (isMerchant ? AppTheme.coral : AppTheme.emerald),
                   size: 18,
                 ),
               ),
@@ -733,15 +739,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 color: isRider
                     ? AppTheme.riderAmberContainer
                     : (isMerchant
-                        ? AppTheme.merchantCoralContainer
-                        : AppTheme.primaryContainer),
+                          ? AppTheme.merchantCoralContainer
+                          : const Color(0xFFE8F5E9)),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 color: isRider
                     ? AppTheme.riderAmberDark
-                    : (isMerchant ? AppTheme.coral : AppTheme.primary),
+                    : (isMerchant ? AppTheme.coral : AppTheme.emerald),
                 size: 18,
               ),
             ),
@@ -765,8 +771,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight:
-                          isPlaceholder ? FontWeight.w400 : FontWeight.w600,
+                      fontWeight: isPlaceholder
+                          ? FontWeight.w400
+                          : FontWeight.w600,
                       color: isPlaceholder
                           ? const Color(0xFF059669)
                           : AppTheme.mainText,
@@ -897,7 +904,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ? 'Become a delivery partner'
                   : 'Rider application',
               subtitle: user.riderStatus == null
-                  ? 'Apply to join the Grepmind rider network'
+                  ? 'Apply to join the Abashyaka rider network'
                   : 'Application status: ${user.riderStatus!.replaceAll('_', ' ')}',
               iconColor: const Color(0xFF0D9488),
               iconBgColor: const Color(0xFFCCFBF1),
@@ -976,9 +983,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               iconColor: AppTheme.riderAmberDark,
               iconBgColor: AppTheme.riderAmberContainer,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const RiderDashboardScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const RiderDashboardScreen()),
               ),
             ),
             const Divider(),
@@ -989,9 +994,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               iconColor: AppTheme.riderAmberDark,
               iconBgColor: AppTheme.riderAmberContainer,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const RiderEarningsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
               ),
             ),
             const Divider(),
@@ -1016,7 +1019,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _buildAccountOption(
             icon: Icons.add_business_outlined,
             title: 'Register / Claim Business',
-            subtitle: 'List your shop or professional trade on Grepmind',
+            subtitle: 'List your shop or professional trade on Abashyaka',
             iconColor: isMerchantRole
                 ? AppTheme.coral
                 : const Color(0xFF059669),
@@ -1077,8 +1080,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     Color? iconColor,
     Color? iconBgColor,
   }) {
-    final fg = iconColor ?? AppTheme.primary;
-    final bg = iconBgColor ?? AppTheme.primaryContainer;
+    final fg = iconColor ?? AppTheme.emerald;
+    final bg = iconBgColor ?? const Color(0xFFE8F5E9);
     return InkWell(
       key: key,
       onTap: onTap,
@@ -1093,9 +1096,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: fg.withValues(alpha: 0.15),
-                ),
+                border: Border.all(color: fg.withValues(alpha: 0.15)),
               ),
               child: Icon(icon, color: fg, size: 20),
             ),
@@ -1311,8 +1312,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ],
                           ),
                         ),
-                        helperText:
-                            'Verified with SMS OTP. Mobile number cannot be changed directly.',
+                        helperText: 'Verified with SMS OTP. Mobile number cannot be changed directly.',
                         helperMaxLines: 2,
                         filled: true,
                         fillColor: const Color(0xFFF3F4F6),
@@ -1426,8 +1426,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     color: isRider
                                         ? AppTheme.riderAmberDark
                                         : (isMerchant
-                                            ? AppTheme.coral
-                                            : const Color(0xFF059669)),
+                                              ? AppTheme.coral
+                                              : const Color(0xFF059669)),
                                   ),
                                 ),
                               ),
@@ -1497,15 +1497,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: OutlinedButton(
                             onPressed: () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              side: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
+                              side: const BorderSide(color: Color(0xFFE5E7EB)),
                             ),
                             child: const Text(
                               'CANCEL',
@@ -1524,8 +1520,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               backgroundColor: isRider
                                   ? AppTheme.riderAmberDark
                                   : (isMerchant
-                                      ? AppTheme.coral
-                                      : const Color(0xFF059669)),
+                                        ? AppTheme.coral
+                                        : const Color(0xFF059669)),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -1564,8 +1560,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   backgroundColor: isRider
                                       ? AppTheme.riderAmberDark
                                       : (isMerchant
-                                          ? AppTheme.coral
-                                          : const Color(0xFF059669)),
+                                            ? AppTheme.coral
+                                            : const Color(0xFF059669)),
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1621,10 +1617,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.verified_user_outlined, color: AppTheme.primary),
+        icon: const Icon(Icons.verified_user_outlined, color: AppTheme.emerald),
         title: const Text('Secure OTP sign-in'),
         content: const Text(
-          'Grepmind Near uses a one-time code sent to your verified phone number. This account has no password, so there is no password to change. Never share a verification code with anyone.',
+          'Abashyaka uses a one-time code sent to your verified phone number. This account has no password, so there is no password to change. Never share a verification code with anyone.',
         ),
         actions: [
           TextButton(
@@ -1812,7 +1808,7 @@ class PrivacySettingsScreen extends StatelessWidget {
             ),
             title: const Text('Location permission'),
             subtitle: const Text(
-              'Review Grepmind Near permissions in Android settings',
+              'Review Abashyaka permissions in Android settings',
             ),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () async {

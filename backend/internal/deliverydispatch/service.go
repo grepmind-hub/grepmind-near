@@ -515,7 +515,8 @@ func (s *Service) Offers(w http.ResponseWriter, r *http.Request, riderID string)
 	writeJSON(w, 200, map[string]any{"data": result})
 }
 
-const offerSelect = `SELECT x.id::text id,j.id::text job_id,o.id::text order_id,o.reference_code,o.platform_vertical,
+const offerSelect = `SELECT x.id::text id,j.id::text job_id,o.id::text order_id,o.reference_code,
+	COALESCE(o.platform_vertical, CASE WHEN o.order_type='food_delivery' THEN 'food' ELSE 'grocery' END) AS platform_vertical,
 	b.name pickup_business,b.address_text pickup_address,COALESCE(b.locality,b.city,'') pickup_locality,dl.name destination_locality,d.name destination_district,
 	COALESCE(o.payment_method,'') payment_method,COALESCE(o.payment_status,'') payment_status,
 	COALESCE((SELECT ob.amount_minor FROM cod_obligations ob WHERE ob.order_id=o.id),0) cod_amount_minor,
@@ -548,7 +549,11 @@ func (s *Service) GetOffer(w http.ResponseWriter, r *http.Request, riderID strin
 
 func (s *Service) loadOfferItems(ctx context.Context, value *offer) error {
 	value.Items = make([]riderItem, 0)
-	return s.db.SelectContext(ctx, &value.Items, `SELECT product_name,variant_name,unit_label,quantity FROM platform_customer_order_items WHERE order_id=$1 ORDER BY product_name,variant_name`, value.OrderID)
+	return s.db.SelectContext(ctx, &value.Items, `
+		SELECT product_name, '' AS variant_name, '' AS unit_label, quantity FROM customer_order_items WHERE order_id=$1
+		UNION ALL
+		SELECT product_name, variant_name, unit_label, quantity FROM platform_customer_order_items WHERE order_id=$1
+		ORDER BY product_name`, value.OrderID)
 }
 
 func (s *Service) RespondOffer(w http.ResponseWriter, r *http.Request, riderID, decision string) {
@@ -705,14 +710,20 @@ func (s *Service) ActiveAssignment(w http.ResponseWriter, r *http.Request, rider
 		return
 	}
 	value.Items = make([]riderItem, 0)
-	if err := s.db.SelectContext(r.Context(), &value.Items, `SELECT product_name,variant_name,unit_label,quantity FROM platform_customer_order_items WHERE order_id=$1 ORDER BY product_name,variant_name`, value.OrderID); err != nil {
+	if err := s.db.SelectContext(r.Context(), &value.Items, `
+		SELECT product_name, '' AS variant_name, '' AS unit_label, quantity FROM customer_order_items WHERE order_id=$1
+		UNION ALL
+		SELECT product_name, variant_name, unit_label, quantity FROM platform_customer_order_items WHERE order_id=$1
+		ORDER BY product_name`, value.OrderID); err != nil {
 		writeError(w, 500, "INTERNAL_ERROR", "Unable to load assignment items.")
 		return
 	}
 	writeJSON(w, 200, map[string]any{"data": value})
 }
 
-const assignmentSelect = `SELECT j.id::text job_id,o.id::text order_id,o.reference_code,o.platform_vertical,b.name pickup_business,b.address_text pickup_address,
+const assignmentSelect = `SELECT j.id::text job_id,o.id::text order_id,o.reference_code,
+	COALESCE(o.platform_vertical, CASE WHEN o.order_type='food_delivery' THEN 'food' ELSE 'grocery' END) AS platform_vertical,
+	b.name pickup_business,b.address_text pickup_address,
 	COALESCE(b.locality,b.city,'') pickup_locality,l.name destination_locality,d.name destination_district,a.assigned_at::text assigned_at,j.execution_state,
 	concat_ws(', ',o.delivery_address_snapshot->>'address_line1',o.delivery_address_snapshot->>'locality',o.delivery_address_snapshot->>'landmark',o.delivery_address_snapshot->>'city',o.delivery_address_snapshot->>'state',o.delivery_address_snapshot->>'postal_code') destination_address,
 	COALESCE(o.delivery_address_snapshot->>'recipient_name','') recipient_name,COALESCE(o.delivery_address_snapshot->>'contact_phone','') contact_phone,

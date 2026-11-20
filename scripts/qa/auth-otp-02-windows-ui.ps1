@@ -187,8 +187,8 @@ function Type-Text([string]$Value) {
 function Continue-RoleSelection {
   for ($i = 0; $i -lt 8; $i++) {
     $xml = Get-UiXml
-    if ($xml -match 'Continue to workspace|Switch workspace') {
-      Tap-Pattern 'Continue to workspace|Switch workspace' '540,2300'
+    if ($xml -match 'Continue to workspace|Switch workspace|Continue') {
+      Tap-Pattern 'Continue to workspace|Switch workspace|Continue' '540,2000'
       return
     }
     $script:operation = 'scroll role selection to continue button'
@@ -241,7 +241,7 @@ if ($KeepAppRunning) {
 
 # If a restored session has no active workspace yet, enter the backend-approved
 # role via the normal picker so that logout can be performed from Profile.
-if ($xml -match 'Select Portal Experience|Customer / Explorer|Merchant & Service Pro|Platform Administrator') {
+if ($xml -match 'Select Portal Experience|Choose Your Role|Customer / Explorer|Merchant & Service Pro|Platform Administrator') {
   Tap-Pattern $Role '540,900'
   Continue-RoleSelection
   Start-Sleep -Seconds 5
@@ -269,6 +269,12 @@ if ($xml -match 'Merchant Workspace|Rider dashboard|Home|Explore|Dashboard') {
   }
 }
 
+if ($xml -match 'All Your Needs in One App|Get started') {
+  Tap-Pattern 'Get started' '540,1850'
+  Start-Sleep -Seconds 2
+  $xml = Get-UiXml
+}
+
 # If the auth restore is still in progress, wait for its normal completion.
 for ($i = 0; $i -lt 20 -and $xml -notmatch 'Mobile number|Continue securely|otp-step|Verification code'; $i++) {
   Start-Sleep -Seconds 1
@@ -284,14 +290,14 @@ $script:operation = 'dismiss phone keyboard'
 [void](Invoke-Adb @('-s', $Serial, 'shell', 'input', 'keyevent', '4'))
 Start-Sleep -Milliseconds 600
 $previousChallengeIds = @(Get-ChallengeIdsFromLog)
-Tap-Pattern 'Continue securely' '540,1413'
+Tap-Pattern 'Continue securely|\bContinue\b(?! with)' '540,1120'
 
 $challenge = $null
- $otpUiVisible = $false
+$otpUiVisible = $false
 for ($i = 0; $i -lt 20 -and ($null -eq $challenge -or -not $otpUiVisible); $i++) {
   Start-Sleep -Milliseconds 500
   $xml = Get-UiXml
-  $otpUiVisible = $xml -match 'Verify and sign in|6-digit verification code|Six-digit verification code'
+  $otpUiVisible = $xml -match 'Verify and sign in|Verify OTP|6-digit verification code|6-digit code|Six-digit verification code'
   if ($xml -match 'Please wait before requesting another OTP|verification is currently unavailable|Could not send a verification code|Could not send a code') {
     throw 'The normal OTP request was rejected or rate-limited; the scoped reader was not called.'
   }
@@ -332,12 +338,12 @@ try {
   $otp = $null
   $script:operation = 'dismiss OTP keyboard'
   [void](Invoke-Adb @('-s', $Serial, 'shell', 'input', 'keyevent', '4'))
-  Tap-Pattern 'Verify and sign in' '540,1220'
+  Tap-Pattern 'Verify and sign in|Verify' '540,1150'
   Start-Sleep -Seconds 6
 
   # Select the backend-authorized role through the normal role picker if shown.
   $xml = Get-UiXml
-  if ($xml -match 'Select Portal Experience|Customer / Explorer|Merchant & Service Pro|Platform Administrator') {
+  if ($xml -match 'Select Portal Experience|Choose Your Role|Customer / Explorer|Merchant & Service Pro|Platform Administrator') {
     Tap-Pattern $Role '540,900'
     Continue-RoleSelection
     Start-Sleep -Seconds 5

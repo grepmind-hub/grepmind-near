@@ -44,7 +44,7 @@ tags:
   - name: admin-riders
     description: Rider approval and delivery dispatch administration
   - name: rider-earnings
-    description: Append-only rider compensation ledger and reporting; payouts are unavailable
+    description: Rider compensation ledger and isolated-QA settlement status; real payouts remain disabled
   - name: delivery-status
     description: Customer and merchant-scoped dispatch status
   - name: health
@@ -84,8 +84,32 @@ paths:
       parameters:
         - {in: path, name: entryId, required: true, schema: {type: string, format: uuid}}
       responses:
-        '200': {description: Earning amount_minor is a decimal string of integer minor units; payout functionality is not available}
+        '200': {description: Earning amount_minor is a decimal string of integer minor units; settlement status is available separately from /rider/settlements}
         '404': {description: Entry not found for this rider}
+  /rider/settlements:
+    get:
+      tags: [rider-earnings]
+      summary: Read the authenticated rider's settlement and isolated-QA payout status history
+      description: Read-only. Returns only batches owned by the authenticated active rider. Does not expose transfer identifiers, bank details, provider identifiers, UTRs, or COD liability. Available in isolated QA/test only; simulation status is not bank credit.
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 200, default: 100}}
+      responses:
+        '200':
+          description: Own settlement batches and transfer workflow statuses in integer minor units; simulation_only is true and no money moves
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SettlementHistoryRecord'
+        '400': {description: Invalid limit}
+        '403': {description: Approved active rider access required}
+        '404': {description: Endpoint is unavailable outside isolated QA/test}
   /admin/rider-earnings/overview:
     get:
       tags: [rider-earnings]
@@ -618,6 +642,9 @@ paths:
                         type: string
                       user:
                         $ref: '#/components/schemas/User'
+                      admin_mpin_enrollment_available:
+                        type: boolean
+                        description: Present when the Admin session can enroll a PIN on the configured portal.
                   meta:
                     $ref: '#/components/schemas/Meta'
         '401':
@@ -627,6 +654,95 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /auth/admin-mpin:
+    get:
+      tags: [auth]
+      summary: Check Admin PIN availability and browser enrollment
+      security: []
+      responses:
+        '200':
+          description: Whether PIN sign-in is enabled and this browser is enrolled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [enabled, enrolled]
+                    properties:
+                      enabled: { type: boolean }
+                      enrolled: { type: boolean }
+  /auth/admin-mpin/enroll:
+    post:
+      tags: [auth]
+      security: [{bearerAuth: []}]
+      summary: Enroll this Admin browser after a recent OTP login
+      description: Requires an active Admin bearer session authenticated by OTP on the configured portal origin in the last five minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: string, pattern: '^[0-9]{6}$', writeOnly: true }
+      responses:
+        '204':
+          description: Enrolled. Sets a secure, HTTP-only browser credential.
+        '400':
+          description: Invalid PIN input
+        '401':
+          description: Recent Admin OTP authentication required
+        '403':
+          description: Portal origin is not authorized or PIN login is disabled
+  /auth/admin-mpin/remove:
+    post:
+      tags: [auth]
+      summary: Remove the enrolled Admin browser PIN
+      description: Requires a recent verified Admin OTP session on the configured portal origin. PIN sessions cannot remove their own recovery credential.
+      security: [{bearerAuth: []}]
+      responses:
+        '204': {description: Browser PIN removed and device cookie cleared}
+        '401': {description: Recent Admin OTP authentication required}
+        '403': {description: Portal origin is not authorized or PIN login is disabled}
+  /auth/admin-mpin/verify:
+    post:
+      tags: [auth]
+      summary: Sign in with an Admin PIN and enrolled browser credential
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: string, pattern: '^[0-9]{6}$', writeOnly: true }
+      responses:
+        '200':
+          description: Admin session issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [access_token, refresh_token]
+                    properties:
+                      access_token: { type: string }
+                      refresh_token: { type: string }
+        '400':
+          description: Invalid PIN input
+        '401':
+          description: Invalid PIN, unavailable device credential, or Admin access removed
+        '403':
+          description: Portal origin is not authorized or PIN login is disabled
   /auth/refresh:
     post:
       summary: Rotate refresh credentials
@@ -3044,7 +3160,7 @@ paths:
 
   /admin/payments/refunds:
     get:
-      summary: List finance-authorized refund requests
+      summary: List Admin-visible refund requests
       tags: [admin]
       security: [{bearerAuth: []}]
       parameters:
@@ -3055,8 +3171,29 @@ paths:
           name: limit
           schema: {type: integer, minimum: 1, maximum: 100, default: 50}
       responses:
-        '200': {description: Refund queue with synthetic status only}
-        '403': {description: Finance read permission required}
+        '200':
+          description: Refund queue with order references and stored refund providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        order_id: {type: string, format: uuid}
+                        customer_user_id: {type: string, format: uuid}
+                        reference_code: {type: string}
+                        provider: {type: string}
+                        amount_minor: {type: integer, format: int64}
+                        currency: {type: string}
+                        status: {type: string}
+                        reason_code: {type: string}
+                        created_at: {type: string, format: date-time}
+        '403': {description: Active Platform Admin access required}
 
   /admin/payments/refunds/{id}/reconcile:
     post:
@@ -3070,7 +3207,7 @@ paths:
           schema: {type: string, format: uuid}
       responses:
         '200': {description: Provider-fetched refund outcome reconciled}
-        '403': {description: Finance read permission required}
+        '403': {description: Active Platform Admin access required}
         '404': {description: Refund or provider reference not found}
 
   /orders/{id}/sandbox-payment-outcomes:
@@ -3162,6 +3299,174 @@ paths:
         '401': {description: Signature, key ID, or timestamp verification failed}
         '409': {description: Provider event ID was replayed with different payload}
         '413': {description: Webhook body exceeds the configured limit}
+
+  /admin/payments/reconciliation-queue:
+    get:
+      tags: [payments]
+      summary: List payment attempts requiring reconciliation and recorded exceptions
+      description: Read-only. Without view, preserves the legacy mixed queue. Explicit views return current attempts or immutable history, ordered by time and ID with cursor pagination.
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: query, name: view, schema: {type: string, enum: [needs_action, history]}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50, default: 20}, description: Applies only with an explicit view.}
+        - {in: query, name: before, schema: {type: string, maxLength: 128}, description: Cursor from the previous response for the same view and filters.}
+        - {in: query, name: status, schema: {type: string, enum: [initialized, session_created, pending, succeeded, failed, expired, reconciliation_required]}, description: Current payment attempt status.}
+        - {in: query, name: outcome, schema: {type: string, enum: [matched, missing_webhook, late_success, amount_mismatch, currency_mismatch, unknown_reference, provider_unavailable]}, description: History event outcome or the latest exception outcome on an outstanding attempt.}
+        - {in: query, name: reference, schema: {type: string, maxLength: 64}, description: Exact order reference or UUID.}
+        - {in: query, name: attempt_id, schema: {type: string, format: uuid}, description: Exact attempt relationship for linked history.}
+        - {in: query, name: from, schema: {type: string, format: date}, description: Inclusive UTC start date.}
+        - {in: query, name: to, schema: {type: string, format: date}, description: Inclusive UTC end date.}
+      responses:
+        '200':
+          description: Bounded reconciliation queue
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, more_results]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      required: [id, kind, order_id, reference_code, attempt_id, attempt_number, attempt_status, outcome, amount_minor, currency, recorded_at]
+                      properties:
+                        id: {type: string, format: uuid}
+                        kind: {type: string, enum: [action_required, recorded_exception, recorded_event]}
+                        order_id: {type: string, format: uuid}
+                        reference_code: {type: string}
+                        attempt_id: {type: string, format: uuid}
+                        attempt_number: {type: integer}
+                        attempt_status: {type: string}
+                        outcome: {type: string, nullable: true}
+                        amount_minor: {type: integer, format: int64}
+                        currency: {type: string}
+                        recorded_at: {type: string, format: date-time}
+                  more_results: {type: boolean}
+                  meta:
+                    type: object
+                    description: Present only with an explicit view.
+                    required: [view, count, has_more]
+                    properties:
+                      view: {type: string, enum: [needs_action, history]}
+                      count: {type: integer}
+                      has_more: {type: boolean}
+                      next_cursor: {type: string}
+        '400':
+          description: Invalid view, filter or cursor
+        '401':
+          description: Authentication required
+        '403':
+          description: Active Platform Admin access required
+        '500':
+          description: Queue data unavailable
+
+  /admin/payments/orders/{reference}:
+    get:
+      tags: [payments]
+      summary: Read payment tracking for an exact order reference or UUID
+      description: Requires an active Platform Admin. Returns recorded order and sandbox payment states with bounded history. This lookup does not contact the provider or initiate reconciliation.
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+            pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,63}$'
+      responses:
+        '200':
+          description: Order payment state and history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [order, intent, attempts, reconciliation, refunds, more_attempts, more_refunds, more_reconciliation_events]
+                    properties:
+                      order:
+                        type: object
+                        required: [id, reference_code, status, payment_status, payment_method, amount_minor, currency]
+                        properties:
+                          id: {type: string, format: uuid}
+                          reference_code: {type: string}
+                          status: {type: string}
+                          payment_status: {type: string}
+                          payment_method: {type: string, nullable: true}
+                          amount_minor: {type: integer, format: int64}
+                          currency: {type: string}
+                      intent:
+                        type: object
+                        nullable: true
+                        required: [id, order_id, amount_minor, currency, status, created_at]
+                        properties:
+                          id: {type: string, format: uuid}
+                          order_id: {type: string, format: uuid}
+                          amount_minor: {type: integer, format: int64}
+                          currency: {type: string}
+                          status: {type: string}
+                          created_at: {type: string, format: date-time}
+                      attempts:
+                        type: array
+                        maxItems: 25
+                        items:
+                          type: object
+                          required: [id, attempt_number, provider, status, amount_minor, currency, capture_posted, updated_at]
+                          properties:
+                            id: {type: string, format: uuid}
+                            attempt_number: {type: integer}
+                            provider: {type: string}
+                            status: {type: string}
+                            amount_minor: {type: integer, format: int64}
+                            currency: {type: string}
+                            updated_at: {type: string, format: date-time}
+                            capture_posted: {type: boolean, description: Posted verified sandbox capture journal exists for this attempt}
+                      refunds:
+                        type: array
+                        maxItems: 25
+                        items:
+                          type: object
+                          required: [id, attempt_id, attempt_number, provider, status, amount_minor, currency, created_at]
+                          properties:
+                            id: {type: string, format: uuid}
+                            attempt_id: {type: string, format: uuid}
+                            attempt_number: {type: integer}
+                            provider: {type: string}
+                            status: {type: string}
+                            amount_minor: {type: integer, format: int64}
+                            currency: {type: string}
+                            created_at: {type: string, format: date-time}
+                      more_refunds: {type: boolean}
+                      reconciliation:
+                        type: array
+                        maxItems: 50
+                        items:
+                          type: object
+                          required: [id, attempt_id, attempt_number, outcome, provider_status, created_at]
+                          properties:
+                            id: {type: string, format: uuid}
+                            attempt_id: {type: string, format: uuid}
+                            attempt_number: {type: integer}
+                            outcome: {type: string}
+                            provider_status: {type: string, nullable: true}
+                            created_at: {type: string, format: date-time}
+                      more_attempts: {type: boolean}
+                      more_reconciliation_events: {type: boolean}
+        '400':
+          description: Invalid order reference
+        '401':
+          description: Authentication required
+        '403':
+          description: Active Platform Admin access required
+        '404':
+          description: Order not found
+        '500':
+          description: Tracking data unavailable
 
   /admin/payments/attempts/{id}/reconcile:
     post:
@@ -3948,20 +4253,20 @@ paths:
         '503': {description: Synthetic COD disabled}
   /admin/cod/collections:
     get:
-      summary: List finance-authorized synthetic COD collections
+      summary: List Admin-visible synthetic COD collections
       tags: [admin-finance]
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Collection evidence with journal reference}
-        '403': {description: finance.read grant required}
+        '403': {description: Active Platform Admin access required}
   /admin/cod/remittances:
     get:
-      summary: List finance-authorized remittance submissions
+      summary: List Admin-visible remittance submissions
       tags: [admin-finance]
       security: [{bearerAuth: []}]
       responses:
-        '200': {description: Remittances pending or completed finance review}
-        '403': {description: finance.read grant required}
+        '200': {description: 'Remittances pending or completed finance review. Each row includes sandbox_verified, which is true when its linked journal records a verified, posted sandbox COD remittance.'}
+        '403': {description: Active Platform Admin access required}
   /admin/cod/remittances/{remittanceId}/review:
     post:
       summary: Verify, dispute or reject a synthetic remittance
@@ -3990,7 +4295,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: COD audit history}
-        '403': {description: finance.read grant required}
+        '403': {description: Active Platform Admin access required}
   /admin/cod/reconcile:
     get:
       summary: Detect COD ledger and delivery inconsistencies
@@ -3999,7 +4304,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Reconciliation findings and automatic_repairs false}
-        '403': {description: finance.read grant required}
+        '403': {description: Active Platform Admin access required}
   /admin/delivery-jobs:
     get:
       summary: Read the dispatch board and refresh expired offers
@@ -4372,6 +4677,28 @@ paths:
         '200': {description: Grant request history, requester, independent decision maker, and outcomes}
         '403': {description: Finance configure permission required}
         '404': {description: Finance grant management unavailable outside isolated QA}
+  /admin/finance/capabilities:
+    get:
+      summary: Read current finance capabilities for the authenticated Admin
+      description: Server-derived presentation capabilities. Write endpoints independently enforce the same permissions.
+      tags: [merchant-finance]
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Current finance read and post capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [finance_read, finance_post]
+                    properties:
+                      finance_read: {type: boolean}
+                      finance_post: {type: boolean}
+        '401': {description: Authentication required}
   /admin/finance/access-grant-requests:
     post:
       summary: Request limited finance.read or finance.post access for an active Admin
@@ -4408,13 +4735,12 @@ paths:
   /admin/finance/commission-policies:
     get:
       summary: List effective-dated merchant commission policy versions
-      description: Finance read grant required. No default or live commission policy is assumed.
+      description: Active Platform Admin access is required.
       tags: [merchant-finance]
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Policy versions and independent approval state}
-        '403': {description: Finance read grant required}
-        '404': {description: Isolated QA-only subsystem is unavailable in this environment}
+        '403': {description: Active Platform Admin access required}
     post:
       summary: Create a draft commission policy
       description: Draft policies do not affect payable calculations. Approval requires a different finance principal.
@@ -4464,8 +4790,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Authoritative eligible order and immutable partner supply snapshot summary}
-        '403': {description: Finance read grant required}
-        '503': {description: Settlement simulation disabled}
+        '403': {description: Active Platform Admin access required}
   /admin/finance/orders/{orderId}/accrue-payable:
     post:
       summary: Accrue one immutable merchant payable snapshot for a delivered, paid platform order
@@ -4488,6 +4813,7 @@ paths:
         - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 200}}
       responses:
         '200': {description: Payable snapshots with funding/allocation status; no external transfer is implied}
+        '403': {description: Active Platform Admin access required}
   /admin/finance/qa-funding-pools:
     post:
       summary: Record explicit synthetic QA funding for an eligible sandbox UPI order
@@ -4510,6 +4836,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Settlement lifecycle and explicit simulation-only disclosure}
+        '403': {description: Active Platform Admin access required}
     post:
       summary: Create an idempotent single-merchant settlement simulation draft
       tags: [merchant-finance]
@@ -4554,6 +4881,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Read-only exceptions}
+        '403': {description: Active Platform Admin access required}
   /admin/finance/payable-adjustments:
     get:
       summary: List merchant payable adjustment requests
@@ -4561,6 +4889,7 @@ paths:
       security: [{bearerAuth: []}]
       responses:
         '200': {description: Adjustment requests and review states}
+        '403': {description: Active Platform Admin access required}
     post:
       summary: Request an audited payable adjustment
       tags: [merchant-finance]
@@ -4615,7 +4944,24 @@ paths:
       parameters:
         - {in: path, name: businessId, required: true, schema: {type: string, format: uuid}}
       responses:
-        '200': {description: Read-only settlement simulation history with no external payout claim}
+        '200':
+          description: Read-only settlement and payout workflow history with no bank-credit claim; payout and latest attempt statuses are provided when present
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        payout_status: {type: string, nullable: true}
+                        latest_attempt_status: {type: string, nullable: true}
+                        payout_completed_at: {type: string, nullable: true}
+                        payout_simulation_only: {type: boolean, enum: [true]}
+                        disclosure: {type: string}
         '404': {description: Caller is not an active member of this business}
 
 # ---------------------------------------------------------------
@@ -4623,6 +4969,26 @@ paths:
 # ---------------------------------------------------------------
 components:
   schemas:
+    SettlementHistoryRecord:
+      type: object
+      required: [settlement_id, currency, period_start, period_end, adjustments_minor, net_minor, settlement_status, created_at, simulation_only, disclosure]
+      properties:
+        settlement_id: {type: string, format: uuid}
+        currency: {type: string, example: INR}
+        period_start: {type: string, format: date}
+        period_end: {type: string, format: date}
+        gross_minor: {type: integer, format: int64}
+        payable_minor: {type: integer, format: int64}
+        adjustments_minor: {type: integer, format: int64}
+        net_minor: {type: integer, format: int64}
+        settlement_status: {type: string}
+        payout_status: {type: string, nullable: true}
+        latest_attempt_status: {type: string, nullable: true}
+        created_at: {type: string, format: date-time}
+        simulated_at: {type: string, format: date-time, nullable: true}
+        payout_completed_at: {type: string, format: date-time, nullable: true}
+        simulation_only: {type: boolean, enum: [true]}
+        disclosure: {type: string}
     PlatformCatalogArea:
       type: object
       properties:
@@ -4839,6 +5205,7 @@ components:
         checkout_quote_id: {type: string, format: uuid, description: Required for Phase 2C food ordering}
         fulfillment_type: {type: string, enum: [delivery, takeaway]}
         delivery_address: {type: string, maxLength: 500}
+        payment_method: {type: string, enum: [cash_on_delivery, upi]}
         notes: {type: string, maxLength: 1000}
         items:
           type: array
@@ -5261,6 +5628,19 @@ components:
         image_url:
           type: string
           nullable: true
+        unit_label:
+          type: string
+          nullable: true
+        mrp:
+          type: number
+          format: double
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        grocery_category:
+          type: string
+          nullable: true
         updated_at:
           type: string
           format: date-time
@@ -5294,6 +5674,19 @@ components:
           type: integer
           minimum: 0
           nullable: true
+        unit_label:
+          type: string
+          nullable: true
+        mrp:
+          type: number
+          format: double
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        grocery_category:
+          type: string
+          nullable: true
         image_url:
           type: string
           nullable: true
@@ -5306,6 +5699,35 @@ components:
       properties:
         name:
           type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        currency:
+          type: string
+        stock_status:
+          type: string
+          enum: [unknown, in_stock, out_of_stock, limited]
+        inventory_mode:
+          type: string
+          enum: [untracked, finite]
+        available_quantity:
+          type: integer
+          nullable: true
+        unit_label:
+          type: string
+          nullable: true
+        mrp:
+          type: number
+          format: double
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        grocery_category:
+          type: string
+          nullable: true
         description:
           type: string
         price:

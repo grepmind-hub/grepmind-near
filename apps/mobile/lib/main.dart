@@ -7,7 +7,7 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/screens/explore_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_screen.dart';
 import 'package:grepmind_mobile/core/screens/profile_screen.dart';
-import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
+import 'package:grepmind_mobile/features/onboarding/introduction_screen.dart';
 import 'package:grepmind_mobile/core/screens/splash_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
@@ -17,8 +17,9 @@ import 'package:grepmind_mobile/core/screens/merchant_earnings_screen.dart';
 import 'package:grepmind_mobile/core/screens/orders_tab_navigator.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
-import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_earnings_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_locality_hubs_screen.dart';
+import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,7 +52,7 @@ class GrepmindNearApp extends ConsumerWidget {
                     key: ValueKey('workspace-${authState.activeRole}'),
                     activeRole: authState.activeRole ?? 'customer',
                   ))
-          : const OnboardingScreen(),
+          : const IntroductionScreen(),
     );
   }
 }
@@ -89,7 +90,10 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
   @override
   Widget build(BuildContext context) {
     final pages = _pagesForRole(widget.activeRole);
-    final selectedIndex = _selectedIndex.clamp(0, pages.length - 1);
+    final selectedIndex = widget.activeRole == 'customer'
+        ? ref.watch(customerTabIndexProvider).clamp(0, pages.length - 1)
+        : _selectedIndex.clamp(0, pages.length - 1);
+    _mountedPageIndices.add(selectedIndex);
     return PopScope<Object?>(
       canPop: selectedIndex == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -103,7 +107,11 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
             _handlingNestedBack = false;
           });
         } else {
-          setState(() => _selectedIndex = 0);
+          if (widget.activeRole == 'customer') {
+            ref.read(customerTabIndexProvider.notifier).state = 0;
+          } else {
+            setState(() => _selectedIndex = 0);
+          }
         }
       },
       child: Scaffold(
@@ -125,14 +133,18 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
           type: BottomNavigationBarType.fixed,
           currentIndex: selectedIndex,
           selectedItemColor: widget.activeRole == 'merchant'
-              ? AppTheme.coral
+              ? AppTheme.emerald
               : (widget.activeRole == 'rider'
-                  ? AppTheme.riderAmberDark
-                  : AppTheme.emerald),
-          onTap: (i) => setState(() {
+                    ? AppTheme.riderAmberDark
+                    : AppTheme.emerald),
+          onTap: (i) {
             _mountedPageIndices.add(i);
-            _selectedIndex = i;
-          }),
+            if (widget.activeRole == 'customer') {
+              ref.read(customerTabIndexProvider.notifier).state = i;
+            } else {
+              setState(() => _selectedIndex = i);
+            }
+          },
           items: _itemsForRole(widget.activeRole),
         ),
       ),
@@ -159,12 +171,7 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
         return const [
           RiderDashboardScreen(),
           RiderDeliveriesScreen(),
-          _WorkspacePlaceholder(
-            title: 'Rider map',
-            description:
-                'Rider location tracking is not available in this phase.',
-            icon: Icons.map_outlined,
-          ),
+          RiderLocalityHubsScreen(),
           RiderEarningsScreen(),
           RiderWorkspaceProfileScreen(),
         ];
@@ -222,9 +229,9 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
             label: 'Deliveries',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map_rounded),
-            label: 'Map',
+            icon: Icon(Icons.hub_outlined),
+            activeIcon: Icon(Icons.hub_rounded),
+            label: 'Hubs',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_outlined),
@@ -238,79 +245,62 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
           ),
         ];
       default:
-        return const [
+        return [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
+            icon: const Icon(Icons.home_outlined),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F4EA),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.home_rounded, color: Color(0xFF0B6B4A)),
+            ),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_rounded),
-            activeIcon: Icon(Icons.manage_search_rounded),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.explore_outlined),
+            activeIcon: Icon(Icons.explore),
             label: 'Explore',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.location_on_outlined),
+            activeIcon: Icon(Icons.location_on),
             label: 'Nearby',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long_rounded),
+          const BottomNavigationBarItem(
+            icon: Badge(
+              backgroundColor: Color(0xFFFF8A00),
+              label: Text(
+                '1',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              child: Icon(Icons.inventory_2_outlined),
+            ),
+            activeIcon: Badge(
+              backgroundColor: Color(0xFFFF8A00),
+              label: Text(
+                '1',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              child: Icon(Icons.inventory_2),
+            ),
             label: 'Orders',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
         ];
     }
-  }
-}
-
-class _WorkspacePlaceholder extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-
-  const _WorkspacePlaceholder({
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 52, color: AppTheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium
-                    ?.copyWith(color: AppTheme.secondaryText, height: 1.45),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

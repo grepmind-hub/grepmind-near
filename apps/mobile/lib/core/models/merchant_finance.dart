@@ -100,6 +100,10 @@ class MerchantSettlementRecord {
   final String disclosure;
   final DateTime? createdAt;
   final DateTime? simulatedAt;
+  final String? payoutStatus;
+  final String? latestAttemptStatus;
+  final DateTime? payoutCompletedAt;
+  final bool payoutSimulationOnly;
 
   const MerchantSettlementRecord({
     required this.id,
@@ -114,6 +118,10 @@ class MerchantSettlementRecord {
     required this.disclosure,
     required this.createdAt,
     required this.simulatedAt,
+    required this.payoutStatus,
+    required this.latestAttemptStatus,
+    required this.payoutCompletedAt,
+    required this.payoutSimulationOnly,
   });
 
   factory MerchantSettlementRecord.fromJson(Map<String, dynamic> json) =>
@@ -132,6 +140,12 @@ class MerchantSettlementRecord {
             'Simulation only. No external payout is implied.',
         createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
         simulatedAt: DateTime.tryParse(json['simulated_at']?.toString() ?? ''),
+        payoutStatus: json['payout_status']?.toString(),
+        latestAttemptStatus: json['latest_attempt_status']?.toString(),
+        payoutCompletedAt: DateTime.tryParse(
+          json['payout_completed_at']?.toString() ?? '',
+        ),
+        payoutSimulationOnly: json['payout_simulation_only'] == true,
       );
 }
 

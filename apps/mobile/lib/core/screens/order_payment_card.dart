@@ -45,7 +45,7 @@ class OrderPaymentCard extends ConsumerWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFD8E2F2)),
+        side: const BorderSide(color: AppTheme.brandBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -73,13 +73,13 @@ class OrderPaymentCard extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF1FF),
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
                 'SANDBOX PAYMENT — No real money will be charged.',
                 style: TextStyle(
-                  color: Color(0xFF1946A5),
+                  color: AppTheme.emeraldDark,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -427,7 +427,7 @@ class _CODStatusCardState extends ConsumerState<_CODStatusCard> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFD8E2F2)),
+        side: const BorderSide(color: AppTheme.brandBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

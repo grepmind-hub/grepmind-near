@@ -1,0 +1,301 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: admin-mpin-reopen.qa.spec.ts >> an enrolled browser profile signs in by PIN after closing and reopening
+- Location: e2e/admin-mpin-reopen.qa.spec.ts:8:5
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]: Grepmind Near
+            - generic [ref=e14]: ADMIN
+          - paragraph [ref=e15]: Odisha Central Operations Hub
+        - generic [ref=e16]: Authenticated workspace
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - button "All Cities" [ref=e23] [cursor=pointer]
+          - button "Cuttack" [ref=e24] [cursor=pointer]
+          - button "Jajpur" [ref=e25] [cursor=pointer]
+        - generic [ref=e26]:
+          - button "7D" [ref=e27] [cursor=pointer]
+          - button "14D" [ref=e28] [cursor=pointer]
+          - button "30D" [ref=e29] [cursor=pointer]
+        - button "Refresh real-time data from Go REST API" [ref=e30] [cursor=pointer]
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - generic [ref=e38]: AD
+            - generic [ref=e39]:
+              - generic [ref=e40]:
+                - generic [ref=e41]: Admin session
+                - generic [ref=e42]: VERIFIED
+              - generic [ref=e43]: Role checked by API
+          - button "Sign out of Admin Session" [ref=e44] [cursor=pointer]
+    - generic [ref=e48]:
+      - complementary [ref=e49]:
+        - generic [ref=e50]:
+          - paragraph [ref=e52]: Operations & Governance
+          - navigation [ref=e53]:
+            - button "Dashboard Live analytics & trends" [ref=e54] [cursor=pointer]:
+              - generic [ref=e58]:
+                - generic [ref=e59]: Dashboard
+                - generic [ref=e60]: Live analytics & trends
+            - button "Listing Verification Review KYC & licenses 1" [ref=e61] [cursor=pointer]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: Listing Verification
+                - generic [ref=e69]: Review KYC & licenses
+              - generic [ref=e70]: "1"
+            - button "Merchant Registry All stores & status" [ref=e71] [cursor=pointer]:
+              - generic [ref=e77]:
+                - generic [ref=e78]: Merchant Registry
+                - generic [ref=e79]: All stores & status
+            - button "Ownership claims Review merchant claims" [ref=e80] [cursor=pointer]:
+              - generic [ref=e86]:
+                - generic [ref=e87]: Ownership claims
+                - generic [ref=e88]: Review merchant claims
+            - button "Reports & Disputes Consumer complaints" [ref=e89] [cursor=pointer]:
+              - generic [ref=e93]:
+                - generic [ref=e94]: Reports & Disputes
+                - generic [ref=e95]: Consumer complaints
+            - button "Offers & Promos Banner moderation" [ref=e96] [cursor=pointer]:
+              - generic [ref=e101]:
+                - generic [ref=e102]: Offers & Promos
+                - generic [ref=e103]: Banner moderation
+            - button "Audit Trail Compliance history" [ref=e104] [cursor=pointer]:
+              - generic [ref=e110]:
+                - generic [ref=e111]: Audit Trail
+                - generic [ref=e112]: Compliance history
+            - button "Listing Activity Who submitted new listings" [ref=e113] [cursor=pointer]:
+              - generic [ref=e117]:
+                - generic [ref=e118]: Listing Activity
+                - generic [ref=e119]: Who submitted new listings
+            - button "Admins & Access Permissions & security" [ref=e120] [cursor=pointer]:
+              - generic [ref=e125]:
+                - generic [ref=e126]: Admins & Access
+                - generic [ref=e127]: Permissions & security
+            - button "Platform Catalog Products & fulfillment partners" [ref=e128] [cursor=pointer]:
+              - generic [ref=e136]:
+                - generic [ref=e137]: Platform Catalog
+                - generic [ref=e138]: Products & fulfillment partners
+            - button "Rider Management Applications & approvals" [ref=e139] [cursor=pointer]:
+              - generic [ref=e146]:
+                - generic [ref=e147]: Rider Management
+                - generic [ref=e148]: Applications & approvals
+            - button "Delivery Dispatch Jobs, offers & exceptions" [ref=e149] [cursor=pointer]:
+              - generic [ref=e156]:
+                - generic [ref=e157]: Delivery Dispatch
+                - generic [ref=e158]: Jobs, offers & exceptions
+            - button "Rider earnings Ledger & reconciliation" [ref=e159] [cursor=pointer]:
+              - generic [ref=e165]:
+                - generic [ref=e166]: Rider earnings
+                - generic [ref=e167]: Ledger & reconciliation
+            - button "Finance overview Refunds, payables & remittances" [ref=e168] [cursor=pointer]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: Finance overview
+                - generic [ref=e174]: Refunds, payables & remittances
+            - button "Payment tracking Order attempts & reconciliation" [ref=e175] [cursor=pointer]:
+              - generic [ref=e180]:
+                - generic [ref=e181]: Payment tracking
+                - generic [ref=e182]: Order attempts & reconciliation
+            - button "Reconciliation queue Attempts & recorded exceptions" [ref=e183] [cursor=pointer]:
+              - generic [ref=e189]:
+                - generic [ref=e190]: Reconciliation queue
+                - generic [ref=e191]: Attempts & recorded exceptions
+            - button "COD accountability Synthetic remittance review" [ref=e192] [cursor=pointer]:
+              - generic [ref=e197]:
+                - generic [ref=e198]: COD accountability
+                - generic [ref=e199]: Synthetic remittance review
+            - button "Merchant settlements Payables, commission & simulation" [ref=e200] [cursor=pointer]:
+              - generic [ref=e206]:
+                - generic [ref=e207]: Merchant settlements
+                - generic [ref=e208]: Payables, commission & simulation
+        - generic [ref=e210]:
+          - generic [ref=e211]: Active Coverage Zones
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - generic [ref=e217]: Cuttack
+              - generic [ref=e218]: Supported
+            - generic [ref=e219]:
+              - generic [ref=e220]: Jajpur
+              - generic [ref=e221]: Supported
+            - generic [ref=e222]:
+              - generic [ref=e223]: Counts
+              - generic [ref=e224]: See live registry
+          - link "Open Merchant Portal" [ref=e225] [cursor=pointer]:
+            - /url: /merchant/
+      - main [ref=e230]:
+        - generic [ref=e231]:
+          - generic [ref=e233]:
+            - generic [ref=e234]:
+              - paragraph [ref=e235]: Executive command center
+              - heading "Platform pulse" [level=1] [ref=e236]
+              - paragraph [ref=e237]: Operational signals from live Grepmind Near records, refreshed automatically while this view is open.
+            - generic [ref=e242]:
+              - generic [ref=e243]: Live database view
+              - generic [ref=e244]: Cuttack + Jajpur · 14d
+          - generic [ref=e245]:
+            - button "Approved listings 4 records Current directory" [ref=e246] [cursor=pointer]:
+              - paragraph [ref=e257]: Approved listings
+              - generic [ref=e258]:
+                - generic [ref=e259]: "4"
+                - generic [ref=e260]: records
+              - paragraph [ref=e261]: Current directory
+            - button "Awaiting verification 1 records Needs moderation" [ref=e262] [cursor=pointer]:
+              - paragraph [ref=e272]: Awaiting verification
+              - generic [ref=e273]:
+                - generic [ref=e274]: "1"
+                - generic [ref=e275]: records
+              - paragraph [ref=e276]: Needs moderation
+            - button "Open reports 0 records Customer reports" [ref=e277] [cursor=pointer]:
+              - paragraph [ref=e286]: Open reports
+              - generic [ref=e287]:
+                - generic [ref=e288]: "0"
+                - generic [ref=e289]: records
+              - paragraph [ref=e290]: Customer reports
+            - button "Offers for review 0 records Draft or pending" [disabled] [ref=e291]:
+              - paragraph [ref=e298]: Offers for review
+              - generic [ref=e299]:
+                - generic [ref=e300]: "0"
+                - generic [ref=e301]: records
+              - paragraph [ref=e302]: Draft or pending
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - heading "Trend intelligence" [level=2] [ref=e305]
+              - paragraph [ref=e306]: Daily counts grouped in Asia/Kolkata for the selected range.
+            - generic [ref=e307]: Auto refresh · 30 sec
+          - generic [ref=e308]:
+            - article [ref=e309]:
+              - generic [ref=e311]:
+                - heading "New listings" [level=2] [ref=e312]
+                - paragraph [ref=e313]: Businesses submitted each day
+              - generic [ref=e318]:
+                - generic [ref=e319]: 5in range
+                - generic [ref=e320]:
+                  - generic [ref=e321]: "5"
+                  - text: today
+              - generic [ref=e322]:
+                - img "New listings daily trend chart" [ref=e323]:
+                  - 'generic "2026-11-04: 0" [ref=e326]'
+                  - 'generic "2026-11-05: 0" [ref=e327]'
+                  - 'generic "2026-11-06: 0" [ref=e328]'
+                  - 'generic "2026-11-07: 0" [ref=e329]'
+                  - 'generic "2026-11-08: 0" [ref=e330]'
+                  - 'generic "2026-11-09: 0" [ref=e331]'
+                  - 'generic "2026-11-10: 0" [ref=e332]'
+                  - 'generic "2026-11-11: 0" [ref=e333]'
+                  - 'generic "2026-11-12: 0" [ref=e334]'
+                  - 'generic "2026-11-13: 0" [ref=e335]'
+                  - 'generic "2026-11-14: 0" [ref=e336]'
+                  - 'generic "2026-11-15: 0" [ref=e337]'
+                  - 'generic "2026-11-16: 0" [ref=e338]'
+                  - 'generic "2026-11-17: 5" [ref=e339]'
+                - generic [ref=e340]:
+                  - generic [ref=e341]: Nov 4
+                  - generic [ref=e342]: Nov 11
+                  - generic [ref=e343]: Nov 17
+              - generic [ref=e344]:
+                - generic [ref=e345]: Daily records · Asia/Kolkata
+                - generic [ref=e346]: Peak 5
+            - article [ref=e347]:
+              - generic [ref=e349]:
+                - heading "Service requests" [level=2] [ref=e350]
+                - paragraph [ref=e351]: Customer requests created each day
+              - generic [ref=e356]:
+                - generic [ref=e357]: 0in range
+                - generic [ref=e358]:
+                  - generic [ref=e359]: "0"
+                  - text: today
+              - generic [ref=e360]: No records in this period
+              - generic [ref=e361]:
+                - generic [ref=e362]: Daily records · Asia/Kolkata
+                - generic [ref=e363]: Peak 1
+            - article [ref=e364]:
+              - generic [ref=e366]:
+                - heading "Customer orders" [level=2] [ref=e367]
+                - paragraph [ref=e368]: Orders and reservations each day
+              - generic [ref=e373]:
+                - generic [ref=e374]: 4in range
+                - generic [ref=e375]:
+                  - generic [ref=e376]: "4"
+                  - text: today
+              - generic [ref=e377]:
+                - img "Customer orders daily trend chart" [ref=e378]:
+                  - 'generic "2026-11-04: 0" [ref=e381]'
+                  - 'generic "2026-11-05: 0" [ref=e382]'
+                  - 'generic "2026-11-06: 0" [ref=e383]'
+                  - 'generic "2026-11-07: 0" [ref=e384]'
+                  - 'generic "2026-11-08: 0" [ref=e385]'
+                  - 'generic "2026-11-09: 0" [ref=e386]'
+                  - 'generic "2026-11-10: 0" [ref=e387]'
+                  - 'generic "2026-11-11: 0" [ref=e388]'
+                  - 'generic "2026-11-12: 0" [ref=e389]'
+                  - 'generic "2026-11-13: 0" [ref=e390]'
+                  - 'generic "2026-11-14: 0" [ref=e391]'
+                  - 'generic "2026-11-15: 0" [ref=e392]'
+                  - 'generic "2026-11-16: 0" [ref=e393]'
+                  - 'generic "2026-11-17: 4" [ref=e394]'
+                - generic [ref=e395]:
+                  - generic [ref=e396]: Nov 4
+                  - generic [ref=e397]: Nov 11
+                  - generic [ref=e398]: Nov 17
+              - generic [ref=e399]:
+                - generic [ref=e400]: Daily records · Asia/Kolkata
+                - generic [ref=e401]: Peak 4
+          - generic [ref=e402]:
+            - article [ref=e403]:
+              - generic [ref=e405]:
+                - heading "Category mix" [level=2] [ref=e406]
+                - paragraph [ref=e407]: New listings by category in the selected period.
+              - generic [ref=e412]:
+                - generic [ref=e414]:
+                  - generic [ref=e415]: Electrician
+                  - generic [ref=e416]: "1"
+                - generic [ref=e420]:
+                  - generic [ref=e421]: Grocery
+                  - generic [ref=e422]: "1"
+                - generic [ref=e426]:
+                  - generic [ref=e427]: Hardware
+                  - generic [ref=e428]: "1"
+                - generic [ref=e432]:
+                  - generic [ref=e433]: Medical & Pharmacy
+                  - generic [ref=e434]: "1"
+                - generic [ref=e438]:
+                  - generic [ref=e439]: Plumber
+                  - generic [ref=e440]: "1"
+            - article [ref=e443]:
+              - generic [ref=e445]:
+                - heading "Operational signals" [level=2] [ref=e446]
+                - paragraph [ref=e447]: Current totals from the selected time window.
+              - generic [ref=e451]:
+                - generic [ref=e452]:
+                  - generic [ref=e453]: Service requests · 14d
+                  - strong [ref=e459]: "0"
+                - generic [ref=e460]:
+                  - generic [ref=e461]: Customer orders · 14d
+                  - strong [ref=e467]: "4"
+                - generic [ref=e468]:
+                  - generic [ref=e469]: Active user accounts
+                  - strong [ref=e476]: "32"
+                - generic [ref=e477]:
+                  - generic [ref=e478]: Notification events · 14d
+                  - strong [ref=e483]: "39"
+              - generic [ref=e484]: Revenue, ratings, SLA, and search demand are omitted because those measurements are not backed by current production records.
+          - paragraph [ref=e485]: "Data refreshed 9:45:18 PM · Source: Grepmind Near PostgreSQL"
+```

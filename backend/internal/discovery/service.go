@@ -97,6 +97,10 @@ type Product struct {
 	StockStatus        string   `json:"stock_status"`
 	InventoryMode      string   `json:"inventory_mode"`
 	AvailableQuantity  *int     `json:"available_quantity,omitempty"`
+	UnitLabel          string   `json:"unit_label,omitempty"`
+	MRP                *float64 `json:"mrp,omitempty"`
+	Barcode            string   `json:"barcode,omitempty"`
+	GroceryCategory    string   `json:"grocery_category,omitempty"`
 	IsPublished        bool     `json:"is_published"`
 	ImageURL           string   `json:"image_url,omitempty"`
 	DietaryType        string   `json:"dietary_type,omitempty"`
@@ -201,6 +205,16 @@ func NewService(db *database.DB, cfg *config.Config) *Service {
 	return &Service{db: db, cfg: cfg}
 }
 
+func (s *Service) allowSynthetic(r *http.Request) bool {
+	// Synthetic QA records are strictly restricted to trusted QA or test environments.
+	// In production, synthetic records are NEVER visible to public clients, and no client-side
+	// header can bypass this rule.
+	if s.cfg == nil {
+		return false
+	}
+	return s.cfg.Env == "qa" || s.cfg.Env == "test"
+}
+
 // ---------- Handlers ----------
 
 func (s *Service) ListCategories(w http.ResponseWriter, r *http.Request) {
@@ -293,6 +307,12 @@ func (s *Service) SearchBusinesses(w http.ResponseWriter, r *http.Request) {
 	args := []interface{}{}
 	argIdx := 1
 	where := []string{"b.status = 'approved'"}
+	if !s.allowSynthetic(r) {
+		where = append(where, "b.is_synthetic = false")
+	}
+	if r.URL.Query().Get("delivery_enabled") == "true" {
+		where = append(where, "COALESCE(b.delivery_enabled, false) = true")
+	}
 	orderBy := "distance_m ASC NULLS LAST, b.name ASC"
 	if city != "" {
 		where = append(where, fmt.Sprintf("lower(b.city) = lower($%d)", argIdx))
@@ -430,14 +450,19 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 	var desc sql.NullString
 	var lat, lng sql.NullFloat64
 	var amenitiesRaw []byte
-	err := s.db.QueryRowxContext(r.Context(), `
+
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.postal_code, b.description,
 		       b.status, b.verification_status, b.phone_e164, b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
 		       b.cover_photo_url,
-	       `+businessOpenNowSQL+` AS is_open_now,
+	       ` + businessOpenNowSQL + ` AS is_open_now,
 		       COALESCE(b.delivery_enabled, false),
 		       COALESCE(b.delivery_time_mins, 30),
 		       COALESCE(b.delivery_fee, 30.0),
@@ -447,8 +472,8 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 		       COALESCE(b.amenities, '[]'::jsonb)
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
-		WHERE b.id = $1
-	`, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
+		WHERE b.id = $1 AND b.status = 'approved'` + syntheticSQL
+	err := s.db.QueryRowxContext(r.Context(), query, id).Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &b.CategoryName,
 		&b.AddressText, &locality, &city, &postal, &desc,
 		&b.Status, &b.VerificationStatus, &phone, &whatsapp, &lat, &lng, &cover, &b.IsOpenNow,
 		&b.DeliveryEnabled, &b.DeliveryTimeMins, &b.DeliveryFee, &b.MinOrderAmount,
@@ -541,13 +566,20 @@ func (s *Service) GetBusiness(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at,
-		       COALESCE(dietary_type, ''), COALESCE(food_category, ''), COALESCE(preparation_time_min, 20)
-		FROM products
-		WHERE business_id = $1 AND is_published = true
-		ORDER BY updated_at DESC
-	`, id)
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
+		SELECT p.id, p.business_id, p.name, p.description, p.price, p.currency, p.stock_status, p.inventory_mode, p.available_quantity, p.is_published, p.image_url, p.updated_at,
+		       COALESCE(p.dietary_type, ''), COALESCE(p.food_category, ''), COALESCE(p.preparation_time_min, 20),
+		       COALESCE(p.unit_label, ''), p.mrp, COALESCE(p.barcode, ''), COALESCE(p.grocery_category, '')
+		FROM products p
+		JOIN businesses b ON b.id = p.business_id
+		WHERE p.business_id = $1 AND p.is_published = true AND b.status = 'approved'` + syntheticSQL + `
+		ORDER BY p.updated_at DESC
+	`
+	rows, err := s.db.QueryxContext(r.Context(), query, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load products.")
 		return
@@ -557,15 +589,17 @@ func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 	var products []Product
 	for rows.Next() {
 		var p Product
-		var price sql.NullFloat64
+		var price, mrp sql.NullFloat64
 		var desc, image sql.NullString
 		var updated sql.NullTime
 		var dietary, foodCategory string
 		var prepTime int
 		var available sql.NullInt64
+		var unitLabel, barcode, groceryCategory string
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
 			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated,
-			&dietary, &foodCategory, &prepTime); err != nil {
+			&dietary, &foodCategory, &prepTime,
+			&unitLabel, &mrp, &barcode, &groceryCategory); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read products.")
 			return
 		}
@@ -576,6 +610,12 @@ func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 		}
 		p.FoodCategory = foodCategory
 		p.PreparationTimeMin = prepTime
+		p.UnitLabel = unitLabel
+		if mrp.Valid {
+			p.MRP = &mrp.Float64
+		}
+		p.Barcode = barcode
+		p.GroceryCategory = groceryCategory
 		if desc.Valid {
 			p.Description = desc.String
 		}
@@ -596,12 +636,18 @@ func (s *Service) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) ListServices(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, business_id, name, description, indicative_price_min, indicative_price_max, currency, is_active
-		FROM services
-		WHERE business_id = $1 AND is_active = true
-		ORDER BY name ASC
-	`, id)
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
+		SELECT s.id, s.business_id, s.name, s.description, s.indicative_price_min, s.indicative_price_max, s.currency, s.is_active
+		FROM services s
+		JOIN businesses b ON b.id = s.business_id
+		WHERE s.business_id = $1 AND s.is_active = true AND b.status = 'approved'` + syntheticSQL + `
+		ORDER BY s.name ASC
+	`
+	rows, err := s.db.QueryxContext(r.Context(), query, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load services.")
 		return
@@ -638,12 +684,18 @@ func (s *Service) ListServices(w http.ResponseWriter, r *http.Request) {
 func (s *Service) ListOffers(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	now := time.Now()
-	rows, err := s.db.QueryxContext(r.Context(), `
-		SELECT id, business_id, title, description, starts_at, ends_at, status, image_url, terms, discount_percent
-		FROM offers
-		WHERE business_id = $1 AND status = 'published' AND starts_at <= $2 AND ends_at >= $2
-		ORDER BY starts_at DESC
-	`, id, now)
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
+		SELECT o.id, o.business_id, o.title, o.description, o.starts_at, o.ends_at, o.status, o.image_url, o.terms, o.discount_percent
+		FROM offers o
+		JOIN businesses b ON b.id = o.business_id
+		WHERE o.business_id = $1 AND o.status = 'published' AND o.starts_at <= $2 AND o.ends_at >= $2 AND b.status = 'approved'` + syntheticSQL + `
+		ORDER BY o.starts_at DESC
+	`
+	rows, err := s.db.QueryxContext(r.Context(), query, id, now)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load offers.")
 		return
@@ -690,19 +742,24 @@ func (s *Service) ListCityOffers(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, _ := parsePagination(r)
 	now := time.Now()
-	rows, err := s.db.QueryxContext(r.Context(), `
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
 		SELECT o.id, o.business_id, o.title, o.description, o.starts_at, o.ends_at,
 		       o.status, o.image_url, o.terms, o.discount_percent,
 		       b.name, b.city, b.locality, b.cover_photo_url
 		FROM offers o
 		JOIN businesses b ON b.id = o.business_id
 		WHERE lower(b.city) = lower($1)
-		  AND b.status = 'approved'
+		  AND b.status = 'approved'` + syntheticSQL + `
 		  AND o.status = 'published'
 		  AND o.starts_at <= $2 AND o.ends_at >= $2
 		ORDER BY o.starts_at DESC, o.created_at DESC
 		LIMIT $3
-	`, city, now, limit)
+	`
+	rows, err := s.db.QueryxContext(r.Context(), query, city, now, limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load current offers.")
 		return
@@ -782,6 +839,10 @@ func (s *Service) ListNewCatalogItems(w http.ResponseWriter, r *http.Request) {
 		}
 		offset = parsed
 	}
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
 	query := `
 		SELECT item_id, item_type, business_id, business_name, business_city,
 		       business_locality, category_name, name, description, price, price_max,
@@ -795,7 +856,7 @@ func (s *Service) ListNewCatalogItems(w http.ResponseWriter, r *http.Request) {
 			FROM products p
 			JOIN businesses b ON b.id = p.business_id
 			LEFT JOIN categories c ON c.slug = b.category_slug
-			WHERE lower(b.city) = lower($1) AND b.status = 'approved'
+			WHERE lower(b.city) = lower($1) AND b.status = 'approved'` + syntheticSQL + `
 			  AND p.is_published = true AND p.stock_status <> 'out_of_stock'
 			  AND p.published_at IS NOT NULL AND $2 IN ('all', 'products')
 			UNION ALL
@@ -807,7 +868,7 @@ func (s *Service) ListNewCatalogItems(w http.ResponseWriter, r *http.Request) {
 			FROM services s
 			JOIN businesses b ON b.id = s.business_id
 			LEFT JOIN categories c ON c.slug = b.category_slug
-			WHERE lower(b.city) = lower($1) AND b.status = 'approved'
+			WHERE lower(b.city) = lower($1) AND b.status = 'approved'` + syntheticSQL + `
 			  AND s.is_active = true AND s.activated_at IS NOT NULL AND $2 IN ('all', 'services')
 		) catalog
 		ORDER BY published_at DESC, item_id DESC
@@ -897,25 +958,30 @@ func (s *Service) Nearby(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, _ := parsePagination(r)
 
-	rows, err := s.db.QueryxContext(r.Context(), `
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND b.is_synthetic = false"
+	}
+	query := `
 		SELECT b.id, b.name, b.slug, b.category_slug, c.name, b.address_text,
 		       b.locality, b.city, b.status, b.verification_status, b.phone_e164,
 		       b.whatsapp_e164,
 		       ST_Y(b.location::geometry) AS latitude,
 		       ST_X(b.location::geometry) AS longitude,
 		       b.cover_photo_url,
-	       `+businessOpenNowSQL+` AS is_open_now,
+	       ` + businessOpenNowSQL + ` AS is_open_now,
 		       ST_Distance(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326)) AS distance_m
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
-		WHERE b.status = 'approved'
+		WHERE b.status = 'approved'` + syntheticSQL + `
 		  AND lower(b.city) IN ('cuttack','jajpur')
 		  AND ($5::text = '' OR lower(b.city) = lower($5))
 		  AND ($6::text = '' OR b.category_slug = $6)
 		  AND ST_DWithin(b.location, ST_SetSRID(ST_MakePoint($1, $2)::geography, 4326), $3)
 		ORDER BY distance_m ASC, b.name ASC
 		LIMIT $4
-	`, lng, lat, radiusM, limit, city, category)
+	`
+	rows, err := s.db.QueryxContext(r.Context(), query, lng, lat, radiusM, limit, city, category)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load nearby businesses.")
 		return

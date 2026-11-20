@@ -434,6 +434,10 @@ class Product extends Equatable {
   final String? dietaryType;
   final String? foodCategory;
   final int? preparationTimeMin;
+  final String? unitLabel;
+  final double? mrp;
+  final String? barcode;
+  final String? groceryCategory;
 
   const Product({
     required this.id,
@@ -451,6 +455,10 @@ class Product extends Equatable {
     this.dietaryType,
     this.foodCategory,
     this.preparationTimeMin,
+    this.unitLabel,
+    this.mrp,
+    this.barcode,
+    this.groceryCategory,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -472,12 +480,23 @@ class Product extends Equatable {
       dietaryType: json['dietary_type'] as String?,
       foodCategory: json['food_category'] as String?,
       preparationTimeMin: json['preparation_time_min'] as int?,
+      unitLabel: json['unit_label'] as String?,
+      mrp: (json['mrp'] as num?)?.toDouble(),
+      barcode: json['barcode'] as String?,
+      groceryCategory: json['grocery_category'] as String?,
     );
   }
 
   bool get isVeg => dietaryType == 'veg' || dietaryType == 'vegan';
   bool get isNonVeg => dietaryType == 'non_veg';
   bool get isEgg => dietaryType == 'egg';
+
+  int? get discountPercent {
+    if (mrp != null && price != null && mrp! > price! && mrp! > 0) {
+      return (((mrp! - price!) / mrp!) * 100).round();
+    }
+    return null;
+  }
 
   String get priceText {
     if (price == null) return 'Price on request';
@@ -502,6 +521,10 @@ class Product extends Equatable {
     dietaryType,
     foodCategory,
     preparationTimeMin,
+    unitLabel,
+    mrp,
+    barcode,
+    groceryCategory,
   ];
 }
 

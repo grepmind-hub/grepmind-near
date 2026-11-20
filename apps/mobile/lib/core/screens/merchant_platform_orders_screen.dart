@@ -8,6 +8,9 @@ import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 
+/// Screen 9: Orders Hub & Fulfillment Pipeline
+/// Screen 10: Order Detail & Kitchen Ticket
+/// Screen 11: Order Handover & Pickup Verification
 class MerchantPlatformOrdersScreen extends ConsumerStatefulWidget {
   const MerchantPlatformOrdersScreen({super.key});
 
@@ -18,7 +21,7 @@ class MerchantPlatformOrdersScreen extends ConsumerStatefulWidget {
 
 class _MerchantPlatformOrdersScreenState
     extends ConsumerState<MerchantPlatformOrdersScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   static const _dispatchRefreshInterval = Duration(seconds: 8);
 
   String? _businessId;
@@ -32,9 +35,22 @@ class _MerchantPlatformOrdersScreenState
   Map<String, Map<String, dynamic>> _dispatchByOrder = const {};
   Timer? _dispatchRefreshTimer;
 
+  late TabController _tabController;
+  final List<String> _tabs = const [
+    'All',
+    'New Orders',
+    'Preparing',
+    'Ready for Pickup',
+    'History',
+  ];
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
   }
@@ -43,6 +59,7 @@ class _MerchantPlatformOrdersScreenState
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dispatchRefreshTimer?.cancel();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -159,7 +176,8 @@ class _MerchantPlatformOrdersScreenState
         setState(() {
           // Fail closed: stale eligibility must never expose a pickup-code action.
           _dispatchByOrder = const {};
-          _dispatchError = 'Delivery handover status is unavailable. Refresh before issuing a code.';
+          _dispatchError =
+              'Delivery handover status is unavailable. Refresh before issuing a code.';
         });
       }
     } finally {
@@ -181,8 +199,6 @@ class _MerchantPlatformOrdersScreenState
       return;
     }
 
-    // Lock before opening the confirmation dialog so rapid taps cannot queue
-    // multiple code issuances for the same order.
     setState(() => _confirmingPickupOrder = orderId);
     try {
       final confirmed = await showDialog<bool>(
@@ -198,6 +214,12 @@ class _MerchantPlatformOrdersScreenState
               child: const Text('Cancel'),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.emerald,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Issue code'),
             ),
@@ -222,7 +244,6 @@ class _MerchantPlatformOrdersScreenState
         throw const FormatException('Invalid pickup code response.');
       }
       if (!mounted) return;
-      // The code is kept only in this local stack frame and dialog; never log or persist it.
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -346,55 +367,144 @@ class _MerchantPlatformOrdersScreenState
     return 'Unable to load or update platform orders. Check your connection and retry.';
   }
 
+  List<Map<String, dynamic>> _filteredOrders(int tabIndex) {
+    switch (tabIndex) {
+      case 1: // New Orders
+        return _orders.where((o) => o['status'] == 'placed').toList();
+      case 2: // Preparing
+        return _orders
+            .where((o) => o['status'] == 'accepted' || o['status'] == 'preparing')
+            .toList();
+      case 3: // Ready for Pickup
+        return _orders
+            .where((o) => o['status'] == 'ready_for_pickup')
+            .toList();
+      case 4: // History / Completed
+        return _orders
+            .where((o) =>
+                o['status'] == 'delivered' ||
+                o['status'] == 'cancelled' ||
+                o['status'] == 'rejected')
+            .toList();
+      case 0: // All
+      default:
+        return _orders;
+    }
+  }
+
+  int _countForTab(int tabIndex) {
+    return _filteredOrders(tabIndex).length;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final activeTabOrders = _filteredOrders(_tabController.index);
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFFF8FAF9),
       appBar: AppBar(
-        title: const Text('Partner Orders'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.mainText,
+        elevation: 0,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Orders & Fulfillment',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF111827),
+              ),
+            ),
+            Text(
+              'Partner Orders Pipeline · Abashyaka',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.secondaryText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: _loading ? null : _refresh,
             tooltip: 'Refresh orders',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded, color: AppTheme.emerald),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: AppTheme.emerald,
+              indicatorWeight: 3,
+              labelColor: AppTheme.emerald,
+              unselectedLabelColor: AppTheme.secondaryText,
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: [
+                _buildTab('All', _countForTab(0)),
+                _buildTab('New Orders', _countForTab(1)),
+                _buildTab('Preparing', _countForTab(2)),
+                _buildTab('Ready for Pickup', _countForTab(3)),
+                _buildTab('History', _countForTab(4)),
+              ],
+            ),
+          ),
+        ),
       ),
       body: RefreshIndicator(
+        color: AppTheme.emerald,
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
+            // Screen 9 Header Summary Card
             Container(
-              margin: const EdgeInsets.only(bottom: 8),
+              margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.merchantCoralLight,
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.merchantCoralBorder),
+                border: Border.all(color: const Color(0xFFC8E6C9)),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.storefront_rounded,
-                      color: AppTheme.coral,
-                      size: 22,
+                      color: AppTheme.emerald,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Partner Fulfillment Orders',
                           style: TextStyle(
                             fontSize: 14,
@@ -402,12 +512,36 @@ class _MerchantPlatformOrdersScreenState
                             color: AppTheme.mainText,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'Fulfill catalog orders, verify payment & issue pickup codes.',
-                          style: TextStyle(
+                          '${_orders.length} total orders · ${_countForTab(1)} awaiting response',
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: AppTheme.secondaryText,
+                            color: Color(0xFF0B6B4A),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFC8E6C9)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.circle, size: 8, color: Color(0xFF0B6B4A)),
+                        SizedBox(width: 5),
+                        Text(
+                          'Store Open',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0B6B4A),
                           ),
                         ),
                       ],
@@ -416,18 +550,29 @@ class _MerchantPlatformOrdersScreenState
                 ],
               ),
             ),
+
             if (_error != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                ),
+                color: const Color(0xFFFEF2F2),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Text(_error!, textAlign: TextAlign.center),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFF991B1B)),
+                      ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: _refresh,
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh, size: 16),
                         label: const Text('Retry'),
                       ),
                     ],
@@ -435,48 +580,124 @@ class _MerchantPlatformOrdersScreenState
                 ),
               ),
             ],
+
             if (_dispatchError != null)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: 8),
                 child: Card(
-                  color: Theme.of(context).colorScheme.errorContainer,
+                  elevation: 0,
+                  color: const Color(0xFFFEF3C7),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFFDE68A)),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Text(_dispatchError!),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 18, color: Color(0xFF92400E)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _dispatchError!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF92400E),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+
             if (_loading && _orders.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(40),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.emerald),
+                ),
               ),
-            if (!_loading && _error == null && _orders.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 72),
+
+            if (!_loading && _error == null && activeTabOrders.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 64),
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 52,
-                      color: AppTheme.coral,
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 36,
+                        color: AppTheme.emerald,
+                      ),
                     ),
-                    SizedBox(height: 12),
-                    Text(
+                    const SizedBox(height: 14),
+                    const Text(
                       'No assigned platform orders',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mainText,
+                      ),
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'New orders will appear after Grepmind assigns your business to fulfill the complete basket.',
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 6),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'New orders will appear after Abashyaka assigns your business to fulfill the complete basket.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.secondaryText,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-            for (final order in _orders) _orderCard(order),
+
+            // Order cards in current tab
+            for (final order in activeTabOrders) _orderCard(order),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTab(String label, int count) {
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (count > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.emerald,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -491,16 +712,15 @@ class _MerchantPlatformOrdersScreenState
     final fulfillmentPaymentAllowed = switch (paymentMethod) {
       'upi' => paymentStatus == 'paid',
       'cash_on_delivery' => codState == 'due' || codState == 'collected',
-      _ => true, // Existing legacy orders retain their established workflow.
+      _ => true,
     };
     final items = (order['items'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
     final busy = _busyOrder == order['id'];
     final confirmingPickup = _confirmingPickupOrder == order['id'];
     final dispatch = _dispatchByOrder[order['id']];
-    final vertical = order['vertical'] == 'grocery'
-        ? 'Grocery order'
-        : 'Food order';
+    final isGrocery = order['vertical'] == 'grocery';
+    final vertical = isGrocery ? 'Grocery order' : 'Food order';
     final statusLabel = switch (status) {
       'placed' => 'Awaiting response',
       'accepted' => 'Accepted',
@@ -510,57 +730,180 @@ class _MerchantPlatformOrdersScreenState
       'cancelled' => 'Cancelled by customer',
       _ => status,
     };
+
     return Card(
       margin: const EdgeInsets.only(top: 12),
+      elevation: 0,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
       child: ExpansionTile(
-        leading: const CircleAvatar(child: Icon(Icons.receipt_long_outlined)),
-        title: Text(
-          vertical,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '${order['reference_code'] ?? 'Platform order'} · ${order['delivery_locality'] ?? ''}, ${order['delivery_district'] ?? ''}\n$statusLabel',
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-          const Divider(),
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.payments_outlined),
-            title: Text(_paymentLabel(order)),
-            subtitle: Text(_paymentDetail(order)),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isGrocery ? const Color(0xFFE0F2FE) : const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(12),
           ),
-          for (final item in items)
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(item['product_name'] as String? ?? 'Product'),
-              subtitle: Text(
-                '${item['variant_name'] ?? ''} · ${item['unit_label'] ?? ''}',
-              ),
-              trailing: Text(
-                '× ${item['quantity']}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          if ((order['special_instructions'] as String? ?? '').isNotEmpty)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Instructions: ${order['special_instructions']}',
-                  style: const TextStyle(color: AppTheme.secondaryText),
+          child: Icon(
+            isGrocery ? Icons.shopping_basket_outlined : Icons.restaurant_outlined,
+            color: isGrocery ? const Color(0xFF0284C7) : AppTheme.emerald,
+            size: 22,
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                vertical,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: AppTheme.mainText,
                 ),
               ),
             ),
+            _buildStatusPill(status, statusLabel),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '${order['reference_code'] ?? 'Platform order'} · ${order['delivery_locality'] ?? ''}, ${order['delivery_district'] ?? ''}\n$statusLabel',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryText,
+              height: 1.3,
+            ),
+          ),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          const Divider(color: Color(0xFFE5E7EB)),
+
+          // Payment details row
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.payments_outlined, size: 18, color: AppTheme.secondaryText),
+            ),
+            title: Text(
+              _paymentLabel(order),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            subtitle: Text(
+              _paymentDetail(order),
+              style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            ),
+            trailing: TextButton.icon(
+              icon: const Icon(Icons.receipt_outlined, size: 14),
+              label: const Text('Kitchen Ticket', style: TextStyle(fontSize: 12)),
+              onPressed: () => _showKitchenTicketModal(order),
+            ),
+          ),
+
+          // Items breakdown
+          const SizedBox(height: 4),
+          for (final item in items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '× ${item['quantity']}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: AppTheme.emerald,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['product_name'] as String? ?? 'Product',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        if ((item['variant_name'] ?? item['unit_label']) != null)
+                          Text(
+                            '${item['variant_name'] ?? ''} · ${item['unit_label'] ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.secondaryText,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          if ((order['special_instructions'] as String? ?? '').isNotEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.note_alt_outlined, size: 16, color: Color(0xFF92400E)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Instructions: ${order['special_instructions']}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 10),
+
+          // Stage transitions
           if (status == 'placed')
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.coral,
+                      side: const BorderSide(color: Color(0xFFFCA5A5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: busy ? null : () => _reject(order),
                     child: const Text('Reject'),
                   ),
@@ -569,7 +912,7 @@ class _MerchantPlatformOrdersScreenState
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.coral,
+                      backgroundColor: AppTheme.emerald,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -582,6 +925,7 @@ class _MerchantPlatformOrdersScreenState
                 ),
               ],
             ),
+
           if (status == 'placed' && !fulfillmentPaymentAllowed)
             const Align(
               alignment: Alignment.centerLeft,
@@ -589,15 +933,22 @@ class _MerchantPlatformOrdersScreenState
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   'UPI payment must be verified before this order can be accepted.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF991B1B),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
+
           if (status == 'accepted')
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: FilledButton.icon(
+                icon: const Icon(Icons.soup_kitchen_outlined, size: 18),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.coral,
+                  backgroundColor: AppTheme.emerald,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -605,9 +956,10 @@ class _MerchantPlatformOrdersScreenState
                 onPressed: busy || !fulfillmentPaymentAllowed
                     ? null
                     : () => _act(order, 'prepare'),
-                child: const Text('Start preparation'),
+                label: const Text('Start preparation'),
               ),
             ),
+
           if (status == 'accepted' && !fulfillmentPaymentAllowed)
             const Align(
               alignment: Alignment.centerLeft,
@@ -615,15 +967,22 @@ class _MerchantPlatformOrdersScreenState
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   'UPI payment must remain verified before preparation.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF991B1B),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
+
           if (status == 'preparing')
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: FilledButton.icon(
+                icon: const Icon(Icons.check_circle_outline, size: 18),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.coral,
+                  backgroundColor: AppTheme.emerald,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -631,26 +990,32 @@ class _MerchantPlatformOrdersScreenState
                 onPressed: busy || !fulfillmentPaymentAllowed
                     ? null
                     : () => _act(order, 'ready'),
-                child: const Text('Mark ready for pickup'),
+                label: const Text('Mark ready for pickup'),
               ),
             ),
+
           if (status == 'ready_for_pickup' && dispatch != null) ...[
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Delivery progress: ${(dispatch['execution_state'] as String? ?? 'assigned').replaceAll('_', ' ')}${(dispatch['rider_name'] as String? ?? '').isNotEmpty ? ' · ${dispatch['rider_name']}' : ''}',
-                style: const TextStyle(color: AppTheme.secondaryText),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.secondaryText,
+                ),
               ),
             ),
             if (dispatch['execution_state'] == 'at_pickup' &&
-                dispatch['rider_assigned'] == true)
+                dispatch['rider_assigned'] == true) ...[
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
                   key: ValueKey('issue_pickup_code_${order['id']}'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.coral,
+                    backgroundColor: AppTheme.emerald,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -668,12 +1033,17 @@ class _MerchantPlatformOrdersScreenState
                   ),
                 ),
               ),
+            ],
           ],
+
           if (busy)
             const Padding(
               padding: EdgeInsets.all(8),
-              child: CircularProgressIndicator(),
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.emerald),
+              ),
             ),
+
           if (status == 'rejected' && order['status_events'] is List) ...[
             for (final event
                 in (order['status_events'] as List<dynamic>)
@@ -684,11 +1054,242 @@ class _MerchantPlatformOrdersScreenState
                   alignment: Alignment.centerLeft,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text('Recorded reason: ${event['reason']}'),
+                    child: Text(
+                      'Recorded reason: ${event['reason']}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF991B1B),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   ),
                 ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusPill(String status, String label) {
+    Color bg;
+    Color fg;
+    switch (status) {
+      case 'placed':
+        bg = const Color(0xFFFEF3C7);
+        fg = const Color(0xFF92400E);
+        break;
+      case 'accepted':
+      case 'preparing':
+        bg = const Color(0xFFE0F2FE);
+        fg = const Color(0xFF0369A1);
+        break;
+      case 'ready_for_pickup':
+        bg = const Color(0xFFE8F5E9);
+        fg = const Color(0xFF0B6B4A);
+        break;
+      case 'delivered':
+        bg = const Color(0xFFD1FAE5);
+        fg = const Color(0xFF065F46);
+        break;
+      case 'rejected':
+      case 'cancelled':
+        bg = const Color(0xFFFEE2E2);
+        fg = const Color(0xFF991B1B);
+        break;
+      default:
+        bg = const Color(0xFFF1F5F9);
+        fg = AppTheme.secondaryText;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: fg,
+        ),
+      ),
+    );
+  }
+
+  void _showKitchenTicketModal(Map<String, dynamic> order) {
+    final reference = order['reference_code'] as String? ?? 'Platform order';
+    final items = (order['items'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+    final vertical = order['vertical'] == 'grocery' ? 'Grocery' : 'Food';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.receipt_long, color: AppTheme.emerald),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'KITCHEN TICKET',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: AppTheme.mainText,
+                        ),
+                      ),
+                      Text(
+                        '$vertical Delivery · $reference',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.secondaryText),
+                const SizedBox(width: 6),
+                Text(
+                  '${order['delivery_locality'] ?? ''}, ${order['delivery_district'] ?? ''}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'ORDER ITEMS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.secondaryText,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAF9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                children: [
+                  for (final item in items)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '× ${item['quantity']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: AppTheme.emerald,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item['product_name'] as String? ?? 'Item',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if ((order['special_instructions'] as String? ?? '').isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Text(
+                'SPECIAL NOTES',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.secondaryText,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Text(
+                  order['special_instructions'],
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.emerald,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Back to Orders'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -711,7 +1312,7 @@ class _MerchantPlatformOrdersScreenState
     }
     if (method == 'upi') {
       return status == 'paid'
-          ? 'Payment verified by Grepmind backend.'
+          ? 'Payment verified by Abashyaka backend.'
           : 'Payment is not verified; fulfillment actions are blocked.';
     }
     return 'Payment details are unavailable for this legacy order.';
@@ -760,28 +1361,63 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Partner-to-rider handover'),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    title: const Row(
+      children: [
+        Icon(Icons.verified_user_outlined, color: AppTheme.emerald),
+        SizedBox(width: 8),
+        Text(
+          'Partner-to-rider handover',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Share this code only with the assigned rider collecting ${widget.reference}.',
+          style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
         ),
         const SizedBox(height: 18),
-        SelectableText(
-          widget.code,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 6,
-            color: AppTheme.coral,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFC8E6C9)),
+          ),
+          child: SelectableText(
+            widget.code,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 6,
+              color: AppTheme.emerald,
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Text('Expires in $_remaining seconds.'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.timer_outlined, size: 14, color: AppTheme.secondaryText),
+            const SizedBox(width: 4),
+            Text(
+              'Expires in $_remaining seconds.',
+              style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            ),
+          ],
+        ),
       ],
     ),
     actions: [
       FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.emerald,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
         onPressed: () => Navigator.of(context).pop(),
         child: const Text('Close and clear'),
       ),

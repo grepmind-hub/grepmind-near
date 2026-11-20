@@ -45,7 +45,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Select Portal Experience'), findsOneWidget);
-      expect(find.text('Welcome to Grepmind Near'), findsOneWidget);
+      expect(find.text('Welcome to Abashyaka'), findsOneWidget);
       expect(find.byKey(const ValueKey('role_card_customer')), findsOneWidget);
       expect(find.byKey(const ValueKey('role_card_merchant')), findsOneWidget);
       expect(find.byKey(const ValueKey('role_card_rider')), findsOneWidget);

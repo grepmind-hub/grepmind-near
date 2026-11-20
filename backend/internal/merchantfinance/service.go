@@ -29,6 +29,10 @@ type Service struct {
 	qaEnvironment bool
 }
 
+func merchantReadOnlyFinanceAvailable(liveSettlementEnabled, realMoneyEnabled bool) bool {
+	return !liveSettlementEnabled && !realMoneyEnabled
+}
+
 const insertSettlementCreatedEventQuery = `INSERT INTO merchant_settlement_events(batch_id,actor_user_id,event_type,reason,metadata) VALUES($1,$2,'created','Settlement draft prepared for isolated simulation',jsonb_build_object('simulated_net_minor',$3::bigint,'funding_mode',$4::text))`
 
 func NewService(db *database.DB, environment string) *Service {
@@ -123,14 +127,10 @@ func insertPayableSnapshot(ctx context.Context, tx *sqlx.Tx, orderID, business, 
 }
 
 func (s *Service) ListPolicies(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var err error
 		rows, err = queryMaps(r.Context(), tx, `SELECT p.id::text,p.policy_key,p.version,p.business_id::text,p.vertical,p.calculation_basis,p.commission_type,p.percentage_bps,p.fixed_minor,p.effective_from::text,p.effective_until::text,p.status,p.created_by::text,p.approved_by::text,p.approval_reason,p.created_at::text,p.approved_at::text,encode(p.policy_hash,'hex') policy_hash FROM merchant_commission_policies p ORDER BY p.created_at DESC LIMIT 300`)
@@ -491,10 +491,6 @@ func (s *Service) Accrue(w http.ResponseWriter, r *http.Request, actor string) {
 }
 
 func (s *Service) ListPayables(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	if r.URL.Query().Get("limit") != "" {
 		var n int
 		if _, err := fmt.Sscan(r.URL.Query().Get("limit"), &n); err != nil || n < 1 || n > 200 {
@@ -508,11 +504,8 @@ func (s *Service) ListPayables(w http.ResponseWriter, r *http.Request, actor str
 	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
-		}
-		if !s.featureEnabled(r.Context(), tx) {
-			return financeError(503, "SETTLEMENT_SIMULATION_DISABLED", "Merchant finance is disabled in this environment.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var err error
 		rows, err = queryMaps(r.Context(), tx, `SELECT p.id::text,p.order_id::text,o.reference_code,p.business_id::text,b.name merchant_name,p.policy_id::text,p.policy_version,p.currency,p.customer_gross_minor,p.partner_gross_minor,p.commission_minor,p.net_payable_minor,p.payment_source,p.funding_state,p.financial_journal_id::text,p.created_at::text,COALESCE((SELECT sum(CASE WHEN a.adjustment_type='credit' THEN a.amount_minor ELSE -a.amount_minor END) FROM merchant_payable_adjustments a WHERE a.payable_id=p.id AND a.status='approved'),0) adjustment_minor,CASE WHEN EXISTS(SELECT 1 FROM merchant_settlement_batch_items bi JOIN merchant_settlement_batches sb ON sb.id=bi.batch_id WHERE bi.payable_id=p.id AND sb.status IN ('approved','simulated','reconciled')) THEN 'allocated' ELSE 'unallocated' END allocation_state FROM merchant_payable_snapshots p JOIN customer_orders o ON o.id=p.order_id JOIN businesses b ON b.id=p.business_id WHERE ($1='' OR p.business_id::text=$1) AND ($2='' OR p.currency=$2) ORDER BY p.created_at DESC LIMIT $3`, r.URL.Query().Get("business_id"), r.URL.Query().Get("currency"), limit)
@@ -526,17 +519,10 @@ func (s *Service) ListPayables(w http.ResponseWriter, r *http.Request, actor str
 }
 
 func (s *Service) ListEligibleOrders(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
-		}
-		if !s.featureEnabled(r.Context(), tx) {
-			return financeError(503, "SETTLEMENT_SIMULATION_DISABLED", "Merchant payable simulation is disabled in this environment.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var err error
 		rows, err = queryMaps(r.Context(), tx, `SELECT o.id::text order_id,o.reference_code,o.business_id::text,b.name merchant_name,o.platform_vertical,CASE WHEN o.payment_method IS NULL AND o.payment_status='paid' AND EXISTS(SELECT 1 FROM payment_intents pi JOIN payment_attempts pa ON pa.payment_intent_id=pi.id WHERE pi.order_id=o.id AND pa.provider='grepmind_sandbox' AND pa.status='succeeded') THEN 'upi' ELSE o.payment_method END payment_method,o.payment_status,o.status,round(o.grand_total*100)::bigint customer_gross_minor,o.created_at::text,COALESCE(sum(i.partner_supply_price_minor*i.quantity),0)::bigint partner_supply_minor,count(i.variant_id)::int item_count,count(i.variant_id) FILTER(WHERE i.partner_supply_price_minor IS NOT NULL AND i.partner_supply_currency='INR')::int priced_item_count FROM customer_orders o JOIN businesses b ON b.id=o.business_id JOIN platform_customer_order_items i ON i.order_id=o.id WHERE o.order_source='platform_catalog' AND o.status='delivered' AND ((((o.payment_method='upi' OR o.payment_method IS NULL) AND o.payment_status='paid') AND EXISTS(SELECT 1 FROM payment_intents pi JOIN payment_attempts pa ON pa.payment_intent_id=pi.id WHERE pi.order_id=o.id AND pa.provider='grepmind_sandbox' AND pa.status='succeeded')) OR (o.payment_method='cash_on_delivery' AND EXISTS(SELECT 1 FROM cod_collections c WHERE c.order_id=o.id))) AND NOT EXISTS(SELECT 1 FROM merchant_payable_snapshots p WHERE p.order_id=o.id) GROUP BY o.id,b.name ORDER BY o.created_at DESC LIMIT 200`)
@@ -563,12 +549,16 @@ func (s *Service) MerchantOverview(w http.ResponseWriter, r *http.Request, actor
 		if !allowed {
 			return financeError(404, "NOT_FOUND", "Merchant finance view was not found for this business.")
 		}
-		var enabled bool
-		if err := tx.GetContext(r.Context(), &enabled, `SELECT financial_posting_enabled AND sandbox_merchant_settlement_enabled AND NOT merchant_settlement_enabled AND NOT real_money_enabled FROM financial_feature_config WHERE singleton=true`); err != nil {
+		var liveSettlementEnabled, realMoneyEnabled bool
+		if err := tx.QueryRowxContext(r.Context(), `SELECT merchant_settlement_enabled,real_money_enabled FROM financial_feature_config WHERE singleton=true`).Scan(&liveSettlementEnabled, &realMoneyEnabled); err != nil {
 			return err
 		}
-		if !enabled {
-			return financeError(503, "FINANCE_UNAVAILABLE", "Merchant finance is not enabled in this environment.")
+		// This endpoint is a read-only QA projection. It must remain available
+		// when posting and sandbox settlement are disabled so merchants can see
+		// a truthful empty state. Continue to fail closed if live settlement or
+		// real-money processing is enabled in the QA database.
+		if !merchantReadOnlyFinanceAvailable(liveSettlementEnabled, realMoneyEnabled) {
+			return financeError(503, "FINANCE_UNAVAILABLE", "Merchant finance visibility is unavailable while live money movement is enabled.")
 		}
 		result = map[string]any{}
 		var currency string
@@ -638,7 +628,7 @@ func (s *Service) MerchantSettlements(w http.ResponseWriter, r *http.Request, ac
 			return financeError(404, "NOT_FOUND", "Merchant finance view was not found for this business.")
 		}
 		var err error
-		rows, err = queryMaps(r.Context(), tx, `SELECT id::text,currency,period_start::text,period_end::text,payable_minor,adjustment_minor,simulated_net_minor,status,funding_mode,created_at::text,simulated_at::text,'SIMULATED ONLY — NOT A REAL PAYOUT'::text disclosure FROM merchant_settlement_batches WHERE business_id=$1 ORDER BY created_at DESC LIMIT 100`, business)
+		rows, err = queryMaps(r.Context(), tx, `SELECT b.id::text,b.currency,b.period_start::text,b.period_end::text,b.payable_minor,b.adjustment_minor,b.simulated_net_minor,b.status,b.funding_mode,b.created_at::text,b.simulated_at::text,'QA simulation only — no bank transfer or real payout'::text disclosure,pt.status payout_status,attempt.status latest_attempt_status,pt.completed_at::text payout_completed_at,true payout_simulation_only FROM merchant_settlement_batches b LEFT JOIN payout_transfers pt ON pt.merchant_batch_id=b.id LEFT JOIN LATERAL (SELECT a.status FROM payout_transfer_attempts a WHERE a.transfer_id=pt.id ORDER BY a.attempt_number DESC LIMIT 1) attempt ON true WHERE b.business_id=$1 ORDER BY b.created_at DESC LIMIT 100`, business)
 		return err
 	})
 	if err != nil {
@@ -880,14 +870,10 @@ func (s *Service) CreateSettlement(w http.ResponseWriter, r *http.Request, actor
 }
 
 func (s *Service) ListSettlements(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
 		rows, e = queryMaps(r.Context(), tx, `SELECT b.id::text,b.business_id::text,m.name merchant_name,b.currency,b.period_start::text,b.period_end::text,b.payable_minor,b.adjustment_minor,b.simulated_net_minor,b.funding_mode,b.status,b.created_by::text,b.reviewed_by::text,b.approved_by::text,b.simulated_by::text,b.created_at::text,b.simulated_at::text,'SIMULATED ONLY — NOT A REAL PAYOUT'::text disclosure FROM merchant_settlement_batches b JOIN businesses m ON m.id=b.business_id ORDER BY b.created_at DESC LIMIT 200`)
@@ -1122,14 +1108,10 @@ func (s *Service) Reconcile(w http.ResponseWriter, r *http.Request, actor string
 	writeJSON(w, 200, map[string]any{"run_id": run, "exceptions": rows, "exception_count": len(rows), "automatic_repairs": false})
 }
 func (s *Service) ListReconciliationExceptions(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
 		rows, e = queryMaps(r.Context(), tx, `SELECT id::text,issue_code,business_id::text,order_id::text,payable_id::text,batch_id::text,details,created_at::text FROM merchant_reconciliation_exceptions ORDER BY created_at DESC LIMIT 300`)
@@ -1244,14 +1226,10 @@ func (s *Service) ReviewAdjustment(w http.ResponseWriter, r *http.Request, actor
 }
 
 func (s *Service) ListAdjustments(w http.ResponseWriter, r *http.Request, actor string) {
-	if !s.qaEnvironment {
-		writeError(w, financeError(404, "NOT_FOUND", "Merchant finance simulation is available only in isolated QA."))
-		return
-	}
 	var rows []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if err := authorize(r.Context(), tx, actor, "finance.read"); err != nil {
-			return err
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actor); err != nil {
+			return financeError(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var err error
 		rows, err = queryMaps(r.Context(), tx, `SELECT a.id::text,a.payable_id::text,a.business_id::text,b.name merchant_name,a.amount_minor,a.currency,a.adjustment_type,a.reason_code,a.status,a.requested_by::text,a.reviewed_by::text,a.review_reason,a.financial_journal_id::text,a.created_at::text,a.reviewed_at::text FROM merchant_payable_adjustments a JOIN businesses b ON b.id=a.business_id ORDER BY a.created_at DESC LIMIT 300`)

@@ -186,7 +186,7 @@ class _CustomerAddressFormScreenState extends State<CustomerAddressFormScreen> {
                   ? _localityId
                   : null,
               decoration: const InputDecoration(
-                labelText: 'Grepmind delivery locality (optional)',
+                labelText: 'Abashyaka delivery locality (optional)',
                 helperText: 'Required to check Food and Grocery delivery.',
               ),
               items: [
@@ -238,10 +238,16 @@ class _CustomerAddressFormScreenState extends State<CustomerAddressFormScreen> {
           _field('state', 'State'),
           Card(
             color: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppTheme.brandBorder),
+            ),
             child: ListTile(
-              leading: const Icon(Icons.map_outlined, color: AppTheme.primary),
+              leading: const Icon(Icons.map_outlined, color: AppTheme.emerald),
               title: Text(
                 _pin == null ? 'Add map pin (optional)' : 'Map pin saved',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 _pin == null
@@ -254,6 +260,7 @@ class _CustomerAddressFormScreenState extends State<CustomerAddressFormScreen> {
           ),
           SwitchListTile(
             value: _isDefault,
+            activeTrackColor: AppTheme.emerald,
             onChanged: (v) => setState(() => _isDefault = v),
             title: const Text('Make this my default address'),
           ),

@@ -214,7 +214,7 @@ func (s *Service) createIntent(ctx context.Context, userID, orderID, key string)
 		}
 		var amount int64
 		var currency string
-		if err := tx.QueryRowxContext(ctx, `SELECT round(grand_total*100)::bigint,currency FROM customer_orders WHERE id=$1 AND customer_user_id=$2 AND order_source='platform_catalog' AND COALESCE(payment_method,'')<>'cash_on_delivery' AND payment_status='not_collected' AND status NOT IN ('cancelled','returned','delivered','completed') FOR UPDATE`, orderID, userID).Scan(&amount, &currency); err != nil {
+		if err := tx.QueryRowxContext(ctx, `SELECT round(grand_total*100)::bigint,currency FROM customer_orders WHERE id=$1 AND customer_user_id=$2 AND order_source IN ('platform_catalog', 'merchant_catalog') AND COALESCE(payment_method,'')<>'cash_on_delivery' AND payment_status='not_collected' AND status NOT IN ('cancelled','returned','delivered','completed') FOR UPDATE`, orderID, userID).Scan(&amount, &currency); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return &apiFailure{404, "ORDER_NOT_PAYABLE", "An eligible unpaid platform order was not found."}
 			}

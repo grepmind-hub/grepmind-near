@@ -589,7 +589,7 @@ class _OrderCard extends ConsumerWidget {
       OrderType.platformOrder =>
         order.platformVertical == 'grocery'
             ? 'Grocery order'
-            : 'Grepmind Food order',
+            : 'Abashyaka Food order',
       OrderType.tableReservation => 'Table reservation',
       OrderType.hotelBooking => 'Stay booking',
       OrderType.serviceBooking => 'Service booking',

@@ -25,10 +25,27 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('')
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [resendSeconds, setResendSeconds] = useState(0)
-  const [step, setStep] = useState<'phone' | 'otp'>('phone')
+  const [step, setStep] = useState<'phone' | 'otp' | 'pin' | 'enroll'>('phone')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pinEnrolled, setPINEnrolled] = useState(false)
+  const [pin, setPIN] = useState('')
+  const [confirmPIN, setConfirmPIN] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void api.get('/auth/admin-mpin', { signal: controller.signal })
+      .then(({ data }) => {
+        if (controller.signal.aborted || typeof data?.data?.enabled !== 'boolean') return
+        if (data.data.enabled && data.data.enrolled) {
+          setPINEnrolled(true)
+          setStep((current) => current === 'phone' ? 'pin' : current)
+        }
+      })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     if (step !== 'otp' || resendSeconds <= 0) return
@@ -81,9 +98,56 @@ export default function LoginPage() {
         return
       }
       setAuthToken(data.access_token, data.refresh_token)
-      router.replace('/dashboard')
+      if (data.admin_mpin_enrollment_available === true) {
+        setPIN('')
+        setConfirmPIN('')
+        setStep('enroll')
+      } else {
+        router.replace('/dashboard')
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error?.message ?? 'The code is invalid or expired.')
+    } finally { setLoading(false) }
+  }
+
+  async function submitPIN(event: React.FormEvent) {
+    event.preventDefault()
+    const enrolling = step === 'enroll'
+    setError('')
+    if (enrolling && pin !== confirmPIN) {
+      setError('The PINs must match.')
+      return
+    }
+    setLoading(true)
+    try {
+      const { data } = await api.post(enrolling ? '/auth/admin-mpin/enroll' : '/auth/admin-mpin/verify', { pin })
+      if (!enrolling) {
+        if (!data?.data?.access_token || !data?.data?.refresh_token) throw new Error('Incomplete session')
+        setAuthToken(data.data.access_token, data.data.refresh_token)
+      }
+      router.replace('/dashboard')
+    } catch {
+      setError(enrolling
+        ? 'PIN setup failed. You can continue to the dashboard or sign in with OTP again to retry.'
+        : 'PIN sign-in failed. Use OTP if the PIN has expired or is locked.')
+    } finally {
+      setPIN('')
+      setConfirmPIN('')
+      setLoading(false)
+    }
+  }
+
+  async function removePIN() {
+    setError('')
+    setLoading(true)
+    try {
+      await api.post('/auth/admin-mpin/remove', {})
+      setPINEnrolled(false)
+      setPIN('')
+      setConfirmPIN('')
+      setStep('phone')
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message ?? 'PIN removal requires a recent OTP sign-in.')
     } finally { setLoading(false) }
   }
 
@@ -115,6 +179,37 @@ export default function LoginPage() {
               <Button type="submit" className="h-12 w-full rounded-xl bg-[#2457D6] text-base font-semibold hover:bg-[#1D49BD]" disabled={loading}>
                 {loading ? 'Sending code…' : <>Continue securely <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
+              {pinEnrolled && (
+                <Button type="button" variant="outline" className="h-12 w-full" disabled={loading} onClick={() => {
+                  setError('')
+                  setStep('pin')
+                }}>Sign in with PIN</Button>
+              )}
+            </form>
+          ) : step === 'pin' || step === 'enroll' ? (
+            <form onSubmit={submitPIN} className="space-y-4">
+              {step === 'enroll' && <p className="text-sm text-[#475467]">Set a PIN to sign in again from this browser. This replaces any previous browser enrollment.</p>}
+              <label className="block space-y-2 text-sm font-medium text-[#344054]">
+                {step === 'enroll' ? 'New six-digit PIN' : 'Six-digit PIN'}
+                <Input type="password" inputMode="numeric" autoComplete={step === 'enroll' ? 'new-password' : 'current-password'} pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPIN(event.target.value.replace(/[^0-9]/g, ''))} required className="h-12 rounded-xl" />
+              </label>
+              {step === 'enroll' && <label className="block space-y-2 text-sm font-medium text-[#344054]">
+                Confirm PIN
+                <Input type="password" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{6}" maxLength={6} value={confirmPIN} onChange={(event) => setConfirmPIN(event.target.value.replace(/[^0-9]/g, ''))} required className="h-12 rounded-xl" />
+              </label>}
+              {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
+              <Button type="submit" className="h-12 w-full" disabled={loading || pin.length !== 6 || (step === 'enroll' && confirmPIN.length !== 6)}>
+                {loading ? 'Please wait…' : step === 'enroll' ? 'Save PIN' : 'Verify PIN'}
+              </Button>
+              <Button type="button" variant="outline" className="h-12 w-full" disabled={loading} onClick={() => {
+                setError('')
+                setPIN('')
+                if (step === 'enroll') router.replace('/dashboard')
+                else setStep('phone')
+              }}>{step === 'enroll' ? 'Skip for now' : 'Use OTP instead'}</Button>
+              {step === 'enroll' && <Button type="button" variant="outline" className="h-12 w-full text-rose-700" disabled={loading} onClick={() => void removePIN()}>
+                Remove browser PIN
+              </Button>}
             </form>
           ) : (
             <form onSubmit={verifyCode} className="space-y-4">

@@ -4,7 +4,12 @@ import "net/http"
 
 // Locations derives supported cities and listing counts from approved businesses.
 func (s *Service) Locations(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.db.QueryContext(r.Context(), `SELECT city, count(*), avg(ST_Y(location::geometry)), avg(ST_X(location::geometry)) FROM businesses WHERE status='approved' AND city IS NOT NULL AND btrim(city) != '' GROUP BY city ORDER BY city LIMIT 200`)
+	syntheticSQL := ""
+	if !s.allowSynthetic(r) {
+		syntheticSQL = " AND is_synthetic = false"
+	}
+	query := `SELECT city, count(*), avg(ST_Y(location::geometry)), avg(ST_X(location::geometry)) FROM businesses WHERE status='approved' AND city IS NOT NULL AND btrim(city) != ''` + syntheticSQL + ` GROUP BY city ORDER BY city LIMIT 200`
+	rows, err := s.db.QueryContext(r.Context(), query)
 	if err != nil {
 		writeError(w, 500, "INTERNAL_ERROR", "Unable to load locations.")
 		return

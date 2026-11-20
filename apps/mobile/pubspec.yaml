@@ -101,10 +101,13 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/abashyaka/
     - assets/images/splash_discovery.png
     - assets/images/screen_illustrations.png
     - assets/images/login_welcome.jpg
     - assets/images/category_sample_atlas.png
+    - assets/images/abashyaka_official_logo.png
+    - assets/images/abashyaka_emblem_official.png
     - assets/branding/launcher_icon_option_1.png
 
   # To add assets to your application, add an assets section, like this:

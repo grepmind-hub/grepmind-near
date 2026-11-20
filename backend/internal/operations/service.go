@@ -65,9 +65,9 @@ func (s *Service) ValidateCart(w http.ResponseWriter, r *http.Request, userID st
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "Orderable business not found.")
 		return
 	}
-	// This first cart release supports the already-established food workflow.
+	// This cart release supports established food, dining and grocery workflows.
 	// Category names do not implicitly grant commerce capability.
-	if !enabled || (category != "restaurant" && category != "cafe") {
+	if !enabled || (category != "restaurant" && category != "cafe" && category != "grocery" && category != "supermarket" && category != "bakery") {
 		writeError(w, http.StatusConflict, "ORDERING_UNAVAILABLE", "This business does not currently support product ordering.")
 		return
 	}
@@ -190,6 +190,7 @@ type createOrderRequest struct {
 	CheckoutQuoteID string       `json:"checkout_quote_id"`
 	FulfillmentType string       `json:"fulfillment_type"`
 	DeliveryAddress string       `json:"delivery_address"`
+	PaymentMethod   string       `json:"payment_method"`
 	Notes           string       `json:"notes"`
 	Items           []createItem `json:"items"`
 	ReservationAt   *time.Time   `json:"reservation_at"`
@@ -395,6 +396,19 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 		var roomProduct interface{}
 		var addressID, addressSnapshot interface{}
 		var consumedQuoteID interface{}
+		var deliveryLocalityID interface{}
+		type pendingOrderItem struct {
+			ProductID   string
+			ProductName string
+			UnitPrice   string
+			Quantity    int
+			DietaryType string
+		}
+		var pendingItems []pendingOrderItem
+		paymentMethod := strings.TrimSpace(req.PaymentMethod)
+		if paymentMethod == "" {
+			paymentMethod = "cash_on_delivery"
+		}
 		switch req.OrderType {
 		case "food_delivery":
 			var quoteFulfillment string
@@ -419,7 +433,7 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 				return checkoutError(409, "QUOTE_MISMATCH", "Checkout fulfillment changed. Refresh the quote.")
 			}
 			business, err := loadQuoteBusiness(tx, businessID)
-			if err != nil || !business.DeliveryEnabled || (business.Category != "restaurant" && business.Category != "cafe") {
+			if err != nil || !business.DeliveryEnabled || (business.Category != "restaurant" && business.Category != "cafe" && business.Category != "grocery" && business.Category != "supermarket" && business.Category != "bakery") {
 				return checkoutError(409, "ORDERING_UNAVAILABLE", "This business does not currently support food ordering.")
 			}
 			open, err := isBusinessOpen(tx, businessID, time.Now())
@@ -446,6 +460,9 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 					return err
 				}
 				addressID = quoteAddressID.String
+				if value.DeliveryLocalityID != "" {
+					deliveryLocalityID = value.DeliveryLocalityID
+				}
 				snapshot, err := json.Marshal(value.public())
 				if err != nil {
 					return err
@@ -521,9 +538,13 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 					return errors.New("product inventory mode is invalid")
 				}
 				foodSubtotalMinor += priceMinor * int64(requested.Quantity)
-				if _, err := tx.Exec(`INSERT INTO customer_order_items(order_id,product_id,product_name,unit_price,quantity,dietary_type) VALUES($1,$2,$3,$4,$5,$6)`, orderID, requested.ProductID, productName, fmt.Sprintf("%d.%02d", priceMinor/100, priceMinor%100), requested.Quantity, dietary); err != nil {
-					return err
-				}
+				pendingItems = append(pendingItems, pendingOrderItem{
+					ProductID:   requested.ProductID,
+					ProductName: productName,
+					UnitPrice:   fmt.Sprintf("%d.%02d", priceMinor/100, priceMinor%100),
+					Quantity:    requested.Quantity,
+					DietaryType: dietary,
+				})
 			}
 			if foodSubtotalMinor < minimumMinor {
 				return fmt.Errorf("minimum order is %s", minorToDecimal(minimumMinor))
@@ -570,9 +591,12 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 			reservationEnd = *req.ReservationEnd
 			guestCount = *req.GuestCount
 			roomProduct = req.RoomProductID
-			if _, err := tx.Exec(`INSERT INTO customer_order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)`, orderID, req.RoomProductID, productName, price, nights); err != nil {
-				return err
-			}
+			pendingItems = append(pendingItems, pendingOrderItem{
+				ProductID:   req.RoomProductID,
+				ProductName: productName,
+				UnitPrice:   fmt.Sprintf("%.2f", price),
+				Quantity:    nights,
+			})
 		}
 		var itemTotalValue, deliveryFeeValue, grandTotalValue interface{} = itemTotal, deliveryFee, itemTotal + deliveryFee
 		if req.OrderType == "food_delivery" {
@@ -584,9 +608,23 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 		if req.OrderType == "food_delivery" {
 			idempotencyValue, requestHashValue = idempotencyKey, requestHash
 		}
-		_, err := tx.Exec(`INSERT INTO customer_orders(id,customer_user_id,business_id,order_type,status,fulfillment_type,delivery_address,delivery_address_id,delivery_address_snapshot,checkout_quote_id,checkout_idempotency_key,checkout_request_hash,payment_status,customer_notes,item_total,delivery_fee,tax_amount,grand_total,eta_minutes,reservation_at,reservation_end_at,guest_count,seating_area,room_product_id,reference_code) VALUES($1,$2,$3,$4,$5,NULLIF($6,''),NULLIF($7,''),NULLIF($8,'')::uuid,$9::jsonb,NULLIF($10,'')::uuid,NULLIF($11,'')::uuid,NULLIF($12,''),'not_collected',NULLIF($13,''),$14,$15,$16,$17,$18,$19,$20,$21,NULLIF($22,''),$23,$24)`, orderID, userID, businessID, req.OrderType, status, req.FulfillmentType, strings.TrimSpace(req.DeliveryAddress), addressID, addressSnapshot, consumedQuoteID, idempotencyValue, requestHashValue, strings.TrimSpace(req.Notes), itemTotalValue, deliveryFeeValue, minorToDecimal(foodTaxMinor), grandTotalValue, eta, reservationAt, reservationEnd, guestCount, strings.TrimSpace(req.SeatingArea), roomProduct, reference)
+		_, err := tx.Exec(`INSERT INTO customer_orders(id,customer_user_id,business_id,order_type,status,fulfillment_type,delivery_address,delivery_address_id,delivery_address_snapshot,checkout_quote_id,checkout_idempotency_key,checkout_request_hash,payment_status,customer_notes,item_total,delivery_fee,tax_amount,grand_total,eta_minutes,reservation_at,reservation_end_at,guest_count,seating_area,room_product_id,reference_code,delivery_locality_id,payment_method) VALUES($1,$2,$3,$4,$5,NULLIF($6,''),NULLIF($7,''),NULLIF($8,'')::uuid,$9::jsonb,NULLIF($10,'')::uuid,NULLIF($11,'')::uuid,NULLIF($12,''),'not_collected',NULLIF($13,''),$14,$15,$16,$17,$18,$19,$20,$21,NULLIF($22,''),$23,$24,NULLIF($25,'')::uuid,NULLIF($26,''))`, orderID, userID, businessID, req.OrderType, status, req.FulfillmentType, strings.TrimSpace(req.DeliveryAddress), addressID, addressSnapshot, consumedQuoteID, idempotencyValue, requestHashValue, strings.TrimSpace(req.Notes), itemTotalValue, deliveryFeeValue, minorToDecimal(foodTaxMinor), grandTotalValue, eta, reservationAt, reservationEnd, guestCount, strings.TrimSpace(req.SeatingArea), roomProduct, reference, deliveryLocalityID, paymentMethod)
 		if err != nil {
 			return err
+		}
+		for _, item := range pendingItems {
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_order_items(order_id,product_id,product_name,unit_price,quantity,dietary_type) VALUES($1,$2,$3,$4,$5,NULLIF($6,''))`, orderID, item.ProductID, item.ProductName, item.UnitPrice, item.Quantity, item.DietaryType); err != nil {
+				return err
+			}
+		}
+		if req.OrderType == "food_delivery" && paymentMethod == "cash_on_delivery" {
+			totalMinor := foodSubtotalMinor + deliveryFeeMinor + foodTaxMinor
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_obligations(order_id,customer_user_id,amount_minor,currency,policy_version) VALUES($1,$2,$3,'INR','synthetic-qa-v1') ON CONFLICT (order_id) DO NOTHING`, orderID, userID, totalMinor); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_audit_events(actor_user_id,obligation_id,event_type,reason,metadata) SELECT $2,id,'obligation_created','Customer selected Cash on Delivery for merchant order',jsonb_build_object('mode','synthetic_qa','amount_minor',amount_minor) FROM cod_obligations WHERE order_id=$1`, orderID, userID); err != nil {
+				return err
+			}
 		}
 		if _, err := tx.ExecContext(r.Context(), `INSERT INTO customer_order_status_events(order_id,status,event_kind,actor_user_id) VALUES($1,$2,'status_change',$3)`, orderID, status, userID); err != nil {
 			return err

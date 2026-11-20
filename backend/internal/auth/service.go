@@ -135,6 +135,10 @@ func (s *Service) parseSessionToken(token string) (*sessionClaims, error) {
 
 // issueTokens creates a new database session and both tokens atomically.
 func (s *Service) issueTokens(ctx context.Context, userID, userAgent, ipAddress string) (string, string, error) {
+	return s.issueLoginTokens(ctx, userID, userAgent, ipAddress, false)
+}
+
+func (s *Service) issueLoginTokens(ctx context.Context, userID, userAgent, ipAddress string, adminOTP bool) (string, string, error) {
 	if s.db == nil {
 		return "", "", errors.New("session database unavailable")
 	}
@@ -146,6 +150,11 @@ func (s *Service) issueTokens(ctx context.Context, userID, userAgent, ipAddress 
 	access, refresh, err := s.issueTokensTx(ctx, tx, userID, userAgent, ipAddress)
 	if err != nil {
 		return "", "", err
+	}
+	if adminOTP {
+		if _, err = tx.ExecContext(ctx, "UPDATE sessions SET admin_otp_authenticated_at=$1 WHERE refresh_token_hash=$2", s.now(), hashToken(refresh)); err != nil {
+			return "", "", err
+		}
 	}
 	if err = tx.Commit(); err != nil {
 		return "", "", err

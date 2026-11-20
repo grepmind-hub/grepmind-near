@@ -158,7 +158,7 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFECFDF5),
+                      color: Color(0xFFE8F5E9),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -216,9 +216,10 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                 return Card(
                   color: Colors.white,
                   margin: const EdgeInsets.only(bottom: 12),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
-                    side: const BorderSide(color: Color(0xFFD8E2F1)),
+                    side: const BorderSide(color: AppTheme.brandBorder),
                   ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(18),
@@ -236,7 +237,7 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                                 address.label.toLowerCase() == 'home'
                                     ? Icons.home_outlined
                                     : Icons.location_on_outlined,
-                                color: AppTheme.primary,
+                                color: AppTheme.emerald,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -244,23 +245,58 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                                   address.label,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
+                                    color: AppTheme.brandText,
                                   ),
                                 ),
                               ),
                               if (address.isDefault)
-                                const Chip(label: Text('Default')),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: AppTheme.emerald.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Default',
+                                    style: TextStyle(
+                                      color: AppTheme.emeraldDark,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
+                          const SizedBox(height: 8),
                           Text(
                             address.recipientName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.brandText,
+                            ),
                           ),
                           const SizedBox(height: 4),
-                          Text(address.formatted),
+                          Text(
+                            address.formatted,
+                            style: const TextStyle(
+                              color: AppTheme.brandTextMuted,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
                           Text(
                             address.contactPhone,
                             style: const TextStyle(
                               color: AppTheme.secondaryText,
+                              fontSize: 12,
                             ),
                           ),
                           if (address.latitude != null)
@@ -269,7 +305,8 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                               child: Text(
                                 'Map pin saved',
                                 style: TextStyle(
-                                  color: AppTheme.primary,
+                                  color: AppTheme.emerald,
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
                               ),
@@ -280,10 +317,16 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                               children: [
                                 TextButton(
                                   onPressed: () => _edit(address),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.emerald,
+                                  ),
                                   child: const Text('Edit'),
                                 ),
                                 TextButton(
                                   onPressed: () => _delete(address),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.coral,
+                                  ),
                                   child: const Text('Delete'),
                                 ),
                               ],

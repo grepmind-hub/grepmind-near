@@ -99,6 +99,26 @@ func (s *Service) List(w http.ResponseWriter, r *http.Request, actor string) {
 	write(w, 200, rows)
 }
 
+// Capabilities reports server-side finance permissions for presentation. Each
+// write endpoint still performs its own transaction-scoped authorization.
+func (s *Service) Capabilities(w http.ResponseWriter, r *http.Request, actor string) {
+	if s == nil || s.db == nil {
+		fail(w, &apiError{500, "INTERNAL_ERROR", "Finance capabilities are unavailable."})
+		return
+	}
+	var read, post bool
+	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
+		read = financialledger.AuthorizeReadTx(r.Context(), tx, actor) == nil
+		post = financialledger.AuthorizeTx(r.Context(), tx, actor, "finance.post") == nil
+		return nil
+	})
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	write(w, http.StatusOK, map[string]bool{"finance_read": read, "finance_post": post})
+}
+
 type requestBody struct {
 	TargetUserID string `json:"target_user_id"`
 	Permission   string `json:"permission"`

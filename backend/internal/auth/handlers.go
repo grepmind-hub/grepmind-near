@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -285,13 +286,27 @@ func (s *Service) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load account roles.")
 		return
 	}
-	accessToken, refreshToken, err := s.issueTokens(r.Context(), userID, r.UserAgent(), remoteIP(r))
+	origin := adminMPINOrigin()
+	adminOTP := origin != "" && r.Header.Get("Origin") == origin && slices.Contains(user.Roles, "admin")
+	offerEnrollment := false
+	if adminOTP {
+		enrolled, enrollmentErr := s.adminMPINEnrolled(r, userID)
+		// OTP is the verified recovery and replacement path. Returning this
+		// capability for every Admin OTP session allows an enrolled browser PIN
+		// to be replaced or removed without weakening PIN sign-in.
+		offerEnrollment = enrollmentErr == nil && (!enrolled || adminOTP)
+	}
+	accessToken, refreshToken, err := s.issueLoginTokens(r.Context(), userID, r.UserAgent(), remoteIP(r), offerEnrollment)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to issue session tokens.")
 		return
 	}
+	data := envelope{"access_token": accessToken, "refresh_token": refreshToken, "user": user}
+	if offerEnrollment {
+		data["admin_mpin_enrollment_available"] = true
+	}
 	writeJSON(w, http.StatusOK, envelope{
-		"data": map[string]interface{}{"access_token": accessToken, "refresh_token": refreshToken, "user": user},
+		"data": data,
 		"meta": map[string]string{"request_id": "otp-verified"},
 	})
 }

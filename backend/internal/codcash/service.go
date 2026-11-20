@@ -256,14 +256,11 @@ func (s *Service) SubmitRemittance(w http.ResponseWriter, r *http.Request, rider
 func (s *Service) ListAdminRemittances(w http.ResponseWriter, r *http.Request, actorID string) {
 	rows := make([]map[string]any, 0)
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if !s.allowed(r.Context(), tx) {
-			return fail(503, "SYNTHETIC_COD_DISABLED", "Synthetic COD is disabled in this environment.")
-		}
-		if err := financialledger.AuthorizeTx(r.Context(), tx, actorID, "finance.read"); err != nil {
-			return fail(403, "FORBIDDEN", "Finance read permission is required.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actorID); err != nil {
+			return fail(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
-		rows, e = queryMaps(r.Context(), tx, `SELECT r.id::text,r.rider_user_id::text,p.display_name rider_name,r.amount_minor,r.currency,r.submission_reference,r.state,r.submitted_at::text,r.reviewed_at::text,r.verification_reason FROM cod_remittances r JOIN rider_profiles p ON p.user_id=r.rider_user_id ORDER BY r.submitted_at DESC LIMIT 200`)
+		rows, e = queryMaps(r.Context(), tx, `SELECT r.id::text,r.rider_user_id::text,p.display_name rider_name,r.amount_minor,r.currency,r.submission_reference,r.state,r.submitted_at::text,r.reviewed_at::text,r.verification_reason, EXISTS (SELECT 1 FROM financial_journals j WHERE j.id=r.financial_journal_id AND j.source_type='sandbox_cod_remittance' AND j.source_event='verified' AND j.status='posted') AS sandbox_verified FROM cod_remittances r JOIN rider_profiles p ON p.user_id=r.rider_user_id ORDER BY r.submitted_at DESC LIMIT 200`)
 		return e
 	})
 	if err != nil {
@@ -277,11 +274,8 @@ func (s *Service) ListAdminRemittances(w http.ResponseWriter, r *http.Request, a
 func (s *Service) ListAdminCollections(w http.ResponseWriter, r *http.Request, actorID string) {
 	rows := make([]map[string]any, 0)
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if !s.allowed(r.Context(), tx) {
-			return fail(503, "SYNTHETIC_COD_DISABLED", "Synthetic COD is disabled in this environment.")
-		}
-		if err := financialledger.AuthorizeTx(r.Context(), tx, actorID, "finance.read"); err != nil {
-			return fail(403, "FORBIDDEN", "Finance read permission is required.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actorID); err != nil {
+			return fail(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
 		rows, e = queryMaps(r.Context(), tx, `SELECT c.id::text,c.order_id::text,o.reference_code,c.job_id::text,c.rider_user_id::text,p.display_name rider_name,c.amount_minor,c.currency,c.collected_at::text,c.financial_journal_id::text FROM cod_collections c JOIN customer_orders o ON o.id=c.order_id JOIN rider_profiles p ON p.user_id=c.rider_user_id ORDER BY c.collected_at DESC LIMIT 200`)
@@ -298,11 +292,8 @@ func (s *Service) ListAdminCollections(w http.ResponseWriter, r *http.Request, a
 func (s *Service) Audit(w http.ResponseWriter, r *http.Request, actorID string) {
 	rows := make([]map[string]any, 0)
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if !s.allowed(r.Context(), tx) {
-			return fail(503, "SYNTHETIC_COD_DISABLED", "Synthetic COD is disabled in this environment.")
-		}
-		if err := financialledger.AuthorizeTx(r.Context(), tx, actorID, "finance.read"); err != nil {
-			return fail(403, "FORBIDDEN", "Finance read permission is required.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actorID); err != nil {
+			return fail(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
 		rows, e = queryMaps(r.Context(), tx, `SELECT e.id::text,e.event_type,e.actor_user_id::text,e.obligation_id::text,e.collection_id::text,e.remittance_id::text,e.reason,e.metadata,e.created_at::text FROM cod_audit_events e ORDER BY e.created_at DESC LIMIT 300`)
@@ -319,11 +310,8 @@ func (s *Service) Audit(w http.ResponseWriter, r *http.Request, actorID string) 
 func (s *Service) Reconcile(w http.ResponseWriter, r *http.Request, actorID string) {
 	var issues []map[string]any
 	err := s.db.Transaction(r.Context(), func(tx *sqlx.Tx) error {
-		if !s.allowed(r.Context(), tx) {
-			return fail(503, "SYNTHETIC_COD_DISABLED", "Synthetic COD is disabled in this environment.")
-		}
-		if err := financialledger.AuthorizeTx(r.Context(), tx, actorID, "finance.read"); err != nil {
-			return fail(403, "FORBIDDEN", "Finance read permission is required.")
+		if err := financialledger.AuthorizeReadTx(r.Context(), tx, actorID); err != nil {
+			return fail(403, "FORBIDDEN", "Active Platform Admin access is required.")
 		}
 		var e error
 		issues, e = queryMaps(r.Context(), tx, `SELECT 'delivered_without_collection'::text issue,o.id::text order_id,o.reference_code,NULL::text reference FROM customer_orders o LEFT JOIN cod_collections c ON c.order_id=o.id WHERE o.payment_method='cash_on_delivery' AND o.status='delivered' AND c.id IS NULL UNION ALL SELECT 'collection_journal_missing',c.order_id::text,o.reference_code,c.id::text FROM cod_collections c JOIN customer_orders o ON o.id=c.order_id LEFT JOIN financial_journals j ON j.id=c.financial_journal_id AND j.status='posted' WHERE j.id IS NULL UNION ALL SELECT 'verified_remittance_journal_missing',r.id::text,NULL::text,r.id::text FROM cod_remittances r LEFT JOIN financial_journals j ON j.id=r.financial_journal_id AND j.status='posted' WHERE r.state='verified' AND j.id IS NULL UNION ALL SELECT 'negative_rider_liability',q.rider_user_id::text,NULL::text,NULL::text FROM (SELECT c.rider_user_id,sum(c.amount_minor)-COALESCE((SELECT sum(r.amount_minor) FROM cod_remittances r WHERE r.rider_user_id=c.rider_user_id AND r.state='verified'),0) liability FROM cod_collections c GROUP BY c.rider_user_id) q WHERE q.liability<0 ORDER BY 1 LIMIT 500`)

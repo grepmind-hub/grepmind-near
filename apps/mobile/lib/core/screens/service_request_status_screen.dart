@@ -364,7 +364,7 @@ class _ServiceRequestStatusScreenState
             ),
             const SizedBox(height: 20),
             const Text(
-              'Grepmind Help & Support',
+              'Abashyaka Help & Support',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,

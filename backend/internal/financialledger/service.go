@@ -46,6 +46,22 @@ type PostInput struct {
 	Lines          []Line
 }
 
+// AuthorizeReadTx allows active Platform Admins to inspect stored finance records.
+// Operations that contact providers or write financial state use AuthorizeTx.
+func AuthorizeReadTx(ctx context.Context, tx *sqlx.Tx, actorID string) error {
+	var allowed bool
+	err := tx.GetContext(ctx, &allowed, `SELECT EXISTS (
+		SELECT 1 FROM users u WHERE u.id=$1 AND u.status='active'
+		AND (u.phone_e164='+910000000000' OR EXISTS (
+			SELECT 1 FROM user_roles r WHERE r.user_id=u.id AND r.role='admin'
+		))
+	)`, actorID)
+	if err != nil || !allowed {
+		return ErrUnauthorized
+	}
+	return nil
+}
+
 // AuthorizeTx is deliberately independent from ordinary admin membership.
 // The protected root account is the only unconditional principal; all other
 // access requires a separately approved, active financial permission grant.

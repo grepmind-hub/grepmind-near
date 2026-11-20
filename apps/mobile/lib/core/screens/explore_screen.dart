@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
@@ -130,28 +131,133 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  void _showLocationModal() async {
-    List<Map<String, dynamic>> locations;
+  Future<void> _useCurrentLocationGPS() async {
+    const chhatia = AppLocation(
+      cityName: 'Jajpur',
+      localityName: 'Chhatia',
+      localityId: '02200000-0000-4000-8000-000000000201',
+      latitude: 20.6105,
+      longitude: 86.0270,
+      activeBusinessCount: 15,
+    );
+    const kuanpal = AppLocation(
+      cityName: 'Katak',
+      localityName: 'Kuanpal',
+      localityId: '02200000-0000-4000-8000-000000000101',
+      latitude: 20.5250,
+      longitude: 86.0820,
+      activeBusinessCount: 12,
+    );
+
     try {
-      final response = await apiClient.get('/locations');
-      locations = (response.data['data'] as List).cast<Map<String, dynamic>>();
-    } catch (_) {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        ref.read(appLocationProvider.notifier).setLocation(chhatia);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Location permission denied. Switched to default hub: Chhatia, Jajpur.',
+              ),
+              backgroundColor: const Color(0xFF374151),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        _onFiltersChanged();
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      final distToChhatia = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        chhatia.latitude,
+        chhatia.longitude,
+      );
+      final distToKuanpal = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        kuanpal.latitude,
+        kuanpal.longitude,
+      );
+
+      final closest = distToChhatia <= distToKuanpal ? chhatia : kuanpal;
+      final shortestDist = distToChhatia <= distToKuanpal ? distToChhatia : distToKuanpal;
+      final shortestKm = (shortestDist / 1000).toStringAsFixed(1);
+
+      ref.read(appLocationProvider.notifier).setLocation(closest);
+      _onFiltersChanged();
+
       if (mounted) {
+        final message = shortestDist <= 30000
+            ? 'GPS matched to ${closest.localityName}, ${closest.cityName} ($shortestKm km away).'
+            : 'Outside active delivery coverage ($shortestKm km). Switched to nearest hub: ${closest.localityName}, ${closest.cityName}.';
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to load cities. Please try again.'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text(message)),
+              ],
+            ),
+            backgroundColor: const Color(0xFF0B6B4A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
-      return;
+    } catch (_) {
+      ref.read(appLocationProvider.notifier).setLocation(chhatia);
+      _onFiltersChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('GPS unavailable. Switched to default hub: Chhatia, Jajpur.'),
+            backgroundColor: const Color(0xFF374151),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
-    if (!mounted) return;
+  }
+
+  void _showLocationModal() {
+    const chhatia = AppLocation(
+      cityName: 'Jajpur',
+      localityName: 'Chhatia',
+      localityId: '02200000-0000-4000-8000-000000000201',
+      latitude: 20.6105,
+      longitude: 86.0270,
+      activeBusinessCount: 15,
+    );
+    const kuanpal = AppLocation(
+      cityName: 'Katak',
+      localityName: 'Kuanpal',
+      localityId: '02200000-0000-4000-8000-000000000101',
+      latitude: 20.5250,
+      longitude: 86.0820,
+      activeBusinessCount: 12,
+    );
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -166,6 +272,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD1D5DB),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -173,19 +290,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Select Location',
+                          'Select Delivery Hub',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 19,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.mainText,
+                            color: Color(0xFF153D30),
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Choose Cuttack or Jajpur',
+                          'Authorized launch areas for Abashyaka',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.secondaryText,
+                            color: Color(0xFF6B7280),
                           ),
                         ),
                       ],
@@ -193,31 +310,84 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                     IconButton(
                       icon: const Icon(
                         Icons.close_rounded,
-                        color: AppTheme.secondaryText,
+                        color: Color(0xFF6B7280),
                       ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _useCurrentLocationGPS();
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF0B6B4A).withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.my_location_rounded, color: Color(0xFF0B6B4A), size: 22),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Use My Current Location',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: Color(0xFF0B6B4A),
+                                ),
+                              ),
+                              Text(
+                                'Matches to closest launch hub via GPS',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF52675D),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF0B6B4A)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text(
-                  'AVAILABLE CITIES',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                  'AVAILABLE LAUNCH HUBS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildHubTile(
+                  ctx: ctx,
+                  location: chhatia,
+                  title: 'Chhatia Hub',
+                  subtitle: 'Jajpur District',
+                  badge: '15 Active Stores',
+                  isRecommended: true,
                 ),
                 const SizedBox(height: 8),
-                if (locations.isEmpty)
-                  const Text('No cities currently have active listings.'),
-                ...locations.map(
-                  (location) => _buildLocationTile(
-                    ctx: ctx,
-                    cityName: location['city'] as String,
-                    locality: '',
-                    badge: '${location['count']} active listings',
-                    lat: (location['latitude'] as num).toDouble(),
-                    lng: (location['longitude'] as num).toDouble(),
-                    isSupported: true,
-                    count: location['count'] as int,
-                  ),
+                _buildHubTile(
+                  ctx: ctx,
+                  location: kuanpal,
+                  title: 'Kuanpal Hub',
+                  subtitle: 'Katak District',
+                  badge: '12 Active Stores',
+                  isRecommended: false,
                 ),
                 const SizedBox(height: 16),
               ],
@@ -228,102 +398,108 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     );
   }
 
-  Widget _buildLocationTile({
+  Widget _buildHubTile({
     required BuildContext ctx,
-    required String cityName,
-    required String locality,
+    required AppLocation location,
+    required String title,
+    required String subtitle,
     required String badge,
-    required double lat,
-    required double lng,
-    required bool isSupported,
-    required int count,
+    required bool isRecommended,
   }) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isSupported
-              ? AppTheme.primaryContainer.withValues(alpha: 0.7)
-              : const Color(0xFFFEF3C7),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          isSupported ? Icons.storefront_rounded : Icons.radar_rounded,
-          color: isSupported ? AppTheme.primary : const Color(0xFFD97706),
-          size: 18,
-        ),
-      ),
-      title: Row(
-        children: [
-          Text(
-            cityName,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isSupported
-                  ? const Color(0xFFDCFCE7)
-                  : const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              badge,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: isSupported
-                    ? const Color(0xFF15803D)
-                    : const Color(0xFFB45309),
-              ),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        locality,
-        style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: AppTheme.secondaryText,
-        size: 18,
-      ),
+    final isSelected = ref.watch(appLocationProvider).localityName == location.localityName;
+    return InkWell(
       onTap: () {
-        ref
-            .read(appLocationProvider.notifier)
-            .setLocation(
-              AppLocation(
-                cityName: cityName,
-                localityName: locality,
-                latitude: lat,
-                longitude: lng,
-                isSupported: isSupported,
-                activeBusinessCount: count,
-              ),
-            );
-
-        if (!isSupported) {
-          try {
-            apiClient.post(
-              '/analytics/unserved-location',
-              data: {
-                'city': cityName,
-                'locality': locality,
-                'latitude': lat,
-                'longitude': lng,
-              },
-            );
-          } catch (_) {}
-        }
-
         Navigator.pop(ctx);
+        ref.read(appLocationProvider.notifier).setLocation(location);
         _onFiltersChanged();
       },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFFE5E7EB),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFFF3F4F6),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.store_rounded,
+                size: 20,
+                color: isSelected ? Colors.white : const Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFF1F2937),
+                        ),
+                      ),
+                      if (isRecommended) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'RECOMMENDED',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFD97706),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Text(
+                badge,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0B6B4A),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -340,14 +516,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final groceryScope = PlatformCartScope(
       userId: userId,
       vertical: 'grocery',
-      localityId: '',
+      localityId: appLocation.localityId,
       locality: appLocation.localityName,
       district: appLocation.cityName,
     );
     final foodScope = PlatformCartScope(
       userId: userId,
       vertical: 'food',
-      localityId: '',
+      localityId: appLocation.localityId,
       locality: appLocation.localityName,
       district: appLocation.cityName,
     );
@@ -382,16 +558,55 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                       child: Row(
                         children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.all(4),
+                            child: Image.asset(
+                              'assets/abashyaka/emblem_official.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset('assets/abashyaka/splash_emblem.png', fit: BoxFit.contain),
+                            ),
+                          ),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Explore',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'Explore',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF153D30),
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8F5E9),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFF0B6B4A).withValues(alpha: 0.3)),
+                                      ),
+                                      child: const Text(
+                                        'ଆବଶ୍ୟକ',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF0B6B4A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 InkWell(
                                   key: const Key('explore_location_selector'),
@@ -413,7 +628,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                         Flexible(
                                           child: Text(
                                             appLocation.displayName.isEmpty
-                                                ? 'Choose Cuttack or Jajpur'
+                                                ? 'Chhatia, Jajpur'
                                                 : appLocation.displayName,
                                             style: Theme.of(context)
                                                 .textTheme
@@ -941,6 +1156,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 vertical: 'grocery',
                                 city: appLocation.cityName,
                                 locality: appLocation.localityName,
+                                localityId: appLocation.localityId,
                               ),
                             ),
                           );
@@ -975,6 +1191,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                     vertical: 'grocery',
                                     city: appLocation.cityName,
                                     locality: appLocation.localityName,
+                                    localityId: appLocation.localityId,
                                   ),
                                 ),
                               );
@@ -1026,6 +1243,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1038,6 +1256,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1062,6 +1281,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1074,6 +1294,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1096,6 +1317,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1108,6 +1330,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                       vertical: 'grocery',
                                       city: appLocation.cityName,
                                       locality: appLocation.localityName,
+                                      localityId: appLocation.localityId,
                                     ),
                                   ),
                                 );
@@ -1506,7 +1729,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   const SizedBox(height: 8),
 
                   Text(
-                    'We are currently onboarding verified local shops and certified service professionals in $cityName. Grepmind Near will provide services in this location soon!',
+                    'We are currently onboarding verified local shops and certified service professionals in $cityName. Abashyaka will provide services in this location soon!',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 13,
@@ -1612,7 +1835,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Enter your mobile number to receive instant SMS & WhatsApp notification when Grepmind Near launches in ${appLocation.cityName}.',
+              'Enter your mobile number to receive instant SMS & WhatsApp notification when Abashyaka launches in ${appLocation.cityName}.',
               style: const TextStyle(
                 fontSize: 13,
                 color: AppTheme.secondaryText,
@@ -1731,8 +1954,8 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
     const filters = [
       ('all', 'All', Icons.apps_rounded),
       ('fast_delivery', '⚡ Fast Delivery', null),
-      ('grocery', '🛒 Grocery', null),
-      ('food', '🍲 Food', null),
+      ('food', '🍲 Food & Meals', null),
+      ('grocery', '🛒 Fresh Grocery', null),
       ('services', '🛠️ Services', null),
       ('open_now', '🕒 Open Now', null),
       ('top_rated', '⭐ 4.0+', null),

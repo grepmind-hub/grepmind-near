@@ -2,7 +2,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Grepmind Near';
+  static const String appName = 'Abashyaka';
   static const String appVersion = '1.0.0';
 
   // API base URL. Configure via --dart-define=API_BASE_URL=http://...

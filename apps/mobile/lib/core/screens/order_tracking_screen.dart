@@ -468,7 +468,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 FilledButton.icon(
                   onPressed: _showDeliveryCode,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F766E),
+                    backgroundColor: AppTheme.emerald,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
@@ -518,7 +518,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               FilledButton.icon(
                 onPressed: _reordering ? null : () => _reorder(order),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
+                  backgroundColor: AppTheme.emerald,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -733,18 +733,24 @@ class _SummaryCard extends StatelessWidget {
       OrderType.platformOrder =>
         order.platformVertical == 'grocery'
             ? 'Grocery delivery'
-            : 'Grepmind Food delivery',
+            : 'Abashyaka Food delivery',
       OrderType.tableReservation => 'Table reservation',
       OrderType.hotelBooking => 'Hotel stay',
       OrderType.serviceBooking => 'Service booking',
     };
-    final formattedDate = DateFormat('d MMM yyyy, h:mm a').format(order.createdAt.toLocal());
+    final formattedDate = DateFormat('d MMM yyyy, h:mm a')
+        .format(order.createdAt.toLocal());
 
-    final (statusBg, statusBorder, statusColor, statusIcon) = switch (order.status) {
+    final (
+      statusBg,
+      statusBorder,
+      statusColor,
+      statusIcon,
+    ) = switch (order.status) {
       OrderStatus.delivered || OrderStatus.completed => (
-        const Color(0xFFECFDF5),
-        const Color(0xFFA7F3D0),
-        const Color(0xFF047857),
+        const Color(0xFFE8F5E9),
+        AppTheme.emerald.withValues(alpha: 0.25),
+        AppTheme.emeraldDark,
         Icons.check_circle_rounded,
       ),
       OrderStatus.cancelled || OrderStatus.rejected => (
@@ -753,16 +759,18 @@ class _SummaryCard extends StatelessWidget {
         const Color(0xFFB91C1C),
         Icons.cancel_rounded,
       ),
-      OrderStatus.readyForPickup || OrderStatus.preparing || OrderStatus.accepted => (
-        const Color(0xFFEFF6FF),
-        const Color(0xFFBFDBFE),
-        const Color(0xFF1D4ED8),
+      OrderStatus.readyForPickup ||
+      OrderStatus.preparing ||
+      OrderStatus.accepted => (
+        const Color(0xFFFFF7ED),
+        const Color(0xFFFED7AA),
+        const Color(0xFFFF8A00),
         Icons.schedule_rounded,
       ),
       _ => (
-        const Color(0xFFF0FDFA),
-        const Color(0xFF99F6E4),
-        const Color(0xFF0F766E),
+        const Color(0xFFE8F5E9),
+        AppTheme.emerald.withValues(alpha: 0.25),
+        AppTheme.emerald,
         Icons.receipt_rounded,
       ),
     };
@@ -780,7 +788,8 @@ class _SummaryCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   child: CategoryThemedPlaceholder(
-                    categorySlug: order.platformVertical ??
+                    categorySlug:
+                        order.platformVertical ??
                         (order.orderType == OrderType.foodDelivery
                             ? 'food'
                             : 'grocery'),
@@ -900,13 +909,15 @@ class _DeliveryTruthCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: const Color(0xFFE8F5E9),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(
+                  color: AppTheme.emerald.withValues(alpha: 0.25),
+                ),
               ),
               child: const Icon(
                 Icons.update_rounded,
-                color: Color(0xFF2563EB),
+                color: AppTheme.emerald,
                 size: 18,
               ),
             ),
@@ -949,12 +960,12 @@ class _DeliveryTruthCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.location_on_outlined,
-                  color: Color(0xFF0F766E),
+                  color: AppTheme.emerald,
                   size: 17,
                 ),
               ),
@@ -1158,9 +1169,9 @@ String customerDeliveryDispatchMessage({
   if (riderAssigned) return 'A rider has been assigned to your order.';
   return switch (state) {
     'pending_dispatch' ||
-    'offered' => 'Grepmind is finding an approved rider for this locality.',
+    'offered' => 'Abashyaka is finding an approved rider for this locality.',
     'no_rider_available' =>
-      'A rider is not available yet. Grepmind will retry when possible.',
+      'A rider is not available yet. Abashyaka will retry when possible.',
     'not_dispatched' || 'not_started' =>
       'Rider dispatch begins when the partner starts preparing your order.',
     'cancelled' => 'Delivery dispatch was cancelled with this order.',
@@ -1239,8 +1250,8 @@ class _TimelineStepItem extends StatelessWidget {
                   color: isFirst
                       ? Colors.transparent
                       : (isCompleted || isActive
-                          ? const Color(0xFF059669)
-                          : const Color(0xFFE2E8F0)),
+                            ? const Color(0xFF059669)
+                            : const Color(0xFFE2E8F0)),
                 ),
                 // Indicator Node
                 Container(
@@ -1251,20 +1262,21 @@ class _TimelineStepItem extends StatelessWidget {
                     color: isActive
                         ? const Color(0xFF059669)
                         : isCompleted
-                            ? const Color(0xFFECFDF5)
-                            : const Color(0xFFF8FAFC),
+                        ? const Color(0xFFECFDF5)
+                        : const Color(0xFFF8FAFC),
                     border: Border.all(
                       color: isActive
                           ? const Color(0xFF047857)
                           : isCompleted
-                              ? const Color(0xFF059669)
-                              : const Color(0xFFCBD5E1),
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFCBD5E1),
                       width: isActive ? 2.5 : 1.5,
                     ),
                     boxShadow: isActive
                         ? [
                             BoxShadow(
-                              color: const Color(0xFF059669).withValues(alpha: 0.3),
+                              color: const Color(0xFF059669)
+                                  .withValues(alpha: 0.3),
                               blurRadius: 6,
                               spreadRadius: 1,
                             ),
@@ -1277,12 +1289,14 @@ class _TimelineStepItem extends StatelessWidget {
                           (isCompleted || isActive
                               ? Icons.check_rounded
                               : Icons.circle),
-                      size: icon != null ? 13 : (isCompleted || isActive ? 14 : 6),
+                      size: icon != null
+                          ? 13
+                          : (isCompleted || isActive ? 14 : 6),
                       color: isActive
                           ? Colors.white
                           : isCompleted
-                              ? const Color(0xFF059669)
-                              : const Color(0xFF94A3B8),
+                          ? const Color(0xFF059669)
+                          : const Color(0xFF94A3B8),
                     ),
                   ),
                 ),
@@ -1304,10 +1318,7 @@ class _TimelineStepItem extends StatelessWidget {
           // Content
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(
-                top: 2,
-                bottom: isLast ? 0 : 18,
-              ),
+              padding: EdgeInsets.only(top: 2, bottom: isLast ? 0 : 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1319,8 +1330,9 @@ class _TimelineStepItem extends StatelessWidget {
                           title,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight:
-                                isActive ? FontWeight.w800 : FontWeight.w700,
+                            fontWeight: isActive
+                                ? FontWeight.w800
+                                : FontWeight.w700,
                             color: isActive
                                 ? const Color(0xFF065F46)
                                 : const Color(0xFF0F172A),
@@ -1621,9 +1633,11 @@ class _StatusTimeline extends StatelessWidget {
                     : null,
                 isFirst: i == 0,
                 isLast: i == events.length - 1,
-                isCompleted: i < events.length - 1 ||
+                isCompleted:
+                    i < events.length - 1 ||
                     events[i].status == OrderStatus.delivered,
-                isActive: i == events.length - 1 &&
+                isActive:
+                    i == events.length - 1 &&
                     events[i].status != OrderStatus.delivered,
                 icon: _iconForTimelineStep(events[i].status.statusLabel),
               ),
@@ -1775,8 +1789,9 @@ class _MoneyRow extends StatelessWidget {
           style: TextStyle(
             fontSize: highlight ? 15 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
-            color:
-                highlight ? const Color(0xFF0F172A) : const Color(0xFF475569),
+            color: highlight
+                ? const Color(0xFF0F172A)
+                : const Color(0xFF475569),
           ),
         ),
         Text(
@@ -1784,8 +1799,9 @@ class _MoneyRow extends StatelessWidget {
           style: TextStyle(
             fontSize: highlight ? 16 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
-            color:
-                highlight ? const Color(0xFF047857) : const Color(0xFF0F172A),
+            color: highlight
+                ? const Color(0xFF047857)
+                : const Color(0xFF0F172A),
           ),
         ),
       ],
@@ -1802,7 +1818,7 @@ class _Card extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+      border: Border.all(color: AppTheme.brandBorder, width: 1.2),
       boxShadow: [
         BoxShadow(
           color: const Color(0xFF0F172A).withValues(alpha: 0.03),
