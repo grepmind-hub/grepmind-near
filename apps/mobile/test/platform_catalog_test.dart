@@ -83,7 +83,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Order on Grepmind'), findsOneWidget);
+      expect(find.text('Order on Abashyaka'), findsWidgets);
       await tester.tap(find.byKey(const ValueKey('orders_food_catalog')));
       await tester.pumpAndSettle();
       expect(find.byType(PlatformCatalogScreen), findsOneWidget);

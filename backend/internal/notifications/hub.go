@@ -11,9 +11,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+
+	"grepmind-near/backend/internal/devices"
+	"grepmind-near/backend/internal/fcm"
 )
 
-// Event represents a real-time event sent via SSE
+// Event represents a real-time event sent via SSE and/or FCM
 type Event struct {
 	ID         string                 `json:"id"`
 	Type       string                 `json:"type"`
@@ -24,6 +27,10 @@ type Event struct {
 	Body       string                 `json:"body"`
 	Payload    map[string]interface{} `json:"payload,omitempty"`
 	CreatedAt  string                 `json:"created_at"`
+	// FCMChannel is the Android notification channel for this event.
+	FCMChannel string `json:"-"`
+	// SendFCM controls whether this event is also delivered via FCM.
+	SendFCM bool `json:"-"`
 }
 
 // Client represents an active SSE subscriber
@@ -75,6 +82,12 @@ type Hub struct {
 	unregister        chan *Client
 	mu                sync.RWMutex
 	heartbeatInterval time.Duration
+	fcmSvc            *fcm.Service
+	deviceSvc         *devices.Service
+	// publishedEventIDs tracks recently published event IDs to prevent
+	// duplicate SSE+FCM delivery for the same logical event.
+	publishedEventIDs map[string]time.Time
+	eventIDMu         sync.RWMutex
 }
 
 // NewHub creates and starts a new Event Hub
@@ -86,9 +99,50 @@ func NewHub(db *sqlx.DB) *Hub {
 		register:          make(chan *Client),
 		unregister:        make(chan *Client),
 		heartbeatInterval: 15 * time.Second,
+		publishedEventIDs: make(map[string]time.Time),
 	}
 	go h.run()
+	// Cleanup old event IDs every minute.
+	go h.cleanupEventIDs()
 	return h
+}
+
+// SetPushServices configures FCM and device services for push delivery.
+func (h *Hub) SetPushServices(fcmSvc *fcm.Service, deviceSvc *devices.Service) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.fcmSvc = fcmSvc
+	h.deviceSvc = deviceSvc
+}
+
+func (h *Hub) cleanupEventIDs() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		h.eventIDMu.Lock()
+		now := time.Now()
+		for id, ts := range h.publishedEventIDs {
+			if now.Sub(ts) > 10*time.Minute {
+				delete(h.publishedEventIDs, id)
+			}
+		}
+		h.eventIDMu.Unlock()
+	}
+}
+
+// isDuplicateEvent checks whether an event ID was recently published.
+func (h *Hub) isDuplicateEvent(eventID string) bool {
+	h.eventIDMu.RLock()
+	defer h.eventIDMu.RUnlock()
+	_, ok := h.publishedEventIDs[eventID]
+	return ok
+}
+
+// recordEventID marks an event ID as recently published.
+func (h *Hub) recordEventID(eventID string) {
+	h.eventIDMu.Lock()
+	defer h.eventIDMu.Unlock()
+	h.publishedEventIDs[eventID] = time.Now()
 }
 
 func (h *Hub) run() {
@@ -122,6 +176,61 @@ func (h *Hub) run() {
 				}
 			}
 			h.mu.RUnlock()
+
+			// Deliver via FCM if enabled, non-blocking with bounded retries.
+			if event.SendFCM && event.UserID != "" && h.fcmSvc != nil && h.deviceSvc != nil {
+				go h.deliverFCM(event)
+			}
+		}
+	}
+}
+
+// deliverFCM sends an event as an FCM data message to the user's active devices.
+// Failures do not block the caller; errors are logged.
+func (h *Hub) deliverFCM(event Event) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	regs, err := h.deviceSvc.ListActive(ctx, event.UserID)
+	if err != nil || len(regs) == 0 {
+		log.Printf("[notifications/hub] FCM: no active devices for user %s: %v", event.UserID, err)
+		return
+	}
+
+	data := map[string]string{
+		"type":        event.Type,
+		"title":       event.Title,
+		"body":        event.Body,
+		"event_id":    event.ID,
+		"business_id": event.BusinessID,
+		"request_id":  event.RequestID,
+	}
+	if event.Payload != nil {
+		for k, v := range event.Payload {
+			data[k] = fmt.Sprintf("%v", v)
+		}
+	}
+
+	channel := event.FCMChannel
+	if channel == "" {
+		channel = "orders"
+	}
+
+	for _, reg := range regs {
+		msg := fcm.Message{
+			Token:           reg.FCMToken,
+			Title:           event.Title,
+			Body:            event.Body,
+			Data:            data,
+			AndroidChannel:  channel,
+		}
+		if _, err := h.fcmSvc.Send(ctx, msg); err != nil {
+			if fcm.IsInvalidToken(err) {
+				if revokeErr := h.deviceSvc.MarkTokenInvalid(ctx, reg.FCMToken); revokeErr != nil {
+					log.Printf("[notifications/hub] FCM: failed to revoke invalid token: %v", revokeErr)
+				}
+			}
+			log.Printf("[notifications/hub] FCM: send failed for device %s: %v", reg.InstallationID, err)
 		}
 	}
 }
@@ -134,6 +243,12 @@ func (h *Hub) Publish(ctx context.Context, event Event) {
 	if event.CreatedAt == "" {
 		event.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
+
+	// Prevent duplicate SSE+FCM delivery for the same logical event.
+	if h.isDuplicateEvent(event.ID) {
+		return
+	}
+	h.recordEventID(event.ID)
 
 	// Persist to database if db is available
 	if h.db != nil && (event.BusinessID != "" || event.UserID != "") {

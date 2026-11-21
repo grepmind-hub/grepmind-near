@@ -749,7 +749,7 @@ class _OrderShoppingHubScreenState
                       opacity: 0.0,
                       child: SizedBox(
                         height: 0,
-                        child: Text('Order on Grepmind'),
+                        child: Text('Order on Abashyaka'),
                       ),
                     ),
                     const SizedBox(height: 12),

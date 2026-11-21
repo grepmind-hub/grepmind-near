@@ -277,9 +277,22 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     if (user != null) unawaited(_loadOrder());
   }
 
+  bool get _usesDeliveryTracking {
+    final order = _order;
+    return order != null &&
+        order.isDelivery &&
+        (order.orderSource == 'platform_catalog' ||
+            order.orderSource == 'merchant_catalog');
+  }
+
   Future<void> _loadDispatchStatus() async {
     final order = _order;
-    if (order == null || order.orderSource != 'platform_catalog') return;
+    if (!_usesDeliveryTracking) return;
+    final customerId = ref.read(currentUserProvider)?.id;
+    bool isCurrentRequest() =>
+        mounted &&
+        identical(_order, order) &&
+        ref.read(currentUserProvider)?.id == customerId;
     try {
       final response = await apiClient.get(
         '/orders/${Uri.encodeComponent(widget.orderId)}/delivery-status',
@@ -287,13 +300,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       final data =
           (response.data as Map<String, dynamic>)['data']
               as Map<String, dynamic>;
-      if (mounted) {
-        setState(() {
-          _deliveryDispatchState = data['delivery_state']?.toString();
-          _deliveryExecutionState = data['execution_state']?.toString();
-          _riderAssigned = data['rider_assigned'] == true;
-        });
-      }
+      if (!isCurrentRequest()) return;
+      setState(() {
+        _deliveryDispatchState = data['delivery_state']?.toString();
+        _deliveryExecutionState = data['execution_state']?.toString();
+        _riderAssigned = data['rider_assigned'] == true;
+      });
       final historyResponse = await apiClient.get(
         '/orders/${Uri.encodeComponent(widget.orderId)}/delivery-history',
       );
@@ -301,7 +313,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           (historyResponse.data as Map<String, dynamic>)['data']
               as List<dynamic>? ??
           const [];
-      if (mounted) {
+      if (isCurrentRequest()) {
         setState(() {
           _deliveryHistory = historyData
               .whereType<Map<String, dynamic>>()
@@ -312,7 +324,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         if (_isTerminal) _stopStatusStream();
       }
     } catch (_) {
-      if (mounted) {
+      if (isCurrentRequest()) {
         setState(
           () => _deliveryHistoryError = 'Order history is temporarily unavailable. The latest confirmed status is shown; it will retry automatically.',
         );
@@ -321,6 +333,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   Future<void> _showDeliveryCode() async {
+    final customerId = ref.read(currentUserProvider)?.id;
+    if (customerId == null ||
+        !_usesDeliveryTracking ||
+        _isTerminal ||
+        _deliveryExecutionState != 'en_route') {
+      return;
+    }
     try {
       final response = await apiClient.post(
         '/orders/${Uri.encodeComponent(widget.orderId)}/delivery-code',
@@ -328,7 +347,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       final data =
           (response.data as Map<String, dynamic>)['data']
               as Map<String, dynamic>;
-      if (!mounted) return;
+      if (!mounted ||
+          ref.read(currentUserProvider)?.id != customerId ||
+          _isTerminal ||
+          _deliveryExecutionState != 'en_route') {
+        return;
+      }
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -446,8 +470,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     order.orderType == OrderType.platformOrder) &&
                 order.isDelivery)
               _DeliveryTruthCard(order: order),
-            if (order.orderSource == 'platform_catalog' &&
-                order.isDelivery) ...[
+            if (_usesDeliveryTracking) ...[
               _LiveConnectionCard(
                 connected: _liveConnected,
                 hasConnected: _hasConnected,
@@ -463,7 +486,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 events: _deliveryHistory,
                 error: _deliveryHistoryError,
               ),
-              if (_deliveryExecutionState == 'en_route') ...[
+              if (!_isTerminal && _deliveryExecutionState == 'en_route') ...[
                 const SizedBox(height: 4),
                 FilledButton.icon(
                   onPressed: _showDeliveryCode,
@@ -484,8 +507,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 const SizedBox(height: 10),
               ],
             ],
-            if (order.orderSource != 'platform_catalog')
-              _StatusTimeline(order: order),
+            if (!_usesDeliveryTracking) _StatusTimeline(order: order),
             _OrderItemsCard(order: order),
             OrderPaymentCard(
               orderId: order.id,

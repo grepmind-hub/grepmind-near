@@ -7,7 +7,7 @@ import (
 )
 
 func TestValidateAuthRequiresExplicitProductionSecret(t *testing.T) {
-	base := Config{Env: "production", JWTSecret: "replace-with-strong-secret-min-32-chars", JWTAccessTTL: time.Minute, JWTRefreshTTL: time.Hour, OTPTTL: time.Minute, OTPMaxAttempts: 5}
+	base := Config{Env: "production", JWTSecret: "replace-with-strong-secret-min-32-chars", JWTAccessTTL: time.Minute, JWTRefreshTTL: time.Hour, OTPTTL: time.Minute, OTPMaxAttempts: 5, GoogleOAuthClientID: "test-client-id"}
 	if err := base.ValidateAuth(); err == nil {
 		t.Fatal("production must reject the development JWT secret")
 	}
@@ -17,6 +17,7 @@ func TestValidateAuthRequiresExplicitProductionSecret(t *testing.T) {
 	}
 	base.Env = "local"
 	base.JWTSecret = "replace-with-strong-secret-min-32-chars"
+	base.GoogleOAuthClientID = ""
 	if err := base.ValidateAuth(); err != nil {
 		t.Fatalf("local development should allow its documented placeholder secret: %v", err)
 	}
@@ -131,6 +132,7 @@ func TestFast2SMSConfigurationUsesServerSecretsAndFailsClosed(t *testing.T) {
 	t.Setenv("SMS_PROVIDER", "fast2sms")
 	t.Setenv("FAST2SMS_API_KEY", "")
 	t.Setenv("FAST2SMS_OTP_TEMPLATE_ID", "")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
 	if cfg := Load(); cfg.OTPProvider != "fast2sms" || cfg.ValidateAuth() == nil {
 		t.Fatal("Fast2SMS must be selected explicitly and fail closed without credentials/template")
 	}
@@ -151,6 +153,41 @@ func TestFast2SMSConfigurationUsesServerSecretsAndFailsClosed(t *testing.T) {
 	t.Setenv("FAST2SMS_REQUEST_TIMEOUT", "21s")
 	if cfg := Load(); cfg.ValidateAuth() == nil {
 		t.Fatal("provider timeout above the bounded maximum must be rejected")
+	}
+}
+
+func TestUnimplementedTestOTPProvidersFailClosed(t *testing.T) {
+	for _, environment := range []string{"production", "staging", "qa", "local"} {
+		for _, provider := range []string{"fcm_test", "mock", " FCM_TEST "} {
+			cfg := Config{Env: environment, OTPProvider: provider, JWTSecret: strings.Repeat("x", 32), JWTAccessTTL: time.Minute, JWTRefreshTTL: time.Hour, OTPTTL: time.Minute, OTPMaxAttempts: 5}
+			if err := cfg.ValidateAuth(); err == nil {
+				t.Errorf("%s must reject unimplemented test OTP provider %q", environment, provider)
+			}
+		}
+	}
+}
+
+func TestOTPDeliveryProviderAliasAndExistingPrecedence(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
+	t.Setenv("SMS_PROVIDER", "")
+	t.Setenv("OTP_PROVIDER", "")
+	t.Setenv("OTP_DELIVERY_PROVIDER", "fcm_test")
+	if cfg := Load(); cfg.OTPProvider != "fcm_test" || cfg.ValidateAuth() == nil {
+		t.Fatal("proposed provider setting must be recognized and fail closed until implemented")
+	}
+	t.Setenv("OTP_PROVIDER", "qa_http")
+	if cfg := Load(); cfg.OTPProvider != "qa_http" || cfg.ValidateAuth() == nil {
+		t.Fatal("existing OTP_PROVIDER must retain precedence")
+	}
+	t.Setenv("SMS_PROVIDER", "stub")
+	if cfg := Load(); cfg.OTPProvider != "stub" || cfg.ValidateAuth() == nil {
+		t.Fatal("existing SMS_PROVIDER must retain highest precedence")
+	}
+	t.Setenv("OTP_DELIVERY_PROVIDER", "")
+	if cfg := Load(); cfg.OTPProvider != "stub" || cfg.ValidateAuth() != nil {
+		t.Fatal("existing stub configuration must remain valid when no test provider is requested")
 	}
 }
 

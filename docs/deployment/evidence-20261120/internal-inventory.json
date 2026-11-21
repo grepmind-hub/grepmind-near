@@ -1,0 +1,151 @@
+{
+  "containers": [
+    {
+      "name": "abashyaka-nginx",
+      "state": "running",
+      "health": "healthy",
+      "image": "sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_app",
+        "abashyaka_edge"
+      ]
+    },
+    {
+      "name": "abashyaka-admin",
+      "state": "running",
+      "health": "healthy",
+      "image": "sha256:344eec4c068a3cc26632404843ac0f60256af9f96b80cec4752cab9ee91e8662",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_app"
+      ]
+    },
+    {
+      "name": "abashyaka-merchant",
+      "state": "exited",
+      "health": "not running",
+      "image": "sha256:bd389dd302df1abe722983d9b436f0550e3e0f570b3357b5766378a361999d60",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_app"
+      ]
+    },
+    {
+      "name": "abashyaka-api",
+      "state": "running",
+      "health": "healthy",
+      "image": "sha256:b80c541276f7c67400edd20d16fe2b3e925f30b2aabd91d1bcb8cee0cf8e956e",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_app",
+        "abashyaka_data"
+      ]
+    },
+    {
+      "name": "abashyaka-postgres",
+      "state": "running",
+      "health": "healthy",
+      "image": "sha256:598aed6d6c562b21e071701e6f8ac3092eece7ae332418347025f9e38bcb351f",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_data"
+      ]
+    },
+    {
+      "name": "abashyaka-minio",
+      "state": "running",
+      "health": "healthy",
+      "image": "sha256:25348a257f1ece1b192f25f6cd9854618fa86422ac87b494b5d4e629c556d4bd",
+      "published_ports": {},
+      "networks": [
+        "abashyaka_data"
+      ]
+    }
+  ],
+  "database": [
+    {
+      "users": 0,
+      "businesses": 0,
+      "products": 0,
+      "orders": 0,
+      "platform_products": 0,
+      "categories": 11,
+      "platform_categories": 2,
+      "districts": 2,
+      "delivery_localities": 0,
+      "financial_journals": 0,
+      "financial_postings": 0,
+      "cod_collections": 0,
+      "payout_transfers": 0
+    },
+    {
+      "role": "abashyaka_api",
+      "superuser": false,
+      "create_db": false,
+      "create_role": false,
+      "replication": false
+    }
+  ],
+  "resource_samples": [
+    {
+      "BlockIO": "49.2kB / 8.19kB",
+      "CPUPerc": "0.00%",
+      "Container": "abashyaka-nginx",
+      "ID": "5152417c3e4b",
+      "MemPerc": "3.79%",
+      "MemUsage": "4.855MiB / 128MiB",
+      "Name": "abashyaka-nginx",
+      "NetIO": "433kB / 433kB",
+      "PIDs": "5"
+    },
+    {
+      "BlockIO": "393kB / 106kB",
+      "CPUPerc": "0.02%",
+      "Container": "abashyaka-admin",
+      "ID": "af3c7dc00469",
+      "MemPerc": "9.44%",
+      "MemUsage": "48.35MiB / 512MiB",
+      "Name": "abashyaka-admin",
+      "NetIO": "1.19MB / 870kB",
+      "PIDs": "22"
+    },
+    {
+      "BlockIO": "713kB / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "abashyaka-api",
+      "ID": "e5f048f96876",
+      "MemPerc": "0.64%",
+      "MemUsage": "4.883MiB / 768MiB",
+      "Name": "abashyaka-api",
+      "NetIO": "61.8kB / 59.8kB",
+      "PIDs": "9"
+    },
+    {
+      "BlockIO": "12.5MB / 478MB",
+      "CPUPerc": "1.04%",
+      "Container": "abashyaka-postgres",
+      "ID": "1944da2646bf",
+      "MemPerc": "4.89%",
+      "MemUsage": "75.15MiB / 1.5GiB",
+      "Name": "abashyaka-postgres",
+      "NetIO": "13.3kB / 18.4kB",
+      "PIDs": "7"
+    },
+    {
+      "BlockIO": "24.1MB / 6.23MB",
+      "CPUPerc": "0.00%",
+      "Container": "abashyaka-minio",
+      "ID": "b0dc9abee35e",
+      "MemPerc": "10.88%",
+      "MemUsage": "111.4MiB / 1GiB",
+      "Name": "abashyaka-minio",
+      "NetIO": "15.7kB / 11.3kB",
+      "PIDs": "10"
+    }
+  ],
+  "host_memory": "               total        used        free      shared  buff/cache   available\nMem:           7.1Gi       1.0Gi       609Mi        55Mi       5.9Gi       6.1Gi\nSwap:          4.0Gi        28Ki       4.0Gi\n",
+  "disk": "Filesystem                         Size  Used Avail Use% Mounted on\n/dev/mapper/ubuntu--vg-ubuntu--lv  455G   17G  419G   4% /\n",
+  "load": "0.20 0.86 1.23 1/305 24638",
+  "secret_file_mode": "0o600"
+}

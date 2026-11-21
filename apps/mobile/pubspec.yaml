@@ -74,6 +74,10 @@ dependencies:
 
   # Android SMS Retriever OTP autofill; does not request inbox permissions.
   sms_autofill: ^2.6.1
+  firebase_core: ^5.2.0
+  firebase_messaging: ^17.1.0
+  flutter_local_notifications: ^23.0.3
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   integration_test:
@@ -94,6 +98,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  default-flavor: development
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

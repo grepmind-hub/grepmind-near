@@ -27,7 +27,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $mobileRoot = Join-Path $repoRoot 'apps\mobile'
 $adb = Join-Path $WindowsSdk 'platform-tools\adb.exe'
 $emulator = Join-Path $WindowsSdk 'emulator\emulator.exe'
-$packageName = 'local.grepmind.grepmind_mobile'
+$packageName = 'com.abashyaka.app.dev'
 $env:ADB_SERVER_PORT = "$AdbServerPort"
 
 if ($ApiBaseUrl -notmatch '^https?://[A-Za-z0-9.\-:\[\]]+(:[0-9]{1,5})?(/[^\s]*)?$') {
@@ -192,9 +192,9 @@ switch ($Action) {
     'BuildRun' {
         Start-Emulator
         Invoke-WslFlutter -FlutterAction build
-        $apk = Join-Path $mobileRoot 'build\app\outputs\flutter-apk\app-debug.apk'
+        $apk = Join-Path $mobileRoot 'build\app\outputs\flutter-apk\app-development-debug.apk'
         if (-not (Test-Path -LiteralPath $apk -PathType Leaf)) { throw "Build succeeded but APK was not found: $apk" }
         Invoke-Adb -Arguments @('-s', $DeviceId, 'install', '-r', $apk)
-        Invoke-Adb -Arguments @('-s', $DeviceId, 'shell', 'am', 'start', '-n', "$packageName/.MainActivity")
+        Invoke-Adb -Arguments @('-s', $DeviceId, 'shell', 'am', 'start', '-n', "$packageName/com.abashyaka.app.MainActivity")
     }
 }

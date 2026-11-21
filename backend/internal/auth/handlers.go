@@ -16,7 +16,8 @@ import (
 )
 
 type otpRequestBody struct {
-	PhoneE164 string `json:"phone_e164"`
+	PhoneE164    string `json:"phone_e164"`
+	InstallationID string `json:"installation_id,omitempty"`
 }
 
 type otpVerifyBody struct {
@@ -107,13 +108,14 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.otpProvider.SendOTP(r.Context(), OTPDelivery{
-		ChallengeID: otpID,
-		PhoneE164:   phone,
-		Purpose:     "login",
-		Code:        code,
-		CreatedAt:   s.now(),
-		ExpiresAt:   expiresAt,
-		RunID:       s.cfg.QAOTPRunID,
+		ChallengeID:   otpID,
+		PhoneE164:     phone,
+		Purpose:       "login",
+		Code:          code,
+		CreatedAt:     s.now(),
+		ExpiresAt:     expiresAt,
+		RunID:         s.cfg.QAOTPRunID,
+		InstallationID: body.InstallationID,
 	}); err != nil {
 		_, _ = s.db.ExecContext(r.Context(), `DELETE FROM otp_codes WHERE id = $1`, otpID)
 		writeError(w, http.StatusServiceUnavailable, "OTP_UNAVAILABLE", "Phone verification is currently unavailable.")

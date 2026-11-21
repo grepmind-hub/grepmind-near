@@ -34,13 +34,14 @@ type sessionClaims struct {
 // OTPDelivery is a server-generated challenge handed to a delivery transport.
 // The code must never be echoed through the authentication HTTP response.
 type OTPDelivery struct {
-	ChallengeID string
-	PhoneE164   string
-	Purpose     string
-	Code        string
-	CreatedAt   time.Time
-	ExpiresAt   time.Time
-	RunID       string
+	ChallengeID   string
+	PhoneE164     string
+	Purpose       string
+	Code          string
+	CreatedAt     time.Time
+	ExpiresAt     time.Time
+	RunID         string
+	InstallationID string
 }
 
 // OTPDeliveryProvider is the boundary for an SMS gateway or isolated QA inbox.
@@ -189,6 +190,12 @@ func (s *Service) issueTokensTx(ctx context.Context, tx *sqlx.Tx, userID, userAg
 		return "", "", err
 	}
 	return accessToken, refreshToken, nil
+}
+
+// IssueTokensForUser issues access and refresh tokens for a user without
+// requiring OTP verification. Used by Google Sign-In.
+func (s *Service) IssueTokensForUser(ctx context.Context, userID, userAgent, ipAddress string) (string, string, error) {
+	return s.issueLoginTokens(ctx, userID, userAgent, ipAddress, false)
 }
 
 // rotateRefreshToken locks the current session row, verifies its digest and

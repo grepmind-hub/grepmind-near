@@ -92,7 +92,7 @@ class OrderPaymentCard extends ConsumerWidget {
               _line('Amount payable', _money(amount)),
               _line(
                 'Payment method',
-                paymentMethod == 'upi' ? 'Sandbox UPI' : 'Grepmind sandbox',
+                paymentMethod == 'upi' ? 'Sandbox UPI' : 'Abashyaka sandbox',
               ),
               _line('Payment status', _paymentLabel(status, attempt)),
               if (data.isNotEmpty &&

@@ -1,0 +1,181 @@
+name: abashyaka
+
+x-service: &service
+  restart: unless-stopped
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  postgres:
+    <<: *service
+    container_name: abashyaka-postgres
+    image: ${POSTGRES_IMAGE:?Set a digest-pinned PostgreSQL 16 and PostGIS image}
+    environment:
+      POSTGRES_DB: abashyaka
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set the PostgreSQL administrator password}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "abashyaka"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [data]
+    mem_limit: 1536m
+
+  minio:
+    <<: *service
+    container_name: abashyaka-minio
+    image: ${MINIO_IMAGE:?Set a digest-pinned MinIO image with a curl healthcheck}
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set the MinIO administrator user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set the MinIO administrator password}
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [data]
+    mem_limit: 1024m
+
+  api:
+    <<: *service
+    container_name: abashyaka-api
+    profiles: [api, portals, gateway, tunnel]
+    build:
+      context: ../../backend
+      target: api
+    environment:
+      # Staging environment: FCM test OTP is restricted to APP_ENV=qa.
+      # Change to 'production' and set FCM_TEST_OTP_ENABLED=false when
+      # real SMS OTP delivery is enabled.
+      APP_ENV: qa
+      APP_BASE_URL: https://api.abashyaka.com
+      DB_HOST: postgres
+      DB_NAME: abashyaka
+      DB_USER: abashyaka_api
+      DB_PASSWORD: ${DB_APP_PASSWORD:?Set the restricted PostgreSQL application password}
+      JWT_SECRET: ${JWT_SECRET:?Set a unique JWT signing secret}
+      SMS_PROVIDER: stub
+      QA_OTP_DELIVERY_ENABLED: "false"
+      RIDER_DISPATCH_ENABLED: "false"
+      RIDER_EARNINGS_ALLOW_SYNTHETIC: "false"
+      RIDER_EARNINGS_POSTING_ENABLED: "false"
+      SANDBOX_COD_ENABLED: "false"
+      PAYMENT_SANDBOX_ENABLED: "false"
+      RIDER_EARNINGS_POLICY_APPROVED: "false"
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: abashyaka-public
+      S3_PRIVATE_BUCKET: abashyaka-private
+      S3_ACCESS_KEY: ${S3_APP_ACCESS_KEY:?Set the restricted MinIO application key}
+      S3_SECRET_KEY: ${S3_APP_SECRET_KEY:?Set the restricted MinIO application secret}
+      CORS_ORIGINS: https://admin.abashyaka.com
+      # Firebase Cloud Messaging — staging OTP delivery.
+      FCM_PROJECT_ID: abashyaka
+      FCM_SERVICE_ACCOUNT_PATH: /secrets/firebase-service-account.json
+      FCM_HTTP_TIMEOUT: 10s
+      FCM_MAX_RETRIES: "3"
+      # Enable FCM test OTP for QA/staging. Set to "false" in production.
+      FCM_TEST_OTP_ENABLED: "true"
+      FCM_TEST_OTP_CHANNEL: verification
+      # QA OTP allowlist: approved staging phone numbers only.
+      QA_OTP_ALLOWLIST: ${QA_OTP_ALLOWLIST:?Set the QA OTP allowlist}
+      QA_OTP_RUN_ID: ${QA_OTP_RUN_ID:?Set the QA OTP run ID}
+      QA_OTP_WRITER_TOKEN: ${QA_OTP_WRITER_TOKEN:?Set the QA OTP writer token}
+      # Google Sign-In backend verification.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?Set the Google web OAuth client ID}
+    volumes:
+      - /opt/abashyaka/secrets/firebase/service-account.json:/secrets/firebase-service-account.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    # Existing edge bridge supplies the outbound gateway for Firebase OAuth.
+    # PostgreSQL and MinIO remain attached only to the internal data network.
+    networks: [data, app, edge]
+    mem_limit: 768m
+
+  admin:
+    <<: *service
+    container_name: abashyaka-admin
+    profiles: [portals]
+    build:
+      context: ../../apps/admin-web
+      args:
+        NEXT_PUBLIC_MERCHANT_PORTAL_URL: https://merchant.abashyaka.com/
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_PROXY_TARGET: http://api:8080/api/v1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/admin/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [app]
+    mem_limit: 512m
+
+  nginx:
+    <<: *service
+    container_name: abashyaka-nginx
+    profiles: [gateway, tunnel]
+    image: ${NGINX_IMAGE:?Set a digest-pinned Nginx image}
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "--header=Host: api.abashyaka.com", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [app, edge]
+    mem_limit: 128m
+
+  cloudflared:
+    <<: *service
+    container_name: abashyaka-cloudflared
+    profiles: [tunnel]
+    image: ${CLOUDFLARED_IMAGE:?Set a digest-pinned Cloudflare Tunnel image}
+    # The verified deployment account owns the mode-0600 token file.
+    user: "1000:1000"
+    command: ["tunnel", "--no-autoupdate", "run", "--token-file", "/run/secrets/tunnel_token"]
+    secrets:
+      - tunnel_token
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks: [edge]
+    mem_limit: 256m
+
+networks:
+  data:
+    internal: true
+  app:
+    internal: true
+  edge:
+
+volumes:
+  postgres:
+  minio:
+
+secrets:
+  tunnel_token:
+    file: ${TUNNEL_TOKEN_FILE:-/opt/abashyaka/secrets/tunnel-token}

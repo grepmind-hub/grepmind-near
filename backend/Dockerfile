@@ -1,6 +1,6 @@
-FROM golang:1.22-alpine AS base
+FROM golang:1.26-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache postgresql-client ca-certificates tzdata && \
+RUN apk add --no-cache postgresql-client ca-certificates tzdata gcc musl-dev && \
     addgroup -S app && adduser -S app -G app
 
 # ---------------------------------------------------------------
@@ -13,7 +13,7 @@ COPY cmd/api ./cmd/api
 COPY internal ./internal
 COPY pkg ./pkg
 COPY migrations ./migrations
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/api ./cmd/api
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/api ./cmd/api
 USER app
 EXPOSE 8080
 ENTRYPOINT ["/bin/api"]
@@ -28,7 +28,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd/qa-otp-inbox ./cmd/qa-otp-inbox
 COPY internal/qaotpinbox ./internal/qaotpinbox
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/qa-otp-inbox ./cmd/qa-otp-inbox
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/qa-otp-inbox ./cmd/qa-otp-inbox
 EXPOSE 8090
 ENTRYPOINT ["/bin/qa-otp-inbox"]
 
@@ -41,6 +41,6 @@ RUN go mod download
 COPY cmd/worker ./cmd/worker
 COPY internal ./internal
 COPY pkg ./pkg
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/worker ./cmd/worker
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -o /bin/worker ./cmd/worker
 USER app
 ENTRYPOINT ["/bin/worker"]

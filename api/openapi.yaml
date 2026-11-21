@@ -787,6 +787,194 @@ paths:
               schema:
                 $ref: '#/components/schemas/StandardResponse'
 
+  /auth/google/verify:
+    post:
+      summary: Verify a Google ID token and establish a session
+      tags: [auth]
+      description: |
+        Verifies a Google ID token issued by the configured Web OAuth client.
+        The backend validates signature, audience, issuer, and expiry. The
+        Google OAuth client ID must be explicitly configured via
+        GOOGLE_OAUTH_CLIENT_ID; the default web client from google-services.json
+        is never used silently. Automatic account merging by email or phone is
+        not performed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_token]
+              properties:
+                id_token:
+                  type: string
+                  description: Google ID token from native Google Sign-In.
+                installation_id:
+                  type: string
+                  description: Client installation ID for device association.
+                fcm_token:
+                  type: string
+                  description: FCM registration token for push delivery.
+                platform:
+                  type: string
+                  enum: [android, ios, web]
+                  description: Device platform.
+                environment:
+                  type: string
+                  enum: [qa, production]
+                  description: Application environment.
+      responses:
+        '200':
+          description: Session established
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          phone_e164:
+                            type: string
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                      is_new_user:
+                        type: boolean
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          description: Invalid Google ID token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ---------------------------------------------------------------
+  # Device registration (FCM push delivery)
+  # ---------------------------------------------------------------
+  /devices/register:
+    post:
+      summary: Register or update a device installation for FCM push delivery
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      description: |
+        Associates an FCM registration token with the authenticated user.
+        FCM tokens are delivery addresses only and are never treated as
+        authentication credentials or proof of phone ownership. Account
+        isolation is enforced: an installation can only be bound to one user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [installation_id, fcm_token, platform, environment]
+              properties:
+                installation_id:
+                  type: string
+                  description: Client-generated installation identifier.
+                fcm_token:
+                  type: string
+                  description: FCM registration token from Firebase Messaging.
+                platform:
+                  type: string
+                  enum: [android, ios, web]
+                environment:
+                  type: string
+                  enum: [qa, production]
+                notification_permission:
+                  type: boolean
+                  description: Whether the user granted notification permission.
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      installation_id:
+                        type: string
+                      platform:
+                        type: string
+                      environment:
+                        type: string
+                      notification_permission:
+                        type: boolean
+                      active:
+                        type: boolean
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /devices/revoke:
+    post:
+      summary: Revoke device registrations for the authenticated user
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                installation_id:
+                  type: string
+                fcm_token:
+                  type: string
+      responses:
+        '200':
+          description: Device(s) revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /devices:
+    get:
+      summary: List active device registrations for the authenticated user
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of active device registrations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+
   # ---------------------------------------------------------------
   # Me (authenticated user)
   # ---------------------------------------------------------------

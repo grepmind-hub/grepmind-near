@@ -1,4 +1,4 @@
-package local.grepmind.grepmind_mobile
+package com.abashyaka.app
 
 import io.flutter.embedding.android.FlutterActivity
 

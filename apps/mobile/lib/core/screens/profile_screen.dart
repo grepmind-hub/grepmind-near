@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:grepmind_mobile/core/notifications/notification_permission_card.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/models/customer_address.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
@@ -1698,6 +1699,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(kScreenPadding),
         children: [
+          const NotificationPermissionCard(),
+          const SizedBox(height: 16),
           const PremiumCard(
             padding: EdgeInsets.all(18),
             child: Row(

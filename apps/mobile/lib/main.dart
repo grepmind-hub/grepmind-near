@@ -22,19 +22,54 @@ import 'package:grepmind_mobile/core/screens/rider_locality_hubs_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/notifications/firebase_bootstrap.dart';
+import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  final firebaseConfig = FirebaseBuildConfig.fromEnvironment();
+  unawaited(() async {
+    final status = firebaseConfig.isEmpty
+        ? await initializeFirebaseFromNative()
+        : await initializeFirebase(firebaseConfig);
+    // NotificationManager is initialized after the first frame
+    // to ensure an Activity context is available for permission requests.
+  }());
   // Initialize API client before running the app
   apiClient.init();
   runApp(const ProviderScope(child: GrepmindNearApp()));
 }
 
-class GrepmindNearApp extends ConsumerWidget {
+class GrepmindNearApp extends ConsumerStatefulWidget {
   const GrepmindNearApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GrepmindNearApp> createState() => _GrepmindNearAppState();
+}
+
+class _GrepmindNearAppState extends ConsumerState<GrepmindNearApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Request notification permission after the first frame is rendered,
+    // ensuring an Activity context is available.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestNotificationPermission();
+    });
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    try {
+      final manager = NotificationManager();
+      await manager.initialize();
+    } catch (_) {
+      // Initialization failure must not block app startup.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
     return MaterialApp(

@@ -1,12 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:grepmind_mobile/core/screens/merchant_welcome_screen.dart';
 import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
+import 'package:grepmind_mobile/core/notifications/otp_notification_banner.dart';
+import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/constants/app_constants.dart';
+import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
 /// Phone-number onboarding screen with the production OTP flow.
@@ -31,16 +38,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   String? _challengeId;
   int _resendSeconds = 0;
   Timer? _resendTimer;
+  FcmOtpPayload? _receivedOtpPayload;
+
+  static const String _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  static Future<void>? _googleInitialization;
 
   @override
   void initState() {
     super.initState();
     _isMerchantMode = widget.initialMerchantMode;
+    // Wire up FCM OTP callback to display the banner.
+    NotificationManager().onOtpReceived = (payload) {
+      if (mounted &&
+          _otpSent &&
+          !_otpRequestInFlight &&
+          payload.matchesChallenge(
+            _challengeId,
+            _normalizedPhone,
+            DateTime.now(),
+          )) {
+        setState(() => _receivedOtpPayload = payload);
+      }
+    };
   }
 
   @override
   void dispose() {
     _resendTimer?.cancel();
+    NotificationManager().onOtpReceived = null;
     cancel();
     _phoneController.dispose();
     _otpController.dispose();
@@ -67,11 +97,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
     _otpRequestInFlight = true;
     _pendingAutofillCode = null;
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _receivedOtpPayload = null;
+    });
     try {
       listenForCode();
     } catch (_) {
       // Keep manual entry available when Retriever is unavailable.
+    }
+    // Register device pre-login.
+    if (const bool.fromEnvironment('FCM_TEST_OTP_ENABLED')) {
+      try {
+        final installationId = await NotificationManager().getInstallationId();
+        final fcmToken = await NotificationManager().getFcmToken();
+        if (installationId != null && fcmToken != null) {
+          await apiClient.post(
+            '/devices/register-prelogin',
+            data: {
+              'installation_id': installationId,
+              'fcm_token': fcmToken,
+              'platform': 'android',
+              'environment': const String.fromEnvironment(
+                'FIREBASE_ENVIRONMENT',
+                defaultValue: 'qa',
+              ),
+              'notification_permission': true,
+            },
+          );
+        }
+      } catch (_) {
+        // Pre-login registration failure must not block login.
+      }
     }
     final result = await ref
         .read(authProvider.notifier)
@@ -137,6 +194,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     setState(() {
       _sending = false;
       _verifyingOtp = false;
+      if (success) _receivedOtpPayload = null;
     });
     _showMessage(
       success
@@ -151,6 +209,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     setState(() {
       _otpSent = false;
       _challengeId = null;
+      _receivedOtpPayload = null;
       _resendSeconds = 0;
       _otpController.clear();
     });
@@ -457,9 +516,85 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   void _showGoogleSetupMessage() {
-    _showMessage(
-      'Google sign-in will be available after secure provider setup. Use phone OTP for now.',
-    );
+    if (_googleServerClientId.isEmpty) {
+      _showMessage(
+        'Google sign-in will be available after secure provider setup. Use phone OTP for now.',
+      );
+      return;
+    }
+    _signInWithGoogle();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_googleServerClientId.isEmpty) {
+      _showMessage('Google OAuth client ID is not configured.');
+      return;
+    }
+    setState(() => _sending = true);
+    try {
+      await (_googleInitialization ??= _googleSignIn.initialize(
+        serverClientId: _googleServerClientId,
+      ));
+      final account = await _googleSignIn.authenticate();
+      final auth = account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        setState(() => _sending = false);
+        _showMessage('Could not obtain Google ID token.');
+        return;
+      }
+
+      // Get installation ID for device association.
+      final installationId = await NotificationManager().getInstallationId();
+      final fcmToken = await NotificationManager().getFcmToken();
+
+      final response = await apiClient.post(
+        '/auth/google/verify',
+        data: {
+          'id_token': idToken,
+          'installation_id': installationId,
+          'fcm_token': fcmToken,
+          'platform': 'android',
+          'environment': const String.fromEnvironment(
+            'FIREBASE_ENVIRONMENT',
+            defaultValue: 'qa',
+          ),
+        },
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final resultData = data['data'] as Map<String, dynamic>;
+      final accessToken = resultData['access_token'] as String;
+      final refreshToken = resultData['refresh_token'] as String;
+      final userMap = resultData['user'] as Map<String, dynamic>;
+      final user = AppUser.fromJson(userMap);
+
+      await ref
+          .read(authProvider.notifier)
+          .setSession(
+            token: accessToken,
+            user: user,
+            activeRole:
+                user.roles.contains('merchant') &&
+                    !user.roles.contains('customer')
+                ? 'merchant'
+                : null,
+          );
+      await const FlutterSecureStorage().write(
+        key: AppConstants.refreshTokenKey,
+        value: refreshToken,
+      );
+      await NotificationManager().registerAfterAuth();
+
+      if (!mounted) return;
+      setState(() => _sending = false);
+      _showMessage('Signed in successfully');
+    } catch (e) {
+      _googleInitialization = null;
+      if (!mounted) return;
+      setState(() => _sending = false);
+      _showMessage('Google sign-in failed. Please try again.');
+    }
   }
 
   Widget _otpStep() {
@@ -468,6 +603,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       key: const ValueKey('otp-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_receivedOtpPayload != null &&
+            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
+          OtpNotificationBanner(
+            payload: _receivedOtpPayload!,
+            key: ValueKey(_receivedOtpPayload!.challengeId),
+            onCopy: (code) => _setOtpCode(code),
+          ),
+        if (_receivedOtpPayload != null &&
+            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
+          const SizedBox(height: 12),
         Semantics(
           label: '6-digit verification code',
           textField: true,
@@ -553,10 +698,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 ? _loadingLabel()
                 : const Text(
                     'Verify',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
           ),
         ),

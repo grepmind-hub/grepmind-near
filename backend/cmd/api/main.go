@@ -21,7 +21,9 @@ import (
 	"grepmind-near/backend/internal/businessclaims"
 	"grepmind-near/backend/internal/codcash"
 	"grepmind-near/backend/internal/deliverydispatch"
+	"grepmind-near/backend/internal/devices"
 	"grepmind-near/backend/internal/discovery"
+	"grepmind-near/backend/internal/fcm"
 	"grepmind-near/backend/internal/financialaccess"
 	"grepmind-near/backend/internal/media"
 	"grepmind-near/backend/internal/merchantanalytics"
@@ -62,14 +64,75 @@ func main() {
 	if err != nil {
 		log.Warn().Err(err).Msg("media service initialization warning")
 	}
+
+	// Firebase Cloud Messaging service (Phase F1).
+	var fcmSvc *fcm.Service
+	if strings.TrimSpace(cfg.FCMServiceAccountPath) != "" {
+		fcmSvc, err = fcm.NewService(fcm.Config{
+			ServiceAccountPath: cfg.FCMServiceAccountPath,
+			ProjectID:          cfg.FCMProjectID,
+			HTTPTimeout:        cfg.FCMHTTPTimeout,
+			MaxRetries:         cfg.FCMMaxRetries,
+		})
+		if err != nil {
+			log.Warn().Err(err).Msg("FCM service initialization warning; push notifications disabled")
+		}
+	}
+
 	notifHub := notifications.NewHub(db.DB)
 	opsSvc := operations.NewService(db)
+
+	// Device registration service (Phase F3).
+	deviceSvc := devices.NewService(db.DB, fcmSvc)
+	deviceSvc.SetEnvironment(cfg.Env)
+
+	// Wire FCM and device services into the notification hub for push delivery (Phase F7).
+	notifHub.SetPushServices(fcmSvc, deviceSvc)
+
+	// FCM test OTP provider (Phase F4) - QA only, fail-closed in production.
+	var fcmOTPProvider auth.OTPDeliveryProvider
+	if cfg.FCMTestOTPEnabled {
+		fcmOTPProvider, err = auth.NewFCMOTPDeliveryProvider(auth.FCMOTPConfig{
+			DeviceService:   deviceSvc,
+			FCMService:      fcmSvc,
+			Environment:     cfg.Env,
+			Enabled:         true,
+			AndroidChannel:  cfg.FCMTestOTPChannel,
+		})
+		if err != nil {
+			log.Fatal().Err(err).Msg("FCM test OTP provider configuration error")
+		}
+		// Rebuild auth service with the FCM OTP provider.
+		authSvc = auth.NewServiceWithOTPProvider(db, cfg, fcmOTPProvider)
+	}
 
 	earningsSvc := riderearnings.NewService(db, cfg)
 	codSvc := codcash.NewService(db, cfg.SandboxCODEnabled)
 	dispatchSvc := deliverydispatch.NewService(db, notifHub, cfg, earningsSvc.RecordCompletionTx)
 	dispatchSvc.SetCODCollectionRecorder(codSvc.RecordCollectionTx)
 	mux := setupRouter(authSvc, discSvc, modSvc, mediaSvc, notifHub, opsSvc, platformcommerce.NewService(db, cfg.SandboxCODEnabled), dispatchSvc, earningsSvc, codSvc)
+
+	// Device registration (Phase F3) - authenticated routes.
+	mux.HandleFunc("POST /api/v1/devices/register", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		deviceSvc.HandleRegister(w, r, userID)
+	}))
+	mux.HandleFunc("POST /api/v1/devices/revoke", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		deviceSvc.HandleRevoke(w, r, userID)
+	}))
+	mux.HandleFunc("GET /api/v1/devices", requireAuth(authSvc, func(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {
+		deviceSvc.HandleList(w, r, userID)
+	}))
+
+	// Pre-login device registration (Phase F3) - unauthenticated.
+	// Allows test installations to register before authentication.
+	mux.HandleFunc("POST /api/v1/devices/register-prelogin", func(w http.ResponseWriter, r *http.Request) {
+		deviceSvc.HandlePreLoginRegister(w, r)
+	})
+
+	// Google Sign-In (Phase F6) - server-side ID token verification.
+	mux.HandleFunc("POST /api/v1/auth/google/verify", func(w http.ResponseWriter, r *http.Request) {
+		handleGoogleSignIn(w, r, authSvc, deviceSvc, cfg.GoogleOAuthClientID)
+	})
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -109,9 +172,12 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	if opsSvc != nil && notifHub != nil {
 		opsSvc.SetOrderStatusPublisher(func(ctx context.Context, customerID, businessID, orderID, status string) {
 			notifHub.Publish(ctx, notifications.Event{
-				Type: "order.status", UserID: customerID, BusinessID: businessID,
-				Title: "Order status updated", Body: "Your order status is now " + strings.ReplaceAll(status, "_", " ") + ".",
-				Payload: map[string]interface{}{"order_id": orderID, "status": status},
+				Type:       "order.status", UserID: customerID, BusinessID: businessID,
+				Title:      "Order status updated",
+				Body:       "Your order status is now " + strings.ReplaceAll(status, "_", " ") + ".",
+				Payload:    map[string]interface{}{"order_id": orderID, "status": status},
+				SendFCM:    true,
+				FCMChannel: "orders",
 			})
 		})
 	}
@@ -130,25 +196,33 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 				payload["reason"] = reason
 			}
 			notifHub.Publish(ctx, notifications.Event{
-				Type: "order.status", UserID: customerID,
-				Title: "Order status updated", Body: customerBody, Payload: payload,
+				Type:       "order.status", UserID: customerID,
+				Title:      "Order status updated", Body: customerBody, Payload: payload,
+				SendFCM:    true,
+				FCMChannel: "orders",
 			})
 			notifHub.Publish(ctx, notifications.Event{
-				Type: "platform.order.status", BusinessID: businessID,
-				Title: "Platform order updated", Body: "Order " + orderID + " is " + labels[status] + ".", Payload: payload,
+				Type:       "platform.order.status", BusinessID: businessID,
+				Title:      "Platform order updated", Body: "Order " + orderID + " is " + labels[status] + ".", Payload: payload,
+				SendFCM:    true,
+				FCMChannel: "merchant_operations",
 			})
 		})
 		if platformCommerceSvc != nil {
 			platformCommerceSvc.SetOrderAssignmentPublisher(func(ctx context.Context, customerID, businessID, orderID string) {
 				notifHub.Publish(ctx, notifications.Event{
-					Type: "platform.order.assigned", BusinessID: businessID,
-					Title: "New Grepmind order", Body: "A new platform order is awaiting your response.",
-					Payload: map[string]interface{}{"order_id": orderID, "status": "placed"},
+					Type:       "platform.order.assigned", BusinessID: businessID,
+					Title:      "New Grepmind order", Body: "A new platform order is awaiting your response.",
+					Payload:    map[string]interface{}{"order_id": orderID, "status": "placed"},
+					SendFCM:    true,
+					FCMChannel: "merchant_operations",
 				})
 				notifHub.Publish(ctx, notifications.Event{
-					Type: "order.status", UserID: customerID,
-					Title: "Order placed", Body: "Your Grepmind order is awaiting partner acceptance.",
-					Payload: map[string]interface{}{"order_id": orderID, "status": "placed"},
+					Type:       "order.status", UserID: customerID,
+					Title:      "Order placed", Body: "Your Grepmind order is awaiting partner acceptance.",
+					Payload:    map[string]interface{}{"order_id": orderID, "status": "placed"},
+					SendFCM:    true,
+					FCMChannel: "orders",
 				})
 			})
 		}

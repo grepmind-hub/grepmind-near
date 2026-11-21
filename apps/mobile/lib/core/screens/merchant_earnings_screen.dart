@@ -166,7 +166,7 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
               const _EmptyCard(
                 icon: Icons.receipt_long_outlined,
                 title: 'No payable records for this period',
-                subtitle: 'Eligible order payables will appear here when recorded by Grepmind.',
+                subtitle: 'Eligible order payables will appear here when recorded by Abashyaka.',
               )
             else
               for (final row in payables)

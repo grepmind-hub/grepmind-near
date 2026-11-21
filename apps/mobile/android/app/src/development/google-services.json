@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "666331814501",
+    "project_id": "abashyaka",
+    "storage_bucket": "abashyaka.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:666331814501:android:12681c353c395eeb5f848c",
+        "android_client_info": {
+          "package_name": "com.abashyaka.app.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "666331814501-npjq1kekd1pg8lp88brobl0bitventm9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.abashyaka.app.dev",
+            "certificate_hash": "b78ad43c0146207e0a0f4c512941443ebabe258b"
+          }
+        },
+        {
+          "client_id": "666331814501-v2vtkg0t27b5ld6edavtqkm8dlkr94l3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwl8JjCWypKw2NC0S96KiDcUSVBMsRr88"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "666331814501-v2vtkg0t27b5ld6edavtqkm8dlkr94l3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

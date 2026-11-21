@@ -233,8 +233,8 @@ if ($KeepAppRunning) {
   }
 } else {
   $script:operation = 'app relaunch'
-  [void](Invoke-Adb @('-s', $Serial, 'shell', 'am', 'force-stop', 'local.grepmind.grepmind_mobile'))
-  [void](Invoke-Adb @('-s', $Serial, 'shell', 'monkey', '-p', 'local.grepmind.grepmind_mobile', '1'))
+  [void](Invoke-Adb @('-s', $Serial, 'shell', 'am', 'force-stop', 'com.abashyaka.app.dev'))
+  [void](Invoke-Adb @('-s', $Serial, 'shell', 'monkey', '-p', 'com.abashyaka.app.dev', '1'))
   Start-Sleep -Seconds 12
   $xml = Get-UiXml
 }

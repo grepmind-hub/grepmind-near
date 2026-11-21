@@ -91,7 +91,7 @@ class _ClaimRequestSheetState extends State<_ClaimRequestSheet> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'Signing in verifies your Grepmind account, not control of this business. An administrator will review your claim before any ownership or access changes.',
+              'Signing in verifies your Abashyaka account, not control of this business. An administrator will review your claim before any ownership or access changes.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,

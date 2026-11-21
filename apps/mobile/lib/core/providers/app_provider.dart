@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
 
 const bool _qaOtpAutomation = bool.fromEnvironment(
   'QA_OTP_AUTOMATION',
@@ -225,16 +226,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await storage.delete(key: AppConstants.refreshTokenKey);
     await storage.delete(key: AppConstants.userKey);
     await storage.delete(key: AppConstants.activeRoleKey);
+    // Clean up device registration on logout (Phase F3).
+    await NotificationManager().logoutCleanup();
     state = const AuthState();
   }
 
   /// Requests a server-generated OTP challenge. The response never contains
   /// the code; delivery is handled by the configured SMS/QA transport.
   Future<Map<String, dynamic>?> requestOTP(String phone) async {
+    // Get installation ID for pre-login device registration.
+    String? installationId;
+    if (const bool.fromEnvironment('FCM_TEST_OTP_ENABLED')) {
+      try {
+        installationId = await NotificationManager().getInstallationId();
+      } catch (_) {
+        // Existing SMS and private QA transports do not depend on FCM storage.
+      }
+    }
     try {
       final res = await apiClient.post(
         '/auth/otp/request',
-        data: {'phone_e164': phone},
+        data: {
+          'phone_e164': phone,
+          if (installationId != null) 'installation_id': installationId,
+        },
       );
       final data = res.data as Map<String, dynamic>;
       final resultData = data['data'] as Map<String, dynamic>;
@@ -285,20 +300,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final refreshToken = resultData['refresh_token'] as String;
       final userMap = resultData['user'] as Map<String, dynamic>;
       final user = AppUser.fromJson(userMap);
-      final targetRole = preferredRole != null &&
+      final targetRole =
+          preferredRole != null &&
               (preferredRole == 'merchant'
                   ? (user.roles.contains('merchant') ||
-                      user.roles.contains('professional'))
+                        user.roles.contains('professional'))
                   : user.roles.contains(preferredRole))
           ? preferredRole
           : (user.roles.contains('merchant') && !user.roles.contains('customer')
-              ? 'merchant'
-              : null);
-      await setSession(
-        token: accessToken,
-        user: user,
-        activeRole: targetRole,
-      );
+                ? 'merchant'
+                : null);
+      await setSession(token: accessToken, user: user, activeRole: targetRole);
       await _storeRefreshToken(refreshToken);
       return true;
     } catch (e) {
@@ -392,8 +404,8 @@ class LocationNotifier extends StateNotifier<AppLocation> {
       final canonicalLocalityId = localityName.toLowerCase() == 'chhatia'
           ? '02200000-0000-4000-8000-000000000201'
           : localityName.toLowerCase() == 'kuanpal'
-              ? '02200000-0000-4000-8000-000000000101'
-              : (location['locality_id'] as String? ?? '');
+          ? '02200000-0000-4000-8000-000000000101'
+          : (location['locality_id'] as String? ?? '');
       setLocation(
         AppLocation(
           cityName: location['city'] as String,
