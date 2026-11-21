@@ -193,7 +193,8 @@ func (s *Service) Revoke(ctx context.Context, userID string, req revokeRequest) 
 	result, err := s.db.ExecContext(ctx, `
 		UPDATE device_registrations
 		SET active = false, revoked_at = $1, updated_at = $1
-		WHERE user_id = $2 AND active = true AND revoked_at IS NULL
+		WHERE active = true AND revoked_at IS NULL
+			AND (user_id = $2 OR user_id IS NULL)
 			AND ($3 = '' OR installation_id = $3)
 			AND ($4 = '' OR fcm_token = $4)
 	`, time.Now().UTC(), uID, req.InstallationID, req.FCMToken)

@@ -312,6 +312,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 : null);
       await setSession(token: accessToken, user: user, activeRole: targetRole);
       await _storeRefreshToken(refreshToken);
+      await NotificationManager().registerAfterAuth();
       return true;
     } catch (e) {
       return false;

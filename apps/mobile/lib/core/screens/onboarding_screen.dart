@@ -9,6 +9,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
+import 'package:grepmind_mobile/core/notifications/otp_notification_banner.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
@@ -28,6 +29,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with CodeAutoFill {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  FcmOtpPayload? _receivedOtpPayload;
   late bool _isMerchantMode;
   bool _sending = false;
   bool _otpSent = false;
@@ -50,7 +52,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void initState() {
     super.initState();
     _isMerchantMode = widget.initialMerchantMode;
-    // The OTP is shown through a heads-up notification from NotificationManager.
+    NotificationManager().onOtpReceived = (payload) {
+      if (mounted &&
+          _otpSent &&
+          !_otpRequestInFlight &&
+          payload.matchesChallenge(
+            _challengeId,
+            _normalizedPhone,
+            DateTime.now(),
+          )) {
+        setState(() => _receivedOtpPayload = payload);
+      }
+    };
   }
 
   @override
@@ -189,10 +202,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   void _useDifferentNumber() {
     _resendTimer?.cancel();
+    NotificationManager().onOtpReceived = null;
     cancel();
     setState(() {
       _otpSent = false;
       _challengeId = null;
+      _receivedOtpPayload = null;
       _resendSeconds = 0;
       _otpController.clear();
     });
@@ -586,6 +601,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       key: const ValueKey('otp-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_receivedOtpPayload != null &&
+            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
+          OtpNotificationBanner(
+            payload: _receivedOtpPayload!,
+            key: ValueKey(_receivedOtpPayload!.challengeId),
+            onCopy: (code) => _setOtpCode(code),
+          ),
+        if (_receivedOtpPayload != null &&
+            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
+          const SizedBox(height: 12),
         SizedBox(
           height: 62,
           child: Stack(

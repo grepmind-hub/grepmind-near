@@ -430,10 +430,16 @@ class NotificationManager {
     final accessToken = await storage.read(key: AppConstants.accessTokenKey);
     if (accessToken == null || accessToken.isEmpty) return;
 
+    final installationId = await getInstallationId();
+    final fcmToken = await getFcmToken();
+
     try {
       await _api.post(
         '/devices/revoke',
-        data: {},
+        data: {
+          if (installationId != null) 'installation_id': installationId,
+          if (fcmToken != null) 'fcm_token': fcmToken,
+        },
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
     } catch (_) {

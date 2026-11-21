@@ -51,19 +51,30 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
       if (mounted) {
         setState(() => _profile = data);
       }
-      final availability = await apiClient.get('/rider/availability');
-      final availabilityData =
-          (availability.data as Map<String, dynamic>)['data']
-              as Map<String, dynamic>;
-      final offers = await apiClient.get('/rider/offers');
-      final offerData =
-          ((offers.data as Map<String, dynamic>)['data'] as List<dynamic>? ??
-                  const [])
-              .whereType<Map<String, dynamic>>()
-              .toList(growable: false);
+      bool online = false;
+      List<Map<String, dynamic>> offerData = const [];
+      try {
+        final availability = await apiClient.get('/rider/availability');
+        final availabilityData =
+            (availability.data as Map<String, dynamic>)['data']
+                as Map<String, dynamic>;
+        online = availabilityData['online'] == true;
+      } catch (_) {
+        // Rider dispatch may be disabled in this environment.
+      }
+      try {
+        final offers = await apiClient.get('/rider/offers');
+        offerData =
+            ((offers.data as Map<String, dynamic>)['data'] as List<dynamic>? ??
+                    const [])
+                .whereType<Map<String, dynamic>>()
+                .toList(growable: false);
+      } catch (_) {
+        // Offers unavailable when dispatch is disabled.
+      }
       if (mounted) {
         setState(() {
-          _online = availabilityData['online'] == true;
+          _online = online;
           _offers = offerData;
         });
       }
