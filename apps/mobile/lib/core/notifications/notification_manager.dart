@@ -145,6 +145,7 @@ class NotificationManager {
   static const _fcmTokenKey = 'fcm_token';
   static const _installationIdKey = 'installation_id';
   static const _notificationSetupKey = 'notification_channels_setup';
+  static const int _otpNotificationId = 4100;
 
   StreamSubscription? _tokenSubscription;
   StreamSubscription? _messageSubscription;
@@ -202,7 +203,7 @@ class NotificationManager {
       _messageSubscription = FirebaseMessaging.onMessage.listen((
         RemoteMessage message,
       ) async {
-        _handleIncomingMessage(message);
+        await _handleIncomingMessage(message);
       });
 
       // Listen to notification taps (app in background).
@@ -257,7 +258,7 @@ class NotificationManager {
   }
 
   /// Handle an incoming FCM message while the app is in the foreground.
-  void _handleIncomingMessage(RemoteMessage message) {
+  Future<void> _handleIncomingMessage(RemoteMessage message) async {
     final data = message.data;
     if (data.isEmpty) return;
 
@@ -265,9 +266,14 @@ class NotificationManager {
 
     if (type == 'otp') {
       final payload = FcmOtpPayload.fromMap(data);
-      if (payload.otpCode.isNotEmpty && onOtpReceived != null) {
-        // Reject stale messages (expired before delivery).
-        if (payload.expiresAt.isBefore(DateTime.now())) return;
+      if (payload.otpCode.isEmpty || payload.expiresAt.isBefore(DateTime.now())) {
+        return;
+      }
+      // Surface the code immediately as a heads-up system notification while
+      // the app is foregrounded, so the user does not have to find an in-app
+      // banner. The lock screen shows only the generic public version.
+      await _showOtpNotification(payload);
+      if (onOtpReceived != null) {
         onOtpReceived!(payload);
       }
       return;
@@ -289,6 +295,35 @@ class NotificationManager {
     // Show a local notification so the message is visible even when the app
     // is foregrounded.
     _showLocalNotification(payload.title, payload.body, payload.data);
+  }
+
+  /// Show the OTP code as a heads-up notification at the top of the screen.
+  Future<void> _showOtpNotification(FcmOtpPayload payload) async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'verification',
+        'Verification',
+        channelDescription: 'One-time passwords and account security codes',
+        importance: Importance.high,
+        priority: Priority.high,
+        visibility: NotificationVisibility.private,
+      );
+      const platformDetails = NotificationDetails(android: androidDetails);
+      await _localNotifications.show(
+        id: _otpNotificationId,
+        title: 'Abashyaka verification code',
+        body:
+            'Your Abashyaka one-time code is ${payload.otpCode}. '
+            'It expires at ${payload.expiresAt.toLocal().toString().substring(11, 16)}.',
+        notificationDetails: platformDetails,
+        payload: jsonEncode(<String, String>{
+          'type': 'otp',
+          'challenge_id': payload.challengeId,
+        }),
+      );
+    } catch (_) {
+      // Notification display failure must not block login.
+    }
   }
 
   /// Handle a notification tap (app opened from background/terminated).

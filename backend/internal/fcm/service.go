@@ -61,6 +61,7 @@ type Config struct {
 // Service sends FCM messages via the HTTP v1 API using OAuth2 JWT tokens.
 type Service struct {
 	projectID   string
+	sendURL     string
 	httpClient  *http.Client
 	maxRetries  int
 	timeout     time.Duration
@@ -112,6 +113,7 @@ func NewService(cfg Config) (*Service, error) {
 
 	return &Service{
 		projectID:   projectID,
+		sendURL:     fcmSendURL(projectID),
 		httpClient:  &http.Client{Timeout: cfg.HTTPTimeout},
 		maxRetries:  cfg.MaxRetries,
 		timeout:     cfg.HTTPTimeout,
@@ -174,7 +176,7 @@ func (s *Service) Send(ctx context.Context, msg Message) (*Result, error) {
 			continue
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, fcmSendURL(s.projectID), bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.sendURL, bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("create request: %w", err)
 		}
@@ -197,7 +199,7 @@ func (s *Service) Send(ctx context.Context, msg Message) (*Result, error) {
 			return &Result{Success: true, MessageID: parsed.Name}, nil
 		}
 
-		lastErr = fmt.Errorf("FCM HTTP v1 error: %d %s", resp.StatusCode, string(respBody))
+		lastErr = fmt.Errorf("FCM HTTP v1 error: status %d", resp.StatusCode)
 		if isInvalidTokenError(string(respBody)) {
 			return &Result{Success: false, Error: errInvalidToken}, errInvalidToken
 		}
@@ -256,6 +258,7 @@ func IsInvalidToken(err error) bool {
 func isInvalidTokenError(msg string) bool {
 	for _, marker := range []string{
 		"registration token is not registered",
+		"UNREGISTERED",
 		"InvalidRegistration",
 		"NotRegistered",
 		"APNAuthKeyInvalid",

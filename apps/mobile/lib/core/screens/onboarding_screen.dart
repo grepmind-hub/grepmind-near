@@ -9,7 +9,6 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
-import 'package:grepmind_mobile/core/notifications/otp_notification_banner.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
@@ -38,7 +37,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   String? _challengeId;
   int _resendSeconds = 0;
   Timer? _resendTimer;
-  FcmOtpPayload? _receivedOtpPayload;
 
   static const String _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
@@ -52,19 +50,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void initState() {
     super.initState();
     _isMerchantMode = widget.initialMerchantMode;
-    // Wire up FCM OTP callback to display the banner.
-    NotificationManager().onOtpReceived = (payload) {
-      if (mounted &&
-          _otpSent &&
-          !_otpRequestInFlight &&
-          payload.matchesChallenge(
-            _challengeId,
-            _normalizedPhone,
-            DateTime.now(),
-          )) {
-        setState(() => _receivedOtpPayload = payload);
-      }
-    };
+    // The OTP is shown through a heads-up notification from NotificationManager.
   }
 
   @override
@@ -99,7 +85,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     _pendingAutofillCode = null;
     setState(() {
       _sending = true;
-      _receivedOtpPayload = null;
     });
     try {
       listenForCode();
@@ -194,7 +179,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     setState(() {
       _sending = false;
       _verifyingOtp = false;
-      if (success) _receivedOtpPayload = null;
     });
     _showMessage(
       success
@@ -209,7 +193,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     setState(() {
       _otpSent = false;
       _challengeId = null;
-      _receivedOtpPayload = null;
       _resendSeconds = 0;
       _otpController.clear();
     });
@@ -603,79 +586,60 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       key: const ValueKey('otp-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_receivedOtpPayload != null &&
-            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
-          OtpNotificationBanner(
-            payload: _receivedOtpPayload!,
-            key: ValueKey(_receivedOtpPayload!.challengeId),
-            onCopy: (code) => _setOtpCode(code),
-          ),
-        if (_receivedOtpPayload != null &&
-            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
-          const SizedBox(height: 12),
-        Semantics(
-          label: '6-digit verification code',
-          textField: true,
-          child: SizedBox(
-            height: 62,
-            child: Stack(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (index) {
-                    final selected =
-                        index == digits.length && digits.length < 6;
-                    return Flexible(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        width: 43,
-                        height: 58,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected
-                                ? AppTheme.emerald
-                                : AppTheme.border,
-                            width: selected ? 1.8 : 1,
-                          ),
-                        ),
-                        child: Text(
-                          index < digits.length ? digits[index] : '',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: AppTheme.mainText,
-                                fontWeight: FontWeight.w700,
-                              ),
+        SizedBox(
+          height: 62,
+          child: Stack(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(6, (index) {
+                  final selected = index == digits.length && digits.length < 6;
+                  return Flexible(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      width: 43,
+                      height: 58,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected ? AppTheme.emerald : AppTheme.border,
+                          width: selected ? 1.8 : 1,
                         ),
                       ),
-                    );
-                  }),
-                ),
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.01,
-                    child: TextField(
-                      key: const Key('otpInput'),
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.oneTimeCode],
-                      maxLength: 6,
-                      autofocus: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
+                      child: Text(
+                        index < digits.length ? digits[index] : '',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: AppTheme.mainText,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                    ),
+                  );
+                }),
+              ),
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.01,
+                  child: TextField(
+                    key: const Key('otpInput'),
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.oneTimeCode],
+                    maxLength: 6,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      border: InputBorder.none,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 20),

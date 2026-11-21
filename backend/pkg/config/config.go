@@ -273,7 +273,17 @@ func (c *Config) ValidateAuth() error {
 		}
 	}
 	if c.FCMTestOTPEnabled {
-		return errors.New("FCM test OTP is disabled until staging enrollment authorization is implemented")
+		// FCM test OTP delivers login codes to a registered installation instead
+		// of an SMS provider, so it must never run outside the isolated QA stack.
+		if !strings.EqualFold(c.Env, "qa") {
+			return errors.New("FCM test OTP is restricted to APP_ENV=qa")
+		}
+		if strings.TrimSpace(c.QAOTPRunID) == "" || len(c.QAOTPRunID) < 16 {
+			return errors.New("FCM test OTP requires a QA run identifier")
+		}
+		if strings.TrimSpace(c.FCMServiceAccountPath) == "" || strings.TrimSpace(c.FCMProjectID) == "" {
+			return errors.New("FCM test OTP requires an FCM service account and project")
+		}
 	}
 	// Google Sign-In requires an explicit OAuth client ID; never use the default
 	// web client from google-services.json.
