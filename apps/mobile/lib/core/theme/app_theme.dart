@@ -7,58 +7,85 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  // ---------- GrepMind Local Luxe Tokens ----------
-  static const Color forest = Color(0xFF123D36);
-  static const Color forestDark = Color(0xFF0C2B26);
-  static const Color mint = Color(0xFF16A085);
-  static const Color mintLight = Color(0xFFE8F6F3);
-  static const Color canvas = Color(0xFFF5F6F2);
-  static const Color amber = Color(0xFFF4B544);
-  static const Color amberLight = Color(0xFFFEF7E8);
-  static const Color coral = Color(0xFFE66B55);
-  static const Color coralLight = Color(0xFFFDF0ED);
-  static const Color coralBorder = Color(0xFFFDC4BA);
-  static const Color coralDark = Color(0xFFC84E3A);
-  static const Color merchantCoral = Color(0xFFE66B55);
-  static const Color merchantCoralLight = Color(0xFFFFF1EE);
-  static const Color merchantCoralContainer = Color(0xFFFFF1EE);
-  static const Color merchantCoralBorder = Color(0xFFFDC4BA);
+  // ---------- 2027 Palette: Action Green (#087F0D) & Vibrant Green (#09A110) ----------
+  static const Color vibrantGreen = Color(0xFF09A110);
+  static const Color actionGreen = Color(0xFF087F0D);
+  static const Color deepEmerald = Color(0xFF064D3A);
+  static const Color freshLeaf = Color(0xFF78CE65);
+  static const Color softLime = Color(0xFFDDF5A6);
+  static const Color lightMint = Color(0xFFE4F7E3);
+  static const Color pearlGreen = Color(0xFFF3FAF0);
+  static const Color signatureOrange = Color(0xFFFF8A00);
+  static const Color warmPeach = Color(0xFFFFE4D1);
+  static const Color skyBlue = Color(0xFFDFEEFF);
+  static const Color pureWhite = Color(0xFFFFFFFF);
+  static const Color carbon = Color(0xFF172820);
+  static const Color mutedSlate = Color(0xFF64748B);
+
+  // Core & Semantic Aliases
+  static const Color signatureEmerald = actionGreen;
+  static const Color deepForest = deepEmerald;
+  static const Color freshMint = lightMint;
+  static const Color signatureAmber = signatureOrange;
+  static const Color warmPorcelain = pearlGreen;
+  static const Color emerald = actionGreen;
+  static const Color emeraldDark = deepEmerald;
+  static const Color forest = deepEmerald;
+  static const Color forestDark = Color(0xFF04382A);
+  static const Color mint = actionGreen;
+  static const Color mintLight = lightMint;
+  static const Color canvas = pureWhite;
+  static const Color amber = signatureOrange;
+  static const Color amberLight = Color(0xFFFFF3E0);
+  static const Color coral = signatureOrange;
+  static const Color coralDark = Color(0xFFEA580C);
+  static const Color coralLight = Color(0xFFFFF7ED);
+  static const Color coralBorder = Color(0xFFFED7AA);
+  static const Color merchantCoral = signatureOrange;
+  static const Color merchantCoralLight = Color(0xFFFFF7ED);
+  static const Color merchantCoralContainer = Color(0xFFFFF7ED);
+  static const Color merchantCoralBorder = Color(0xFFFED7AA);
+  static const Color plum = deepEmerald;
+  static const Color plumDark = Color(0xFF04382A);
+  static const Color plumLight = lightMint;
+  static const Color plumBorder = Color(0xFFE2E8F0);
+  static const Color premiumGreen = vibrantGreen;
+  static const Color premiumGreenDark = actionGreen;
+  static const Color premiumGreenLight = lightMint;
 
   // ---------- Rider Amber Quick-Commerce Tokens (#F4B544) ----------
-  static const Color riderAmber = Color(0xFFF4B544);
+  static const Color riderAmber = signatureOrange;
   static const Color riderAmberDark = Color(0xFFD97706);
   static const Color riderAmberDeep = Color(0xFF92400E);
   static const Color riderAmberLight = Color(0xFFFFFBEB);
   static const Color riderAmberContainer = Color(0xFFFEF3C7);
   static const Color riderAmberBorder = Color(0xFFFDE68A);
 
-  // ---------- 2026 Mint + Emerald Quick-Commerce Tokens ----------
-  static const Color emerald = Color(0xFF0B6B4A);
-  static const Color emeraldDark = Color(0xFF064D3A);
-  static const Color brandMint = Color(0xFFE8F5E9);
-  static const Color brandCanvas = Color(0xFFF8FAF9);
-  static const Color brandBorder = Color(0xFFE1EBE5);
-  static const Color brandText = Color(0xFF17352C);
-  static const Color brandTextMuted = Color(0xFF64748B);
+  // ---------- Brand Surfaces & Layout ----------
+  static const Color brandMint = lightMint;
+  static const Color brandCanvas = pureWhite;
+  static const Color brandBorder = Color(0xFFE2E8F0);
+  static const Color brandText = carbon;
+  static const Color brandTextMuted = mutedSlate;
 
   // ---------- Core Color tokens ----------
-  static const Color primary = forest;
-  static const Color primaryContainer = mintLight;
-  static const Color secondary = mint;
-  static const Color secondaryContainer = Color(0xFFE0F2F1);
-  static const Color background = canvas;
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFEBEFEA);
-  static const Color mainText = Color(0xFF172033);
+  static const Color primary = actionGreen;
+  static const Color primaryContainer = lightMint;
+  static const Color secondary = signatureOrange;
+  static const Color secondaryContainer = warmPeach;
+  static const Color background = pureWhite;
+  static const Color surface = pureWhite;
+  static const Color surfaceVariant = pearlGreen;
+  static const Color mainText = carbon;
   static const Color textPrimary = mainText;
-  static const Color secondaryText = Color(0xFF667085);
+  static const Color secondaryText = mutedSlate;
   static const Color textSecondary = secondaryText;
-  static const Color hintText = Color(0xFF9AA5B1);
+  static const Color hintText = Color(0xFF94A3B8);
   static const Color textMuted = hintText;
-  static const Color border = Color(0xFFE4E7EC);
-  static const Color divider = Color(0xFFF2F4F7);
-  static const Color success = mint;
-  static const Color successContainer = mintLight;
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color divider = Color(0xFFF1F5F9);
+  static const Color success = actionGreen;
+  static const Color successContainer = lightMint;
   static const Color warning = amber;
   static const Color warningContainer = amberLight;
   static const Color error = coral;
@@ -225,28 +252,28 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: emerald,
+          backgroundColor: actionGreen,
           foregroundColor: onPrimary,
           elevation: 0,
-          minimumSize: const Size(double.infinity, 50),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          minimumSize: const Size(double.infinity, 54),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(28),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.1),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: emerald,
+          backgroundColor: actionGreen,
           foregroundColor: onPrimary,
           elevation: 0,
-          minimumSize: const Size(double.infinity, 50),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          minimumSize: const Size(double.infinity, 54),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(28),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.1),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -254,9 +281,9 @@ class AppTheme {
           foregroundColor: primary,
           minimumSize: const Size(double.infinity, 50),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          side: const BorderSide(color: border),
+          side: const BorderSide(color: border, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(28),
           ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
@@ -270,19 +297,19 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
-        elevation: 4,
+        elevation: 6,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: emerald,
+        selectedItemColor: actionGreen,
         unselectedItemColor: secondaryText,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         selectedLabelStyle: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         unselectedLabelStyle: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
       ),
       appBarTheme: const AppBarTheme(

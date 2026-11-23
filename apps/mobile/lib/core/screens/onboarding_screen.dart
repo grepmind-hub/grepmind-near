@@ -10,7 +10,6 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
-import 'package:grepmind_mobile/core/notifications/otp_notification_banner.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
@@ -32,8 +31,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   final _phoneFocusNode = FocusNode();
   final _otpController = TextEditingController();
   final _otpFocusNode = FocusNode();
-  FcmOtpPayload? _receivedOtpPayload;
-  FcmOtpPayload? _pendingOtpPayload;
   late bool _isMerchantMode;
   bool _sending = false;
   bool _otpSent = false;
@@ -46,7 +43,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   static const String _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: '',
   );
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
@@ -60,7 +56,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     NotificationManager().onOtpReceived = (payload) {
       if (!mounted) return;
       if (_otpRequestInFlight) {
-        _pendingOtpPayload = payload;
         return;
       }
       if (_otpSent &&
@@ -69,7 +64,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
             _normalizedPhone,
             DateTime.now(),
           )) {
-        setState(() => _receivedOtpPayload = payload);
+        // Notification verified
       }
     };
   }
@@ -112,7 +107,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     FocusScope.of(context).unfocus();
     _otpRequestInFlight = true;
     _pendingAutofillCode = null;
-    _pendingOtpPayload = null;
     setState(() {
       _sending = true;
     });
@@ -156,15 +150,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         _otpSent = true;
         _challengeId = result['challenge_id'] as String?;
         _otpController.clear();
-        if (_pendingOtpPayload != null &&
-            _pendingOtpPayload!.matchesChallenge(
-              _challengeId,
-              _normalizedPhone,
-              DateTime.now(),
-            )) {
-          _receivedOtpPayload = _pendingOtpPayload;
-        }
-        _pendingOtpPayload = null;
         final autofilled = _pendingAutofillCode;
         if (autofilled != null && RegExp(r'^\d{6}$').hasMatch(autofilled)) {
           _setOtpCode(autofilled, notify: false);
@@ -254,7 +239,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     setState(() {
       _otpSent = false;
       _challengeId = null;
-      _receivedOtpPayload = null;
       _resendSeconds = 0;
       _otpController.clear();
     });
@@ -483,7 +467,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AbashyakaTheme.green,
+                      color: AbashyakaTheme.actionGreen,
                     ),
                   ),
                 ],
@@ -538,10 +522,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           child: ElevatedButton(
             key: const Key('sendOTPButton'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AbashyakaTheme.green,
+              backgroundColor: AbashyakaTheme.vibrantGreen,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
             onPressed: _sending ? null : _sendOTP,
@@ -763,10 +747,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           child: ElevatedButton(
             key: const Key('verifyOTPButton'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AbashyakaTheme.green,
+              backgroundColor: AbashyakaTheme.vibrantGreen,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
             onPressed:

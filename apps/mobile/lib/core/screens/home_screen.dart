@@ -778,8 +778,19 @@ class _HeaderCardState extends State<_HeaderCard> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF064D3A),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF064D3A), Color(0xFF087F0D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF064D3A).withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -819,7 +830,7 @@ class _HeaderCardState extends State<_HeaderCard> {
                           Text(
                             'ଆବଶ୍ୟକ · Everything You Need, Locally.',
                             style: TextStyle(
-                              color: Color(0xFFD1FAE5),
+                              color: Color(0xFFE4F7E3),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
@@ -862,7 +873,7 @@ class _HeaderCardState extends State<_HeaderCard> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: const Color(0xFF0F766E),
+                                    color: const Color(0xFF09A110),
                                     width: 2,
                                   ),
                                 ),
@@ -871,7 +882,7 @@ class _HeaderCardState extends State<_HeaderCard> {
                                     width: 8,
                                     height: 8,
                                     decoration: const BoxDecoration(
-                                      color: Color(0xFF0F766E),
+                                      color: Color(0xFF09A110),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -1004,7 +1015,7 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0B6B4A),
+                      color: Color(0xFF087F0D),
                     ),
                   ),
                 ),
@@ -1020,8 +1031,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.restaurant_rounded,
                   label: 'Food',
-                  tileColor: const Color(0xFFFFF1E6),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFFFE4D1),
+                  iconColor: const Color(0xFF064D3A),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1039,8 +1050,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.shopping_basket_outlined,
                   label: 'Grocery',
-                  tileColor: const Color(0xFFE8F5E9),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFE4F7E3),
+                  iconColor: const Color(0xFF087F0D),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1060,8 +1071,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.medication_outlined,
                   label: 'Medicines',
-                  tileColor: const Color(0xFFFFEBF0),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFDFEEFF),
+                  iconColor: const Color(0xFF064D3A),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1076,8 +1087,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.medical_services_outlined,
                   label: 'Clinics',
-                  tileColor: const Color(0xFFE8F0FE),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFDFEEFF),
+                  iconColor: const Color(0xFF064D3A),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1097,8 +1108,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.directions_car_outlined,
                   label: 'Cab & Auto',
-                  tileColor: const Color(0xFFFFF8E1),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFDDF5A6),
+                  iconColor: const Color(0xFF064D3A),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1113,8 +1124,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.build_outlined,
                   label: 'Services',
-                  tileColor: const Color(0xFFE6F4FE),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFF3FAF0),
+                  iconColor: const Color(0xFF087F0D),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1130,8 +1141,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.storefront_outlined,
                   label: 'Shops',
-                  tileColor: const Color(0xFFF3E8FF),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFFFE4D1),
+                  iconColor: const Color(0xFF087F0D),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1147,8 +1158,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   context: context,
                   icon: Icons.grid_view_rounded,
                   label: 'More',
-                  tileColor: const Color(0xFFE8F5E9),
-                  iconColor: const Color(0xFF0B6B4A),
+                  tileColor: const Color(0xFFE4F7E3),
+                  iconColor: const Color(0xFF087F0D),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CategoriesScreen()),

@@ -30,9 +30,11 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final firebaseConfig = FirebaseBuildConfig.fromEnvironment();
   unawaited(() async {
-    final status = firebaseConfig.isEmpty
-        ? await initializeFirebaseFromNative()
-        : await initializeFirebase(firebaseConfig);
+    if (firebaseConfig.isEmpty) {
+      await initializeFirebaseFromNative();
+    } else {
+      await initializeFirebase(firebaseConfig);
+    }
     // NotificationManager is initialized after the first frame
     // to ensure an Activity context is available for permission requests.
   }());
@@ -168,10 +170,10 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
           type: BottomNavigationBarType.fixed,
           currentIndex: selectedIndex,
           selectedItemColor: widget.activeRole == 'merchant'
-              ? AppTheme.emerald
+              ? AppTheme.actionGreen
               : (widget.activeRole == 'rider'
                     ? AppTheme.riderAmberDark
-                    : AppTheme.emerald),
+                    : AppTheme.actionGreen),
           onTap: (i) {
             _mountedPageIndices.add(i);
             if (widget.activeRole == 'customer') {
