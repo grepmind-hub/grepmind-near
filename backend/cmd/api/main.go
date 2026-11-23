@@ -495,6 +495,20 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	// Grepmind-owned catalog. These routes are separate from merchant-owned
 	// products and the existing customer_orders workflows.
 	mux.HandleFunc("GET /api/v1/catalog/locations", catalogSvc.ListDeliveryLocations)
+	mux.HandleFunc("GET /api/v1/serviceability/locations", catalogSvc.ListDeliveryLocations)
+	mux.HandleFunc("POST /api/v1/serviceability/check", catalogSvc.PublicCheckServiceability)
+	mux.HandleFunc("POST /api/v1/serviceability/notify-interest", catalogSvc.PublicNotifyInterest)
+
+	// Admin service locations management
+	mux.HandleFunc("GET /api/v1/admin/service-locations", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminListServiceLocations(w, r, uid)
+	}))
+	mux.HandleFunc("POST /api/v1/admin/service-locations", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminCreateServiceLocation(w, r, uid)
+	}))
+	mux.HandleFunc("PATCH /api/v1/admin/service-locations/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+		catalogSvc.AdminUpdateServiceLocation(w, r, uid)
+	}))
 	mux.HandleFunc("GET /api/v1/catalog/categories", catalogSvc.ListPublicCategories)
 	mux.HandleFunc("GET /api/v1/catalog/products", catalogSvc.ListPublicProducts)
 	mux.HandleFunc("GET /api/v1/catalog/products/{id}", catalogSvc.GetPublicProduct)

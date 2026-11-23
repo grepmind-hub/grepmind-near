@@ -380,3 +380,55 @@ export async function revokeAdmin(userId: string) {
   const res = await api.delete(`/admin/admins/${userId}`);
   return res.data;
 }
+
+export interface ServiceLocation {
+  id: string;
+  district_id: string;
+  district_name: string;
+  name: string;
+  slug: string;
+  pin_codes: string[];
+  latitude?: number;
+  longitude?: number;
+  service_radius_km: number;
+  delivery_enabled: boolean;
+  is_active: boolean;
+  food_delivery_enabled: boolean;
+  grocery_delivery_enabled: boolean;
+  medicines_delivery_enabled: boolean;
+  local_services_enabled: boolean;
+  transport_enabled: boolean;
+  merchant_discovery_enabled: boolean;
+  created_at: string;
+}
+
+export interface ServiceLocationInput {
+  district: string;
+  name: string;
+  pin_codes: string[];
+  latitude?: number;
+  longitude?: number;
+  service_radius_km: number;
+  delivery_enabled: boolean;
+  is_active: boolean;
+  food_delivery_enabled: boolean;
+  grocery_delivery_enabled: boolean;
+  medicines_delivery_enabled: boolean;
+  local_services_enabled: boolean;
+  transport_enabled: boolean;
+  merchant_discovery_enabled: boolean;
+}
+
+export async function getServiceLocations(): Promise<ServiceLocation[]> {
+  const res = await api.get<{ data: ServiceLocation[] }>('/admin/service-locations');
+  return res.data.data ?? [];
+}
+
+export async function addServiceLocation(input: ServiceLocationInput): Promise<{ id: string }> {
+  const res = await api.post<{ data: { id: string } }>('/admin/service-locations', input);
+  return res.data.data;
+}
+
+export async function updateServiceLocation(id: string, input: Partial<ServiceLocationInput>): Promise<void> {
+  await api.patch(`/admin/service-locations/${id}`, input);
+}

@@ -15,6 +15,7 @@ import { BusinessClaimsView } from '@/components/BusinessClaimsView';
 import { ListingActivityView } from '@/components/ListingActivityView';
 import { UserAccessView } from '@/components/UserAccessView';
 import { PlatformCatalogView } from '@/components/PlatformCatalogView';
+import { ServiceAreasView } from '@/components/ServiceAreasView';
 import { RiderManagementView } from '@/components/RiderManagementView';
 import { DispatchBoardView } from '@/components/DispatchBoardView';
 import { RiderEarningsView } from '@/components/RiderEarningsView';
@@ -426,6 +427,7 @@ export function AdminPortalClient({ initialTab = 'overview', initialPaymentOrder
               <UserAccessView users={userAccess} canManageRoles={canManageRoles} loading={accessLoading} error={accessError} onRefresh={() => void initSessionAndLoad()} onSave={handleSaveUserAccess} />
             </div>
           )}
+          {currentTab === 'service-locations' && <ServiceAreasView />}
           {currentTab === 'platform-catalog' && <PlatformCatalogView />}
           {currentTab === 'riders' && <RiderManagementView />}
           {currentTab === 'dispatch' && <DispatchBoardView />}

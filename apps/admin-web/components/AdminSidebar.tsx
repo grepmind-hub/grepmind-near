@@ -31,6 +31,7 @@ export type AdminTab =
   | 'audit-logs'
   | 'listing-activity'
   | 'admin-users'
+  | 'service-locations'
   | 'platform-catalog'
   | 'riders'
   | 'dispatch'
@@ -123,6 +124,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Admins & Access',
       description: 'Permissions & security',
       icon: ShieldCheck,
+      badge: null,
+    },
+    {
+      id: 'service-locations' as AdminTab,
+      label: 'Service Areas & PINs',
+      description: 'Coverage & capabilities',
+      icon: MapPin,
       badge: null,
     },
     {
