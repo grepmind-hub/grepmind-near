@@ -830,7 +830,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.primary,
+                                  color: Color(0xFF087F0D),
                                 ),
                               ),
                             ),
@@ -868,9 +868,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ? 'all'
                               : (isMore ? 'more' : category!.slug);
                           final isSel = _selectedCategory == slug;
-                          final theme = category != null
-                              ? CategoryThemedPlaceholder.resolveTheme(category.slug)
-                              : null;
                           return CategoryCircleItem(
                             key: Key('explore_category_$slug'),
                             label: isAll
@@ -884,21 +881,19 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                           category!.slug,
                                         )),
                             backgroundColor: isAll
-                                ? const Color(0xFFECFDF5)
+                                ? const Color(0xFFE4F7E3)
                                 : (isMore
-                                      ? const Color(0xFFF3E8FF)
-                                      : theme?.gradient.first ??
-                                          CategoriesScreen.getCategoryColor(
-                                            category!.slug,
-                                          ).withOpacity(0.13)),
+                                      ? const Color(0xFFEDE9FE)
+                                      : CategoriesScreen.getCategoryBackgroundColor(
+                                          category!.slug,
+                                        )),
                             iconColor: isAll
-                                ? AppTheme.emerald
+                                ? const Color(0xFF087F0D)
                                 : (isMore
                                       ? const Color(0xFF7C3AED)
-                                      : theme?.accent ??
-                                          CategoriesScreen.getCategoryColor(
-                                            category!.slug,
-                                          )),
+                                      : CategoriesScreen.getCategoryColor(
+                                          category!.slug,
+                                        )),
                             isSelected: isSel,
                             onTap: () {
                               if (isMore) {
@@ -958,7 +953,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.primary,
+                                  color: Color(0xFF087F0D),
                                 ),
                               ),
                             ),

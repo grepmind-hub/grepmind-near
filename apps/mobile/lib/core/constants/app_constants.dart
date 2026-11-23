@@ -11,7 +11,7 @@ class AppConstants {
   // production builds should provide their reachable HTTPS URL with dart-define.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:80',
+    defaultValue: 'https://api.abashyaka.com',
   );
   static const String apiVersion = '/api/v1';
 

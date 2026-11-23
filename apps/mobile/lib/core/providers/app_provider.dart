@@ -874,7 +874,21 @@ class CategoriesState {
 
 /// Categories notifier.
 class CategoriesNotifier extends StateNotifier<CategoriesState> {
-  CategoriesNotifier() : super(const CategoriesState()) {
+  static const defaultCategories = <Category>[
+    Category(slug: 'grocery', name: 'Grocery & Kirana', description: 'Fresh groceries, daily provisions and packaged essentials'),
+    Category(slug: 'restaurant', name: 'Food & Dining', description: 'Local restaurants, fast food and authentic regional cuisine'),
+    Category(slug: 'medical', name: 'Pharmacy & Health', description: 'Medicines, first-aid, healthcare and surgical supplies'),
+    Category(slug: 'hardware', name: 'Hardware & Tools', description: 'Tools, paints, sanitaryware and building materials'),
+    Category(slug: 'electrician', name: 'Electrician', description: 'Wiring, appliance repairs and electrical installation'),
+    Category(slug: 'plumber', name: 'Plumber', description: 'Pipe fittings, drainage, water pumps and leak repair'),
+    Category(slug: 'carpenter', name: 'Carpenter', description: 'Custom furniture, wood repairs and interior fitting'),
+    Category(slug: 'salon', name: 'Salon & Grooming', description: 'Men & women hair salons, beauty parlours and spa'),
+    Category(slug: 'hotel', name: 'Hotels & Lodging', description: 'Hotel rooms, guest houses and verified stays'),
+    Category(slug: 'tailor', name: 'Tailoring & Stitching', description: 'Custom tailoring, alterations and dressmaking'),
+    Category(slug: 'general', name: 'General Store', description: 'Household goods, stationery, gifting and local retail'),
+  ];
+
+  CategoriesNotifier() : super(const CategoriesState(items: defaultCategories)) {
     load();
   }
 
@@ -888,9 +902,16 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
               ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [];
-      state = state.copyWith(items: items, isLoading: false);
+      state = state.copyWith(
+        items: items.isNotEmpty ? items : defaultCategories,
+        isLoading: false,
+      );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(
+        items: state.items.isNotEmpty ? state.items : defaultCategories,
+        isLoading: false,
+        error: e.toString(),
+      );
     }
   }
 }

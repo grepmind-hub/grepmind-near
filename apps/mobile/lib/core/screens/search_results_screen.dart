@@ -122,13 +122,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 return ListTile(
                   leading: Icon(
                     isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-                    color: isSel ? AppTheme.emerald : const Color(0xFF94A3B8),
+                    color: isSel ? const Color(0xFF087F0D) : const Color(0xFF94A3B8),
                   ),
                   title: Text(
                     'Within $km km',
                     style: TextStyle(
                       fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      color: isSel ? AppTheme.emeraldDark : AppTheme.mainText,
+                      color: isSel ? const Color(0xFF064D3A) : AppTheme.mainText,
                     ),
                   ),
                   onTap: () {
@@ -185,13 +185,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     return ListTile(
       leading: Icon(
         isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-        color: isSel ? AppTheme.emerald : const Color(0xFF94A3B8),
+        color: isSel ? const Color(0xFF087F0D) : const Color(0xFF94A3B8),
       ),
       title: Text(
         title,
         style: TextStyle(
           fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-          color: isSel ? AppTheme.emeraldDark : AppTheme.mainText,
+          color: isSel ? const Color(0xFF064D3A) : AppTheme.mainText,
         ),
       ),
       onTap: () {
@@ -295,7 +295,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.map_outlined, color: AppTheme.emerald),
+            icon: const Icon(Icons.map_outlined, color: Color(0xFF087F0D)),
             tooltip: 'Map view',
             onPressed: () {
               Navigator.push(
@@ -336,9 +336,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                            color: const Color(0xFFE4F7E3),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.emerald),
+                            border: Border.all(color: const Color(0xFF087F0D)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -346,7 +346,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               Text(
                                 _selectedCategoryName ?? _selectedCategory!,
                                 style: const TextStyle(
-                                  color: AppTheme.emeraldDark,
+                                  color: Color(0xFF064D3A),
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -355,7 +355,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               const Icon(
                                 Icons.close_rounded,
                                 size: 14,
-                                color: AppTheme.emeraldDark,
+                                color: Color(0xFF064D3A),
                               ),
                             ],
                           ),
@@ -454,7 +454,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.emerald,
+                        color: Color(0xFFFF8A00),
                       ),
                     ),
                   ),
@@ -521,12 +521,16 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                           const SizedBox(height: 18),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.emerald,
+                              backgroundColor: const Color(0xFF087F0D),
                               foregroundColor: Colors.white,
                               elevation: 2,
-                              shadowColor: const Color(0x33059669),
+                              shadowColor: const Color(0x33087F0D),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
                               ),
                             ),
                             onPressed: () {
@@ -592,12 +596,20 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFFE8F5E9)
+              ? const Color(0xFFE4F7E3)
               : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? AppTheme.emerald : const Color(0xFFE2E8F0),
+            color: isActive ? const Color(0xFF087F0D) : const Color(0xFFE2E8F0),
+            width: isActive ? 1.5 : 1.0,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -605,7 +617,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             Icon(
               icon,
               size: 14,
-              color: isActive ? AppTheme.emerald : const Color(0xFF64748B),
+              color: isActive ? const Color(0xFF087F0D) : const Color(0xFF64748B),
             ),
             const SizedBox(width: 5),
             Text(
@@ -613,7 +625,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive ? AppTheme.emeraldDark : AppTheme.mainText,
+                color: isActive ? const Color(0xFF064D3A) : AppTheme.mainText,
               ),
             ),
           ],

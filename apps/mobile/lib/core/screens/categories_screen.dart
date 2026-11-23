@@ -14,6 +14,8 @@ class CategoriesScreen extends ConsumerStatefulWidget {
       _CategoriesScreenState.getCategoryIcon(slug);
   static Color getCategoryColor(String? slug) =>
       _CategoriesScreenState.getCategoryColor(slug);
+  static Color getCategoryBackgroundColor(String? slug) =>
+      _CategoriesScreenState.getCategoryBackgroundColor(slug);
   const CategoriesScreen({super.key});
 
   @override
@@ -42,11 +44,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   static IconData getCategoryIcon(String? slug) {
     switch (slug) {
       case 'grocery':
-        return Icons.local_grocery_store_rounded;
+        return Icons.shopping_basket_rounded;
       case 'hardware':
-        return Icons.build_rounded;
+        return Icons.handyman_rounded;
       case 'medical':
-        return Icons.local_pharmacy_rounded;
+        return Icons.medication_rounded;
       case 'restaurant':
         return Icons.restaurant_rounded;
       case 'salon':
@@ -72,7 +74,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       case 'sports_fitness':
         return Icons.fitness_center_rounded;
       case 'automotive':
-        return Icons.directions_car_rounded;
+        return Icons.local_taxi_rounded;
       case 'books_stationery':
         return Icons.menu_book_rounded;
       case 'cleaning':
@@ -84,30 +86,75 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     }
   }
 
+  static Color getCategoryBackgroundColor(String? slug) {
+    switch (slug) {
+      case 'grocery':
+        return const Color(0xFFE4F7E3);
+      case 'restaurant':
+        return const Color(0xFFFFE4D1);
+      case 'medical':
+        return const Color(0xFFDFEEFF);
+      case 'hardware':
+        return const Color(0xFFFFF3E0);
+      case 'hotel':
+        return const Color(0xFFDDF5A6);
+      case 'salon':
+        return const Color(0xFFFCE7F3);
+      case 'plumber':
+        return const Color(0xFFE0F2FE);
+      case 'electrician':
+        return const Color(0xFFFEF3C7);
+      case 'carpenter':
+        return const Color(0xFFFFEDD5);
+      case 'tailor':
+        return const Color(0xFFF3E8FF);
+      case 'general':
+        return const Color(0xFFFFECEB);
+      case 'fashion':
+        return const Color(0xFFFFE4E6);
+      case 'electronics':
+        return const Color(0xFFEEF2FF);
+      case 'home_kitchen':
+        return const Color(0xFFCCFBF1);
+      case 'health_wellness':
+        return const Color(0xFFD1FAE5);
+      case 'sports_fitness':
+        return const Color(0xFFFEF3C7);
+      case 'automotive':
+        return const Color(0xFFDDF5A6);
+      case 'books_stationery':
+        return const Color(0xFFE0E7FF);
+      case 'cleaning':
+        return const Color(0xFFE0F2FE);
+      default:
+        return const Color(0xFFF1F5F9);
+    }
+  }
+
   static Color getCategoryColor(String? slug) {
     switch (slug) {
       case 'grocery':
-        return const Color(0xFF16A34A);
+        return const Color(0xFF087F0D);
       case 'hardware':
-        return const Color(0xFFD97706);
+        return const Color(0xFFFF8A00);
       case 'medical':
-        return const Color(0xFF9333EA);
+        return const Color(0xFF1D4ED8);
       case 'restaurant':
-        return const Color(0xFFEA580C);
+        return const Color(0xFFC2410C);
       case 'hotel':
-        return const Color(0xFF0F766E);
+        return const Color(0xFF064D3A);
       case 'salon':
         return const Color(0xFFDB2777);
       case 'plumber':
         return const Color(0xFF0284C7);
       case 'electrician':
-        return const Color(0xFF2563EB);
+        return const Color(0xFFD97706);
       case 'carpenter':
         return const Color(0xFFB45309);
       case 'tailor':
         return const Color(0xFF7C3AED);
       case 'general':
-        return const Color(0xFF0F766E);
+        return const Color(0xFFDC2626);
       case 'fashion':
         return const Color(0xFFE11D48);
       case 'electronics':
@@ -119,13 +166,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       case 'sports_fitness':
         return const Color(0xFFD97706);
       case 'automotive':
-        return const Color(0xFF475569);
+        return const Color(0xFF064D3A);
       case 'books_stationery':
         return const Color(0xFF6366F1);
       case 'cleaning':
         return const Color(0xFF0284C7);
       default:
-        return const Color(0xFF2457D6);
+        return const Color(0xFF087F0D);
     }
   }
 
@@ -444,10 +491,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(14),
+                              color: getCategoryBackgroundColor(category.slug),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Icon(icon, color: color, size: 26),
+                            child: Icon(icon, color: color, size: 28),
                           ),
                           const SizedBox(width: 14),
                           Expanded(

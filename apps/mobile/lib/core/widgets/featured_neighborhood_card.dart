@@ -83,13 +83,13 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.brandMint,
+                          color: const Color(0xFFFF8A00),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           tag.toUpperCase(),
                           style: const TextStyle(
-                            color: AppTheme.brandText,
+                            color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
@@ -133,7 +133,7 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
                               Text(
                                 ctaLabel,
                                 style: const TextStyle(
-                                  color: AppTheme.brandMint,
+                                  color: Color(0xFFFF8A00),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -142,7 +142,7 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
                               const Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 14,
-                                color: AppTheme.brandMint,
+                                color: Color(0xFFFF8A00),
                               ),
                             ],
                           ),
@@ -163,13 +163,13 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF047857), Color(0xFF123D36)],
+          colors: [Color(0xFF0F766E), Color(0xFF1E293B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
       child: const Center(
-        child: Icon(Icons.storefront_rounded, size: 54, color: AppTheme.brandMint),
+        child: Icon(Icons.storefront_rounded, size: 54, color: Color(0xFFDDF5A6)),
       ),
     );
   }
