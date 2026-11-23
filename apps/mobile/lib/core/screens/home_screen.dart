@@ -441,6 +441,7 @@ class _HeaderCardState extends State<_HeaderCard> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Preserved for test compatibility
         const Opacity(
           opacity: 0,
           child: SizedBox(
@@ -452,20 +453,18 @@ class _HeaderCardState extends State<_HeaderCard> {
           opacity: 0,
           child: SizedBox(height: 0, child: Text('Browse categories')),
         ),
+        // Premium 2027 Light-First Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF064D3A), Color(0xFF087F0D)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF064D3A).withValues(alpha: 0.25),
-                  blurRadius: 12,
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -474,19 +473,25 @@ class _HeaderCardState extends State<_HeaderCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Top Brand & Notification Row
                 Row(
                   children: [
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF8A00),
-                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0xFFE4F7E3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF78CE65).withValues(alpha: 0.3),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.shopping_bag_rounded,
-                        color: Colors.white,
-                        size: 20,
+                      child: const Center(
+                        child: Icon(
+                          Icons.storefront_rounded,
+                          color: Color(0xFF087F0D),
+                          size: 22,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -495,20 +500,33 @@ class _HeaderCardState extends State<_HeaderCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Abashyaka',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Abashyaka',
+                                style: TextStyle(
+                                  color: Color(0xFF064D3A),
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'ଆବଶ୍ୟକ',
+                                style: TextStyle(
+                                  color: Color(0xFFFF8A00),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 1),
                           Text(
-                            'ଆବଶ୍ୟକ · Everything You Need, Locally.',
+                            'Everything nearby, one tap away',
                             style: TextStyle(
-                              color: Color(0xFFE4F7E3),
+                              color: Color(0xFF64748B),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
@@ -516,130 +534,177 @@ class _HeaderCardState extends State<_HeaderCard> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                      onPressed: () {},
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      InkWell(
-                        onTap: widget.onChooseLocation,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 22,
-                                height: 22,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFF09A110),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF09A110),
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      'Delivering to',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF6B7280),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      displayLocation,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF111827),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: Color(0xFF374151),
-                                size: 22,
-                              ),
-                            ],
+                    // Notification Button with Orange Badge
+                    InkWell(
+                      onTap: () {},
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3FAF0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFE2E8F0),
                           ),
                         ),
-                      ),
-                      const Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0xFFF3F4F6),
-                        indent: 14,
-                        endIndent: 14,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
-                        child: Row(
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
                             const Icon(
-                              Icons.search_rounded,
-                              color: Color(0xFF9CA3AF),
-                              size: 20,
+                              Icons.notifications_none_rounded,
+                              color: Color(0xFF172820),
+                              size: 22,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                textInputAction: TextInputAction.search,
-                                onSubmitted: widget.onSearchSubmitted,
-                                decoration: const InputDecoration(
-                                  hintText: 'Search shops, food, medicines...',
-                                  hintStyle: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF9CA3AF),
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
+                            Positioned(
+                              top: 8,
+                              right: 9,
+                              child: Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF8A00),
+                                  shape: BoxShape.circle,
                                 ),
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Location Pill
+                InkWell(
+                  onTap: widget.onChooseLocation,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF8A00).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: Color(0xFFFF8A00),
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'DELIVERING TO',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                displayLocation,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF172820),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Color(0xFF172820),
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFFF),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFCBD5E1),
+                      width: 1.2,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF64748B),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: widget.onSearchSubmitted,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            color: Color(0xFF172820),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Search food, groceries, medicines, services...',
+                            hintStyle: TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w400,
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE4F7E3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.mic_none_rounded,
+                            color: Color(0xFF087F0D),
+                            size: 17,
+                          ),
                         ),
                       ),
                     ],
@@ -676,7 +741,7 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
+                  color: Color(0xFF172820),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -688,20 +753,31 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
-                    'View all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF087F0D),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View all',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF087F0D),
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: Color(0xFF087F0D),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Row 1
+          // Row 1: Food (Warm Peach), Grocery (Light Mint), Medicines (Sky Blue), Clinics (Sky Blue Light)
           Row(
             children: [
               Expanded(
@@ -710,7 +786,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   icon: Icons.restaurant_rounded,
                   label: 'Food',
                   tileColor: const Color(0xFFFFE4D1),
-                  iconColor: const Color(0xFF064D3A),
+                  iconColor: const Color(0xFFC2410C),
+                  borderColor: const Color(0xFFFED7AA),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -722,14 +799,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.shopping_basket_outlined,
+                  icon: Icons.shopping_basket_rounded,
                   label: 'Grocery',
                   tileColor: const Color(0xFFE4F7E3),
                   iconColor: const Color(0xFF087F0D),
+                  borderColor: const Color(0xFFC7EBC5),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -743,14 +821,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.medication_outlined,
+                  icon: Icons.medication_rounded,
                   label: 'Medicines',
                   tileColor: const Color(0xFFDFEEFF),
-                  iconColor: const Color(0xFF064D3A),
+                  iconColor: const Color(0xFF1D4ED8),
+                  borderColor: const Color(0xFFBFDBFE),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -759,14 +838,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.medical_services_outlined,
+                  icon: Icons.health_and_safety_rounded,
                   label: 'Clinics',
-                  tileColor: const Color(0xFFDFEEFF),
-                  iconColor: const Color(0xFF064D3A),
+                  tileColor: const Color(0xFFE0F2FE),
+                  iconColor: const Color(0xFF0284C7),
+                  borderColor: const Color(0xFFBAE6FD),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -778,16 +858,17 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Row 2
+          // Row 2: Cab & Auto (Soft Lime), Services (Warm Amber), Shops (Warm Coral), More (Slate Pearl)
           Row(
             children: [
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.directions_car_outlined,
+                  icon: Icons.local_taxi_rounded,
                   label: 'Cab & Auto',
                   tileColor: const Color(0xFFDDF5A6),
                   iconColor: const Color(0xFF064D3A),
+                  borderColor: const Color(0xFFC8E68B),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -796,14 +877,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.build_outlined,
+                  icon: Icons.handyman_rounded,
                   label: 'Services',
-                  tileColor: const Color(0xFFF3FAF0),
-                  iconColor: const Color(0xFF087F0D),
+                  tileColor: const Color(0xFFFFF3E0),
+                  iconColor: const Color(0xFFFF8A00),
+                  borderColor: const Color(0xFFFFE0B2),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -813,14 +895,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
-                  icon: Icons.storefront_outlined,
+                  icon: Icons.storefront_rounded,
                   label: 'Shops',
-                  tileColor: const Color(0xFFFFE4D1),
-                  iconColor: const Color(0xFF087F0D),
+                  tileColor: const Color(0xFFFFECEB),
+                  iconColor: const Color(0xFFDC2626),
+                  borderColor: const Color(0xFFFECACA),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -830,14 +913,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.grid_view_rounded,
                   label: 'More',
-                  tileColor: const Color(0xFFE4F7E3),
-                  iconColor: const Color(0xFF087F0D),
+                  tileColor: const Color(0xFFF1F5F9),
+                  iconColor: const Color(0xFF475569),
+                  borderColor: const Color(0xFFE2E8F0),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CategoriesScreen()),
@@ -857,11 +941,12 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
     required String label,
     required Color tileColor,
     required Color iconColor,
+    required Color borderColor,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -870,20 +955,30 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
             width: double.infinity,
             decoration: BoxDecoration(
               color: tileColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: Center(child: Icon(icon, color: iconColor, size: 26)),
+            child: Center(
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1F2937),
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF172820),
             ),
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -904,45 +999,94 @@ class _CompactPromoBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFDDF5A6), Color(0xFFF7FEE7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFCCE890), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          child: const Row(
+          child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'Shop from nearby stores',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0B6B4A),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8A00),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'FAST LOCAL DELIVERY',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
                       ),
                     ),
-                    SizedBox(height: 3),
-                    Text(
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Shop from nearby stores',
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF064D3A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
                       'Food, groceries and daily essentials from local partners',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF2E7D32),
+                        color: Color(0xFF172820),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 12),
-              Icon(
-                Icons.delivery_dining_rounded,
-                size: 30,
-                color: Color(0xFF0B6B4A),
+              const SizedBox(width: 10),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.delivery_dining_rounded,
+                    size: 28,
+                    color: Color(0xFF087F0D),
+                  ),
+                ),
               ),
             ],
           ),
@@ -970,7 +1114,7 @@ class _PopularNearYouSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: Color(0xFF172820),
               letterSpacing: -0.2,
             ),
           ),
@@ -980,6 +1124,8 @@ class _PopularNearYouSection extends StatelessWidget {
               Expanded(
                 child: _buildPopularCard(
                   icon: Icons.restaurant_rounded,
+                  iconContainerColor: const Color(0xFFFFE4D1),
+                  iconColor: const Color(0xFFC2410C),
                   title: 'Restaurants',
                   subtitle: 'Browse menus',
                   onTap: () => Navigator.push(
@@ -996,7 +1142,9 @@ class _PopularNearYouSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildPopularCard(
-                  icon: Icons.medication_outlined,
+                  icon: Icons.medication_rounded,
+                  iconContainerColor: const Color(0xFFDFEEFF),
+                  iconColor: const Color(0xFF1D4ED8),
                   title: 'Medical stores',
                   subtitle: 'Find medicines',
                   onTap: () => Navigator.push(
@@ -1016,37 +1164,66 @@ class _PopularNearYouSection extends StatelessWidget {
 
   Widget _buildPopularCard({
     required IconData icon,
+    required Color iconContainerColor,
+    required Color iconColor,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFF0B6B4A), size: 22),
-            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: iconContainerColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: iconColor, size: 22),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 16,
+                  color: iconColor,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF111827),
+                color: Color(0xFF172820),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
           ],
         ),
@@ -1073,34 +1250,43 @@ class _HealthcareNearYouSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: Color(0xFF172820),
               letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 10),
           InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE8F5E9),
-                      shape: BoxShape.circle,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDFEEFF),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.medical_services_outlined,
-                      color: Color(0xFF0B6B4A),
-                      size: 22,
+                    child: const Center(
+                      child: Icon(
+                        Icons.health_and_safety_rounded,
+                        color: Color(0xFF0284C7),
+                        size: 24,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1113,7 +1299,7 @@ class _HealthcareNearYouSection extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
+                            color: Color(0xFF172820),
                           ),
                         ),
                         SizedBox(height: 2),
@@ -1121,7 +1307,7 @@ class _HealthcareNearYouSection extends StatelessWidget {
                           'Find registered clinics and healthcare centres',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF6B7280),
+                            color: Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -1129,8 +1315,8 @@ class _HealthcareNearYouSection extends StatelessWidget {
                   ),
                   const Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF9CA3AF),
-                    size: 24,
+                    color: Color(0xFF94A3B8),
+                    size: 22,
                   ),
                 ],
               ),
@@ -1160,34 +1346,43 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
+              color: Color(0xFF172820),
               letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 10),
           InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFF8E1),
-                      shape: BoxShape.circle,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDF5A6),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.directions_car_outlined,
-                      color: Color(0xFFD97706),
-                      size: 22,
+                    child: const Center(
+                      child: Icon(
+                        Icons.local_taxi_rounded,
+                        color: Color(0xFF064D3A),
+                        size: 24,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1200,7 +1395,7 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
+                            color: Color(0xFF172820),
                           ),
                         ),
                         SizedBox(height: 2),
@@ -1208,7 +1403,7 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
                           'Registered auto-rickshaw and taxi directory',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF6B7280),
+                            color: Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -1216,8 +1411,8 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
                   ),
                   const Icon(
                     Icons.chevron_right_rounded,
-                    color: Color(0xFF9CA3AF),
-                    size: 24,
+                    color: Color(0xFF94A3B8),
+                    size: 22,
                   ),
                 ],
               ),
@@ -1248,25 +1443,25 @@ class _NearbyTrendingSection extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0B6B4A),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.location_on,
-                  color: Colors.white,
-                  size: 14,
+                  Icons.near_me_rounded,
+                  color: Color(0xFFFF8A00),
+                  size: 15,
                 ),
               ),
               const SizedBox(width: 8),
               const Text(
                 'Nearby & Trending',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 16.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
+                  color: Color(0xFF172820),
                 ),
               ),
               const Spacer(),
@@ -1280,15 +1475,15 @@ class _NearbyTrendingSection extends StatelessWidget {
                       'See All',
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0B6B4A),
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF087F0D),
                       ),
                     ),
                     SizedBox(width: 2),
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 14,
-                      color: Color(0xFF0B6B4A),
+                      color: Color(0xFF087F0D),
                     ),
                   ],
                 ),
@@ -1297,7 +1492,7 @@ class _NearbyTrendingSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 64,
+            height: 68,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
@@ -1305,6 +1500,9 @@ class _NearbyTrendingSection extends StatelessWidget {
                   context: context,
                   imageAsset: 'assets/abashyaka/trending_restaurants.png',
                   title: 'Top Restaurants\nNear You',
+                  badgeText: 'FOOD',
+                  badgeColor: const Color(0xFFFFE4D1),
+                  badgeTextColor: const Color(0xFFC2410C),
                   categorySlug: 'restaurant',
                 ),
                 const SizedBox(width: 10),
@@ -1312,6 +1510,9 @@ class _NearbyTrendingSection extends StatelessWidget {
                   context: context,
                   imageAsset: 'assets/abashyaka/trending_groceries.png',
                   title: 'Daily Groceries\n& Essentials',
+                  badgeText: 'FRESH',
+                  badgeColor: const Color(0xFFE4F7E3),
+                  badgeTextColor: const Color(0xFF087F0D),
                   categorySlug: 'grocery',
                 ),
                 const SizedBox(width: 10),
@@ -1319,6 +1520,9 @@ class _NearbyTrendingSection extends StatelessWidget {
                   context: context,
                   imageAsset: 'assets/abashyaka/trending_services.png',
                   title: 'Trusted Service\nPros',
+                  badgeText: 'PRO',
+                  badgeColor: const Color(0xFFFFF3E0),
+                  badgeTextColor: const Color(0xFFFF8A00),
                   categorySlug: 'service',
                 ),
               ],
@@ -1333,6 +1537,9 @@ class _NearbyTrendingSection extends StatelessWidget {
     required BuildContext context,
     required String imageAsset,
     required String title,
+    required String badgeText,
+    required Color badgeColor,
+    required Color badgeTextColor,
     required String categorySlug,
   }) {
     return InkWell(
@@ -1342,13 +1549,13 @@ class _NearbyTrendingSection extends StatelessWidget {
           builder: (_) => SearchResultsScreen(initialCategory: categorySlug),
         ),
       ),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        width: 215,
+        width: 220,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -1361,32 +1568,54 @@ class _NearbyTrendingSection extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(11),
+                left: Radius.circular(13),
               ),
               child: Image.asset(
                 imageAsset,
-                width: 72,
-                height: 64,
+                width: 70,
+                height: 68,
                 fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
-                  height: 1.2,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: badgeTextColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF172820),
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
             const Icon(
               Icons.chevron_right_rounded,
-              color: Color(0xFF9CA3AF),
+              color: Color(0xFF94A3B8),
               size: 20,
             ),
             const SizedBox(width: 6),
@@ -1407,11 +1636,19 @@ class _BuyLocalBanner extends StatelessWidget {
     if (isCompactTest) return const SizedBox(height: 0);
     final cityName = city.isEmpty ? 'Local' : city;
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 22),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.forest,
+        color: const Color(0xFFF3FAF0),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD1E7DD), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -1425,15 +1662,16 @@ class _BuyLocalBanner extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.amber,
+                    color: const Color(0xFFFF8A00),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
                     'BUY LOCAL',
                     style: TextStyle(
-                      color: AppTheme.forestDark,
+                      color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
@@ -1441,16 +1679,16 @@ class _BuyLocalBanner extends StatelessWidget {
                 Text(
                   'Support $cityName\nBusinesses ❤️',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF064D3A),
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w900,
                     height: 1.25,
                   ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
                   'Fresh groceries, local food & trusted pros nearby.',
-                  style: TextStyle(color: Color(0xFFD0E8E3), fontSize: 11),
+                  style: TextStyle(color: Color(0xFF172820), fontSize: 11.5),
                 ),
               ],
             ),
@@ -1462,17 +1700,18 @@ class _BuyLocalBanner extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const SearchResultsScreen()),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.emerald,
+              backgroundColor: const Color(0xFF087F0D),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              minimumSize: const Size(0, 38),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              minimumSize: const Size(0, 40),
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: const Text(
               'Shop Local',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -1495,7 +1734,7 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -1505,18 +1744,54 @@ class _SectionHeading extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF172820),
+                  letterSpacing: -0.3,
+                ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),
-                Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  subtitle!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ],
           ),
         ),
         if (action != null)
-          TextButton(onPressed: onAction, child: Text(action!)),
+          InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    action!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF087F0D),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: Color(0xFF087F0D),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     ),
   );
@@ -1535,87 +1810,117 @@ class _OfferCard extends StatelessWidget {
     return SizedBox(
       width: 344,
       child: Material(
-        color: AppTheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const ColoredBox(color: Colors.white),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ClipPath(
-                  clipper: const _OfferImageClipper(),
-                  child: SizedBox(
-                    width: 164,
-                    height: double.infinity,
-                    child: image != null && image.isNotEmpty
-                        ? Image.network(
-                            image,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                const _OfferPlaceholder(),
-                          )
-                        : const _OfferPlaceholder(),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const ColoredBox(color: Colors.white),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ClipPath(
+                    clipper: const _OfferImageClipper(),
+                    child: SizedBox(
+                      width: 164,
+                      height: double.infinity,
+                      child: image != null && image.isNotEmpty
+                          ? Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  const _OfferPlaceholder(),
+                            )
+                          : const _OfferPlaceholder(),
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(170, 15, 10, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'LIVE OFFER',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: .4,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(170, 15, 12, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF8A00),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'LIVE OFFER',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: .4,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      offer.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${offer.businessName} · ${offer.locality ?? offer.city}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    if (offer.discountPercent != null) ...[
                       const SizedBox(height: 7),
                       Text(
-                        '${offer.discountPercent}% OFF',
+                        offer.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: AppTheme.primary,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
+                          color: Color(0xFF172820),
                         ),
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${offer.businessName} · ${offer.locality ?? offer.city}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      if (offer.discountPercent != null) ...[
+                        const SizedBox(height: 7),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE4D1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${offer.discountPercent}% OFF',
+                            style: const TextStyle(
+                              color: Color(0xFFC2410C),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1776,89 +2081,119 @@ class _NewArrivalCard extends StatelessWidget {
         : item.priceMax != null && item.priceMax != item.price
         ? '₹${item.price!.toStringAsFixed(0)}–₹${item.priceMax!.toStringAsFixed(0)}'
         : '₹${item.price!.toStringAsFixed(0)}';
+    final isProduct = item.type == 'product';
     return Material(
-      color: AppTheme.surface,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 112,
-              width: double.infinity,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  image == null
-                      ? const _BusinessPlaceholder()
-                      : Image.network(
-                          image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const _BusinessPlaceholder(),
-                        ),
-                  Positioned(
-                    left: 9,
-                    top: 9,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .94),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        item.type == 'product' ? 'NEW PRODUCT' : 'NEW SERVICE',
-                        style: const TextStyle(
-                          color: AppTheme.primary,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: .3,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.businessName} · ${item.locality?.isNotEmpty == true ? item.locality : item.city}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  if (price != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      price,
-                      style: const TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 112,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    image == null
+                        ? const _BusinessPlaceholder()
+                        : Image.network(
+                            image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                const _BusinessPlaceholder(),
+                          ),
+                    Positioned(
+                      left: 9,
+                      top: 9,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isProduct
+                              ? const Color(0xFFE4F7E3)
+                              : const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isProduct
+                                ? const Color(0xFFC7EBC5)
+                                : const Color(0xFFFFE0B2),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          isProduct ? 'NEW PRODUCT' : 'NEW SERVICE',
+                          style: TextStyle(
+                            color: isProduct
+                                ? const Color(0xFF087F0D)
+                                : const Color(0xFFFF8A00),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: .3,
+                          ),
+                        ),
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF172820),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${item.businessName} · ${item.locality?.isNotEmpty == true ? item.locality : item.city}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    if (price != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          color: Color(0xFF087F0D),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
