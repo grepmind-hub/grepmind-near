@@ -363,3 +363,111 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 		"meta": map[string]string{"request_id": "logout"},
 	})
 }
+
+type adminPasswordLoginBody struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (s *Service) AdminPasswordLogin(w http.ResponseWriter, r *http.Request) {
+	if s == nil || s.db == nil {
+		writeError(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "Authentication service is unavailable.")
+		return
+	}
+
+	var body adminPasswordLoginBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Unable to parse request body.")
+		return
+	}
+
+	identifier := strings.TrimSpace(body.Username)
+	password := body.Password
+	if identifier == "" || password == "" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Username and password are required.")
+		return
+	}
+
+	type adminUserRow struct {
+		ID           string         `db:"id"`
+		PhoneE164    string         `db:"phone_e164"`
+		DisplayName  sql.NullString `db:"display_name"`
+		Email        sql.NullString `db:"email"`
+		PasswordHash sql.NullString `db:"password_hash"`
+		Status       string         `db:"status"`
+	}
+
+	var user adminUserRow
+	query := `
+		SELECT id::text, phone_e164, display_name, email, password_hash, status
+		FROM users
+		WHERE (lower(email) = lower($1) OR phone_e164 = $1 OR lower(display_name) = lower($1))
+		  AND status = 'active'
+		LIMIT 1
+	`
+	err := s.db.GetContext(r.Context(), &user, query, identifier)
+	if err == sql.ErrNoRows || !user.PasswordHash.Valid || user.PasswordHash.String == "" {
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid username or password.")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Database error during authentication.")
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(password)); err != nil {
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid username or password.")
+		return
+	}
+
+	// Verify that the user has the 'admin' role
+	var roles []string
+	if err := s.db.SelectContext(r.Context(), &roles, `SELECT role FROM user_roles WHERE user_id = $1 ORDER BY role`, user.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load user roles.")
+		return
+	}
+
+	isAdmin := false
+	for _, role := range roles {
+		if role == "admin" {
+			isAdmin = true
+			break
+		}
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "This account does not have administrator access.")
+		return
+	}
+
+	// Issue login tokens with adminOTP = true to establish full admin session
+	accessToken, refreshToken, err := s.issueLoginTokens(r.Context(), user.ID, r.UserAgent(), remoteIP(r), true)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to issue session tokens.")
+		return
+	}
+
+	var emailVal string
+	if user.Email.Valid {
+		emailVal = user.Email.String
+	}
+	var nameVal string
+	if user.DisplayName.Valid {
+		nameVal = user.DisplayName.String
+	}
+
+	writeJSON(w, http.StatusOK, envelope{
+		"data": envelope{
+			"access_token":  accessToken,
+			"refresh_token": refreshToken,
+			"user": envelope{
+				"id":           user.ID,
+				"phone_e164":   user.PhoneE164,
+				"email":        emailVal,
+				"display_name": nameVal,
+				"status":       user.Status,
+				"roles":        roles,
+			},
+		},
+		"meta": map[string]string{"request_id": "admin-logged-in"},
+	})
+}
+

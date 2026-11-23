@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, KeyRound, Phone, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Lock, Phone, ShieldCheck, User } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,16 +21,25 @@ function createIdempotencyKey(): string {
 }
 
 export default function LoginPage() {
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password')
+  
+  // Password credentials state
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Phone OTP state
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [challengeId, setChallengeId] = useState<string | null>(null)
   const [resendSeconds, setResendSeconds] = useState(0)
   const [step, setStep] = useState<'phone' | 'otp' | 'pin' | 'enroll'>('phone')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const [pinEnrolled, setPINEnrolled] = useState(false)
   const [pin, setPIN] = useState('')
   const [confirmPIN, setConfirmPIN] = useState('')
+
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -40,7 +49,6 @@ export default function LoginPage() {
         if (controller.signal.aborted || typeof data?.data?.enabled !== 'boolean') return
         if (data.data.enabled && data.data.enrolled) {
           setPINEnrolled(true)
-          setStep((current) => current === 'phone' ? 'pin' : current)
         }
       })
       .catch(() => undefined)
@@ -52,6 +60,33 @@ export default function LoginPage() {
     const timer = window.setTimeout(() => setResendSeconds((value) => Math.max(0, value - 1)), 1000)
     return () => window.clearTimeout(timer)
   }, [resendSeconds, step])
+
+  async function handlePasswordLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await api.post('/auth/admin-password-login', {
+        username: username.trim(),
+        password,
+      })
+      const data = res.data?.data
+      if (!data?.user?.roles?.includes('admin')) {
+        setError('This account does not have administrator access.')
+        return
+      }
+      if (!data.access_token || !data.refresh_token) {
+        setError('The authentication service returned an incomplete session.')
+        return
+      }
+      setAuthToken(data.access_token, data.refresh_token)
+      router.replace('/dashboard')
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message ?? 'Invalid username or password. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault()
@@ -156,17 +191,100 @@ export default function LoginPage() {
       <div aria-hidden="true" className="pointer-events-none absolute -left-28 -top-32 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 -right-20 h-96 w-96 rounded-full bg-teal-100/60 blur-3xl" />
       <Card className="relative w-full max-w-md rounded-3xl border border-white/80 bg-white/95 shadow-[0_24px_80px_-32px_rgba(21,48,100,.28)] backdrop-blur">
-        <CardHeader className="space-y-5 px-8 pt-9 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2457D6] to-[#1742B3] text-white shadow-lg shadow-blue-900/20">
+        <CardHeader className="space-y-4 px-8 pt-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#087F0D] text-white shadow-lg shadow-emerald-900/20">
             <ShieldCheck className="h-7 w-7" />
           </div>
-          <div className="space-y-1.5">
-            <CardTitle className="text-2xl font-bold tracking-tight text-[#172033]">Admin sign in</CardTitle>
-            <CardDescription className="text-sm text-[#667085]">Secure access to Grepmind Near operations</CardDescription>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold tracking-tight text-[#172820]">Admin sign in</CardTitle>
+            <CardDescription className="text-sm text-[#64748B]">Secure access to Abashyaka platform operations</CardDescription>
+          </div>
+
+          {/* Toggle between Password and Phone OTP */}
+          <div className="flex rounded-xl bg-[#F1F5F9] p-1 text-sm font-semibold">
+            <button
+              type="button"
+              onClick={() => { setAuthMethod('password'); setError(''); }}
+              className={`flex-1 rounded-lg py-2 transition-all duration-200 ${
+                authMethod === 'password'
+                  ? 'bg-white text-[#064D3A] shadow-sm'
+                  : 'text-[#64748B] hover:text-[#172820]'
+              }`}
+            >
+              Password
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAuthMethod('otp'); setError(''); }}
+              className={`flex-1 rounded-lg py-2 transition-all duration-200 ${
+                authMethod === 'otp'
+                  ? 'bg-white text-[#064D3A] shadow-sm'
+                  : 'text-[#64748B] hover:text-[#172820]'
+              }`}
+            >
+              Mobile OTP
+            </button>
           </div>
         </CardHeader>
-        <CardContent className="px-8 pb-7 pt-5">
-          {step === 'phone' ? (
+
+        <CardContent className="px-8 pb-7 pt-3">
+          {authMethod === 'password' ? (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <label className="block space-y-1.5 text-sm font-medium text-[#344054]">
+                Administrator username or email
+                <span className="relative block">
+                  <User className="absolute left-3.5 top-3.5 h-4 w-4 text-[#667085]" />
+                  <Input
+                    type="text"
+                    autoComplete="username"
+                    placeholder="admin@abashyaka.com or superadmin"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="h-12 rounded-xl pl-10"
+                  />
+                </span>
+              </label>
+
+              <label className="block space-y-1.5 text-sm font-medium text-[#344054]">
+                Password
+                <span className="relative block">
+                  <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-[#667085]" />
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="Enter admin password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-12 rounded-xl pl-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3.5 text-[#667085] hover:text-[#172820]"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </span>
+              </label>
+
+              {error && (
+                <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
+                  {error}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                className="h-12 w-full rounded-xl bg-[#087F0D] text-base font-semibold hover:bg-[#06680A]"
+                disabled={loading || !username.trim() || !password}
+              >
+                {loading ? 'Verifying credentials…' : <>Sign in to Admin <ArrowRight className="ml-2 h-4 w-4" /></>}
+              </Button>
+            </form>
+          ) : step === 'phone' ? (
             <form onSubmit={requestCode} className="space-y-4">
               <label className="block space-y-2 text-sm font-medium text-[#344054]">
                 Administrator mobile number
@@ -176,7 +294,7 @@ export default function LoginPage() {
                 </span>
               </label>
               {error && <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{error}</p>}
-              <Button type="submit" className="h-12 w-full rounded-xl bg-[#2457D6] text-base font-semibold hover:bg-[#1D49BD]" disabled={loading}>
+              <Button type="submit" className="h-12 w-full rounded-xl bg-[#087F0D] text-base font-semibold hover:bg-[#06680A]" disabled={loading}>
                 {loading ? 'Sending code…' : <>Continue securely <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
               {pinEnrolled && (
@@ -198,7 +316,7 @@ export default function LoginPage() {
                 <Input type="password" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{6}" maxLength={6} value={confirmPIN} onChange={(event) => setConfirmPIN(event.target.value.replace(/[^0-9]/g, ''))} required className="h-12 rounded-xl" />
               </label>}
               {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-              <Button type="submit" className="h-12 w-full" disabled={loading || pin.length !== 6 || (step === 'enroll' && confirmPIN.length !== 6)}>
+              <Button type="submit" className="h-12 w-full rounded-xl bg-[#087F0D] hover:bg-[#06680A]" disabled={loading || pin.length !== 6 || (step === 'enroll' && confirmPIN.length !== 6)}>
                 {loading ? 'Please wait…' : step === 'enroll' ? 'Save PIN' : 'Verify PIN'}
               </Button>
               <Button type="button" variant="outline" className="h-12 w-full" disabled={loading} onClick={() => {
@@ -222,19 +340,19 @@ export default function LoginPage() {
                 </span>
               </label>
               {error && <p role="alert" className="rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{error}</p>}
-              <Button type="submit" className="h-12 w-full rounded-xl bg-[#2457D6] text-base font-semibold hover:bg-[#1D49BD]" disabled={loading || otp.length !== 6}>
+              <Button type="submit" className="h-12 w-full rounded-xl bg-[#087F0D] text-base font-semibold hover:bg-[#06680A]" disabled={loading || otp.length !== 6}>
                 {loading ? 'Verifying…' : <>Verify and continue <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
-              <button type="button" disabled={loading || resendSeconds > 0} onClick={() => requestOtp(phone)} className="min-h-11 w-full text-sm font-medium text-[#2457D6] disabled:text-[#98A2B3]">
+              <button type="button" disabled={loading || resendSeconds > 0} onClick={() => requestOtp(phone)} className="min-h-11 w-full text-sm font-medium text-[#087F0D] disabled:text-[#98A2B3]">
                 {resendSeconds > 0 ? `Resend code in 00:${String(resendSeconds).padStart(2, '0')}` : 'Resend code'}
               </button>
-              <button type="button" onClick={() => { setStep('phone'); setOtp(''); setError('') }} className="flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-[#667085] hover:text-[#2457D6]"><ArrowLeft className="h-4 w-4" /> Change mobile number</button>
+              <button type="button" onClick={() => { setStep('phone'); setOtp(''); setError('') }} className="flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-[#667085] hover:text-[#087F0D]"><ArrowLeft className="h-4 w-4" /> Change mobile number</button>
             </form>
           )}
-          <p className="mt-5 text-center text-xs leading-5 text-[#98A2B3]">Administrator role is checked after phone verification. Access is protected by expiring, rotating sessions.</p>
+          <p className="mt-5 text-center text-xs leading-5 text-[#98A2B3]">Administrator privileges are verified after signing in. Access is protected by expiring, rotating sessions.</p>
         </CardContent>
         <CardFooter className="justify-center border-t border-[#F2F4F7] px-8 py-4">
-          <Link href="/" className="text-sm font-medium text-[#667085] hover:text-[#2457D6]">Back to portal</Link>
+          <Link href="/" className="text-sm font-medium text-[#667085] hover:text-[#087F0D]">Back to portal</Link>
         </CardFooter>
       </Card>
     </main>

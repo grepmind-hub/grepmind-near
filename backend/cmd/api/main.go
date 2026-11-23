@@ -667,6 +667,7 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 
 	mux.HandleFunc("POST /api/v1/auth/otp/request", authSvc.RequestOTP)
 	mux.HandleFunc("POST /api/v1/auth/otp/verify", authSvc.VerifyOTP)
+	mux.HandleFunc("POST /api/v1/auth/admin-password-login", authSvc.AdminPasswordLogin)
 	mux.HandleFunc("GET /api/v1/auth/admin-mpin", authSvc.AdminMPINStatus)
 	mux.HandleFunc("POST /api/v1/auth/admin-mpin/enroll", authSvc.EnrollAdminMPIN)
 	mux.HandleFunc("POST /api/v1/auth/admin-mpin/remove", authSvc.RemoveAdminMPIN)
