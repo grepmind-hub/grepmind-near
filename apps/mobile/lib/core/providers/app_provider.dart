@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart'
     show debugPrint, kDebugMode, visibleForTesting;
@@ -48,6 +49,9 @@ class AuthState {
 
 /// Auth notifier backed by Riverpod and secure storage.
 class AuthNotifier extends StateNotifier<AuthState> {
+  String? _lastOtpError;
+  String? get lastOtpError => _lastOtpError;
+
   AuthNotifier() : this._(restoreSession: true);
 
   @visibleForTesting
@@ -267,13 +271,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
         });
         debugPrint('QA_OTP_CHALLENGE $challengeMetadata');
       }
+      _lastOtpError = null;
       return {
         'phone_e164': resultData['phone_e164'],
         'challenge_id': challengeId,
         'expires_at': expiresAt,
         'status': resultData['status'],
       };
-    } catch (_) {
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 429) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic> && data['error'] != null) {
+          final errMap = data['error'];
+          if (errMap is Map<String, dynamic> && errMap['message'] != null) {
+            _lastOtpError = errMap['message'] as String;
+          } else {
+            _lastOtpError =
+                'OTP request limit reached. Please wait a few minutes before trying again.';
+          }
+        } else {
+          _lastOtpError =
+              'OTP request limit reached. Please wait a few minutes before trying again.';
+        }
+      } else {
+        _lastOtpError = null;
+      }
       return null;
     }
   }

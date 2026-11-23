@@ -47,7 +47,7 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.allowOTPRequest(phone, remoteIP(r)) {
-		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Please wait before requesting another OTP.")
+		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "You have reached the maximum number of OTP requests. Please wait a few minutes before trying again.")
 		return
 	}
 	if s.db == nil {
@@ -100,7 +100,7 @@ func (s *Service) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		`, phone, string(codeHash), s.cfg.OTPMaxAttempts, expiresAt).Scan(&otpID)
 	})
 	if errors.Is(err, errOTPRequestLimited) {
-		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Please wait before requesting another OTP.")
+		writeError(w, http.StatusTooManyRequests, "RATE_LIMITED", "You have reached the maximum number of OTP requests. Please wait a few minutes before trying again.")
 		return
 	}
 	if err != nil {

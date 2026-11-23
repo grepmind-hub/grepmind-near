@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:grepmind_mobile/core/screens/merchant_welcome_screen.dart';
 import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
@@ -28,8 +29,11 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with CodeAutoFill {
   final _phoneController = TextEditingController();
+  final _phoneFocusNode = FocusNode();
   final _otpController = TextEditingController();
+  final _otpFocusNode = FocusNode();
   FcmOtpPayload? _receivedOtpPayload;
+  FcmOtpPayload? _pendingOtpPayload;
   late bool _isMerchantMode;
   bool _sending = false;
   bool _otpSent = false;
@@ -52,10 +56,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void initState() {
     super.initState();
     _isMerchantMode = widget.initialMerchantMode;
+    _otpController.addListener(_onOtpChanged);
     NotificationManager().onOtpReceived = (payload) {
-      if (mounted &&
-          _otpSent &&
-          !_otpRequestInFlight &&
+      if (!mounted) return;
+      if (_otpRequestInFlight) {
+        _pendingOtpPayload = payload;
+        return;
+      }
+      if (_otpSent &&
           payload.matchesChallenge(
             _challengeId,
             _normalizedPhone,
@@ -66,13 +74,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     };
   }
 
+  void _onOtpChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _otpController.removeListener(_onOtpChanged);
     _resendTimer?.cancel();
     NotificationManager().onOtpReceived = null;
     cancel();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -94,8 +109,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _showMessage('Enter a valid 10-digit Indian mobile number');
       return;
     }
+    FocusScope.of(context).unfocus();
     _otpRequestInFlight = true;
     _pendingAutofillCode = null;
+    _pendingOtpPayload = null;
     setState(() {
       _sending = true;
     });
@@ -139,6 +156,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         _otpSent = true;
         _challengeId = result['challenge_id'] as String?;
         _otpController.clear();
+        if (_pendingOtpPayload != null &&
+            _pendingOtpPayload!.matchesChallenge(
+              _challengeId,
+              _normalizedPhone,
+              DateTime.now(),
+            )) {
+          _receivedOtpPayload = _pendingOtpPayload;
+        }
+        _pendingOtpPayload = null;
         final autofilled = _pendingAutofillCode;
         if (autofilled != null && RegExp(r'^\d{6}$').hasMatch(autofilled)) {
           _setOtpCode(autofilled, notify: false);
@@ -147,12 +173,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       }
       _pendingAutofillCode = null;
     });
+    if (result != null) {
+      _focusOtpInput();
+    }
     if (result == null) cancel();
+    final lastErr = ref.read(authProvider.notifier).lastOtpError;
     _showMessage(
       result == null
-          ? 'Could not send a code. Please try again.'
+          ? (lastErr ?? 'Could not send a code. Please try again.')
           : 'Verification code sent.',
     );
+  }
+
+  void _focusOtpInput({bool clearIfFull = false}) {
+    if (clearIfFull && _otpController.text.length == 6) {
+      _otpController.clear();
+    }
+    _otpFocusNode.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _otpFocusNode.requestFocus();
+        _otpController.selection = TextSelection.collapsed(
+          offset: _otpController.text.length,
+        );
+        SystemChannels.textInput.invokeMethod('TextInput.show');
+      }
+    });
   }
 
   void _startResendCountdown() {
@@ -201,6 +247,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   void _useDifferentNumber() {
+    FocusScope.of(context).unfocus();
     _resendTimer?.cancel();
     NotificationManager().onOtpReceived = null;
     cancel();
@@ -210,6 +257,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _receivedOtpPayload = null;
       _resendSeconds = 0;
       _otpController.clear();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _phoneFocusNode.requestFocus();
+        _phoneController.selection = TextSelection.collapsed(
+          offset: _phoneController.text.length,
+        );
+        SystemChannels.textInput.invokeMethod('TextInput.show');
+      }
     });
   }
 
@@ -366,10 +422,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   const SizedBox(height: 24),
                   PremiumCard(
                     padding: const EdgeInsets.all(20),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      child: !_otpSent ? _phoneStep() : _otpStep(),
-                    ),
+                    child: !_otpSent ? _phoneStep() : _otpStep(),
                   ),
                   if (!_otpSent) ...[
                     const SizedBox(height: 18),
@@ -449,6 +502,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       children: [
         TextField(
           key: const Key('phoneInput'),
+          focusNode: _phoneFocusNode,
           controller: _phoneController,
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.done,
@@ -601,72 +655,108 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       key: const ValueKey('otp-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_receivedOtpPayload != null &&
-            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
-          OtpNotificationBanner(
-            payload: _receivedOtpPayload!,
-            key: ValueKey(_receivedOtpPayload!.challengeId),
-            onCopy: (code) => _setOtpCode(code),
-          ),
-        if (_receivedOtpPayload != null &&
-            !_receivedOtpPayload!.expiresAt.isBefore(DateTime.now()))
-          const SizedBox(height: 12),
-        SizedBox(
-          height: 62,
-          child: Stack(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (index) {
-                  final selected = index == digits.length && digits.length < 6;
-                  return Flexible(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      width: 43,
-                      height: 58,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: selected ? AppTheme.emerald : AppTheme.border,
-                          width: selected ? 1.8 : 1,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _focusOtpInput(),
+          child: SizedBox(
+            height: 62,
+            child: Stack(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(6, (index) {
+                    final selected = index == digits.length && digits.length < 6;
+                    return Flexible(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        width: 43,
+                        height: 58,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected ? AppTheme.emerald : AppTheme.border,
+                            width: selected ? 1.8 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          index < digits.length ? digits[index] : '',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: AppTheme.mainText,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        index < digits.length ? digits[index] : '',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppTheme.mainText,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    );
+                  }),
+                ),
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.001,
+                    child: TextField(
+                      key: const Key('otpInput'),
+                      focusNode: _otpFocusNode,
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      maxLength: 6,
+                      showCursor: false,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      onTap: () => _focusOtpInput(),
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        counterText: '',
+                        isDense: true,
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                       ),
-                    ),
-                  );
-                }),
-              ),
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.01,
-                  child: TextField(
-                    key: const Key('otpInput'),
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    maxLength: 6,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      counterText: '',
-                      border: InputBorder.none,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+        if (digits.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                _otpController.clear();
+                _focusOtpInput();
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.backspace_outlined,
+                      size: 14,
+                      color: AppTheme.secondaryText,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Clear',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 54),

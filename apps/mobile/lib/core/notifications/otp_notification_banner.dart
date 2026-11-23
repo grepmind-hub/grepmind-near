@@ -23,28 +23,26 @@ class OtpNotificationBanner extends StatefulWidget {
 class _OtpNotificationBannerState extends State<OtpNotificationBanner> {
   Timer? _expiryTimer;
 
+  void _scheduleExpiry() {
+    _expiryTimer?.cancel();
+    final remaining = widget.payload.expiresAt.difference(DateTime.now());
+    if (!remaining.isNegative && remaining > Duration.zero) {
+      _expiryTimer = Timer(remaining, () {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Remove the banner automatically when the OTP expires.
-    _expiryTimer = Timer(
-      widget.payload.expiresAt.difference(DateTime.now()),
-      () {
-        if (mounted) setState(() {});
-      },
-    );
+    _scheduleExpiry();
   }
 
   @override
   void didUpdateWidget(covariant OtpNotificationBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _expiryTimer?.cancel();
-    _expiryTimer = Timer(
-      widget.payload.expiresAt.difference(DateTime.now()),
-      () {
-        if (mounted) setState(() {});
-      },
-    );
+    _scheduleExpiry();
   }
 
   @override
