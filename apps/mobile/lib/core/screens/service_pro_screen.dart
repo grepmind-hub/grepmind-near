@@ -236,10 +236,10 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     width: 76,
                                     height: 76,
                                     decoration: BoxDecoration(
-                                      color: AppTheme.brandMint,
+                                      color: const Color(0xFFE4F7E3),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: AppTheme.emerald.withValues(alpha: 0.3),
+                                        color: const Color(0xFF087F0D).withValues(alpha: 0.3),
                                         width: 2,
                                       ),
                                     ),
@@ -249,7 +249,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             ? Icons.plumbing_rounded
                                             : Icons.engineering_rounded,
                                         size: 42,
-                                        color: AppTheme.emerald,
+                                        color: const Color(0xFF087F0D),
                                       ),
                                     ),
                                   ),
@@ -259,7 +259,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(3),
                                       decoration: const BoxDecoration(
-                                        color: AppTheme.emerald,
+                                        color: Color(0xFF087F0D),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
@@ -293,7 +293,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                           const SizedBox(width: 4),
                                           const Icon(
                                             Icons.verified_rounded,
-                                            color: AppTheme.emerald,
+                                            color: Color(0xFF087F0D),
                                             size: 18,
                                           ),
                                         ],
@@ -307,7 +307,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.emerald,
+                                        color: Color(0xFF087F0D),
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -354,7 +354,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.brandMint,
+                                            color: const Color(0xFFE4F7E3),
                                             borderRadius: BorderRadius.circular(
                                               6,
                                             ),
@@ -365,7 +365,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                                 : 'Unavailable',
                                             style: TextStyle(
                                               color: biz.acceptsRequests
-                                                  ? AppTheme.forest
+                                                  ? const Color(0xFF087F0D)
                                                   : AppTheme.secondaryText,
                                               fontWeight: FontWeight.w700,
                                               fontSize: 11,
@@ -731,7 +731,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                           height: 48,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.emerald,
+                              backgroundColor: const Color(0xFF087F0D),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),

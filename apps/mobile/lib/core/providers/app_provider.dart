@@ -252,7 +252,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         '/auth/otp/request',
         data: {
           'phone_e164': phone,
-          if (installationId != null) 'installation_id': installationId,
+          ...? (installationId == null ? null : {'installation_id': installationId}),
         },
       );
       final data = res.data as Map<String, dynamic>;

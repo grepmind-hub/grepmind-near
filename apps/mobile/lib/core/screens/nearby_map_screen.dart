@@ -114,15 +114,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
       ref.read(appLocationProvider.notifier).loadDefaultLocation().then((_) {
         if (!mounted) return;
         final updated = ref.read(appLocationProvider);
-        if (updated.cityName.isNotEmpty) {
-          _updateMapPosition(updated.latitude, updated.longitude);
-          _loadNearbyBusinesses(updated.latitude, updated.longitude);
-        } else {
-          setState(() {
-            _error = 'Please select a city in Explore to browse nearby.';
-            _isLoading = false;
-          });
-        }
+        final lat = updated.cityName.isNotEmpty ? updated.latitude : 20.6120;
+        final lng = updated.cityName.isNotEmpty ? updated.longitude : 86.0465;
+        _updateMapPosition(lat, lng);
+        _loadNearbyBusinesses(lat, lng);
       });
       return;
     }
@@ -164,7 +159,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   Future<void> _loadNearbyBusinesses(double lat, double lng) async {
     final sequence = ++_loadSequence;
     final city = ref.read(appLocationProvider).cityName;
-    if (city.isEmpty) {
+    if (city.isEmpty && lat == 0 && lng == 0) {
       if (mounted) {
         setState(() {
           _error = 'Please select a city in Explore to browse nearby.';
@@ -185,7 +180,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         lat: lat,
         lng: lng,
         radiusM: _radiusKm * 1000,
-        city: city,
+        city: city.isEmpty ? null : city,
         categorySlug: _selectedCategorySlug == 'all'
             ? null
             : _selectedCategorySlug,
@@ -430,7 +425,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: Icon(
               _useRadarView ? Icons.map_rounded : Icons.radar_rounded,
-              color: AppTheme.emerald,
+              color: const Color(0xFF087F0D),
             ),
             tooltip: _useRadarView ? 'Show Map Tiles' : 'Show Radar View',
             onPressed: () {
@@ -440,7 +435,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: const Icon(
               Icons.my_location_rounded,
-              color: AppTheme.emerald,
+              color: Color(0xFF087F0D),
             ),
             onPressed: _centerOnUser,
             tooltip: 'Center on Me',
@@ -620,17 +615,17 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.emerald : Colors.white,
+                color: isSelected ? const Color(0xFF087F0D) : Colors.white,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.emerald
-                      : const Color(0xFFE1EBE5),
+                      ? const Color(0xFF087F0D)
+                      : const Color(0xFFE2E8F0),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isSelected
-                        ? AppTheme.emerald.withValues(alpha: 0.22)
+                        ? const Color(0xFF087F0D).withValues(alpha: 0.22)
                         : Colors.black.withValues(alpha: 0.04),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
@@ -644,7 +639,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     Icon(
                       icon,
                       size: 15,
-                      color: isSelected ? Colors.white : AppTheme.emerald,
+                      color: isSelected ? Colors.white : const Color(0xFF087F0D),
                     ),
                     const SizedBox(width: 5),
                   ],
@@ -654,7 +649,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       fontSize: 12.5,
                       fontWeight:
                           isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? Colors.white : AppTheme.brandText,
+                      color: isSelected ? Colors.white : const Color(0xFF172820),
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -704,7 +699,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       const Icon(
                         Icons.radar_rounded,
                         size: 17,
-                        color: AppTheme.emerald,
+                        color: Color(0xFF087F0D),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -767,8 +762,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           ),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: AppTheme.emerald,
-            side: const BorderSide(color: Color(0xFFE1EBE5)),
+            foregroundColor: const Color(0xFF087F0D),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
         ),
       ],
@@ -1022,12 +1017,17 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.emerald : Colors.white,
+                color: isSelected
+                    ? const Color(0xFF087F0D)
+                    : (slug == 'all'
+                        ? const Color(0xFFF3FAF0)
+                        : CategoriesScreen.getCategoryBackgroundColor(slug)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.emerald
-                      : const Color(0xFFE1EBE5),
+                      ? const Color(0xFF087F0D)
+                      : const Color(0xFFE2E8F0),
+                  width: isSelected ? 1.5 : 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1045,7 +1045,11 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   Icon(
                     cat['icon'] as IconData,
                     size: 16,
-                    color: isSelected ? Colors.white : AppTheme.secondaryText,
+                    color: isSelected
+                        ? Colors.white
+                        : (slug == 'all'
+                            ? const Color(0xFF087F0D)
+                            : CategoriesScreen.getCategoryColor(slug)),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -1053,7 +1057,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : AppTheme.brandText,
+                      color: isSelected ? Colors.white : const Color(0xFF172820),
                     ),
                   ),
                 ],
@@ -1145,7 +1149,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           const Icon(
                             Icons.verified_rounded,
                             size: 15,
-                            color: AppTheme.emerald,
+                            color: Color(0xFF087F0D),
                           ),
                         ],
                       ],
@@ -1166,7 +1170,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.brandText,
+                            color: Color(0xFF172820),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -1192,7 +1196,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.emerald,
+                              color: Color(0xFF087F0D),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1206,7 +1210,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           ),
                           decoration: BoxDecoration(
                             color: biz.isOpenNow
-                                ? const Color(0xFFECFDF5)
+                                ? const Color(0xFFE4F7E3)
                                 : const Color(0xFFF3F4F6),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -1216,7 +1220,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: biz.isOpenNow
-                                  ? AppTheme.emerald
+                                  ? const Color(0xFF087F0D)
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -1293,7 +1297,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   height: 44,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.emerald,
+                      backgroundColor: const Color(0xFF087F0D),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1408,14 +1412,16 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.emerald : Colors.white,
+                          color: isSelected
+                              ? const Color(0xFF087F0D)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
                                 ? Colors.white
-                                : (biz.shouldOpenServiceProfile
-                                    ? const Color(0xFF0D9488)
-                                    : const Color(0xFFCBD5E1)),
+                                : CategoriesScreen.getCategoryColor(
+                                    biz.categorySlug,
+                                  ).withValues(alpha: 0.5),
                             width: isSelected ? 2 : 1.5,
                           ),
                           boxShadow: [
@@ -1430,11 +1436,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _getCategoryIcon(biz.categorySlug),
+                              CategoriesScreen.getCategoryIcon(
+                                biz.categorySlug,
+                              ),
                               size: 13,
                               color: isSelected
                                   ? Colors.white
-                                  : AppTheme.emerald,
+                                  : CategoriesScreen.getCategoryColor(
+                                      biz.categorySlug,
+                                    ),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -1444,7 +1454,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                                 fontWeight: FontWeight.w800,
                                 color: isSelected
                                     ? Colors.white
-                                    : AppTheme.brandText,
+                                    : const Color(0xFF172820),
                               ),
                             ),
                           ],
@@ -1455,7 +1465,11 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         width: 6,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.emerald : Colors.white,
+                          color: isSelected
+                              ? const Color(0xFF087F0D)
+                              : CategoriesScreen.getCategoryColor(
+                                  biz.categorySlug,
+                                ),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1468,25 +1482,6 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         );
       },
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'electrician':
-        return Icons.bolt_rounded;
-      case 'hardware':
-        return Icons.hardware_rounded;
-      case 'medical':
-        return Icons.local_pharmacy_rounded;
-      case 'grocery':
-        return Icons.local_grocery_store_rounded;
-      case 'restaurant':
-        return Icons.restaurant_rounded;
-      case 'salon':
-        return Icons.content_cut_rounded;
-      default:
-        return Icons.storefront_rounded;
-    }
   }
 }
 
@@ -1540,8 +1535,8 @@ class _RadarMapPainter extends CustomPainter {
       ..shader = SweepGradient(
         center: FractionalOffset.center,
         colors: [
-          AppTheme.emerald.withValues(alpha: 0.0),
-          AppTheme.emerald.withValues(alpha: 0.15),
+          const Color(0xFF087F0D).withValues(alpha: 0.0),
+          const Color(0xFF087F0D).withValues(alpha: 0.15),
         ],
         stops: const [0.85, 1.0],
         transform: GradientRotation(sweepAngle),

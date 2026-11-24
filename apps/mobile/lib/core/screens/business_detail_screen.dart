@@ -374,7 +374,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF3),
+                              color: const Color(0xFFE4F7E3),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Row(
@@ -383,7 +383,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 Icon(
                                   Icons.verified,
                                   size: 14,
-                                  color: AppTheme.primary,
+                                  color: Color(0xFF087F0D),
                                 ),
                                 SizedBox(width: 4),
                                 Text(
@@ -391,7 +391,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.primary,
+                                    color: Color(0xFF087F0D),
                                   ),
                                 ),
                               ],
@@ -567,15 +567,15 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     ),
                     const SizedBox(height: 18),
 
-                    // Circular Action Buttons
+                    // Circular Action Buttons (Multi-color 2027 Styling)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildCircleAction(
                           'Call',
                           Icons.phone_rounded,
-                          const Color(0xFFE8F5E9),
-                          AppTheme.primary,
+                          const Color(0xFFE4F7E3),
+                          const Color(0xFF087F0D),
                           contactPhone != null
                               ? () => _launchContact(
                                   () => ref
@@ -587,8 +587,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'Directions',
                           Icons.directions_rounded,
-                          const Color(0xFFE8F5E9),
-                          AppTheme.primary,
+                          const Color(0xFFDFEEFF),
+                          const Color(0xFF0284C7),
                           () => _launchUrl(
                             'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}',
                           ),
@@ -611,8 +611,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           isFavorited
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
-                          const Color(0xFFE8F5E9),
-                          AppTheme.primary,
+                          const Color(0xFFFFF3E0),
+                          isFavorited ? const Color(0xFFFF8A00) : const Color(0xFFD97706),
                           () => _toggleFavorite(biz.id),
                         ),
                       ],
@@ -631,9 +631,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   onTap: (index) {
                     if (index == 1) _recordView('catalog');
                   },
-                  labelColor: AppTheme.emerald,
+                  labelColor: const Color(0xFF087F0D),
                   unselectedLabelColor: AppTheme.secondaryText,
-                  indicatorColor: AppTheme.emerald,
+                  indicatorColor: const Color(0xFF087F0D),
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(
                     fontSize: 14,
@@ -707,7 +707,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               if (ready == true && mounted) _openFoodDeliverySheet(biz);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.emerald,
+              backgroundColor: const Color(0xFF087F0D),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -796,19 +796,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       icon: const Icon(
                         Icons.table_restaurant_rounded,
                         size: 18,
-                        color: AppTheme.emerald,
+                        color: Color(0xFF087F0D),
                       ),
                       label: const Text(
                         'Reserve Table',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.emerald,
+                          color: Color(0xFF087F0D),
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
-                          color: AppTheme.emerald,
+                          color: Color(0xFF087F0D),
                           width: 1.5,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -838,7 +838,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.emerald,
+                        backgroundColor: const Color(0xFF087F0D),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
