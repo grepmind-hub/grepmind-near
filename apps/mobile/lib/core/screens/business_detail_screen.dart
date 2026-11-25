@@ -6,6 +6,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/screens/service_request_screen.dart';
+import 'package:grepmind_mobile/core/screens/booking_scheduler_screen.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
 import 'package:grepmind_mobile/core/providers/cart_provider.dart';
 import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
@@ -1029,9 +1030,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     const Tab(text: 'About'),
                     Tab(
                       key: const Key('business_catalog_tab'),
-                      text: isFood
-                          ? 'Menu & Food'
-                          : (isHotel ? 'Rooms & Stays' : 'Products'),
+                      text: biz.catalogTabLabel,
                     ),
                     const Tab(text: 'Offers'),
                     const Tab(text: 'Reviews'),
@@ -1155,6 +1154,31 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       );
     }
 
+    final slug = biz.categorySlug.toLowerCase().trim().replaceAll('-', '_');
+    final isTransport = slug == 'cab_auto' ||
+        slug == 'transport' ||
+        slug == 'cab' ||
+        slug == 'auto';
+    final isDoctor = slug == 'doctors' ||
+        slug == 'doctor' ||
+        slug == 'clinic' ||
+        slug == 'hospital';
+    final isBeauty =
+        slug == 'beauty_salon' || slug == 'salon' || slug == 'beauty';
+    final isFitness =
+        slug == 'fitness_wellness' || slug == 'fitness' || slug == 'gym';
+    final isEducation = slug == 'education' ||
+        slug == 'coaching' ||
+        slug == 'school' ||
+        slug == 'college';
+    final isService = biz.isServiceProvider ||
+        slug == 'services' ||
+        slug == 'service' ||
+        slug == 'automobile' ||
+        slug == 'construction' ||
+        slug == 'home_painting_decor' ||
+        slug == 'events_catering';
+
     // Dynamic Category CTAs
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1231,138 +1255,107 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   ),
                 ],
               )
-            : (isHotel
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: contactPhone == null
-                                ? null
-                                : () => _launchContact(
+            : isHotel
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: contactPhone == null
+                              ? null
+                              : () => _launchContact(
                                     () => ref
                                         .read(contactActionsProvider)
                                         .call(contactPhone),
                                   ),
-                            icon: const Icon(
-                              Icons.phone_in_talk_rounded,
-                              size: 18,
-                              color: AppTheme.primary,
-                            ),
-                            label: const Text(
-                              'Call Desk',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: AppTheme.primary,
-                                width: 1.5,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          icon: const Icon(
+                            Icons.phone_in_talk_rounded,
+                            size: 18,
+                            color: AbashyakaColors.signatureTeal,
+                          ),
+                          label: Text(
+                            biz.contactActionLabel,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AbashyakaColors.signatureTeal,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton.icon(
-                            onPressed: products.isEmpty
-                                ? null
-                                : () =>
-                                      _openHotelRoomBookingSheet(biz, products),
-                            icon: const Icon(
-                              Icons.calendar_month_rounded,
-                              size: 19,
-                              color: Colors.white,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: AbashyakaColors.signatureTeal,
+                              width: 1.5,
                             ),
-                            label: const Text(
-                              'Book Stay / Room',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.emerald,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ),
-                      ],
-                    )
-                  : biz.isServiceProvider
-                  ? ElevatedButton(
-                      onPressed: () => _navigateToServiceRequest(biz),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.emerald,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.handyman_rounded,
-                            size: 20,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: products.isEmpty
+                              ? null
+                              : () => _openHotelRoomBookingSheet(biz, products),
+                          icon: const Icon(
+                            Icons.calendar_month_rounded,
+                            size: 19,
                             color: Colors.white,
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Request Service / Book Pro',
+                          label: const Text(
+                            'Book Stay / Room',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
                           ),
-                        ],
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AbashyakaColors.signatureTeal,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
                       ),
-                    )
-                  : Row(
-                      children: [
-                        if (contactPhone != null) ...[
+                    ],
+                  )
+                : isTransport
+                    ? Row(
+                        children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _launchContact(
-                                () => ref
-                                    .read(contactActionsProvider)
-                                    .call(contactPhone),
-                              ),
+                              onPressed: contactPhone == null
+                                  ? null
+                                  : () => _launchContact(
+                                        () => ref
+                                            .read(contactActionsProvider)
+                                            .call(contactPhone),
+                                      ),
                               icon: const Icon(
                                 Icons.phone_in_talk_rounded,
                                 size: 18,
-                                color: AppTheme.emerald,
+                                color: AbashyakaColors.signatureTeal,
                               ),
-                              label: const Text(
-                                'Call Store',
-                                style: TextStyle(
+                              label: Text(
+                                biz.contactActionLabel,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.emerald,
+                                  color: AbashyakaColors.signatureTeal,
                                 ),
                               ),
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(
-                                  color: AppTheme.emerald,
+                                  color: AbashyakaColors.signatureTeal,
                                   width: 1.5,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 13,
-                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 13),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -1370,42 +1363,430 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                        ],
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              _tabController.animateTo(1);
-                            },
-                            icon: Icon(
-                              biz.deliveryEnabled
-                                  ? Icons.shopping_bag_outlined
-                                  : Icons.storefront_outlined,
-                              size: 19,
-                              color: Colors.white,
-                            ),
-                            label: Text(
-                              biz.deliveryEnabled
-                                  ? 'Shop Now'
-                                  : 'View Products',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              key: const ValueKey('book_ride_button'),
+                              onPressed: () => _openRideBookingModal(biz),
+                              icon: const Icon(
+                                Icons.local_taxi_rounded,
+                                size: 19,
                                 color: Colors.white,
                               ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.emerald,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              label: const Text(
+                                'Book Ride',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AbashyakaColors.signatureTeal,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 13),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    )),
+                        ],
+                      )
+                    : isDoctor
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: contactPhone == null
+                                      ? null
+                                      : () => _launchContact(
+                                            () => ref
+                                                .read(contactActionsProvider)
+                                                .call(contactPhone),
+                                          ),
+                                  icon: const Icon(
+                                    Icons.phone_in_talk_rounded,
+                                    size: 18,
+                                    color: AbashyakaColors.signatureTeal,
+                                  ),
+                                  label: Text(
+                                    biz.contactActionLabel,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AbashyakaColors.signatureTeal,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: AbashyakaColors.signatureTeal,
+                                      width: 1.5,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 13),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  key: const ValueKey('book_appointment_button'),
+                                  onPressed: () =>
+                                      _navigateToBookingScheduler(biz),
+                                  icon: const Icon(
+                                    Icons.calendar_month_rounded,
+                                    size: 19,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'Book Appointment',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        AbashyakaColors.signatureTeal,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 13),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : (isBeauty || isFitness)
+                            ? Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: contactPhone == null
+                                          ? null
+                                          : () => _launchContact(
+                                                () => ref
+                                                    .read(
+                                                        contactActionsProvider)
+                                                    .call(contactPhone),
+                                              ),
+                                      icon: const Icon(
+                                        Icons.phone_in_talk_rounded,
+                                        size: 18,
+                                        color: AbashyakaColors.signatureTeal,
+                                      ),
+                                      label: Text(
+                                        biz.contactActionLabel,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: AbashyakaColors.signatureTeal,
+                                        ),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: AbashyakaColors.signatureTeal,
+                                          width: 1.5,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 13),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 2,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () =>
+                                          _navigateToBookingScheduler(biz),
+                                      icon: Icon(
+                                        isBeauty
+                                            ? Icons.spa_rounded
+                                            : Icons.fitness_center_rounded,
+                                        size: 19,
+                                        color: Colors.white,
+                                      ),
+                                      label: Text(
+                                        biz.primaryActionLabel,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            AbashyakaColors.signatureTeal,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 13),
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : isService
+                                ? Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: contactPhone == null
+                                              ? null
+                                              : () => _launchContact(
+                                                    () => ref
+                                                        .read(
+                                                            contactActionsProvider)
+                                                        .call(contactPhone),
+                                                  ),
+                                          icon: const Icon(
+                                            Icons.phone_in_talk_rounded,
+                                            size: 18,
+                                            color:
+                                                AbashyakaColors.signatureTeal,
+                                          ),
+                                          label: Text(
+                                            biz.contactActionLabel,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color:
+                                                  AbashyakaColors.signatureTeal,
+                                            ),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(
+                                              color:
+                                                  AbashyakaColors.signatureTeal,
+                                              width: 1.5,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 13),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        flex: 2,
+                                        child: ElevatedButton.icon(
+                                          key: const ValueKey(
+                                              'book_service_button'),
+                                          onPressed: () =>
+                                              _navigateToServiceRequest(biz),
+                                          icon: const Icon(
+                                            Icons.handyman_rounded,
+                                            size: 19,
+                                            color: Colors.white,
+                                          ),
+                                          label: Text(
+                                            biz.primaryActionLabel,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                AbashyakaColors.signatureTeal,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 13),
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : isEducation
+                                    ? Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              onPressed: contactPhone == null
+                                                  ? null
+                                                  : () => _launchContact(
+                                                        () => ref
+                                                            .read(
+                                                                contactActionsProvider)
+                                                            .call(contactPhone),
+                                                      ),
+                                              icon: const Icon(
+                                                Icons.phone_in_talk_rounded,
+                                                size: 18,
+                                                color: AbashyakaColors
+                                                    .signatureTeal,
+                                              ),
+                                              label: Text(
+                                                biz.contactActionLabel,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AbashyakaColors
+                                                      .signatureTeal,
+                                                ),
+                                              ),
+                                              style: OutlinedButton.styleFrom(
+                                                side: const BorderSide(
+                                                  color: AbashyakaColors
+                                                      .signatureTeal,
+                                                  width: 1.5,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 13),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            flex: 2,
+                                            child: ElevatedButton.icon(
+                                              onPressed: () =>
+                                                  _navigateToServiceRequest(
+                                                      biz),
+                                              icon: const Icon(
+                                                Icons.school_rounded,
+                                                size: 19,
+                                                color: Colors.white,
+                                              ),
+                                              label: const Text(
+                                                'Enquire Now',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AbashyakaColors
+                                                        .signatureTeal,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 13),
+                                                elevation: 0,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        children: [
+                                          if (contactPhone != null) ...[
+                                            Expanded(
+                                              child: OutlinedButton.icon(
+                                                onPressed: () => _launchContact(
+                                                  () => ref
+                                                      .read(
+                                                          contactActionsProvider)
+                                                      .call(contactPhone),
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.phone_in_talk_rounded,
+                                                  size: 18,
+                                                  color: AbashyakaColors
+                                                      .signatureTeal,
+                                                ),
+                                                label: Text(
+                                                  biz.contactActionLabel,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AbashyakaColors
+                                                        .signatureTeal,
+                                                  ),
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  side: const BorderSide(
+                                                    color: AbashyakaColors
+                                                        .signatureTeal,
+                                                    width: 1.5,
+                                                  ),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    vertical: 13,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                          ],
+                                          Expanded(
+                                            flex: 2,
+                                            child: ElevatedButton.icon(
+                                              onPressed: () {
+                                                _tabController.animateTo(1);
+                                              },
+                                              icon: Icon(
+                                                biz.deliveryEnabled
+                                                    ? Icons
+                                                        .shopping_bag_outlined
+                                                    : Icons
+                                                        .storefront_outlined,
+                                                size: 19,
+                                                color: Colors.white,
+                                              ),
+                                              label: Text(
+                                                biz.primaryActionLabel,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AbashyakaColors
+                                                        .signatureTeal,
+                                                padding: const EdgeInsets
+                                                    .symmetric(vertical: 13),
+                                                elevation: 0,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
       ),
     );
   }
@@ -1731,30 +2112,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
           ),
         ),
 
-        // Food Items List
+        // Catalog Items List
         Expanded(
           child: filtered.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.restaurant_menu_rounded,
-                        size: 48,
-                        color: AppTheme.hintText,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No items found in $_selectedFoodCategory',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyCatalogState(biz)
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
                   itemCount: filtered.length,
@@ -3346,6 +3707,287 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       MaterialPageRoute(
         builder: (_) =>
             ServiceRequestScreen(businessId: biz.id, businessName: biz.name),
+      ),
+    );
+  }
+
+  void _navigateToBookingScheduler(Business biz) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookingSchedulerScreen(
+          business: biz,
+          businessId: biz.id,
+          businessName: biz.name,
+        ),
+      ),
+    );
+  }
+
+  void _openRideBookingModal(Business biz) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_taxi_rounded,
+                      color: Color(0xFFD97706),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Book Ride · Cab & Auto',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AbashyakaColors.premiumObsidian,
+                          ),
+                        ),
+                        Text(
+                          '${biz.name} • ${biz.locality}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AbashyakaColors.graphiteCharcoal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              // Option 1: Instant Driver Call
+              Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.phone_in_talk_rounded,
+                      color: AbashyakaColors.signatureTeal,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Call Stand / Driver Directly',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AbashyakaColors.premiumObsidian,
+                    ),
+                  ),
+                  subtitle: Text(
+                    biz.phoneE164 != null
+                        ? 'Instant direct call to ${biz.phoneE164}'
+                        : 'Connect with driver stand in ${biz.locality}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AbashyakaColors.graphiteCharcoal,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    if (biz.phoneE164 != null) {
+                      _launchContact(() => ref
+                          .read(contactActionsProvider)
+                          .call(biz.phoneE164!));
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Option 2: Schedule / Request Ride
+              Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.schedule_rounded,
+                      color: Color(0xFF16A34A),
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Schedule Pickup / Request Cab',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AbashyakaColors.premiumObsidian,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Enter pickup location, destination & preferred time',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AbashyakaColors.graphiteCharcoal,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _navigateToServiceRequest(biz);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyCatalogState(Business biz) {
+    final slug = biz.categorySlug.toLowerCase().trim().replaceAll('-', '_');
+    IconData icon = Icons.inventory_2_outlined;
+    Color iconColor = AbashyakaColors.signatureTeal;
+    String title = 'Catalog Updating';
+    String message =
+        'Products and stock items are being curated by the merchant.';
+
+    if (slug == 'cab_auto' ||
+        slug == 'transport' ||
+        slug == 'cab' ||
+        slug == 'auto') {
+      icon = Icons.local_taxi_rounded;
+      iconColor = const Color(0xFFD97706);
+      title = 'On-Demand Rides & Fares';
+      message =
+          'Auto-rickshaw and cab services are active in ${biz.locality}. Tap "Book Ride" below or call the driver stand directly.';
+    } else if (slug == 'doctors' ||
+        slug == 'doctor' ||
+        slug == 'clinic' ||
+        slug == 'hospital') {
+      icon = Icons.medical_services_rounded;
+      iconColor = const Color(0xFF0284C7);
+      title = 'Doctor Consultations & Care';
+      message =
+          'Clinic consultations and specialist appointments are active in ${biz.locality}. Tap "Book Appointment" below.';
+    } else if (biz.isServiceProvider ||
+        slug == 'services' ||
+        slug == 'service' ||
+        slug == 'automobile' ||
+        slug == 'construction' ||
+        slug == 'home_painting_decor') {
+      icon = Icons.handyman_rounded;
+      iconColor = AbashyakaColors.signatureTeal;
+      title = 'Doorstep Services & Rates';
+      message =
+          'Verified service professionals cover ${biz.locality} and nearby areas. Tap "Book Service" below to request assistance.';
+    } else if (slug == 'education' ||
+        slug == 'coaching' ||
+        slug == 'school' ||
+        slug == 'college') {
+      icon = Icons.school_rounded;
+      iconColor = const Color(0xFF7C3AED);
+      title = 'Courses & Batches';
+      message =
+          'Admissions and batch inquiries are open in ${biz.locality}. Tap "Enquire Now" or call the institute.';
+    } else if (slug == 'beauty_salon' || slug == 'salon' || slug == 'beauty') {
+      icon = Icons.spa_rounded;
+      iconColor = const Color(0xFFDB2777);
+      title = 'Salon & Grooming Slots';
+      message =
+          'Hair, styling, and beauty services are available in ${biz.locality}. Tap "Book Slot" below.';
+    } else if (slug == 'fitness_wellness' ||
+        slug == 'fitness' ||
+        slug == 'gym') {
+      icon = Icons.fitness_center_rounded;
+      iconColor = const Color(0xFF059669);
+      title = 'Fitness & Memberships';
+      message =
+          'Gym memberships, personal training, and wellness slots in ${biz.locality}. Tap "Join Now" below.';
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 36, color: iconColor),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AbashyakaColors.premiumObsidian,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AbashyakaColors.graphiteCharcoal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

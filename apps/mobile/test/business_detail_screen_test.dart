@@ -70,10 +70,26 @@ void main() {
     expect(find.text('TRANSPORT'), findsOneWidget);
     expect(find.text('Transport'), findsOneWidget);
 
-    // 2. Verify tabs
+    // 2. Verify tabs (for Cab & Auto, tab 2 is 'Rides & Fares')
     expect(find.text('About'), findsOneWidget);
+    expect(find.text('Rides & Fares'), findsOneWidget);
     expect(find.text('Offers'), findsOneWidget);
     expect(find.text('Reviews'), findsOneWidget);
+
+    // Verify bottom bar has "Book Ride" instead of "Shop Now"
+    expect(find.byKey(const ValueKey('book_ride_button')), findsOneWidget);
+    expect(find.text('Book Ride'), findsOneWidget);
+
+    // Tap "Book Ride" to verify the ride booking modal opens
+    await tester.tap(find.byKey(const ValueKey('book_ride_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Book Ride · Cab & Auto'), findsOneWidget);
+    expect(find.text('Call Stand / Driver Directly'), findsOneWidget);
+    expect(find.text('Schedule Pickup / Request Cab'), findsOneWidget);
+
+    // Close the ride modal by tapping the close icon
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
 
     // 3. Switch to Reviews tab
     await tester.tap(find.text('Reviews'));
@@ -85,7 +101,10 @@ void main() {
     expect(find.textContaining('Give Review'), findsOneWidget);
 
     // 4. Tap "Give Review" to open modal
-    await tester.tap(find.byKey(const ValueKey('give_review_button')));
+    final giveReviewBtn = find.byKey(const ValueKey('give_review_button'));
+    await tester.ensureVisible(giveReviewBtn);
+    await tester.pumpAndSettle();
+    await tester.tap(giveReviewBtn);
     await tester.pumpAndSettle();
 
     expect(find.text('Write a Review'), findsOneWidget);

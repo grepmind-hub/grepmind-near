@@ -194,6 +194,9 @@ class Business extends Equatable {
   bool get shouldOpenServiceProfile =>
       !supportsFoodOrdering && isServiceProvider;
 
+  /// Whether the business is officially verified by admin.
+  bool get isVerified => verificationStatus == 'verified';
+
   /// Business category nature label for badge chips (not everything is a shop!).
   String get categoryNatureLabel {
     final slug = categorySlug.toLowerCase().trim().replaceAll('-', '_');
@@ -354,6 +357,145 @@ class Business extends Equatable {
 
   /// Backward-compatible alias for primaryActionLabel.
   String get shopActionLabel => primaryActionLabel;
+
+  /// Context-aware contact phone button label (e.g. Call Driver, Call Clinic, Call Store).
+  String get contactActionLabel {
+    final slug = categorySlug.toLowerCase().trim().replaceAll('-', '_');
+    switch (slug) {
+      case 'cab_auto':
+      case 'transport':
+      case 'cab':
+      case 'auto':
+        return 'Call Driver';
+      case 'doctors':
+      case 'doctor':
+      case 'clinic':
+      case 'hospital':
+        return 'Call Clinic';
+      case 'education':
+      case 'coaching':
+      case 'school':
+      case 'college':
+        return 'Call Institute';
+      case 'services':
+      case 'service':
+      case 'electrician':
+      case 'plumber':
+      case 'carpenter':
+      case 'ac_mechanic':
+      case 'cleaning':
+        return 'Call Pro';
+      case 'hotels_stays':
+      case 'hotel':
+      case 'stays':
+        return 'Call Front Desk';
+      case 'beauty_salon':
+      case 'salon':
+      case 'beauty':
+        return 'Call Salon';
+      case 'fitness_wellness':
+      case 'fitness':
+      case 'gym':
+        return 'Call Gym';
+      case 'automobile':
+      case 'automotive':
+        return 'Call Garage';
+      case 'events_catering':
+      case 'events':
+      case 'catering':
+        return 'Call Caterer';
+      case 'construction':
+        return 'Call Contractor';
+      case 'home_painting_decor':
+      case 'painting':
+        return 'Call Painter';
+      case 'food':
+      case 'restaurant':
+      case 'cafe':
+      case 'bakery':
+        return 'Call Restaurant';
+      case 'medicines':
+      case 'medical':
+      case 'pharmacy':
+        return 'Call Chemist';
+      default:
+        if (isServiceProvider) {
+          return 'Call Pro';
+        }
+        return 'Call Store';
+    }
+  }
+
+  /// Context-aware catalog / tab title (e.g. Rides & Fares, Doctors & Care, Menu & Food, Products).
+  String get catalogTabLabel {
+    final slug = categorySlug.toLowerCase().trim().replaceAll('-', '_');
+    switch (slug) {
+      case 'cab_auto':
+      case 'transport':
+      case 'cab':
+      case 'auto':
+        return 'Rides & Fares';
+      case 'doctors':
+      case 'doctor':
+      case 'clinic':
+      case 'hospital':
+        return 'Doctors & Care';
+      case 'education':
+      case 'coaching':
+      case 'school':
+      case 'college':
+        return 'Courses & Classes';
+      case 'services':
+      case 'service':
+      case 'electrician':
+      case 'plumber':
+      case 'carpenter':
+      case 'ac_mechanic':
+      case 'cleaning':
+        return 'Services & Rates';
+      case 'hotels_stays':
+      case 'hotel':
+      case 'stays':
+        return 'Rooms & Stays';
+      case 'beauty_salon':
+      case 'salon':
+      case 'beauty':
+        return 'Treatments & Rates';
+      case 'fitness_wellness':
+      case 'fitness':
+      case 'gym':
+        return 'Plans & Memberships';
+      case 'automobile':
+      case 'automotive':
+        return 'Repairs & Packages';
+      case 'events_catering':
+      case 'events':
+      case 'catering':
+        return 'Packages & Menus';
+      case 'construction':
+        return 'Services & Quotes';
+      case 'home_painting_decor':
+      case 'painting':
+        return 'Services & Estimates';
+      case 'food':
+      case 'restaurant':
+      case 'cafe':
+      case 'bakery':
+        return 'Menu & Food';
+      case 'grocery':
+      case 'kirana':
+        return 'Grocery & Items';
+      case 'medicines':
+      case 'medical':
+      case 'pharmacy':
+        return 'Medicines & Health';
+      default:
+        if (isServiceProvider) {
+          return 'Services & Rates';
+        }
+        return 'Products';
+    }
+  }
 
   Business copyWith({
     String? id,
