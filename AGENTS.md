@@ -309,7 +309,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
   - Category nature mapping fix verified across Business Detail Screen: Cab & Auto correctly displays `TRANSPORT` nature pill, `Call Driver` phone action, `Book Ride` CTA, `Rides & Fares` catalog tab, and direct modal booking options instead of generic store labels.
   - Automated tests passing: `saved_screen_test.dart` and `business_detail_screen_test.dart`.
   - Android emulator verification: Tested live on `emulator-5554` (`Pixel_8`) with APK SHA-256 `ACB62E4FD1789343547394906B2572F10C027F32E92B0F1D932441DDC7E6F85F`.
-- **Next Screen to Implement / Verify**: **Screen 17: Customer Profile & Settings** (`apps/mobile/lib/core/screens/profile_screen.dart`).
+- **Next Screen to Implement / Verify**: **Screen 17: Customer Profile & Settings** (`apps/mobile/lib/core/screens/profile_screen.dart`). Authoritative implementation guide: `docs/design/SCREEN_17_CUSTOMER_PROFILE_IMPLEMENTATION_GUIDE.md`. All 7 tests in `apps/mobile/test/profile_screen_test.dart` are passing. Follow the Metallic Teal Fluid Wave + Pearl White Glossy + Premium Obsidian (`#101820` / `#374151`) specifications.
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:
