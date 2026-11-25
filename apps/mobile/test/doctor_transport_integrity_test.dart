@@ -246,8 +246,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Category grid has truthful 'Clinics' label
-        expect(find.text('Clinics'), findsWidgets);
+        // Category grid has 'Doctors' label
+        expect(find.text('Doctors'), findsWidgets);
 
         // Subtitles are truthful
         expect(

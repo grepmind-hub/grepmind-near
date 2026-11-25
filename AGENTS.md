@@ -17,6 +17,7 @@ Required references:
 
 - `docs/design/ABASHYAKA_MOBILE_AGENT_GUIDE.md`
 - `docs/design/ABASHYAKA_UI_DESIGN_SYSTEM.md`
+- `docs/design/ABASHYAKA_CATEGORY_TAXONOMY_V2.0.md`
 - `docs/build/BUILD_COMMANDS.md`
 - `docs/design/reference/premium_five_screens.png`
 - `docs/design/reference/Abashyaka Choose Your Role Screen.png`

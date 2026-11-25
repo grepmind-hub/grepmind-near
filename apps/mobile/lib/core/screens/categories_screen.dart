@@ -13,9 +13,10 @@ import 'package:grepmind_mobile/core/widgets/category_3d_icon.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen 8: Categories Directory
-/// Displays the complete 19-category taxonomy with dedicated listing data,
-/// nearest pincode and location-wise filtering with distance in km,
-/// and the approved Pearl White & Metallic Teal Premium Design System.
+/// Displays the 18 Top-Level Category Taxonomy with dedicated listing data,
+/// strictly filtered by Admin-Approved Service Places (Chhatia, Kuanpal, Jagatpur, Tangi, Chandikhol)
+/// with distance in km (no raw pincodes displayed), sub-trade filters under Services,
+/// sub-shop filters under Shops, and the Customer Brand Color Design System.
 class CategoriesScreen extends ConsumerStatefulWidget {
   static IconData getCategoryIcon(String? slug) =>
       _CategoriesScreenState.getCategoryIcon(slug);
@@ -38,16 +39,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
   String _searchQuery = '';
   String _selectedSection = 'All';
   String _selectedLocality = 'All';
-  String _selectedPincode = 'All';
   int _selectedRadiusM = 10000; // 10 km default
-  String _sortBy = 'distance'; // 'distance' or 'rating'
+  final String _sortBy = 'distance'; // 'distance' or 'rating'
 
   final List<String> _sections = const [
     'All',
-    'Shops & Retail',
-    'Home Services',
-    'Health & Beauty',
-    'Lifestyle & Tech',
+    'Food & Daily',
+    'Services & Trades',
+    'Retail & Lifestyle',
+    'Health & Education',
   ];
 
   @override
@@ -65,44 +65,57 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
 
   static IconData getCategoryIcon(String? slug) {
     switch (slug) {
+      case 'food':
+      case 'restaurant':
+        return Icons.lunch_dining_rounded;
       case 'grocery':
         return Icons.shopping_basket_rounded;
-      case 'hardware':
-        return Icons.handyman_rounded;
+      case 'medicines':
       case 'medical':
         return Icons.medication_rounded;
-      case 'restaurant':
-        return Icons.restaurant_rounded;
-      case 'salon':
-        return Icons.face_rounded;
+      case 'doctors':
+        return Icons.medical_services_rounded;
+      case 'cab_auto':
+        return Icons.local_taxi_rounded;
+      case 'services':
+      case 'service':
       case 'plumber':
-        return Icons.plumbing_rounded;
       case 'electrician':
-        return Icons.electrical_services_rounded;
       case 'carpenter':
-        return Icons.carpenter_rounded;
-      case 'tailor':
-        return Icons.design_services_rounded;
+      case 'cleaning':
+        return Icons.build_circle_rounded;
+      case 'electronics':
+        return Icons.devices_rounded;
+      case 'shops':
+      case 'retail':
       case 'general':
+      case 'tailor':
         return Icons.storefront_rounded;
       case 'fashion':
         return Icons.checkroom_rounded;
-      case 'electronics':
-        return Icons.devices_rounded;
-      case 'home_kitchen':
-        return Icons.kitchen_rounded;
-      case 'health_wellness':
-        return Icons.spa_rounded;
-      case 'sports_fitness':
-        return Icons.fitness_center_rounded;
-      case 'automotive':
-        return Icons.local_taxi_rounded;
-      case 'books_stationery':
-        return Icons.menu_book_rounded;
-      case 'cleaning':
-        return Icons.cleaning_services_rounded;
+      case 'hotels_stays':
       case 'hotel':
         return Icons.hotel_rounded;
+      case 'fitness_wellness':
+      case 'sports_fitness':
+        return Icons.fitness_center_rounded;
+      case 'beauty_salon':
+      case 'salon':
+        return Icons.face_retouching_natural_rounded;
+      case 'automobile':
+      case 'automotive':
+        return Icons.directions_car_filled_rounded;
+      case 'education':
+        return Icons.school_rounded;
+      case 'home_furniture':
+        return Icons.chair_rounded;
+      case 'events_catering':
+        return Icons.celebration_rounded;
+      case 'agriculture':
+        return Icons.agriculture_rounded;
+      case 'construction':
+      case 'hardware':
+        return Icons.foundation_rounded;
       default:
         return Icons.category_rounded;
     }
@@ -110,44 +123,51 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
 
   static Color getCategoryBackgroundColor(String? slug) {
     switch (slug) {
-      case 'grocery':
-        return const Color(0xFFE6F4EA);
+      case 'food':
       case 'restaurant':
         return const Color(0xFFFEF3C7);
+      case 'grocery':
+        return const Color(0xFFE6F4EA);
+      case 'medicines':
       case 'medical':
         return const Color(0xFFE0F2FE);
-      case 'hardware':
-        return const Color(0xFFFFEDD5);
-      case 'hotel':
-        return const Color(0xFFDCFCE7);
-      case 'salon':
-        return const Color(0xFFFCE7F3);
-      case 'plumber':
-        return const Color(0xFFE0F2FE);
-      case 'electrician':
+      case 'doctors':
+        return const Color(0xFFCCFBF1);
+      case 'cab_auto':
         return const Color(0xFFFEF9C3);
-      case 'carpenter':
-        return const Color(0xFFFFEDD5);
-      case 'tailor':
-        return const Color(0xFFF3E8FF);
-      case 'general':
-        return const Color(0xFFFFE4E6);
-      case 'fashion':
-        return const Color(0xFFFFE4E6);
+      case 'services':
+      case 'service':
+        return AbashyakaColors.tealTint;
       case 'electronics':
         return const Color(0xFFEEF2FF);
-      case 'home_kitchen':
-        return const Color(0xFFCCFBF1);
-      case 'health_wellness':
-        return const Color(0xFFD1FAE5);
+      case 'shops':
+      case 'retail':
+        return const Color(0xFFFCE7F3);
+      case 'fashion':
+        return const Color(0xFFFFE4E6);
+      case 'hotels_stays':
+      case 'hotel':
+        return const Color(0xFFDCFCE7);
+      case 'fitness_wellness':
       case 'sports_fitness':
         return const Color(0xFFFEF3C7);
+      case 'beauty_salon':
+      case 'salon':
+        return const Color(0xFFFCE7F3);
+      case 'automobile':
       case 'automotive':
         return const Color(0xFFE2E8F0);
-      case 'books_stationery':
+      case 'education':
         return const Color(0xFFE0E7FF);
-      case 'cleaning':
-        return const Color(0xFFE0F2FE);
+      case 'home_furniture':
+        return const Color(0xFFFFEDD5);
+      case 'events_catering':
+        return const Color(0xFFFEF9C3);
+      case 'agriculture':
+        return const Color(0xFFDCFCE7);
+      case 'construction':
+      case 'hardware':
+        return const Color(0xFFFFEDD5);
       default:
         return AbashyakaColors.iceAquaWhite;
     }
@@ -155,44 +175,51 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
 
   static Color getCategoryColor(String? slug) {
     switch (slug) {
-      case 'grocery':
-        return const Color(0xFF16A34A);
-      case 'hardware':
-        return const Color(0xFFD97706);
-      case 'medical':
-        return const Color(0xFF0284C7);
+      case 'food':
       case 'restaurant':
         return const Color(0xFFEA580C);
-      case 'hotel':
-        return AbashyakaColors.signatureTeal;
-      case 'salon':
-        return const Color(0xFFDB2777);
-      case 'plumber':
+      case 'grocery':
+        return const Color(0xFF16A34A);
+      case 'medicines':
+      case 'medical':
         return const Color(0xFF0284C7);
-      case 'electrician':
-        return const Color(0xFFD97706);
-      case 'carpenter':
-        return const Color(0xFFB45309);
-      case 'tailor':
-        return const Color(0xFF7C3AED);
-      case 'general':
-        return const Color(0xFFDC2626);
-      case 'fashion':
-        return const Color(0xFFE11D48);
+      case 'doctors':
+        return AbashyakaColors.metallicTeal;
+      case 'cab_auto':
+        return AbashyakaColors.metallicGold;
+      case 'services':
+      case 'service':
+        return AbashyakaColors.signatureTeal;
       case 'electronics':
         return const Color(0xFF4F46E5);
-      case 'home_kitchen':
-        return AbashyakaColors.metallicTeal;
-      case 'health_wellness':
-        return const Color(0xFF059669);
+      case 'shops':
+      case 'retail':
+        return const Color(0xFFDB2777);
+      case 'fashion':
+        return const Color(0xFFE11D48);
+      case 'hotels_stays':
+      case 'hotel':
+        return AbashyakaColors.signatureTeal;
+      case 'fitness_wellness':
       case 'sports_fitness':
         return const Color(0xFFD97706);
+      case 'beauty_salon':
+      case 'salon':
+        return const Color(0xFFDB2777);
+      case 'automobile':
       case 'automotive':
         return AbashyakaColors.signatureTeal;
-      case 'books_stationery':
-        return const Color(0xFF6366F1);
-      case 'cleaning':
-        return const Color(0xFF0284C7);
+      case 'education':
+        return const Color(0xFF2563EB);
+      case 'home_furniture':
+        return const Color(0xFFD97706);
+      case 'events_catering':
+        return AbashyakaColors.metallicGold;
+      case 'agriculture':
+        return const Color(0xFF15803D);
+      case 'construction':
+      case 'hardware':
+        return const Color(0xFFB45309);
       default:
         return AbashyakaColors.metallicTeal;
     }
@@ -201,46 +228,57 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
   bool _matchesSection(Category cat, String section) {
     if (section == 'All') return true;
     final slug = cat.slug;
-    if (section == 'Shops & Retail') {
+    if (section == 'Food & Daily') {
       return [
+        'food',
         'grocery',
-        'general',
-        'fashion',
-        'books_stationery',
+        'medicines',
         'restaurant',
+        'medical',
       ].contains(slug);
     }
-    if (section == 'Home Services') {
+    if (section == 'Services & Trades') {
       return [
-        'electrician',
-        'plumber',
-        'carpenter',
-        'hardware',
-        'cleaning',
-        'home_kitchen',
-      ].contains(slug);
-    }
-    if (section == 'Health & Beauty') {
-      return ['medical', 'salon', 'health_wellness'].contains(slug);
-    }
-    if (section == 'Lifestyle & Tech') {
-      return [
-        'electronics',
-        'sports_fitness',
+        'services',
+        'cab_auto',
+        'automobile',
+        'construction',
+        'service',
         'automotive',
-        'tailor',
+      ].contains(slug);
+    }
+    if (section == 'Retail & Lifestyle') {
+      return [
+        'shops',
+        'fashion',
+        'home_furniture',
+        'electronics',
+        'hotels_stays',
         'hotel',
+        'retail',
+        'general',
+      ].contains(slug);
+    }
+    if (section == 'Health & Education') {
+      return [
+        'doctors',
+        'beauty_salon',
+        'fitness_wellness',
+        'education',
+        'events_catering',
+        'agriculture',
+        'salon',
+        'sports_fitness',
       ].contains(slug);
     }
     return true;
   }
 
-  void _showLocationPincodeModal() {
+  void _showLocationModal() {
     final localities = [
-      'All',
-      ...CategoryListingsData.getAvailableLocalities(),
+      'All Service Areas',
+      ...CategoryListingsData.approvedServicePlaces,
     ];
-    final pincodes = ['All', ...CategoryListingsData.getAvailablePincodes()];
 
     showModalBottomSheet(
       context: context,
@@ -272,14 +310,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Filter by Location & Pincode',
+                    'Select Service Area',
                     style: AbashyakaTypography.sectionTitle(fontSize: 18),
                   ),
                   TextButton(
                     onPressed: () {
                       setState(() {
                         _selectedLocality = 'All';
-                        _selectedPincode = 'All';
                         _selectedRadiusM = 10000;
                       });
                       Navigator.pop(ctx);
@@ -294,15 +331,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                'Select nearest Odisha locality or pincode to discover close merchants and services.',
+                'Browse merchants & services across admin-approved active coverage places with real distance.',
                 style: AbashyakaTypography.bodyMedium(fontSize: 12.5),
               ),
               const SizedBox(height: 16),
-              // Locality Chips
+              // Approved Localities Chips (NO raw pincodes displayed)
               Text(
-                'Nearest Localities',
+                'Admin-Approved Service Places',
                 style: AbashyakaTypography.cardTitle(fontSize: 14),
               ),
               const SizedBox(height: 8),
@@ -310,9 +347,27 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                 spacing: 8,
                 runSpacing: 8,
                 children: localities.map((loc) {
-                  final isSel = _selectedLocality == loc;
+                  final isSel =
+                      (_selectedLocality == 'All' &&
+                          loc == 'All Service Areas') ||
+                      _selectedLocality == loc;
                   return ChoiceChip(
-                    label: Text(loc),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          loc == 'All Service Areas'
+                              ? Icons.all_inclusive_rounded
+                              : Icons.place_rounded,
+                          size: 14,
+                          color: isSel
+                              ? Colors.white
+                              : AbashyakaColors.metallicTeal,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(loc),
+                      ],
+                    ),
                     selected: isSel,
                     selectedColor: AbashyakaColors.metallicTeal,
                     backgroundColor: AbashyakaColors.pearlWhite,
@@ -330,53 +385,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                       ),
                     ),
                     onSelected: (val) {
-                      setModalState(() => _selectedLocality = loc);
-                      setState(() => _selectedLocality = loc);
+                      final target = loc == 'All Service Areas' ? 'All' : loc;
+                      setModalState(() => _selectedLocality = target);
+                      setState(() => _selectedLocality = target);
                     },
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 16),
-              // Pincode Chips
+              const SizedBox(height: 20),
+              // Distance Radius Filter
               Text(
-                'Postal Code (Pincode)',
-                style: AbashyakaTypography.cardTitle(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: pincodes.map((pin) {
-                  final isSel = _selectedPincode == pin;
-                  return ChoiceChip(
-                    label: Text(pin == 'All' ? 'All Pincodes' : pin),
-                    selected: isSel,
-                    selectedColor: AbashyakaColors.signatureTeal,
-                    backgroundColor: AbashyakaColors.pearlWhite,
-                    labelStyle: TextStyle(
-                      color: isSel ? Colors.white : AbashyakaColors.inkBlack,
-                      fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 12.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: isSel
-                            ? AbashyakaColors.signatureTeal
-                            : AbashyakaColors.aquaSilverBorder,
-                      ),
-                    ),
-                    onSelected: (val) {
-                      setModalState(() => _selectedPincode = pin);
-                      setState(() => _selectedPincode = pin);
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-              // Radius Filter
-              Text(
-                'Distance Radius',
+                'Coverage Radius',
                 style: AbashyakaTypography.cardTitle(fontSize: 14),
               ),
               const SizedBox(height: 8),
@@ -443,7 +462,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                       ),
                     ),
                     child: Text(
-                      'Apply Location Filter',
+                      'Apply Area Filter',
                       style: AbashyakaTypography.buttonText(),
                     ),
                   ),
@@ -474,12 +493,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
       return matchesQuery && matchesSec;
     }).toList();
 
-    // Listings matching all active filters
+    // Listings matching active area and distance filter
     final matchingListings = CategoryListingsData.getListingsForCategory(
       null,
       query: _searchQuery,
       locality: _selectedLocality,
-      pincode: _selectedPincode,
       maxRadiusM: _selectedRadiusM,
       sortBy: _sortBy,
     );
@@ -547,7 +565,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
       body: Column(
         children: [
           // ---------------------------------------------------------
-          // Pincode & Locality Filter Ribbon (Always Visible)
+          // Admin-Approved Service Area Filter Ribbon (NO pincodes displayed)
           // ---------------------------------------------------------
           Container(
             color: AbashyakaColors.pureWhite,
@@ -556,7 +574,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
               children: [
                 Expanded(
                   child: InkWell(
-                    onTap: _showLocationPincodeModal,
+                    onTap: _showLocationModal,
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -580,10 +598,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              _selectedLocality == 'All' &&
-                                      _selectedPincode == 'All'
-                                  ? 'All Odisha Localities & Pincodes'
-                                  : '${_selectedLocality != 'All' ? _selectedLocality : 'All'} (${_selectedPincode != 'All' ? _selectedPincode : 'Any'})',
+                              _selectedLocality == 'All' ||
+                                      _selectedLocality == 'All Service Areas'
+                                  ? 'All Service Areas (Chhatia & Nearby)'
+                                  : 'Service Area: $_selectedLocality',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -605,7 +623,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                 ),
                 const SizedBox(width: 8),
                 InkWell(
-                  onTap: _showLocationPincodeModal,
+                  onTap: _showLocationModal,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -664,7 +682,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                     onChanged: (v) => setState(() => _searchQuery = v),
                     style: AbashyakaTypography.bodyLarge(fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Search 19 categories, shops or services...',
+                      hintText: 'Search 18 categories, shops or services...',
                       hintStyle: AbashyakaTypography.bodyMedium(
                         color: AbashyakaColors.secondaryText,
                         fontSize: 13.5,
@@ -760,10 +778,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // TAB 1: 19 Category Taxonomy Directory
+                // TAB 1: 18 Category Taxonomy Directory
                 _buildCategoriesTab(filteredCategories),
 
-                // TAB 2: Direct Filtered Listings Across Odisha
+                // TAB 2: Direct Filtered Listings Across Service Areas
                 _buildListingsTab(matchingListings),
               ],
             ),
@@ -820,13 +838,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
         final catListings = CategoryListingsData.getListingsForCategory(
           category.slug,
           locality: _selectedLocality,
-          pincode: _selectedPincode,
           maxRadiusM: _selectedRadiusM,
         );
         final count = catListings.length;
         final nearest = catListings.isNotEmpty ? catListings.first : null;
         final nearestText = nearest?.distanceText ?? '0.5 km';
-        final nearestPin = nearest?.postalCode ?? '751007';
+        final nearestPlace = nearest?.locality ?? 'Chhatia';
+
+        // Check for consolidated sub-groups
+        final isServices =
+            category.slug == 'services' || category.slug == 'service';
+        final isShops = category.slug == 'shops' || category.slug == 'retail';
 
         return InkWell(
           onTap: () {
@@ -855,131 +877,214 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                 ),
               ],
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 3D icon or styled container
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: getCategoryBackgroundColor(category.slug),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: color.withValues(alpha: 0.15),
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Category3DIcon(categoryId: category.slug, size: 38),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Category Title & Subtitle
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        category.name,
-                        style: AbashyakaTypography.cardTitle(fontSize: 15),
-                      ),
-                      if (category.description != null &&
-                          category.description!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          category.description!,
-                          style: AbashyakaTypography.bodyMedium(fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 3D icon or styled container
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: getCategoryBackgroundColor(category.slug),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: color.withValues(alpha: 0.15),
+                          width: 1,
                         ),
-                      ],
-                      const SizedBox(height: 6),
-                      // Verified listings badge with km & pincode
-                      Row(
+                      ),
+                      child: Center(
+                        child: Category3DIcon(
+                          categoryId: category.slug,
+                          size: 38,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Category Title & Subtitle
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AbashyakaColors.iceAquaWhite,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.store_rounded,
-                                  size: 11,
-                                  color: AbashyakaColors.metallicTeal,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '$count available',
-                                  style: const TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AbashyakaColors.signatureTeal,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Text(
+                            category.name,
+                            style: AbashyakaTypography.cardTitle(fontSize: 15),
                           ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AbashyakaColors.pearlWhite,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: AbashyakaColors.aquaSilverBorder,
+                          if (category.description != null &&
+                              category.description!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              category.description!,
+                              style: AbashyakaTypography.bodyMedium(
+                                fontSize: 12,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.near_me_rounded,
-                                  size: 10,
-                                  color: AbashyakaColors.secondaryText,
+                          ],
+                          const SizedBox(height: 6),
+                          // Listings available & nearest place with km (NO pincodes)
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '$nearestText • $nearestPin',
-                                  style: const TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AbashyakaColors.secondaryText,
+                                decoration: BoxDecoration(
+                                  color: AbashyakaColors.iceAquaWhite,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.store_rounded,
+                                      size: 11,
+                                      color: AbashyakaColors.metallicTeal,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '$count available',
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AbashyakaColors.signatureTeal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AbashyakaColors.pearlWhite,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: AbashyakaColors.aquaSilverBorder,
                                   ),
                                 ),
-                              ],
-                            ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.place_rounded,
+                                      size: 10,
+                                      color: AbashyakaColors.secondaryText,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '$nearestPlace • $nearestText',
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AbashyakaColors.secondaryText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AbashyakaColors.pearlWhite,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AbashyakaColors.aquaSilverBorder,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AbashyakaColors.metallicTeal,
+                        size: 20,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AbashyakaColors.pearlWhite,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+
+                // Consolidated Sub-group Pills for Services and Shops
+                if (isServices) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AbashyakaColors.tealTint.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.handyman_rounded,
+                          size: 12,
+                          color: AbashyakaColors.signatureTeal,
+                        ),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Includes: Plumber, Electrician, Carpenter, AC Mechanic, Painting, Cleaning',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: AbashyakaColors.signatureTeal,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AbashyakaColors.metallicTeal,
-                    size: 20,
+                ] else if (isShops) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCE7F3).withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.shopping_bag_rounded,
+                          size: 12,
+                          color: Color(0xFFDB2777),
+                        ),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Includes: General Stores, Tailoring & Boutiques, Stationery, Books, Gifting',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFFDB2777),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1014,7 +1119,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
             ),
             const SizedBox(height: 6),
             Text(
-              'Try expanding the radius or resetting the location filter',
+              'Try expanding the coverage radius or selecting All Service Areas',
               style: AbashyakaTypography.bodyMedium(fontSize: 12.5),
             ),
             const SizedBox(height: 16),
@@ -1022,7 +1127,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
               onPressed: () {
                 setState(() {
                   _selectedLocality = 'All';
-                  _selectedPincode = 'All';
                   _selectedRadiusM = 20000;
                 });
               },
@@ -1033,7 +1137,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Show All Odisha Places'),
+              child: const Text('Show All Service Areas'),
             ),
           ],
         ),
@@ -1148,7 +1252,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                         ],
                       ),
                       const SizedBox(height: 3),
-                      // Category & Locality + Pincode
+                      // Category & Locality (NO pincodes displayed)
                       Row(
                         children: [
                           Text(
@@ -1167,7 +1271,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                           ),
                           Expanded(
                             child: Text(
-                              '${b.locality ?? 'Odisha'} (${b.postalCode ?? ''})',
+                              b.locality ?? 'Chhatia',
                               style: AbashyakaTypography.supportingText(
                                 fontSize: 12,
                               ),
@@ -1197,7 +1301,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                             child: Row(
                               children: [
                                 const Icon(
-                                  Icons.near_me_rounded,
+                                  Icons.place_rounded,
                                   size: 11,
                                   color: AbashyakaColors.metallicTeal,
                                 ),

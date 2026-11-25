@@ -49,6 +49,22 @@ adb -s emulator-5554 shell monkey -p com.abashyaka.app.dev -c android.intent.cat
 
 ---
 
+## 2.1. Category Taxonomy & Location Serviceability Rules (Mandatory)
+
+All coding agents implementing or modifying category grids, directories, and discovery search must adhere to `docs/design/ABASHYAKA_CATEGORY_TAXONOMY_V2.0.md`:
+
+1. **The 18 Top-Level Categories Only**:
+   * `food`, `grocery`, `medicines`, `doctors`, `cab_auto`, `services`, `electronics`, `shops`, `fashion`, `hotels_stays`, `fitness_wellness`, `beauty_salon`, `automobile`, `education`, `home_furniture`, `events_catering`, `agriculture`, `construction`.
+2. **Consolidation of Trades & Sub-Shops**:
+   * **Never create separate top-level categories** for Plumber, Electrician, Carpenter, AC Mechanic, Home Painting & Decor, or Cleaning. They must reside under **Services** (`services`).
+   * **Never create separate top-level categories** for Tailor/Tailoring. Tailor must reside under **Shops** (`shops`) or Fashion.
+3. **Location Serviceability Standard**:
+   * Only show **Admin-Approved Service Places** (Chhatia, Kuanpal, Jagatpur, Tangi, Chandikhol).
+   * **Never display raw 6-digit pincode tags** (e.g. `751007`) in UI badges or filters.
+   * Only show clean place names with distance in km (e.g. `Chhatia • 1.2 km`, `Kuanpal • 0.8 km`), synchronized with the Home tab.
+
+---
+
 ## 3. Screen Order & Architecture (Screens 0 to 7)
 
 ```mermaid

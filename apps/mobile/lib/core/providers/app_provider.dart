@@ -915,101 +915,107 @@ class CategoriesState {
 class CategoriesNotifier extends StateNotifier<CategoriesState> {
   static const defaultCategories = <Category>[
     Category(
-      slug: 'grocery',
-      name: 'Grocery & Kirana',
-      description: 'Fresh groceries, daily provisions and packaged essentials',
-    ),
-    Category(
-      slug: 'restaurant',
+      slug: 'food',
       name: 'Food & Dining',
       description:
-          'Local restaurants, fast food and authentic regional cuisine',
+          'Authentic Odia cuisine, thalis, family restaurants & fast food',
     ),
     Category(
-      slug: 'medical',
-      name: 'Pharmacy & Health',
-      description: 'Medicines, first-aid, healthcare and surgical supplies',
+      slug: 'grocery',
+      name: 'Grocery & Kirana',
+      description: 'Fresh provisions, daily kirana essentials & packaged foods',
     ),
     Category(
-      slug: 'hardware',
-      name: 'Hardware & Tools',
-      description: 'Tools, paints, sanitaryware and building materials',
+      slug: 'medicines',
+      name: 'Medicines & Pharmacy',
+      description:
+          'Prescription medicines, 24x7 chemist shops & healthcare items',
     ),
     Category(
-      slug: 'electrician',
-      name: 'Electrician',
-      description: 'Wiring, appliance repairs and electrical installation',
+      slug: 'doctors',
+      name: 'Doctors & Clinics',
+      description:
+          'General physicians, pediatricians, clinics & diagnostic care',
     ),
     Category(
-      slug: 'plumber',
-      name: 'Plumber',
-      description: 'Pipe fittings, drainage, water pumps and leak repair',
+      slug: 'cab_auto',
+      name: 'Cab & Auto',
+      description:
+          'Local auto rickshaws, on-demand cabs & outstation rental rides',
     ),
     Category(
-      slug: 'carpenter',
-      name: 'Carpenter',
-      description: 'Custom furniture, wood repairs and interior fitting',
-    ),
-    Category(
-      slug: 'salon',
-      name: 'Salon & Grooming',
-      description: 'Men & women hair salons, beauty parlours and spa',
-    ),
-    Category(
-      slug: 'hotel',
-      name: 'Hotels & Lodging',
-      description: 'Hotel rooms, guest houses and verified stays',
-    ),
-    Category(
-      slug: 'tailor',
-      name: 'Tailoring & Stitching',
-      description: 'Custom tailoring, alterations and dressmaking',
-    ),
-    Category(
-      slug: 'general',
-      name: 'General Store',
-      description: 'Household goods, stationery, gifting and local retail',
-    ),
-    Category(
-      slug: 'fashion',
-      name: 'Fashion & Apparel',
-      description: 'Clothing, ethnic wear, fabrics, footwear and boutiques',
+      slug: 'services',
+      name: 'Services',
+      description:
+          'Electrician, plumber, carpenter, AC mechanic, painting & cleaning',
     ),
     Category(
       slug: 'electronics',
       name: 'Electronics & Mobile',
-      description: 'Smartphones, computers, audio, home appliances and repair',
-    ),
-    Category(
-      slug: 'home_kitchen',
-      name: 'Home & Kitchen',
-      description: 'Cookware, kitchenware, home decor and utensils',
-    ),
-    Category(
-      slug: 'health_wellness',
-      name: 'Health & Wellness',
-      description: 'Diagnostic labs, physiotherapy, yoga and wellness clinics',
-    ),
-    Category(
-      slug: 'sports_fitness',
-      name: 'Sports & Fitness',
-      description: 'Gyms, sports equipment, fitness wear and training centres',
-    ),
-    Category(
-      slug: 'automotive',
-      name: 'Automotive & Repair',
-      description: 'Bike & car service, puncture shops, spare parts and washes',
-    ),
-    Category(
-      slug: 'books_stationery',
-      name: 'Books & Stationery',
-      description: 'School books, office stationery, printing and art supplies',
-    ),
-    Category(
-      slug: 'cleaning',
-      name: 'Cleaning & Housekeeping',
       description:
-          'Deep house cleaning, sofa wash, sanitisation and pest control',
+          'Smartphones, audio, home appliances, laptops & repair centres',
+    ),
+    Category(
+      slug: 'shops',
+      name: 'Shops & Retail',
+      description:
+          'General stores, tailoring, books, stationery, gifting & retail',
+    ),
+    Category(
+      slug: 'fashion',
+      name: 'Fashion & Apparel',
+      description:
+          'Ethnic sarees, readymade apparel, textiles & designer boutiques',
+    ),
+    Category(
+      slug: 'hotels_stays',
+      name: 'Hotels & Stays',
+      description: 'Verified hotel rooms, AC guest houses & family lodge stays',
+    ),
+    Category(
+      slug: 'fitness_wellness',
+      name: 'Fitness & Wellness',
+      description: 'Gyms, fitness centres, yoga studios, health & nutrition',
+    ),
+    Category(
+      slug: 'beauty_salon',
+      name: 'Beauty & Salon',
+      description: 'Men grooming parlours, ladies beauty salons, bridal & spas',
+    ),
+    Category(
+      slug: 'automobile',
+      name: 'Automobile & Garage',
+      description:
+          'Two-wheeler & car servicing, tyre puncture, lubricants & spares',
+    ),
+    Category(
+      slug: 'education',
+      name: 'Education & Coaching',
+      description:
+          'Academic coaching, entrance prep, computer training & schools',
+    ),
+    Category(
+      slug: 'home_furniture',
+      name: 'Home & Furniture',
+      description: 'Living room furniture, beds, cookware, decor & furnishing',
+    ),
+    Category(
+      slug: 'events_catering',
+      name: 'Events & Catering',
+      description:
+          'Mandap decoration, wedding catering, photography & sound systems',
+    ),
+    Category(
+      slug: 'agriculture',
+      name: 'Agriculture & Farm',
+      description:
+          'Certified seeds, organic fertilizers, pesticides & tractor rental',
+    ),
+    Category(
+      slug: 'construction',
+      name: 'Construction & Hardware',
+      description:
+          'Cement, TMT rods, sand, bricks, building materials & hardware',
     ),
   ];
 
@@ -1028,13 +1034,18 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
               ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [];
-      final Map<String, Category> merged = {
+      // Authority: The 18 Top-Level Categories defined in defaultCategories.
+      // Sub-trades (plumber, electrician, carpenter, etc.) and legacy sub-categories
+      // are consolidated under their top-level parents (services, shops, etc.)
+      final Map<String, Category> authoritative = {
         for (final cat in defaultCategories) cat.slug: cat,
       };
       for (final cat in remoteItems) {
-        merged[cat.slug] = cat;
+        if (authoritative.containsKey(cat.slug)) {
+          authoritative[cat.slug] = cat;
+        }
       }
-      state = state.copyWith(items: merged.values.toList(), isLoading: false);
+      state = state.copyWith(items: authoritative.values.toList(), isLoading: false);
     } catch (e) {
       state = state.copyWith(
         items: state.items.isNotEmpty ? state.items : defaultCategories,

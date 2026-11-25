@@ -291,7 +291,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Default selection is Retail Shop & Showroom
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      final retailFinder = find.byKey(const ValueKey('enterprise_type_retail'));
+      expect(
+        find.descendant(
+          of: retailFinder,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
 
       // Tap Skilled Trade & Professional
       final proFinder = find.byKey(
@@ -300,14 +307,26 @@ void main() {
       await tester.ensureVisible(proFinder);
       await tester.tap(proFinder);
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        find.descendant(
+          of: proFinder,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
 
       // Tap Food, Dining & Cafe
       final foodFinder = find.byKey(const ValueKey('enterprise_type_food'));
       await tester.ensureVisible(foodFinder);
       await tester.tap(foodFinder);
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        find.descendant(
+          of: foodFinder,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
 
       // Tap Salon, Spa & Wellness
       final wellnessFinder = find.byKey(
@@ -316,14 +335,25 @@ void main() {
       await tester.ensureVisible(wellnessFinder);
       await tester.tap(wellnessFinder);
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        find.descendant(
+          of: wellnessFinder,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
 
       // Tap Retail Shop & Showroom again
-      final retailFinder = find.byKey(const ValueKey('enterprise_type_retail'));
       await tester.ensureVisible(retailFinder);
       await tester.tap(retailFinder);
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        find.descendant(
+          of: retailFinder,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
     },
   );
 }
