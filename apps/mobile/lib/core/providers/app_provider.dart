@@ -770,7 +770,47 @@ class BusinessDetailNotifier extends StateNotifier<BusinessDetailState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      // Offline / Local showcase fallback: look up in CategoryListingsData.allListings
+      final localBiz = CategoryListingsData.allListings.cast<Business?>().firstWhere(
+        (b) => b?.id == businessId,
+        orElse: () => null,
+      );
+      if (localBiz != null) {
+        final detail = BusinessDetail(
+          id: localBiz.id,
+          name: localBiz.name,
+          categorySlug: localBiz.categorySlug,
+          categoryName: localBiz.categoryName,
+          addressText: localBiz.addressText,
+          locality: localBiz.locality,
+          city: localBiz.city,
+          distanceM: localBiz.distanceM,
+          status: localBiz.status,
+          verificationStatus: localBiz.verificationStatus,
+          phoneE164: localBiz.phoneE164,
+          isOpenNow: localBiz.isOpenNow,
+          acceptsRequests: localBiz.acceptsRequests,
+          rating: localBiz.rating,
+          reviewCount: localBiz.reviewCount,
+          deliveryEnabled: localBiz.deliveryEnabled,
+          tableBookingEnabled: localBiz.tableBookingEnabled,
+          description: localBiz.description,
+          latitude: localBiz.latitude,
+          longitude: localBiz.longitude,
+          amenities: const ['Verified Listing', 'Instant Response', 'Local Guarantee'],
+        );
+        state = state.copyWith(
+          detail: detail,
+          products: const [],
+          services: const [],
+          offers: const [],
+          businessHours: const [],
+          isLoading: false,
+          error: null,
+        );
+      } else {
+        state = state.copyWith(isLoading: false, error: e.toString());
+      }
     }
   }
 

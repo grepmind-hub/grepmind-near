@@ -196,7 +196,7 @@ class Business extends Equatable {
 
   /// Business category nature label for badge chips (not everything is a shop!).
   String get categoryNatureLabel {
-    final slug = categorySlug.toLowerCase().trim();
+    final slug = categorySlug.toLowerCase().trim().replaceAll('-', '_');
     switch (slug) {
       case 'cab_auto':
       case 'transport':
@@ -277,7 +277,7 @@ class Business extends Equatable {
 
   /// Context-aware call-to-action label across all 18 categories.
   String get primaryActionLabel {
-    final slug = categorySlug.toLowerCase().trim();
+    final slug = categorySlug.toLowerCase().trim().replaceAll('-', '_');
     switch (slug) {
       case 'cab_auto':
       case 'transport':

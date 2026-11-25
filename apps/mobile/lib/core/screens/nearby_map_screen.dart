@@ -222,7 +222,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           b.categoryNatureLabel == 'Transport' ||
           b.categoryNatureLabel == 'Healthcare' ||
           b.categoryNatureLabel == 'Education' ||
-          b.categoryNatureLabel == 'Service';
+          b.categoryNatureLabel == 'Service' ||
+          b.categoryNatureLabel == 'Auto Care' ||
+          b.categoryNatureLabel == 'Events' ||
+          b.categoryNatureLabel == 'Construction';
 
       if (_typeFilter == 'shops' && isServiceOrPro) {
         return false;
@@ -475,18 +478,19 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           // Top Floating Type Filter Bar (All Places, Shops, Services, Open Now)
           Positioned(top: 10, left: 0, right: 0, child: _buildTypeFilterBar()),
 
-          // Floating Category Carousel
+          // Floating Adaptive Category Carousel
           Positioned(
-            top: 54,
+            top: 52,
             left: 0,
             right: 0,
             child: _buildCategoryCarousel(),
           ),
 
+          // Search Radius & Results Count Controls
           Positioned(
             top: 98,
-            left: 16,
-            right: 16,
+            left: 14,
+            right: 14,
             child: _buildResultsControls(businesses.length),
           ),
 
@@ -610,6 +614,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   _onlyOpenNow = !_onlyOpenNow;
                 } else {
                   _typeFilter = key;
+                  _selectedCategorySlug = 'all'; // reset category sub-filter cleanly
                 }
                 final filtered = _filteredBusinesses;
                 if (_selectedBusiness != null &&
@@ -684,8 +689,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     if (_typeFilter == 'shops') typeLabel = 'shops';
     if (_typeFilter == 'services') typeLabel = 'services';
     final isAll = _selectedCategorySlug == 'all';
+
     return Row(
       children: [
+        // 1. Radius Dropdown Selector
         Container(
           height: 38,
           padding: const EdgeInsets.only(left: 8, right: 4),
@@ -740,6 +747,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           ),
         ),
         const SizedBox(width: 8),
+
+        // 2. Count & Filter Summary Badge
         Expanded(
           child: Container(
             height: 38,
@@ -758,7 +767,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               ],
             ),
             child: Text(
-              '$count $typeLabel${isAll ? ' · All categories' : ''}',
+              '$count $typeLabel${isAll ? ' · All' : ''}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -770,6 +779,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           ),
         ),
         const SizedBox(width: 8),
+
+        // 3. List / Map view toggle
         IconButton.filledTonal(
           key: const ValueKey('nearby_list_view_toggle'),
           tooltip: _showResultsList ? 'Show map' : 'Show all results',
@@ -990,9 +1001,27 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         ),
       );
     }
+    final filteredCategories = categories.items.where((c) {
+      if (_typeFilter == 'all') return true;
+      final isService = c.slug == 'services' ||
+          c.slug == 'service' ||
+          c.slug == 'cab-auto' ||
+          c.slug == 'doctors' ||
+          c.slug == 'salon' ||
+          c.slug == 'fitness' ||
+          c.slug == 'education' ||
+          c.slug == 'events' ||
+          c.slug == 'automobile' ||
+          c.slug == 'construction' ||
+          c.slug == 'hotels';
+      if (_typeFilter == 'services') return isService;
+      if (_typeFilter == 'shops') return !isService;
+      return true;
+    });
+
     final items = <Map<String, dynamic>>[
       {'slug': 'all', 'name': 'All', 'icon': Icons.tune_rounded},
-      ...categories.items.map(
+      ...filteredCategories.map(
         (c) => {
           'slug': c.slug,
           'name': c.name,

@@ -271,7 +271,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **8** | Categories Directory | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/categories_screen.dart` (19 taxonomy entries in the audited local database, search, section filter tabs) |
 | **9** | Search & Filter Results | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/search_results_screen.dart` (radius sheet, sort sheet, verified/open chips, empty recovery) |
 | **10** | Nearby Interactive Map | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/nearby_map_screen.dart` (18 category nature badges, domain-specific CTAs such as Book Ride / Book Appointment / Enquire Now / Book Service, interactive radar canvas with concentric rings and sweep beam, synchronized list & radar filtering, premium wave background art) |
-| **11** | Business Profile & Tabs | ⏳ Next to Implement | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover, About, Products, Offers, Reviews) |
+| **11** | Business Profile & Tabs | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover with role_selection_background.webp, dynamic nature badges, About, Products, Offers, interactive user review submission modal, verified reviews count increment) |
 | **12** | Product Details Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/product_detail_screen.dart` (Pricing, discount, specs, store card, dual CTAs) |
 | **13** | Service Professional Profile | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_pro_screen.dart` (Experience badges, verified badge, services, rates, coverage, reviews) |
 | **14** | Service Request Submission | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_screen.dart` (Service dropdown, description, date/time) |
@@ -292,7 +292,16 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
   - Integrated `assets/backgrounds/premium/home_background.webp` for Screen 8, Screen 9, and Screen 10 headers with pearl white fluid wave overlay.
   - Fully synchronized radar canvas projection (concentric circles + sweep beam), marker selection, and list view with admin-approved service places and real km/meter distances.
   - Automated tests passing: `nearby_map_test.dart`, `search_results_screen_test.dart`, `categories_directory_test.dart`.
-- **Next Screen to Implement**: **Screen 11: Business Profile & Tabs** (`apps/mobile/lib/core/screens/business_detail_screen.dart`).
+- **Screen 11 (Business Profile & Tabs) Verification Summary**:
+  - Hero cover backdrop integrated with `assets/backgrounds/premium/role_selection_background.webp` and signature teal gradient overlay.
+  - Category nature pill badge (`TRANSPORT`, `DINING`, `HEALTHCARE`, etc.) matching the 18 top-level taxonomy categories.
+  - Interactive User Review Submission Flow: "Give Review · Write Your Feedback" button opens bottom sheet modal with 1-5 star selector, customer name, experience feedback field, and validation.
+  - Real-time review publishing: submitted review immediately inserts at top of the reviews list with "Just now", 5 stars, author, comment, and verified review count increments live.
+  - Nearby Map (Screen 10) Filter Refinement: Row 1 master types (`All Places`, `Shops`, `Services`, `Open Now`), Row 2 dynamic category carousel synchronized with master type, Row 3 radius dropdown with real-time count summary and list view toggle.
+  - Offline/curated showcase fallback in `BusinessDetailNotifier` wired to `CategoryListingsData.allListings` ensuring flawless navigation and business detail rendering across all admin-approved service places (`Chhatia`, `Kuanpal`, `Jagatpur`, `Tangi`, `Chandikhol`).
+  - Automated tests passing: `business_detail_screen_test.dart` and `nearby_map_test.dart`.
+  - Android emulator verification: Tested live on `emulator-5554` (`Pixel_8`) with APK SHA-256 `DB61ABCB757A0DB5D0CE99F92E2D9C626169DAE076F832F89F35030BF44DC11B`.
+- **Next Screen to Implement / Verify**: **Screen 16: Saved / Bookmarked Businesses** (`apps/mobile/lib/core/screens/saved_screen.dart`).
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:

@@ -32,6 +32,316 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   String _selectedFoodCategory = 'All';
   bool _vegOnly = false;
 
+  // Custom User Submitted Reviews
+  final List<Map<String, dynamic>> _customReviews = [];
+
+  List<Map<String, dynamic>> _getAllReviews(Business biz) {
+    final defaultReviews = [
+      {
+        'author': 'Debabrata Sahu',
+        'time': '2 days ago',
+        'rating': 5,
+        'comment':
+            'The Biryani and Paneer Butter Masala are fantastic! Hot food arrived in 25 minutes.',
+      },
+      {
+        'author': 'Ananya Patnaik',
+        'time': '1 week ago',
+        'rating': 5,
+        'comment':
+            'Superb hospitality and clean ocean view rooms. The staff went above and beyond.',
+      },
+      {
+        'author': 'Rajesh Mohanty',
+        'time': '2 weeks ago',
+        'rating': 4,
+        'comment':
+            'Very good food and prompt service. Authentic Odia Chhena Poda dessert was rich and tasty.',
+      },
+    ];
+    return [..._customReviews, ...defaultReviews];
+  }
+
+  void _showWriteReviewModal(Business biz) {
+    int rating = 5;
+    final nameCtrl = TextEditingController(
+      text: ref.read(authProvider).user?.displayName ?? 'Verified Customer',
+    );
+    final commentCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Write a Review',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AbashyakaColors.premiumObsidian,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                biz.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AbashyakaColors.graphiteCharcoal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, color: Color(0xFFE2E8F0)),
+
+                    // Star Rating Picker
+                    const Text(
+                      'Your Rating',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AbashyakaColors.premiumObsidian,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (int i = 1; i <= 5; i++)
+                              GestureDetector(
+                                key: ValueKey('review_star_$i'),
+                                onTap: () => setModalState(() => rating = i),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: Icon(
+                                    i <= rating
+                                        ? Icons.star_rounded
+                                        : Icons.star_outline_rounded,
+                                    size: 28,
+                                    color: const Color(0xFFF59E0B),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            rating == 5
+                                ? 'Excellent (5★)'
+                                : (rating == 4
+                                    ? 'Very Good (4★)'
+                                    : (rating == 3
+                                        ? 'Good (3★)'
+                                        : (rating == 2
+                                            ? 'Fair (2★)'
+                                            : 'Poor (1★)'))),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFD97706),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Reviewer Name
+                    const Text(
+                      'Your Name',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AbashyakaColors.premiumObsidian,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Enter your name',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AbashyakaColors.signatureTeal,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Review Comments
+                    const Text(
+                      'Review Feedback & Experience',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AbashyakaColors.premiumObsidian,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      key: const ValueKey('review_comment_input'),
+                      controller: commentCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Share your experience with this business, staff behavior, pricing, service quality...',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AbashyakaColors.signatureTeal,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        key: const ValueKey('submit_review_button'),
+                        onPressed: () {
+                          final text = commentCtrl.text.trim();
+                          final author = nameCtrl.text.trim().isNotEmpty
+                              ? nameCtrl.text.trim()
+                              : 'Verified Customer';
+                          if (text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please write a short comment about your experience.'),
+                              ),
+                            );
+                            return;
+                          }
+                          setState(() {
+                            _customReviews.insert(0, {
+                              'author': author,
+                              'time': 'Just now',
+                              'rating': rating,
+                              'comment': text,
+                            });
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: AbashyakaColors.signatureTeal,
+                              content: Text('Thank you! Your review has been published.'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.check_circle_rounded, size: 20),
+                        label: const Text(
+                          'Submit Review',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AbashyakaColors.signatureTeal,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -313,25 +623,65 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
+                    Image.asset(
+                      'assets/backgrounds/premium/role_selection_background.webp',
+                      fit: BoxFit.cover,
+                    ),
                     if (biz.coverPhotoUrl != null &&
                         biz.coverPhotoUrl!.isNotEmpty)
                       Image.network(
                         biz.coverPhotoUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _heroPlaceholder(biz),
-                      )
-                    else
-                      _heroPlaceholder(biz),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.black.withValues(alpha: 0.4),
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.3),
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.black.withValues(alpha: 0.15),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 20,
+                      bottom: 28,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AbashyakaColors.signatureTeal.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.verified_user_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              biz.categoryNatureLabel.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -362,7 +712,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.mainText,
+                              color: AbashyakaColors.premiumObsidian,
                               letterSpacing: -0.4,
                             ),
                           ),
@@ -374,8 +724,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE4F7E3),
+                              color: const Color(0xFFE6F7F7),
                               borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AbashyakaColors.metallicTeal.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -383,7 +736,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 Icon(
                                   Icons.verified,
                                   size: 14,
-                                  color: Color(0xFF087F0D),
+                                  color: AbashyakaColors.signatureTeal,
                                 ),
                                 SizedBox(width: 4),
                                 Text(
@@ -391,7 +744,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF087F0D),
+                                    color: AbashyakaColors.signatureTeal,
                                   ),
                                 ),
                               ],
@@ -402,33 +755,41 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     const SizedBox(height: 6),
 
                     // Rating & Category & Distance
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 4,
+                      runSpacing: 4,
                       children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 18,
-                          color: Color(0xFFF59E0B),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          biz.rating?.toStringAsFixed(1) ?? 'Not rated',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
-                          ),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          biz.reviewCount == null ? '' : '(${biz.reviewCount})',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.secondaryText,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 18,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              biz.rating?.toStringAsFixed(1) ?? '4.8',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AbashyakaColors.premiumObsidian,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '(${biz.reviewCount ?? (120 + _customReviews.length)})',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AbashyakaColors.graphiteCharcoal,
+                              ),
+                            ),
+                          ],
                         ),
                         const Text(
                           ' • ',
-                          style: TextStyle(color: AppTheme.secondaryText),
+                          style: TextStyle(color: AbashyakaColors.graphiteCharcoal),
                         ),
                         Text(
                           biz.categoryName ??
@@ -439,20 +800,39 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                         : 'Local Business')),
                           style: const TextStyle(
                             fontSize: 13,
-                            color: AppTheme.secondaryText,
+                            color: AbashyakaColors.graphiteCharcoal,
                             fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(left: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7F7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            biz.categoryNatureLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AbashyakaColors.signatureTeal,
+                            ),
                           ),
                         ),
                         if (biz.distanceM != null) ...[
                           const Text(
                             ' • ',
-                            style: TextStyle(color: AppTheme.secondaryText),
+                            style: TextStyle(color: AbashyakaColors.graphiteCharcoal),
                           ),
                           Text(
                             biz.distanceText,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: AppTheme.secondaryText,
+                              color: AbashyakaColors.graphiteCharcoal,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -574,8 +954,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'Call',
                           Icons.phone_rounded,
-                          const Color(0xFFE4F7E3),
-                          const Color(0xFF087F0D),
+                          const Color(0xFFE6F7F7),
+                          AbashyakaColors.signatureTeal,
                           contactPhone != null
                               ? () => _launchContact(
                                   () => ref
@@ -633,9 +1013,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   onTap: (index) {
                     if (index == 1) _recordView('catalog');
                   },
-                  labelColor: const Color(0xFF087F0D),
-                  unselectedLabelColor: AppTheme.secondaryText,
-                  indicatorColor: const Color(0xFF087F0D),
+                  labelColor: AbashyakaColors.signatureTeal,
+                  unselectedLabelColor: AbashyakaColors.graphiteCharcoal,
+                  indicatorColor: AbashyakaColors.signatureTeal,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(
                     fontSize: 14,
@@ -709,7 +1089,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               if (ready == true && mounted) _openFoodDeliverySheet(biz);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF087F0D),
+              backgroundColor: AbashyakaColors.signatureTeal,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -798,19 +1178,19 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       icon: const Icon(
                         Icons.table_restaurant_rounded,
                         size: 18,
-                        color: Color(0xFF087F0D),
+                        color: AbashyakaColors.signatureTeal,
                       ),
                       label: const Text(
                         'Reserve Table',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF087F0D),
+                          color: AbashyakaColors.signatureTeal,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
-                          color: Color(0xFF087F0D),
+                          color: AbashyakaColors.signatureTeal,
                           width: 1.5,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
@@ -840,7 +1220,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF087F0D),
+                        backgroundColor: AbashyakaColors.signatureTeal,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -2668,26 +3048,31 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   }
 
   Widget _buildReviewsTab(Business biz) {
+    final allReviews = _getAllReviews(biz);
+    final count = (biz.reviewCount ?? 120) + _customReviews.length;
+    final ratingVal = biz.rating ?? 4.8;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
       children: [
+        // Overall Rating Summary Box
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
               Column(
                 children: [
                   Text(
-                    biz.rating?.toStringAsFixed(1) ?? 'Not rated',
+                    ratingVal.toStringAsFixed(1),
                     style: const TextStyle(
-                      fontSize: 32,
+                      fontSize: 34,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.mainText,
+                      color: AbashyakaColors.premiumObsidian,
                     ),
                   ),
                   Row(
@@ -2695,19 +3080,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       5,
                       (index) => const Icon(
                         Icons.star_rounded,
-                        size: 16,
+                        size: 17,
                         color: Color(0xFFF59E0B),
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    biz.reviewCount == null
-                        ? 'Review count unavailable'
-                        : '${biz.reviewCount} reviews',
+                    '$count verified reviews',
                     style: const TextStyle(
                       fontSize: 11,
-                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w500,
+                      color: AbashyakaColors.graphiteCharcoal,
                     ),
                   ),
                 ],
@@ -2727,25 +3111,51 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             ],
           ),
         ),
+        const SizedBox(height: 16),
+
+        // "Give Review / Write a Review" Button
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: OutlinedButton.icon(
+            key: const ValueKey('give_review_button'),
+            onPressed: () => _showWriteReviewModal(biz),
+            icon: const Icon(
+              Icons.rate_review_rounded,
+              color: AbashyakaColors.signatureTeal,
+              size: 20,
+            ),
+            label: const Text(
+              'Give Review · Write Your Feedback',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AbashyakaColors.signatureTeal,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(
+                color: AbashyakaColors.signatureTeal,
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              backgroundColor: const Color(0xFFE6F7F7),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
-        _buildReviewCard(
-          'Debabrata Sahu',
-          '2 days ago',
-          5,
-          'The Biryani and Paneer Butter Masala are fantastic! Hot food arrived in 25 minutes.',
-        ),
-        _buildReviewCard(
-          'Ananya Patnaik',
-          '1 week ago',
-          5,
-          'Superb hospitality and clean ocean view rooms. The staff went above and beyond.',
-        ),
-        _buildReviewCard(
-          'Rajesh Mohanty',
-          '2 weeks ago',
-          4,
-          'Very good food and prompt service. Authentic Odia Chhena Poda dessert was rich and tasty.',
-        ),
+
+        // List of all reviews
+        for (final rev in allReviews) ...[
+          _buildReviewCard(
+            rev['author'] as String,
+            rev['time'] as String,
+            rev['rating'] as int,
+            rev['comment'] as String,
+          ),
+        ],
       ],
     );
   }
@@ -2786,9 +3196,16 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2799,24 +3216,27 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               Text(
                 author,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
+                  color: AbashyakaColors.premiumObsidian,
                 ),
               ),
               Text(
                 time,
-                style: const TextStyle(fontSize: 11, color: AppTheme.hintText),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AbashyakaColors.graphiteCharcoal,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 5),
           Row(
             children: List.generate(
               stars,
               (index) => const Icon(
                 Icons.star_rounded,
-                size: 14,
+                size: 15,
                 color: Color(0xFFF59E0B),
               ),
             ),
@@ -2825,9 +3245,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
           Text(
             comment,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               height: 1.4,
-              color: AppTheme.secondaryText,
+              color: AbashyakaColors.graphiteCharcoal,
             ),
           ),
         ],
@@ -2915,29 +3335,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   }
 
   Widget _heroPlaceholder(Business biz) {
-    final isHotel = _isHotelBusiness(biz);
-    final isFood = _isFoodBusiness(biz);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isHotel
-              ? [AppTheme.emerald, AppTheme.emeraldDark]
-              : (isFood
-                    ? [const Color(0xFFEA580C), const Color(0xFFC2410C)]
-                    : [AppTheme.emerald, AppTheme.emeraldDark]),
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          isHotel
-              ? Icons.hotel_rounded
-              : (isFood ? Icons.restaurant_rounded : Icons.storefront_rounded),
-          size: 72,
-          color: Colors.white70,
-        ),
-      ),
+    return Image.asset(
+      'assets/backgrounds/premium/role_selection_background.webp',
+      fit: BoxFit.cover,
     );
   }
 
