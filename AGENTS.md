@@ -278,7 +278,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **15** | Appointment Slot Scheduler | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/booking_scheduler_screen.dart` (Pro profile header, scope & duration chips, 14-day date strip, morning/afternoon/evening time slots, notes & location, booking receipt confirmation sheet) |
 | **16** | Saved / Bookmarked Businesses | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/saved_screen.dart` (2026 Premium Obsidian tokens, fluid-wave header art, category nature badge chips, context-aware CTAs, explore recommendations empty state) |
 | **17** | Customer Profile & Settings | UI polish complete. Customer screen verified. Role acceptance partial. | [Screen 17 validation](docs/design/SCREEN_17_CUSTOMER_PROFILE_VALIDATION.md) |
-| **18** | Service Request Status Tracker| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_status_screen.dart` (Live timeline, pro contact card, receipt summary, cancel modal) |
+| **18** | Service Request Status Tracker | UI polish complete. Widget checks passed. Live tracker acceptance partial. | [Screen 18 validation](docs/design/SCREEN_18_SERVICE_REQUEST_STATUS_VALIDATION.md) |
 | **19** | Merchant Registration / Claim | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_registration_screen.dart` (4-step onboarding wizard, category picker, tax/artisan toggle, GPS locking, claim existing listing & OTP modal sheet) |
 | **20** | Merchant Workspace Dashboard | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` (Dashboard, stats, request management, quick actions) |
 | **21** | Merchant Catalog Management | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_catalog_screen.dart` (Products/Services tabs, stock status chips, search & filter, add/edit modals) |
@@ -310,7 +310,8 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
   - Automated tests passing: `saved_screen_test.dart` and `business_detail_screen_test.dart`.
   - Android emulator verification: Tested live on `emulator-5554` (`Pixel_8`) with APK SHA-256 `ACB62E4FD1789343547394906B2572F10C027F32E92B0F1D932441DDC7E6F85F`.
 - **Screen 17 Customer Profile & Settings** received a visual-only polish pass on 25 November 2026. The [validation record](docs/design/SCREEN_17_CUSTOMER_PROFILE_VALIDATION.md) documents the APK, widget tests, Customer screen checks, and role acceptance limits.
-- **Proposed next screen** is **Screen 18, Service Request Status Tracker** (`apps/mobile/lib/core/screens/service_request_status_screen.dart`). Review the timeline, status hierarchy, and responsive layout using the shared premium components. Preserve the existing polling, cancellation, and navigation behavior.
+- **Screen 18 Service Request Status Tracker** received a visual-only polish pass on 25 November 2026. The [validation record](docs/design/SCREEN_18_SERVICE_REQUEST_STATUS_VALIDATION.md) covers the status presentation, responsive layout, polling and cancellation tests, and Android acceptance limits.
+- **Proposed next screen** is **Screen 19, Merchant Registration / Claim** (`apps/mobile/lib/core/screens/merchant_registration_screen.dart`). Review step labels, field grouping, and small-screen layout. Preserve registration, listing claims, and verification behavior.
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:

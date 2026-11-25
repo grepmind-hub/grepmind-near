@@ -1,12 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
+import 'package:grepmind_mobile/core/widgets/metallic_button.dart';
+import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 
 /// Screen 18: Service Request Status Tracker
 /// Authoritative reference: Grepmind Near UI/UX Showcase Screen 18 & ref-image/Service request.png
@@ -39,7 +44,7 @@ class _ServiceRequestStatusScreenState
     extends ConsumerState<ServiceRequestStatusScreen> {
   late String _currentStatus;
   late final String _bookingId;
-  late DateTime _scheduledTime;
+  DateTime? _scheduledTime;
   bool _isConfirmingReschedule = false;
 
   Timer? _statusPollTimer;
@@ -51,11 +56,7 @@ class _ServiceRequestStatusScreenState
         widget.initialStatus ?? widget.request?.status ?? 'requested';
     final requestID = widget.requestId ?? widget.request?.id;
     _bookingId = requestID ?? 'Unavailable';
-    _scheduledTime =
-        widget.appointmentTime ??
-        widget.request?.requestedFor ??
-        widget.request?.createdAt ??
-        DateTime.now();
+    _scheduledTime = widget.appointmentTime ?? widget.request?.requestedFor;
 
     _fetchLiveStatus();
     _startLiveTracking();
@@ -188,151 +189,149 @@ class _ServiceRequestStatusScreenState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.warning_amber_rounded,
-                    color: Color(0xFFDC2626),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Cancel Service Request?',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.mainText,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'You will not be charged any cancellation fee.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Please tell us the reason:',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.mainText,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...[
-              'Found another skilled professional',
-              'Scheduled for the wrong date / time',
-              'Problem resolved by myself',
-              'Cost estimate higher than expected',
-            ].map(
-              (reason) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () async {
-                    if (widget.requestId == null) return;
-                    try {
-                      await apiClient.post(
-                        '/requests/${widget.requestId}/cancel',
-                      );
-                      if (!mounted || !ctx.mounted) return;
-                      Navigator.of(ctx).pop();
-                      setState(() => _currentStatus = 'cancelled');
-                    } catch (_) {
-                      if (!ctx.mounted) return;
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        const SnackBar(
-                          content: Text('This request cannot be cancelled.'),
-                        ),
-                      );
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
+      backgroundColor: AbashyakaColors.pureWhite,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AbashyakaSpacing.lg,
+            0,
+            AbashyakaSpacing.lg,
+            AbashyakaSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      color: AppTheme.errorContainer,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      reason,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.mainText,
-                        fontWeight: FontWeight.w500,
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppTheme.error,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Cancel Service Request?',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Choose a reason to cancel this request.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Please tell us the reason:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...[
+                'Found another skilled professional',
+                'Scheduled for the wrong date / time',
+                'Problem resolved by myself',
+                'Cost estimate higher than expected',
+              ].map(
+                (reason) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () async {
+                      if (widget.requestId == null) return;
+                      try {
+                        await apiClient.post(
+                          '/requests/${widget.requestId}/cancel',
+                        );
+                        if (!mounted || !ctx.mounted) return;
+                        Navigator.of(ctx).pop();
+                        setState(() => _currentStatus = 'cancelled');
+                      } catch (_) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('This request cannot be cancelled.'),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(
+                        minHeight: AbashyakaSpacing.touchTargetMin,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.background,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Text(
+                        reason,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.mainText,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, AbashyakaSpacing.touchTargetMin),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: AppTheme.border),
                   ),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
-                ),
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text(
-                  'Keep My Request',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text(
+                    'Keep My Request',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.mainText,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -341,142 +340,120 @@ class _ServiceRequestStatusScreenState
   void _showSupportModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(10),
+      isScrollControlled: true,
+      backgroundColor: AbashyakaColors.pureWhite,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AbashyakaSpacing.lg,
+            0,
+            AbashyakaSpacing.lg,
+            AbashyakaSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Abashyaka Help & Support',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.mainText,
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Abashyaka Help & Support',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.mainText,
+              const SizedBox(height: 6),
+              const Text(
+                'Need assistance with your booking or provider communication?',
+                style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Need assistance with your booking or provider communication?',
-              style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
-            ),
-            const SizedBox(height: 18),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 18),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.headset_mic_rounded,
+                    color: AppTheme.primary,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.headset_mic_rounded,
-                  color: AppTheme.primary,
+                title: const Text(
+                  'Call Customer Support',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
-              ),
-              title: const Text(
-                'Call Customer Support',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-              ),
-              subtitle: const Text(
-                'Support contact is not configured.',
-                style: TextStyle(fontSize: 12),
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-            ),
-            const Divider(height: 12),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(10),
+                subtitle: const Text(
+                  'Support contact is not configured.',
+                  style: TextStyle(fontSize: 12),
                 ),
-                child: const Icon(
-                  Icons.chat_outlined,
-                  color: Color(0xFF15803D),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              ),
+              const Divider(height: 12),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.chat_outlined,
+                    color: AppTheme.deepEmerald,
+                  ),
                 ),
+                title: const Text(
+                  'Live Chat via WhatsApp',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Support chat is not configured.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
               ),
-              title: const Text(
-                'Live Chat via WhatsApp',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-              ),
-              subtitle: const Text(
-                'Support chat is not configured.',
-                style: TextStyle(fontSize: 12),
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  static const _stages = <(String, String)>[
+    ('requested', 'Request Submitted'),
+    ('accepted', 'Provider Accepted'),
+    ('en_route', 'Professional En Route'),
+    ('in_progress', 'Job In Progress'),
+    ('completed', 'Job Completed'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final status = _statusPresentation();
+    final scale = MediaQuery.textScalerOf(context).scale(16);
+    final fixedActions =
+        MediaQuery.sizeOf(context).height >= 480 && scale <= 24;
+    final actions = _buildBottomActions(context, scale);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
-            color: AppTheme.mainText,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Service Request Status',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.mainText,
-                letterSpacing: -0.3,
-              ),
-            ),
-            Text(
-              'Booking ID $_bookingId',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.secondaryText,
-              ),
-            ),
-          ],
-        ),
+        backgroundColor: AbashyakaColors.pearlWhite,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        leading: BackButton(onPressed: () => Navigator.of(context).pop()),
+        title: const Text('Service Request Status', maxLines: 2),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.help_outline_rounded,
-              color: AppTheme.mainText,
-            ),
+            icon: const Icon(Icons.help_outline_rounded),
             tooltip: 'Help & Support',
             onPressed: _showSupportModal,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppTheme.mainText),
+            icon: const Icon(Icons.share_outlined),
             tooltip: 'Share Details',
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -486,963 +463,496 @@ class _ServiceRequestStatusScreenState
           ),
         ],
       ),
+      bottomNavigationBar: fixedActions ? actions : null,
       body: SafeArea(
         top: false,
-        child: Column(
+        child: ListView(
           children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+            AbashyakaPremiumHeader(
+              variant: FluidWaveVariant.tracking,
+              bottom: _buildStatusCard(status),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AbashyakaSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Hero Status Card with pulsing pill
-                  _buildHeroLiveStatusCard(),
-                  const SizedBox(height: 14),
-
-                  // Multi-Step Progress Tracker Timeline
-                  _buildTimelineStepperCard(),
-                  const SizedBox(height: 16),
-
-                  // Assigned Professional Card
-                  _buildAssignedProfessionalCard(),
-                  const SizedBox(height: 16),
-
-                  // Job & Booking Summary Receipt
-                  _buildReceiptSummaryCard(),
-                  const SizedBox(height: 20),
+                  _buildTimeline(status),
+                  const SizedBox(height: AbashyakaSpacing.md),
+                  _buildProfessionalCard(),
+                  const SizedBox(height: AbashyakaSpacing.md),
+                  _buildReceipt(),
                 ],
               ),
             ),
-
-            // Bottom Sticky Actions Bar
-            _buildBottomActionBar(),
+            if (!fixedActions) actions,
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeroLiveStatusCard() {
-    Color bgGradientStart;
-    Color bgGradientEnd;
-    Color pillColor;
-    Color pillTextColor;
-    String statusTitle;
-    String statusDescription;
-    IconData statusIcon;
-
-    switch (_currentStatus) {
-      case 'accepted':
-        bgGradientStart = const Color(0xFF1E3A8A);
-        bgGradientEnd = const Color(0xFF2457D6);
-        pillColor = const Color(0xFFEFF6FF);
-        pillTextColor = AppTheme.primary;
-        statusTitle = 'Accepted by Pro';
-        statusDescription =
-            '$_providerShortName accepted your request. Expected arrival on schedule.';
-        statusIcon = Icons.thumb_up_alt_rounded;
-        break;
-      case 'rescheduled':
-        bgGradientStart = const Color(0xFF1E40AF);
-        bgGradientEnd = const Color(0xFF0F766E);
-        pillColor = const Color(0xFFECFEFF);
-        pillTextColor = const Color(0xFF0F766E);
-        statusTitle = 'New Time Proposed';
-        statusDescription =
-            '$_providerShortName suggested a new appointment time. Confirm it below or cancel the request.';
-        statusIcon = Icons.event_repeat_rounded;
-        break;
-      case 'en_route':
-        bgGradientStart = const Color(0xFF0F766E);
-        bgGradientEnd = const Color(0xFF14B8A6);
-        pillColor = const Color(0xFFCCFBF1);
-        pillTextColor = const Color(0xFF0F766E);
-        statusTitle = 'Professional En Route';
-        statusDescription =
-            '$_providerShortName is heading to your address. ETA approx 18 mins.';
-        statusIcon = Icons.navigation_rounded;
-        break;
-      case 'in_progress':
-        bgGradientStart = const Color(0xFF7C2D12);
-        bgGradientEnd = const Color(0xFFEA580C);
-        pillColor = const Color(0xFFFFEDD5);
-        pillTextColor = const Color(0xFFC2410C);
-        statusTitle = 'Job In Progress';
-        statusDescription =
-            '$_providerShortName is actively working on your electrical repair.';
-        statusIcon = Icons.build_circle_rounded;
-        break;
-      case 'completed':
-        bgGradientStart = const Color(0xFF064E3B);
-        bgGradientEnd = const Color(0xFF059669);
-        pillColor = const Color(0xFFECFDF5);
-        pillTextColor = const Color(0xFF047857);
-        statusTitle = 'Job Completed';
-        statusDescription =
-            'The service has been completed successfully. Please review & pay.';
-        statusIcon = Icons.task_alt_rounded;
-        break;
-      case 'cancelled':
-        bgGradientStart = const Color(0xFF7F1D1D);
-        bgGradientEnd = const Color(0xFFDC2626);
-        pillColor = const Color(0xFFFEF2F2);
-        pillTextColor = const Color(0xFFDC2626);
-        statusTitle = 'Request Cancelled';
-        statusDescription =
-            'This service request was cancelled. No charges applied.';
-        statusIcon = Icons.cancel_outlined;
-        break;
-      case 'requested':
-      default:
-        bgGradientStart = const Color(0xFF1E293B);
-        bgGradientEnd = const Color(0xFF334155);
-        pillColor = const Color(0xFFF1F5F9);
-        pillTextColor = const Color(0xFF1E293B);
-        statusTitle = 'Request Submitted';
-        statusDescription =
-            'Awaiting confirmation from $_providerShortName within 15 minutes.';
-        statusIcon = Icons.hourglass_top_rounded;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [bgGradientStart, bgGradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: bgGradientEnd.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+  ({String title, String description, IconData icon, Color color})
+  _statusPresentation() {
+    final (title, description, icon, color) = switch (_currentStatus) {
+      'requested' => (
+        'Request Submitted',
+        'Waiting for the provider to respond.',
+        Icons.hourglass_top_rounded,
+        AbashyakaColors.signatureTeal,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: pillColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: pillTextColor,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _currentStatus.toUpperCase().replaceAll('_', ' '),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: pillTextColor,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                statusIcon,
-                color: Colors.white.withValues(alpha: 0.9),
-                size: 28,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            statusTitle,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            statusDescription,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.88),
-              height: 1.4,
-            ),
-          ),
-        ],
+      'accepted' => (
+        'Accepted by Pro',
+        'The provider accepted your request.',
+        Icons.event_available_outlined,
+        AbashyakaColors.signatureTeal,
       ),
-    );
+      'rescheduled' => (
+        'New Time Proposed',
+        'Review the proposed appointment time and confirm it below.',
+        Icons.event_repeat_rounded,
+        AbashyakaColors.ratingText,
+      ),
+      'en_route' => (
+        'Professional En Route',
+        'The provider is on the way.',
+        Icons.navigation_outlined,
+        AbashyakaColors.signatureTeal,
+      ),
+      'in_progress' => (
+        'Job In Progress',
+        'The provider has started the service.',
+        Icons.build_outlined,
+        AbashyakaColors.signatureTeal,
+      ),
+      'completed' => (
+        'Job Completed',
+        'The provider marked the service complete.',
+        Icons.task_alt_rounded,
+        AbashyakaColors.signatureTeal,
+      ),
+      'declined' => (
+        'Request Declined',
+        'The provider declined this request.',
+        Icons.block_outlined,
+        AbashyakaColors.error,
+      ),
+      'cancelled' => (
+        'Request Cancelled',
+        'This service request was cancelled.',
+        Icons.cancel_outlined,
+        AbashyakaColors.error,
+      ),
+      _ => (
+        'Status Unavailable',
+        'The current status could not be displayed.',
+        Icons.info_outline,
+        AbashyakaColors.graphiteCharcoal,
+      ),
+    };
+
+    return (title: title, description: description, icon: icon, color: color);
   }
 
-  Widget _buildTimelineStepperCard() {
-    final steps = [
-      {
-        'title': 'Request Submitted',
-        'subtitle': 'Details sent to $_providerShortName',
-        'time': DateFormat('h:mm a')
-            .format(widget.request?.createdAt ?? _scheduledTime),
-        'state': _getStepState('requested'),
-      },
-      {
-        'title': 'Provider Accepted',
-        'subtitle': '$_providerShortName accepted the booking',
-        'time': _currentStatus != 'requested' ? 'Updated' : '--:--',
-        'state': _getStepState('accepted'),
-      },
-      {
-        'title': 'New Time Proposed',
-        'subtitle': 'Review the replacement appointment time',
-        'time': _currentStatus == 'rescheduled' ? 'Updated' : '--:--',
-        'state': _getStepState('rescheduled'),
-      },
-      {
-        'title': 'Professional En Route',
-        'subtitle': 'Travel status reported by the provider',
-        'time':
-            (_currentStatus == 'en_route' ||
-                _currentStatus == 'in_progress' ||
-                _currentStatus == 'completed')
-            ? 'Updated'
-            : '--:--',
-        'state': _getStepState('en_route'),
-      },
-      {
-        'title': 'Job In Progress',
-        'subtitle': 'Inspection and fixtures installation',
-        'time':
-            (_currentStatus == 'in_progress' || _currentStatus == 'completed')
-            ? 'Updated'
-            : '--:--',
-        'state': _getStepState('in_progress'),
-      },
-      {
-        'title': 'Job Completed & Verified',
-        'subtitle': 'Provider marked the job complete',
-        'time': _currentStatus == 'completed' ? 'Updated' : '--:--',
-        'state': _getStepState('completed'),
-      },
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+  Widget _buildStatusCard(
+    ({String title, String description, IconData icon, Color color}) status,
+  ) {
+    return PremiumCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
-                child: Text(
-                  'Live Progress Timeline',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.mainText,
+              _iconTile(status.icon, status.color),
+              const SizedBox(width: AbashyakaSpacing.sm),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  liveRegion: true,
+                  child: Text(
+                    status.title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AbashyakaColors.premiumObsidian,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.sync_rounded,
-                      size: 12,
-                      color: Color(0xFF059669),
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Live Tracking',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF059669),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          ...List.generate(steps.length, (index) {
-            final isLast = index == steps.length - 1;
-            final step = steps[index];
-            final stepState =
-                step['state'] as String; // 'done', 'current', 'upcoming'
-
-            return _buildTimelineStepRow(
-              title: step['title'] as String,
-              subtitle: step['subtitle'] as String,
-              time: step['time'] as String,
-              state: stepState,
-              isLast: isLast,
-            );
-          }),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          Text(
+            status.description,
+            style: const TextStyle(color: AbashyakaColors.graphiteCharcoal),
+          ),
+          if (_currentStatus == 'rescheduled' && _scheduledTime != null) ...[
+            const SizedBox(height: AbashyakaSpacing.sm),
+            _receiptField(
+              'Proposed Appointment',
+              DateFormat('EEE, MMM d, yyyy · h:mm a').format(_scheduledTime!),
+            ),
+          ],
+          const SizedBox(height: AbashyakaSpacing.xs),
+          Text(
+            'Booking ID $_bookingId',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AbashyakaColors.graphiteCharcoal,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  String _getStepState(String stepKey) {
-    if (_currentStatus == 'cancelled') return 'upcoming';
-
-    final order = [
-      'requested',
-      'accepted',
-      'rescheduled',
-      'en_route',
-      'in_progress',
-      'completed',
+  Widget _buildTimeline(
+    ({String title, String description, IconData icon, Color color}) status,
+  ) {
+    final closed =
+        _currentStatus == 'cancelled' || _currentStatus == 'declined';
+    final submitted = widget.request?.createdAt;
+    final steps = [
+      for (final stage in _stages)
+        if ((!closed || stage.$1 == 'requested') &&
+            (stage.$1 != 'en_route' || _currentStatus == 'en_route')) ...[
+          stage,
+          if (stage.$1 == 'accepted' && _currentStatus == 'rescheduled')
+            ('rescheduled', status.title),
+        ],
+      if (closed) (_currentStatus, status.title),
     ];
-    final currentIndex = order.indexOf(_currentStatus);
-    final stepIndex = order.indexOf(stepKey);
 
-    if (stepIndex < currentIndex) return 'done';
-    if (stepIndex == currentIndex) return 'current';
-    return 'upcoming';
+    return PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading(
+            closed || _currentStatus == 'completed'
+                ? 'Request Timeline'
+                : 'Live Progress Timeline',
+          ),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          for (final (index, step) in steps.indexed)
+            _timelineRow(
+              title: step.$2,
+              current: step.$1 == _currentStatus,
+              color: status.color,
+              first: index == 0,
+              last: index == steps.length - 1,
+              detail: step.$1 == 'requested' && submitted != null
+                  ? DateFormat('MMM d, h:mm a').format(submitted.toLocal())
+                  : null,
+            ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildTimelineStepRow({
+  Widget _timelineRow({
     required String title,
-    required String subtitle,
-    required String time,
-    required String state,
-    required bool isLast,
+    required bool current,
+    required Color color,
+    required bool first,
+    required bool last,
+    String? detail,
   }) {
-    Color circleColor;
-    Widget iconWidget;
-
-    if (state == 'done') {
-      circleColor = const Color(0xFF059669);
-      iconWidget = const Icon(
-        Icons.check_rounded,
-        color: Colors.white,
-        size: 14,
-      );
-    } else if (state == 'current') {
-      circleColor = AppTheme.primary;
-      iconWidget = Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
+    return Stack(
+      children: [
+        PositionedDirectional(
+          start: 11,
+          top: first ? 20 : 0,
+          bottom: last ? null : 0,
+          height: last ? 20 : null,
+          child: const ColoredBox(
+            color: AbashyakaColors.silverGlass,
+            child: SizedBox(width: 2),
+          ),
         ),
-      );
-    } else {
-      circleColor = const Color(0xFFCBD5E1);
-      iconWidget = Container(
-        width: 6,
-        height: 6,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.8),
-          shape: BoxShape.circle,
-        ),
-      );
-    }
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Step Icon & Vertical Line
-          Column(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: AbashyakaSpacing.xs),
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: circleColor,
+                  color: current ? color : AbashyakaColors.pureWhite,
                   shape: BoxShape.circle,
-                  boxShadow: state == 'current'
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: 0.35),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
+                  border: Border.all(
+                    color: current ? color : AbashyakaColors.silverGlass,
+                    width: 2,
+                  ),
+                ),
+                child: SizedBox.square(
+                  dimension: 24,
+                  child: current
+                      ? const Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: AbashyakaColors.pureWhite,
+                        )
                       : null,
                 ),
-                alignment: Alignment.center,
-                child: iconWidget,
               ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: state == 'done'
-                        ? const Color(0xFF059669)
-                        : const Color(0xFFE2E8F0),
-                  ),
+            ),
+            const SizedBox(width: AbashyakaSpacing.sm),
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: current ? AbashyakaColors.iceAquaWhite : null,
+                  borderRadius: BorderRadius.circular(AbashyakaRadius.sm),
                 ),
-            ],
-          ),
-          const SizedBox(width: 14),
-
-          // Step Text & Time
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                child: Padding(
+                  padding: const EdgeInsets.all(AbashyakaSpacing.xs),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: current
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: AbashyakaColors.premiumObsidian,
+                        ),
+                      ),
+                      if (current || detail != null)
                         Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: state == 'current'
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: state == 'upcoming'
-                                ? AppTheme.secondaryText
-                                : AppTheme.mainText,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.secondaryText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    time,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: state == 'upcoming'
-                          ? const Color(0xFF94A3B8)
-                          : AppTheme.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssignedProfessionalCard() {
-    final pro = widget.business;
-    final rating = pro?.rating;
-    final phone = pro?.phoneE164;
-    final whatsapp = pro?.whatsappE164 ?? phone;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Assigned Professional',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.mainText,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              // Pro Avatar
-              Stack(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2457D6), Color(0xFF0F766E)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _providerShortName.isNotEmpty
-                          ? _providerShortName[0]
-                          : 'P',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -2,
-                    right: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2457D6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        size: 10,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 12),
-
-              // Name & Rating
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _providerName,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.mainText,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.verified_rounded,
-                          size: 15,
-                          color: Color(0xFF2457D6),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Color(0xFFF59E0B),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          rating == null
-                              ? 'No rating available'
-                              : rating.toStringAsFixed(1),
+                          [if (current) 'Current status', ?detail].join(' · '),
                           style: const TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.mainText,
+                            color: AbashyakaColors.graphiteCharcoal,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Location not provided',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Contact Actions: Direct Call & WhatsApp
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
-                      side: const BorderSide(color: Color(0xFFBFDBFE)),
-                      backgroundColor: const Color(0xFFEFF6FF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.call_rounded, size: 16),
-                    label: const Text(
-                      'Call Pro',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                    onPressed: phone == null
-                        ? null
-                        : () => _makePhoneCall(phone),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF15803D),
-                      side: const BorderSide(color: Color(0xFFBBF7D0)),
-                      backgroundColor: const Color(0xFFDCFCE7),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      size: 16,
-                    ),
-                    label: const Text(
-                      'WhatsApp',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                    onPressed: whatsapp == null
-                        ? null
-                        : () => _openWhatsApp(whatsapp),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReceiptSummaryCard() {
-    final dateFormat = DateFormat('EEE, MMM d, yyyy • hh:mm a');
-    final formattedDate = dateFormat.format(_scheduledTime);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Job & Receipt Summary',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.mainText,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  _bookingId,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          _buildReceiptRow('Service Requested', _serviceTitle, isBold: true),
-          const SizedBox(height: 10),
-          _buildReceiptRow('Appointment Slot', formattedDate),
-          const SizedBox(height: 10),
-          _buildReceiptRow('Address', 'Address not provided'),
-          const SizedBox(height: 10),
-          _buildReceiptRow(
-            'Indicative Estimate',
-            '₹299 - ₹599',
-            isHighlight: true,
-          ),
-          const SizedBox(height: 10),
-          _buildReceiptRow('Payment Mode', 'Pay after job (Cash / UPI / Card)'),
-
-          if (widget.request?.description != null &&
-              widget.request!.description.isNotEmpty) ...[
-            const Divider(height: 20, color: Color(0xFFF1F5F9)),
-            const Text(
-              'Customer Instructions:',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.secondaryText,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.request!.description,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.mainText,
-                height: 1.4,
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReceiptRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    bool isHighlight = false,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 4,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 6,
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-              color: isHighlight ? AppTheme.primary : AppTheme.mainText,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
         ),
       ],
     );
   }
 
-  Widget _buildBottomActionBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              if (_currentStatus == 'rescheduled') ...[
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFDC2626),
-                        side: const BorderSide(color: Color(0xFFFECACA)),
-                        backgroundColor: const Color(0xFFFEF2F2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _showCancelConfirmationModal,
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      key: const Key('customer_confirm_reschedule'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.emerald,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _isConfirmingReschedule
-                          ? null
-                          : _confirmProposedTime,
-                      icon: _isConfirmingReschedule
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                            ),
-                      label: const Text(
-                        'Confirm new time',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ] else if (_currentStatus != 'completed' &&
-                  _currentStatus != 'cancelled') ...[
-                // Cancel Request Action Button
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFDC2626),
-                        side: const BorderSide(color: Color(0xFFFECACA)),
-                        backgroundColor: const Color(0xFFFEF2F2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _showCancelConfirmationModal,
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
+  Widget _buildProfessionalCard() {
+    final pro = widget.business;
+    final rating = pro?.rating;
+    final phone = pro?.phoneE164;
+    final whatsapp = pro?.whatsappE164 ?? phone;
 
-              // Primary Navigation or Done Button
+    return PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading('Assigned Professional'),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _iconTile(
+                Icons.person_outline_rounded,
+                AbashyakaColors.signatureTeal,
+              ),
+              const SizedBox(width: AbashyakaSpacing.sm),
               Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.emerald,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.home_outlined,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    label: Text(
-                      _currentStatus == 'completed'
-                          ? 'Back to Home'
-                          : 'Back to Explore',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _providerName,
                       style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: Colors.white,
+                        color: AbashyakaColors.premiumObsidian,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                  ),
+                    if (pro?.isVerified ?? false)
+                      const Text('Verified business'),
+                    if (rating != null)
+                      Text('Rating ${rating.toStringAsFixed(1)}'),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          Wrap(
+            spacing: AbashyakaSpacing.xs,
+            runSpacing: AbashyakaSpacing.xxs,
+            children: [
+              OutlinedButton.icon(
+                style: _outlineStyle(),
+                onPressed: phone == null ? null : () => _makePhoneCall(phone),
+                icon: const Icon(Icons.call_outlined),
+                label: const Text('Call Pro'),
+              ),
+              OutlinedButton.icon(
+                style: _outlineStyle(),
+                onPressed: whatsapp == null
+                    ? null
+                    : () => _openWhatsApp(whatsapp),
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                label: const Text('WhatsApp'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceipt() {
+    final appointment = _scheduledTime;
+    final instructions = widget.request?.description;
+
+    return PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading('Job & Receipt Summary'),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          _receiptField('Service Requested', _serviceTitle),
+          _receiptField(
+            _currentStatus == 'rescheduled'
+                ? 'Proposed Appointment'
+                : 'Appointment Slot',
+            appointment == null
+                ? 'Time not specified'
+                : DateFormat('EEE, MMM d, yyyy · h:mm a').format(appointment),
+          ),
+          _receiptField('Indicative Estimate', 'Not provided'),
+          if (instructions != null &&
+              instructions.isNotEmpty &&
+              instructions != _serviceTitle)
+            _receiptField('Customer Instructions', instructions),
+        ],
+      ),
+    );
+  }
+
+  Widget _receiptField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AbashyakaSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AbashyakaColors.graphiteCharcoal,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AbashyakaColors.premiumObsidian,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomActions(BuildContext context, double scale) {
+    final rescheduled = _currentStatus == 'rescheduled';
+    final actions = [
+      if (rescheduled)
+        MetallicButton(
+          buttonKey: const Key('customer_confirm_reschedule'),
+          text: 'Confirm new time',
+          height: scale + 36,
+          isLoading: _isConfirmingReschedule,
+          onPressed: _confirmProposedTime,
         ),
+      if (_currentStatus != 'completed' && _currentStatus != 'cancelled')
+        OutlinedButton(
+          style: _outlineStyle(foreground: AbashyakaColors.error),
+          onPressed: _showCancelConfirmationModal,
+          child: const Text('Cancel'),
+        ),
+      OutlinedButton.icon(
+        style: _outlineStyle(),
+        onPressed: () =>
+            Navigator.of(context).popUntil((route) => route.isFirst),
+        icon: const Icon(Icons.home_outlined),
+        label: Text(
+          _currentStatus == 'completed' ? 'Back to Home' : 'Back to Explore',
+        ),
+      ),
+    ];
+    final stacked = rescheduled || scale > 24;
+
+    return ColoredBox(
+      color: AbashyakaColors.pureWhite,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AbashyakaSpacing.md,
+            vertical: AbashyakaSpacing.xs,
+          ),
+          child: stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: AbashyakaSpacing.xxs,
+                  children: actions,
+                )
+              : Row(
+                  spacing: AbashyakaSpacing.xs,
+                  children: [
+                    for (final action in actions) Expanded(child: action),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  ButtonStyle _outlineStyle({
+    Color foreground = AbashyakaColors.signatureTeal,
+  }) {
+    return OutlinedButton.styleFrom(
+      foregroundColor: foreground,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AbashyakaSpacing.sm,
+        vertical: AbashyakaSpacing.xs,
+      ),
+      minimumSize: const Size(0, AbashyakaSpacing.touchTargetMin),
+      side: const BorderSide(color: AbashyakaColors.silverGlass),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AbashyakaRadius.button),
+      ),
+    );
+  }
+
+  Widget _heading(String text) {
+    return Semantics(
+      header: true,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: AbashyakaColors.premiumObsidian,
+        ),
+      ),
+    );
+  }
+
+  Widget _iconTile(IconData icon, Color color) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(AbashyakaRadius.sm),
+      ),
+      child: SizedBox.square(
+        dimension: 48,
+        child: Icon(icon, size: 24, color: color),
       ),
     );
   }
