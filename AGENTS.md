@@ -276,7 +276,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **13** | Service Professional Profile | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_pro_screen.dart` (Experience badges, verified badge, services, rates, coverage, reviews) |
 | **14** | Service Request Submission | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_screen.dart` (Service dropdown, description, date/time) |
 | **15** | Appointment Slot Scheduler | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/booking_scheduler_screen.dart` (Pro profile header, scope & duration chips, 14-day date strip, morning/afternoon/evening time slots, notes & location, booking receipt confirmation sheet) |
-| **16** | Saved / Bookmarked Businesses | ✅ Complete | `apps/mobile/lib/core/screens/saved_screen.dart` |
+| **16** | Saved / Bookmarked Businesses | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/saved_screen.dart` (2026 Premium Obsidian tokens, fluid-wave header art, category nature badge chips, context-aware CTAs, explore recommendations empty state) |
 | **17** | Customer Profile & Settings | ✅ Complete | `apps/mobile/lib/core/screens/profile_screen.dart` |
 | **18** | Service Request Status Tracker| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_status_screen.dart` (Live timeline, pro contact card, receipt summary, cancel modal) |
 | **19** | Merchant Registration / Claim | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_registration_screen.dart` (4-step onboarding wizard, category picker, tax/artisan toggle, GPS locking, claim existing listing & OTP modal sheet) |
@@ -301,7 +301,15 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
   - Offline/curated showcase fallback in `BusinessDetailNotifier` wired to `CategoryListingsData.allListings` ensuring flawless navigation and business detail rendering across all admin-approved service places (`Chhatia`, `Kuanpal`, `Jagatpur`, `Tangi`, `Chandikhol`).
   - Automated tests passing: `business_detail_screen_test.dart` and `nearby_map_test.dart`.
   - Android emulator verification: Tested live on `emulator-5554` (`Pixel_8`) with APK SHA-256 `DB61ABCB757A0DB5D0CE99F92E2D9C626169DAE076F832F89F35030BF44DC11B`.
-- **Next Screen to Implement / Verify**: **Screen 16: Saved / Bookmarked Businesses** (`apps/mobile/lib/core/screens/saved_screen.dart`).
+- **Screen 16 (Saved / Bookmarked Businesses) Verification Summary**:
+  - Integrated 2026 Metallic Teal & Pearl White Fluid Wave header with Obsidian typography tokens (`#101820` / `#374151`).
+  - Dynamic filter chips: `All`, `Shops & Retail`, `Services & Pros`, `Cab & Auto`, `Food & Dining`, `Doctors & Healthcare`, `Hotels & Stays`.
+  - Context-aware action buttons on saved cards: `Cab & Auto` -> `Book Ride` with taxi icon; `Doctors & Clinics` -> `Book Appointment` with calendar icon; `Food & Dining` -> `Order Food` / `View Menu` with dining icon; `Services` -> `Book Service`; retail -> `View Store` / `Shop Now`.
+  - Full empty-state fallback with curated recommendation cards across approved service places (`Chhatia`, `Kuanpal`, `Jagatpur`, `Tangi`, `Chandikhol`) and one-tap bookmark removal.
+  - Category nature mapping fix verified across Business Detail Screen: Cab & Auto correctly displays `TRANSPORT` nature pill, `Call Driver` phone action, `Book Ride` CTA, `Rides & Fares` catalog tab, and direct modal booking options instead of generic store labels.
+  - Automated tests passing: `saved_screen_test.dart` and `business_detail_screen_test.dart`.
+  - Android emulator verification: Tested live on `emulator-5554` (`Pixel_8`) with APK SHA-256 `ACB62E4FD1789343547394906B2572F10C027F32E92B0F1D932441DDC7E6F85F`.
+- **Next Screen to Implement / Verify**: **Screen 17: Customer Profile & Settings** (`apps/mobile/lib/core/screens/profile_screen.dart`).
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:

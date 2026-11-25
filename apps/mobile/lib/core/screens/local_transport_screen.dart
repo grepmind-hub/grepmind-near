@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:grepmind_mobile/core/data/category_listings_data.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -53,16 +54,29 @@ class _LocalTransportScreenState extends ConsumerState<LocalTransportScreen> {
           .where((b) => b.categorySlug == 'passenger_transport')
           .toList(growable: false);
 
+      List<Business> finalRows = rows;
+      if (finalRows.isEmpty) {
+        finalRows = CategoryListingsData.allListings
+            .where((b) => b.categorySlug == 'cab_auto' || b.categorySlug == 'transport')
+            .toList(growable: false);
+      }
+
       if (!mounted) return;
       setState(() {
-        _operators = rows;
+        _operators = finalRows;
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
+      final fallbackRows = CategoryListingsData.allListings
+          .where((b) => b.categorySlug == 'cab_auto' || b.categorySlug == 'transport')
+          .toList(growable: false);
       setState(() {
-        _error = 'Could not load local transport operators. Check connection and retry.';
+        _operators = fallbackRows;
         _loading = false;
+        _error = fallbackRows.isNotEmpty
+            ? null
+            : 'Could not load local transport operators. Check connection and retry.';
       });
     }
   }
@@ -420,15 +434,15 @@ class _TransportOperatorCard extends StatelessWidget {
                       child: FilledButton.icon(
                         onPressed: onTap,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF111827),
+                          backgroundColor: AbashyakaColors.signatureTeal,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           minimumSize: const Size.fromHeight(42),
                         ),
-                        icon: const Icon(Icons.storefront_outlined, size: 15),
+                        icon: const Icon(Icons.local_taxi_rounded, size: 15),
                         label: const Text(
-                          'View Details',
+                          'Book Ride',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
