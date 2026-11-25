@@ -11,6 +11,8 @@ import 'package:grepmind_mobile/core/models/customer_address.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
@@ -93,7 +95,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               SizedBox(height: 16),
               Text(
                 'Please sign in to view your profile',
-                style: TextStyle(fontSize: 16, color: AppTheme.mainText),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AbashyakaColors.premiumObsidian,
+                ),
               ),
             ],
           ),
@@ -101,44 +106,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
+    final user = authState.user!;
+    final activeRole = authState.activeRole ?? 'customer';
+    final isCustomer = activeRole == 'customer';
+    final profileCard = _buildProfileHeader(user, activeRole);
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
         title: const Text('My Profile'),
+        systemOverlayStyle: isCustomer ? SystemUiOverlayStyle.dark : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () => _showEditDialog(context, authState.user!),
+            onPressed: () => _showEditDialog(context, user),
             tooltip: 'Edit profile',
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadProfileDetails,
-        color: const Color(0xFF059669),
+        color: AbashyakaColors.signatureTeal,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(kScreenPadding),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildProfileHeader(
-                authState.user!,
-                authState.activeRole ?? 'customer',
+              if (isCustomer)
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: AbashyakaColors.pearlWhite,
+                    image: DecorationImage(
+                      image: AssetImage(
+                        'assets/backgrounds/premium/role_selection_background.webp',
+                      ),
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      opacity: 0.45,
+                    ),
+                  ),
+                  child: AbashyakaPremiumHeader(
+                    variant: FluidWaveVariant.profile,
+                    bottom: profileCard,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(AbashyakaSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!isCustomer) ...[
+                      profileCard,
+                      const SizedBox(height: AbashyakaSpacing.lg),
+                    ],
+                    _buildProfileInfo(user, activeRole),
+                    const SizedBox(height: AbashyakaSpacing.lg),
+                    _buildAccountSection(context, activeRole, user),
+                    const SizedBox(height: AbashyakaSpacing.lg),
+                    _buildActions(context, ref, isCustomer: isCustomer),
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
-              _buildProfileInfo(
-                authState.user!,
-                authState.activeRole ?? 'customer',
-              ),
-              const SizedBox(height: 20),
-              _buildAccountSection(
-                context,
-                authState.activeRole ?? 'customer',
-                authState.user!,
-              ),
-              const SizedBox(height: 24),
-              _buildActions(context, ref),
             ],
           ),
         ),
@@ -153,7 +181,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ? null
         : apiClient.resolveMediaUrl(user.avatarUrl!);
     return PremiumCard(
-      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
@@ -177,11 +204,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       Color(0xFFF97316),
                                       Color(0xFFFB923C),
                                     ]
-                                  : const [
-                                      Color(0xFF059669),
-                                      Color(0xFF10B981),
-                                      Color(0xFF34D399),
-                                    ]),
+                                  : AbashyakaGradients
+                                        .promotionalBanner
+                                        .colors),
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -192,7 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       ? AppTheme.riderAmberDark
                                       : (isMerchant
                                             ? AppTheme.coral
-                                            : const Color(0xFF059669)))
+                                            : AbashyakaColors.signatureTeal))
                                   .withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
@@ -208,7 +233,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ? AppTheme.riderAmberContainer
                             : (isMerchant
                                   ? AppTheme.merchantCoralContainer
-                                  : const Color(0xFFECFDF5)),
+                                  : AbashyakaColors.iceAquaWhite),
                         backgroundImage: photoUrl == null
                             ? null
                             : CachedNetworkImageProvider(photoUrl),
@@ -220,7 +245,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     ? AppTheme.riderAmberDark
                                     : (isMerchant
                                           ? AppTheme.coral
-                                          : const Color(0xFF059669)),
+                                          : AbashyakaColors.signatureTeal),
                               )
                             : null,
                       ),
@@ -229,36 +254,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Positioned(
                     right: 0,
                     bottom: 0,
-                    child: Material(
-                      color: isRider
-                          ? AppTheme.riderAmberDark
-                          : (isMerchant
-                                ? AppTheme.coral
-                                : const Color(0xFF059669)),
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: InkWell(
-                        key: const ValueKey('profile_photo_button'),
-                        customBorder: const CircleBorder(),
-                        onTap: _savingPhoto ? null : _chooseProfilePhoto,
-                        child: Padding(
-                          padding: const EdgeInsets.all(7),
-                          child: _savingPhoto
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
+                    child: IconButton.filled(
+                      key: const ValueKey('profile_photo_button'),
+                      tooltip: 'Change profile photo',
+                      onPressed: _savingPhoto ? null : _chooseProfilePhoto,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(
+                          AbashyakaSpacing.touchTargetMin,
                         ),
+                        backgroundColor: isRider
+                            ? AppTheme.riderAmberDark
+                            : (isMerchant
+                                  ? AppTheme.coral
+                                  : AbashyakaColors.signatureTeal),
+                        foregroundColor: AbashyakaColors.pureWhite,
                       ),
+                      icon: _savingPhoto
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.camera_alt_outlined, size: 18),
                     ),
                   ),
                 ],
@@ -277,33 +293,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: AbashyakaColors.premiumObsidian,
                         letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Row(
+                    Wrap(
+                      spacing: AbashyakaSpacing.xs,
+                      runSpacing: AbashyakaSpacing.xxs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Flexible(
-                          child: Text(
-                            user.phoneE164,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.secondaryText,
-                            ),
+                        Text(
+                          user.phoneE164,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AbashyakaColors.graphiteCharcoal,
                           ),
                         ),
-                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
+                            color: AbashyakaColors.iceAquaWhite,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                            border: Border.all(
+                              color: AbashyakaColors.aquaSilverBorder,
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -311,7 +329,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Icon(
                                 Icons.check_circle_rounded,
                                 size: 12,
-                                color: Color(0xFF059669),
+                                color: AbashyakaColors.success,
                               ),
                               SizedBox(width: 3),
                               Text(
@@ -319,7 +337,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF059669),
+                                  color: AbashyakaColors.signatureTeal,
                                 ),
                               ),
                             ],
@@ -328,7 +346,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
+                    Wrap(
+                      spacing: AbashyakaSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -340,7 +360,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ? AppTheme.riderAmberContainer
                                 : (isMerchant
                                       ? AppTheme.merchantCoralContainer
-                                      : const Color(0xFFE8F5E9)),
+                                      : AbashyakaColors.iceAquaWhite),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -357,59 +377,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ),
                         ),
-                        const Spacer(),
-                        InkWell(
-                          onTap: () => _showEditDialog(context, user),
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                        TextButton.icon(
+                          onPressed: () => _showEditDialog(context, user),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(
+                              0,
+                              AbashyakaSpacing.touchTargetMin,
                             ),
-                            decoration: BoxDecoration(
-                              color: isRider
-                                  ? AppTheme.riderAmberContainer
-                                  : (isMerchant
-                                        ? AppTheme.merchantCoralContainer
-                                        : const Color(0xFFECFDF5)),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isRider
-                                    ? AppTheme.riderAmberBorder
-                                    : (isMerchant
-                                          ? AppTheme.merchantCoralBorder
-                                          : const Color(0xFF059669)
-                                                .withValues(alpha: 0.3)),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 14,
-                                  color: isRider
-                                      ? AppTheme.riderAmberDark
-                                      : (isMerchant
-                                            ? AppTheme.coral
-                                            : const Color(0xFF059669)),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Edit Profile',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isRider
-                                        ? AppTheme.riderAmberDark
-                                        : (isMerchant
-                                              ? AppTheme.coral
-                                              : const Color(0xFF059669)),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            foregroundColor: isRider
+                                ? AppTheme.riderAmberDark
+                                : (isMerchant
+                                      ? AppTheme.coral
+                                      : AbashyakaColors.signatureTeal),
                           ),
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('Edit Profile'),
                         ),
                       ],
                     ),
@@ -496,60 +478,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isRider = activeRole == 'rider';
     final primaryAddr = _primaryAddress;
     return PremiumCard(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.badge_outlined,
-                    size: 20,
-                    color: isRider
-                        ? AppTheme.riderAmberDark
-                        : (isMerchant
-                              ? AppTheme.coral
-                              : const Color(0xFF059669)),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Personal Details',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.badge_outlined,
+                size: 20,
+                color: isRider
+                    ? AppTheme.riderAmberDark
+                    : (isMerchant
+                          ? AppTheme.coral
+                          : AbashyakaColors.signatureTeal),
               ),
-              InkWell(
-                onTap: () => _showEditDialog(context, user),
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  child: Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isRider
-                          ? AppTheme.riderAmberDark
-                          : (isMerchant
-                                ? AppTheme.coral
-                                : const Color(0xFF059669)),
-                    ),
+              const SizedBox(width: AbashyakaSpacing.xs),
+              const Expanded(
+                child: Text(
+                  'Personal Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AbashyakaColors.premiumObsidian,
                   ),
                 ),
               ),
+              TextButton(
+                onPressed: () => _showEditDialog(context, user),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size.square(
+                    AbashyakaSpacing.touchTargetMin,
+                  ),
+                  foregroundColor: isRider
+                      ? AppTheme.riderAmberDark
+                      : (isMerchant
+                            ? AppTheme.coral
+                            : AbashyakaColors.signatureTeal),
+                ),
+                child: const Text('Edit'),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AbashyakaSpacing.xs),
           _buildDetailRow(
             icon: Icons.person_outline,
             label: 'Full Name',
@@ -575,7 +545,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ? AppTheme.riderAmberContainer
                     : (isMerchant
                           ? AppTheme.merchantCoralContainer
-                          : const Color(0xFFECFDF5)),
+                          : AbashyakaColors.iceAquaWhite),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -585,7 +555,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   fontWeight: FontWeight.w700,
                   color: isRider
                       ? AppTheme.riderAmberDark
-                      : (isMerchant ? AppTheme.coral : const Color(0xFF059669)),
+                      : (isMerchant
+                            ? AppTheme.coral
+                            : AbashyakaColors.signatureTeal),
                 ),
               ),
             ),
@@ -641,7 +613,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ? AppTheme.riderAmberContainer
                       : (isMerchant
                             ? AppTheme.merchantCoralContainer
-                            : const Color(0xFFE8F5E9)),
+                            : AbashyakaColors.iceAquaWhite),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -662,7 +634,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AppTheme.secondaryText,
+                        color: AbashyakaColors.graphiteCharcoal,
                       ),
                     ),
                     SizedBox(height: 2),
@@ -676,7 +648,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.mainText,
+                    color: AbashyakaColors.premiumObsidian,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -729,8 +701,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        constraints: const BoxConstraints(
+          minHeight: AbashyakaSpacing.touchTargetMin,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: AbashyakaSpacing.xxs),
         child: Row(
           children: [
             Container(
@@ -741,7 +716,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ? AppTheme.riderAmberContainer
                     : (isMerchant
                           ? AppTheme.merchantCoralContainer
-                          : const Color(0xFFE8F5E9)),
+                          : AbashyakaColors.iceAquaWhite),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -762,7 +737,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppTheme.secondaryText,
+                      color: AbashyakaColors.graphiteCharcoal,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -776,17 +751,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ? FontWeight.w400
                           : FontWeight.w600,
                       color: isPlaceholder
-                          ? const Color(0xFF059669)
-                          : AppTheme.mainText,
+                          ? AbashyakaColors.signatureTeal
+                          : AbashyakaColors.premiumObsidian,
                     ),
                   ),
+                  if (badge != null) ...[
+                    const SizedBox(height: AbashyakaSpacing.xxs),
+                    badge,
+                  ],
                 ],
               ),
             ),
-            if (badge != null) ...[
-              const SizedBox(width: 8),
-              badge,
-            ] else if (onTap != null) ...[
+            if (onTap != null) ...[
               const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right,
@@ -838,235 +814,233 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (user.roles.contains('admin')) 'Admin',
     ];
 
+    final isCustomer = activeRole == 'customer';
+    final accountOptions = <Widget>[
+      // Customer Orders & Bookings (Food Delivery, Tables, Stays)
+      _buildAccountOption(
+        icon: Icons.receipt_long_rounded,
+        title: 'My Orders & Bookings',
+        subtitle: 'Track active food deliveries, table reservations & stays',
+        iconColor: AbashyakaColors.signatureTeal,
+        iconBgColor: AbashyakaColors.iceAquaWhite,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const OrderHistoryScreen())),
+      ),
+      const Divider(),
+
+      if (activeRole == 'customer') ...[
+        _buildAccountOption(
+          icon: Icons.pedal_bike_outlined,
+          title: user.riderStatus == null
+              ? 'Become a delivery partner'
+              : 'Rider application',
+          subtitle: user.riderStatus == null
+              ? 'Apply to join the Abashyaka rider network'
+              : 'Application status: ${user.riderStatus!.replaceAll('_', ' ')}',
+          iconColor: AbashyakaColors.metallicTeal,
+          iconBgColor: AbashyakaColors.iceAquaWhite,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RiderApplicationScreen()),
+          ),
+        ),
+        const Divider(),
+        _buildAccountOption(
+          icon: Icons.location_on_outlined,
+          title: 'Saved addresses',
+          subtitle: 'Manage delivery locations and contact details',
+          iconColor: AbashyakaColors.information,
+          iconBgColor: AbashyakaColors.pearlWhite,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CustomerAddressesScreen()),
+          ),
+        ),
+        const Divider(),
+        _buildAccountOption(
+          key: const ValueKey('profile_saved_businesses'),
+          icon: Icons.favorite_border_rounded,
+          title: 'Saved businesses',
+          subtitle: 'Open your bookmarked shops and services',
+          iconColor: AbashyakaColors.favourite,
+          iconBgColor: AbashyakaColors.pearlWhite,
+          onTap: () =>
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const SavedScreen())),
+        ),
+        const Divider(),
+      ],
+
+      // Portal / Role Switcher Tile
+      _buildAccountOption(
+        icon: Icons.swap_horiz_rounded,
+        title: 'Switch Portal / Experience',
+        subtitle:
+            'Current mode: ${activeRole.toUpperCase()} · Available: ${availableRoles.join(', ')}',
+        iconColor: const Color(0xFFD97706),
+        iconBgColor: const Color(0xFFFEF3C7),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const RoleSelectionScreen(isSwitching: true),
+          ),
+        ),
+      ),
+      const Divider(),
+
+      // Merchant Workspace - ONLY visible in Merchant mode
+      if (isMerchantRole) ...[
+        _buildAccountOption(
+          icon: Icons.storefront_outlined,
+          title: 'Merchant Workspace',
+          subtitle: 'Manage your storefront, requests & catalog',
+          iconColor: AppTheme.coral,
+          iconBgColor: AppTheme.merchantCoralContainer,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
+          ),
+        ),
+        const Divider(),
+      ],
+
+      // Rider Workspace & Earnings - ONLY visible in Rider mode
+      if (activeRole == 'rider') ...[
+        _buildAccountOption(
+          icon: Icons.delivery_dining_outlined,
+          title: 'Rider Dashboard',
+          subtitle: 'Active deliveries, dispatch & availability',
+          iconColor: AppTheme.riderAmberDark,
+          iconBgColor: AppTheme.riderAmberContainer,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RiderDashboardScreen()),
+          ),
+        ),
+        const Divider(),
+        _buildAccountOption(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Rider Earnings & COD Liability',
+          subtitle: 'Delivery compensation, ledger summary & remittances',
+          iconColor: AppTheme.riderAmberDark,
+          iconBgColor: AppTheme.riderAmberContainer,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
+          ),
+        ),
+        const Divider(),
+      ],
+
+      // Admin Portal - ONLY visible in Admin mode
+      if (isAdminRole) ...[
+        _buildAccountOption(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Admin Moderation Portal',
+          subtitle: 'Review listings, claims & platform audit logs',
+          iconColor: const Color(0xFF7C3AED),
+          iconBgColor: const Color(0xFFF5F3FF),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AdminPortalScreen())),
+        ),
+        const Divider(),
+      ],
+
+      // Register or Claim Business (available to Customer & Merchant)
+      _buildAccountOption(
+        icon: Icons.add_business_outlined,
+        title: 'Register / Claim Business',
+        subtitle: 'List your shop or professional trade on Abashyaka',
+        iconColor: isMerchantRole
+            ? AppTheme.coral
+            : AbashyakaColors.signatureTeal,
+        iconBgColor: isMerchantRole
+            ? AppTheme.merchantCoralContainer
+            : AbashyakaColors.iceAquaWhite,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
+        ),
+      ),
+    ];
+    final preferenceOptions = <Widget>[
+      _buildAccountOption(
+        icon: Icons.security,
+        title: 'Sign-in & security',
+        subtitle: 'Protected by 6-digit phone OTP',
+        iconColor: AbashyakaColors.graphiteCharcoal,
+        iconBgColor: AbashyakaColors.pearlWhite,
+        onTap: () => _showSecurityDialog(context),
+      ),
+      const Divider(),
+      _buildAccountOption(
+        icon: Icons.notifications_outlined,
+        title: 'Notification Settings',
+        subtitle: 'Choose updates for your account',
+        iconColor: const Color(0xFFEA580C),
+        iconBgColor: const Color(0xFFFFF7ED),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+        ),
+      ),
+      const Divider(),
+      _buildAccountOption(
+        icon: Icons.privacy_tip_outlined,
+        title: 'Privacy & data',
+        subtitle: 'How account and location data are used',
+        iconColor: AbashyakaColors.signatureTeal,
+        iconBgColor: AbashyakaColors.iceAquaWhite,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()),
+        ),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSettingsCard(
+          icon: Icons.widgets_outlined,
+          title: isCustomer ? 'Account & Portals' : 'Account & Portal',
+          options: [
+            ...accountOptions,
+            if (!isCustomer) ...[const Divider(), ...preferenceOptions],
+          ],
+        ),
+        if (isCustomer) ...[
+          const SizedBox(height: AbashyakaSpacing.lg),
+          _buildSettingsCard(
+            icon: Icons.shield_outlined,
+            title: 'Security & Preferences',
+            options: preferenceOptions,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSettingsCard({
+    required IconData icon,
+    required String title,
+    required List<Widget> options,
+  }) {
     return PremiumCard(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.widgets_outlined,
-                    size: 20,
-                    color: Color(0xFF059669),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Account & Portal',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
-                ),
-                child: const Text(
-                  'Settings',
-                  style: TextStyle(
-                    fontSize: 11,
+              Icon(icon, size: 20, color: AbashyakaColors.signatureTeal),
+              const SizedBox(width: AbashyakaSpacing.xs),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF059669),
+                    color: AbashyakaColors.premiumObsidian,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Customer Orders & Bookings (Food Delivery, Tables, Stays)
-          _buildAccountOption(
-            icon: Icons.receipt_long_rounded,
-            title: 'My Orders & Bookings',
-            subtitle:
-                'Track active food deliveries, table reservations & stays',
-            iconColor: const Color(0xFF059669),
-            iconBgColor: const Color(0xFFECFDF5),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
-            ),
-          ),
-          const Divider(),
-
-          if (activeRole == 'customer') ...[
-            _buildAccountOption(
-              icon: Icons.pedal_bike_outlined,
-              title: user.riderStatus == null
-                  ? 'Become a delivery partner'
-                  : 'Rider application',
-              subtitle: user.riderStatus == null
-                  ? 'Apply to join the Abashyaka rider network'
-                  : 'Application status: ${user.riderStatus!.replaceAll('_', ' ')}',
-              iconColor: const Color(0xFF0D9488),
-              iconBgColor: const Color(0xFFCCFBF1),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const RiderApplicationScreen(),
-                ),
-              ),
-            ),
-            const Divider(),
-            _buildAccountOption(
-              icon: Icons.location_on_outlined,
-              title: 'Saved addresses',
-              subtitle: 'Manage delivery locations and contact details',
-              iconColor: const Color(0xFF2563EB),
-              iconBgColor: const Color(0xFFEFF6FF),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const CustomerAddressesScreen(),
-                ),
-              ),
-            ),
-            const Divider(),
-            _buildAccountOption(
-              key: const ValueKey('profile_saved_businesses'),
-              icon: Icons.favorite_border_rounded,
-              title: 'Saved businesses',
-              subtitle: 'Open your bookmarked shops and services',
-              iconColor: const Color(0xFFE11D48),
-              iconBgColor: const Color(0xFFFFF1F2),
-              onTap: () => Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => const SavedScreen())),
-            ),
-            const Divider(),
-          ],
-
-          // Portal / Role Switcher Tile
-          _buildAccountOption(
-            icon: Icons.swap_horiz_rounded,
-            title: 'Switch Portal / Experience',
-            subtitle:
-                'Current mode: ${activeRole.toUpperCase()} · Available: ${availableRoles.join(', ')}',
-            iconColor: const Color(0xFFD97706),
-            iconBgColor: const Color(0xFFFEF3C7),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const RoleSelectionScreen(isSwitching: true),
-              ),
-            ),
-          ),
-          const Divider(),
-
-          // Merchant Workspace - ONLY visible in Merchant mode
-          if (isMerchantRole) ...[
-            _buildAccountOption(
-              icon: Icons.storefront_outlined,
-              title: 'Merchant Workspace',
-              subtitle: 'Manage your storefront, requests & catalog',
-              iconColor: AppTheme.coral,
-              iconBgColor: AppTheme.merchantCoralContainer,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const MerchantWorkspaceScreen(),
-                ),
-              ),
-            ),
-            const Divider(),
-          ],
-
-          // Rider Workspace & Earnings - ONLY visible in Rider mode
-          if (activeRole == 'rider') ...[
-            _buildAccountOption(
-              icon: Icons.delivery_dining_outlined,
-              title: 'Rider Dashboard',
-              subtitle: 'Active deliveries, dispatch & availability',
-              iconColor: AppTheme.riderAmberDark,
-              iconBgColor: AppTheme.riderAmberContainer,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RiderDashboardScreen()),
-              ),
-            ),
-            const Divider(),
-            _buildAccountOption(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Rider Earnings & COD Liability',
-              subtitle: 'Delivery compensation, ledger summary & remittances',
-              iconColor: AppTheme.riderAmberDark,
-              iconBgColor: AppTheme.riderAmberContainer,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
-              ),
-            ),
-            const Divider(),
-          ],
-
-          // Admin Portal - ONLY visible in Admin mode
-          if (isAdminRole) ...[
-            _buildAccountOption(
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'Admin Moderation Portal',
-              subtitle: 'Review listings, claims & platform audit logs',
-              iconColor: const Color(0xFF7C3AED),
-              iconBgColor: const Color(0xFFF5F3FF),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdminPortalScreen()),
-              ),
-            ),
-            const Divider(),
-          ],
-
-          // Register or Claim Business (available to Customer & Merchant)
-          _buildAccountOption(
-            icon: Icons.add_business_outlined,
-            title: 'Register / Claim Business',
-            subtitle: 'List your shop or professional trade on Abashyaka',
-            iconColor: isMerchantRole
-                ? AppTheme.coral
-                : const Color(0xFF059669),
-            iconBgColor: isMerchantRole
-                ? AppTheme.merchantCoralContainer
-                : const Color(0xFFECFDF5),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const MerchantRegistrationScreen(),
-              ),
-            ),
-          ),
-          const Divider(),
-
-          _buildAccountOption(
-            icon: Icons.security,
-            title: 'Sign-in & security',
-            subtitle: 'Passwordless sign-in with a one-time code',
-            iconColor: const Color(0xFF475569),
-            iconBgColor: const Color(0xFFF1F5F9),
-            onTap: () => _showSecurityDialog(context),
-          ),
-          const Divider(),
-          _buildAccountOption(
-            icon: Icons.notifications_outlined,
-            title: 'Notification Settings',
-            subtitle: 'Choose updates for your account',
-            iconColor: const Color(0xFFEA580C),
-            iconBgColor: const Color(0xFFFFF7ED),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const NotificationSettingsScreen(),
-              ),
-            ),
-          ),
-          const Divider(),
-          _buildAccountOption(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Privacy & data',
-            subtitle: 'How account and location data are used',
-            iconColor: const Color(0xFF0891B2),
-            iconBgColor: const Color(0xFFECFEFF),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()),
-            ),
-          ),
+          const SizedBox(height: AbashyakaSpacing.xs),
+          ...options,
         ],
       ),
     );
@@ -1082,7 +1056,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     Color? iconBgColor,
   }) {
     final fg = iconColor ?? AppTheme.emerald;
-    final bg = iconBgColor ?? const Color(0xFFE8F5E9);
+    final bg = iconBgColor ?? AbashyakaColors.iceAquaWhite;
     return InkWell(
       key: key,
       onTap: onTap,
@@ -1111,7 +1085,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.mainText,
+                      color: AbashyakaColors.premiumObsidian,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1119,7 +1093,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: AbashyakaColors.graphiteCharcoal,
                     ),
                   ),
                 ],
@@ -1136,7 +1110,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildActions(BuildContext context, WidgetRef ref) {
+  Widget _buildActions(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isCustomer,
+  }) {
+    if (isCustomer) {
+      final style = OutlinedButton.styleFrom(
+        minimumSize: const Size(0, AbashyakaSpacing.touchTargetMin),
+        foregroundColor: AbashyakaColors.error,
+        backgroundColor: AbashyakaColors.pureWhite,
+        side: const BorderSide(color: AbashyakaColors.error),
+      );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => _showLogoutDialog(context, ref),
+            icon: const Icon(Icons.logout),
+            label: const Text('Log out'),
+            style: style,
+          ),
+          TextButton.icon(
+            onPressed: () => _showDeleteAccountInfo(context),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete account'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, AbashyakaSpacing.touchTargetMin),
+              foregroundColor: AbashyakaColors.error,
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
         Expanded(
@@ -1207,7 +1213,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         IconButton(
                           icon: const Icon(
                             Icons.arrow_back_rounded,
-                            color: AppTheme.mainText,
+                            color: AbashyakaColors.premiumObsidian,
                           ),
                           tooltip: 'Back',
                           onPressed: () => Navigator.pop(ctx),
@@ -1222,7 +1228,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.mainText,
+                                  color: AbashyakaColors.premiumObsidian,
                                 ),
                               ),
                               SizedBox(height: 2),
@@ -1230,7 +1236,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 'Update your personal information',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.secondaryText,
+                                  color: AbashyakaColors.graphiteCharcoal,
                                 ),
                               ),
                             ],
@@ -1239,7 +1245,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         IconButton(
                           icon: const Icon(
                             Icons.close,
-                            color: AppTheme.secondaryText,
+                            color: AbashyakaColors.graphiteCharcoal,
                           ),
                           tooltip: 'Close',
                           onPressed: () => Navigator.pop(ctx),
@@ -1258,20 +1264,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         hintText: 'Enter your full name',
                         prefixIcon: const Icon(
                           Icons.person_outline,
-                          color: Color(0xFF059669),
+                          color: AbashyakaColors.signatureTeal,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
+                        fillColor: AbashyakaColors.pearlWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: AbashyakaColors.aquaSilverBorder,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFF059669),
+                            color: AbashyakaColors.signatureTeal,
                             width: 1.5,
                           ),
                         ),
@@ -1289,7 +1295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         labelText: 'Mobile Number',
                         prefixIcon: const Icon(
                           Icons.phone_android_outlined,
-                          color: AppTheme.secondaryText,
+                          color: AbashyakaColors.graphiteCharcoal,
                         ),
                         suffixIcon: const Padding(
                           padding: EdgeInsets.only(right: 12),
@@ -1307,7 +1313,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF059669),
+                                  color: AbashyakaColors.signatureTeal,
                                 ),
                               ),
                             ],
@@ -1316,11 +1322,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         helperText: 'Verified with SMS OTP. Mobile number cannot be changed directly.',
                         helperMaxLines: 2,
                         filled: true,
-                        fillColor: const Color(0xFFF3F4F6),
+                        fillColor: AbashyakaColors.softGrey,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: AbashyakaColors.aquaSilverBorder,
                           ),
                         ),
                       ),
@@ -1336,20 +1342,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         hintText: 'name@example.com',
                         prefixIcon: const Icon(
                           Icons.email_outlined,
-                          color: Color(0xFF059669),
+                          color: AbashyakaColors.signatureTeal,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
+                        fillColor: AbashyakaColors.pearlWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: AbashyakaColors.aquaSilverBorder,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFF059669),
+                            color: AbashyakaColors.signatureTeal,
                             width: 1.5,
                           ),
                         ),
@@ -1372,9 +1378,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAFB),
+                        color: AbashyakaColors.pearlWhite,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        border: Border.all(
+                          color: AbashyakaColors.aquaSilverBorder,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1389,7 +1397,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     size: 18,
                                     color: isMerchant
                                         ? AppTheme.coral
-                                        : const Color(0xFF059669),
+                                        : AbashyakaColors.signatureTeal,
                                   ),
                                   const SizedBox(width: 6),
                                   const Text(
@@ -1397,7 +1405,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: AppTheme.mainText,
+                                      color: AbashyakaColors.premiumObsidian,
                                     ),
                                   ),
                                 ],
@@ -1428,7 +1436,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         ? AppTheme.riderAmberDark
                                         : (isMerchant
                                               ? AppTheme.coral
-                                              : const Color(0xFF059669)),
+                                              : AbashyakaColors.signatureTeal),
                                   ),
                                 ),
                               ),
@@ -1458,20 +1466,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         labelText: 'Preferred Language',
                         prefixIcon: const Icon(
                           Icons.translate_rounded,
-                          color: Color(0xFF059669),
+                          color: AbashyakaColors.signatureTeal,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF9FAFB),
+                        fillColor: AbashyakaColors.pearlWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: AbashyakaColors.aquaSilverBorder,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
-                            color: Color(0xFF059669),
+                            color: AbashyakaColors.signatureTeal,
                             width: 1.5,
                           ),
                         ),
@@ -1502,13 +1510,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              side: const BorderSide(color: Color(0xFFE5E7EB)),
+                              side: const BorderSide(
+                                color: AbashyakaColors.aquaSilverBorder,
+                              ),
                             ),
                             child: const Text(
                               'CANCEL',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.secondaryText,
+                                color: AbashyakaColors.graphiteCharcoal,
                               ),
                             ),
                           ),
@@ -1522,7 +1532,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ? AppTheme.riderAmberDark
                                   : (isMerchant
                                         ? AppTheme.coral
-                                        : const Color(0xFF059669)),
+                                        : AbashyakaColors.signatureTeal),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -1562,7 +1572,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       ? AppTheme.riderAmberDark
                                       : (isMerchant
                                             ? AppTheme.coral
-                                            : const Color(0xFF059669)),
+                                            : AbashyakaColors.signatureTeal),
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1575,12 +1585,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        ok
-                                            ? 'Profile details updated successfully.'
-                                            : 'Email saved, but profile update failed. Please retry.',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
+                                      Expanded(
+                                        child: Text(
+                                          ok
+                                              ? 'Profile details updated successfully.'
+                                              : 'Email saved, but profile update failed. Please retry.',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
                                     ],

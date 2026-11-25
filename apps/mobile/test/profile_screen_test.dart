@@ -31,13 +31,24 @@ void main() {
   );
 
   testWidgets(
-    'profile shows compact account ID and actions without password language',
+    'profile shows account and settings on a narrow screen with large text',
     (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 800);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
       final scope = container();
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: scope,
-          child: const MaterialApp(home: ProfileScreen()),
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: const ProfileScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -52,6 +63,12 @@ void main() {
       );
       expect(find.text('Notification Settings'), findsOneWidget);
       expect(find.text('Privacy & data'), findsOneWidget);
+      expect(find.text('Security & Preferences'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile_saved_businesses')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
       scope.dispose();
     },
   );
