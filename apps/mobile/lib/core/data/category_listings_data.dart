@@ -891,6 +891,76 @@ abstract final class CategoryListingsData {
     ),
   ];
 
+  /// Checks whether a business category slug matches a target category slug,
+  /// accounting for aliases and consolidated sub-trades under the 18 Top-Level Categories.
+  static bool matchesCategory(String? itemSlug, String? targetSlug) {
+    if (targetSlug == null || targetSlug.isEmpty || targetSlug == 'all') {
+      return true;
+    }
+    if (itemSlug == null || itemSlug.isEmpty) return false;
+    final item = itemSlug.toLowerCase().trim();
+    final target = targetSlug.toLowerCase().trim();
+    if (item == target) return true;
+
+    // Services consolidation
+    if (target == 'services' || target == 'service') {
+      return item == 'services' ||
+          item == 'service' ||
+          item == 'electrician' ||
+          item == 'plumber' ||
+          item == 'carpenter' ||
+          item == 'home_painting_decor' ||
+          item == 'painting' ||
+          item == 'ac_mechanic';
+    }
+
+    // Shops consolidation
+    if (target == 'shops' || target == 'retail') {
+      return item == 'shops' ||
+          item == 'retail' ||
+          item == 'general' ||
+          item == 'tailor' ||
+          item == 'tailoring';
+    }
+
+    // Food & Dining
+    if (target == 'food' || target == 'restaurant') {
+      return item == 'food' || item == 'restaurant';
+    }
+
+    // Medicines & Health
+    if (target == 'medicines' || target == 'medical' || target == 'pharmacy') {
+      return item == 'medicines' || item == 'medical' || item == 'pharmacy';
+    }
+
+    // Doctors & Clinics
+    if (target == 'doctors' || target == 'doctor' || target == 'clinic') {
+      return item == 'doctors' || item == 'doctor' || item == 'clinic';
+    }
+
+    // Cab & Auto
+    if (target == 'cab_auto' || target == 'transport' || target == 'cab' || target == 'auto') {
+      return item == 'cab_auto' || item == 'transport' || item == 'cab' || item == 'auto';
+    }
+
+    // Hotels & Stays
+    if (target == 'hotels_stays' || target == 'hotel' || target == 'stays') {
+      return item == 'hotels_stays' || item == 'hotel' || item == 'stays';
+    }
+
+    // Beauty & Salon
+    if (target == 'beauty_salon' || target == 'salon' || target == 'beauty') {
+      return item == 'beauty_salon' || item == 'salon' || item == 'beauty';
+    }
+
+    // Automobile
+    if (target == 'automobile' || target == 'automotive' || target == 'auto_repair') {
+      return item == 'automobile' || item == 'automotive' || item == 'auto_repair';
+    }
+
+    return false;
+  }
+
   /// Returns listings for a given category slug. If slug is null or 'all', returns all listings.
   /// Can be optionally filtered by search query, locality, or maximum distance in meters.
   static List<Business> getListingsForCategory(
@@ -905,39 +975,7 @@ abstract final class CategoryListingsData {
     if (categorySlug != null &&
         categorySlug.isNotEmpty &&
         categorySlug != 'all') {
-      items = items.where((b) {
-        // Also map legacy aliases
-        if (categorySlug == 'services' || categorySlug == 'service') {
-          return b.categorySlug == 'services' ||
-              b.categorySlug == 'service' ||
-              b.categorySlug == 'electrician' ||
-              b.categorySlug == 'plumber' ||
-              b.categorySlug == 'carpenter';
-        }
-        if (categorySlug == 'shops' || categorySlug == 'retail') {
-          return b.categorySlug == 'shops' ||
-              b.categorySlug == 'retail' ||
-              b.categorySlug == 'general' ||
-              b.categorySlug == 'tailor';
-        }
-        if (categorySlug == 'food' || categorySlug == 'restaurant') {
-          return b.categorySlug == 'food' || b.categorySlug == 'restaurant';
-        }
-        if (categorySlug == 'medicines' || categorySlug == 'medical') {
-          return b.categorySlug == 'medicines' || b.categorySlug == 'medical';
-        }
-        if (categorySlug == 'hotels_stays' || categorySlug == 'hotel') {
-          return b.categorySlug == 'hotels_stays' || b.categorySlug == 'hotel';
-        }
-        if (categorySlug == 'beauty_salon' || categorySlug == 'salon') {
-          return b.categorySlug == 'beauty_salon' || b.categorySlug == 'salon';
-        }
-        if (categorySlug == 'automobile' || categorySlug == 'automotive') {
-          return b.categorySlug == 'automobile' ||
-              b.categorySlug == 'automotive';
-        }
-        return b.categorySlug == categorySlug;
-      }).toList();
+      items = items.where((b) => matchesCategory(b.categorySlug, categorySlug)).toList();
     }
 
     if (query != null && query.trim().isNotEmpty) {
