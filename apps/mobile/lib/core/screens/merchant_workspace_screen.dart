@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,8 @@ import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 /// Merchant Workspace Screen - Main dashboard for business owners.
 /// Shows business profile, service requests, and management tools.
@@ -60,10 +63,11 @@ class _MerchantWorkspaceScreenState
               )
             : null,
         title: const Text('Merchant Workspace'),
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF0B6B4A),
-          labelColor: const Color(0xFF0B6B4A),
+          indicatorColor: AbashyakaColors.signatureTeal,
+          labelColor: AbashyakaColors.signatureTeal,
           unselectedLabelColor: AppTheme.secondaryText,
           indicatorWeight: 3,
           tabs: const [
@@ -124,156 +128,58 @@ class _MerchantWorkspaceScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Today's Summary matching Screen 8 of Abashyaka Merchant Showcase
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Today's Summary",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.circle, size: 8, color: Color(0xFF0B6B4A)),
-                          SizedBox(width: 6),
-                          Text(
-                            'Store Open',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0B6B4A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSummaryMetric(
-                        label: 'Orders',
-                        value: (pendingCount + acceptedCount + completedCount)
-                            .toString(),
-                        icon: Icons.receipt_long_outlined,
-                        color: const Color(0xFF0B6B4A),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildSummaryMetric(
-                        label: 'Sales',
-                        value:
-                            '₹${(completedCount * 350 + acceptedCount * 220)}',
-                        icon: Icons.payments_outlined,
-                        color: const Color(0xFFFF8A00),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildSummaryMetric(
-                        label: 'Bookings',
-                        value: (pendingCount + acceptedCount).toString(),
-                        icon: Icons.calendar_today_outlined,
-                        color: const Color(0xFF2563EB),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildSummaryMetric(
-                        label: 'Fulfillment',
-                        value: '98%',
-                        icon: Icons.check_circle_outline,
-                        color: const Color(0xFF059669),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           // Welcome header
-          PremiumCard(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFC8E6C9)),
-                  ),
-                  child: const Icon(
-                    Icons.store_outlined,
-                    color: Color(0xFF0B6B4A),
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome, Merchant',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.mainText,
-                        ),
+          AbashyakaPremiumHeader(
+            variant: FluidWaveVariant.merchant,
+            bottom: PremiumCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AbashyakaColors.iceAquaWhite,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AbashyakaColors.aquaSilverBorder,
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Manage your business and service requests',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.secondaryText,
-                        ),
-                      ),
-                    ],
+                    ),
+                    child: const Icon(
+                      Icons.store_outlined,
+                      color: AbashyakaColors.signatureTeal,
+                      size: 32,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, Merchant',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manage your business and service requests',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 20),
 
-          // Stats row
+          _sectionTitle('Service requests'),
           Row(
             children: [
               Expanded(
@@ -361,7 +267,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.request_quote_outlined,
                   'View Requests',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => _tabController.animateTo(1),
                   key: const Key('merchant_view_requests'),
                 ),
@@ -371,7 +277,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.edit_outlined,
                   'Edit Profile',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => _tabController.animateTo(2),
                   key: const Key('merchant_edit_profile'),
                 ),
@@ -385,7 +291,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.inventory_2_outlined,
                   'Manage Catalog',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -399,7 +305,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.add_circle_outline,
                   '+ Add Item',
-                  const Color(0xFFFF8A00),
+                  AbashyakaColors.ratingText,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -417,7 +323,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.schedule,
                   'Hours & Coverage',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -431,7 +337,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.radar,
                   'Service Radius',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -449,7 +355,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.payments_outlined,
                   'Earnings & Payouts',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -464,7 +370,7 @@ class _MerchantWorkspaceScreenState
                 child: _actionButton(
                   Icons.account_balance_outlined,
                   'Bank Beneficiary',
-                  const Color(0xFF0B6B4A),
+                  AbashyakaColors.signatureTeal,
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -771,49 +677,6 @@ class _MerchantWorkspaceScreenState
     );
   }
 
-  Widget _buildSummaryMetric({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF3F4F6)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF111827),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF6B7280),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _statCard(
     String label,
     String value,
@@ -867,8 +730,11 @@ class _MerchantWorkspaceScreenState
   }) {
     return Material(
       key: key,
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(16),
+      color: AbashyakaColors.pureWhite,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AbashyakaRadius.md),
+        side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
@@ -880,6 +746,7 @@ class _MerchantWorkspaceScreenState
               const SizedBox(height: 8),
               Text(
                 label,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

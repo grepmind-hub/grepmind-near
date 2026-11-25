@@ -24,6 +24,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Service requests'), findsOneWidget);
+    expect(find.text('Store Open'), findsNothing);
+    expect(find.text('98%'), findsNothing);
     await tester.ensureVisible(find.byKey(const Key('merchant_view_requests')));
     await tester.tap(find.byKey(const Key('merchant_view_requests')));
     await tester.pumpAndSettle();

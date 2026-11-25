@@ -312,7 +312,8 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 - **Screen 17 Customer Profile & Settings** received a visual-only polish pass on 25 November 2026. The [validation record](docs/design/SCREEN_17_CUSTOMER_PROFILE_VALIDATION.md) documents the APK, widget tests, Customer screen checks, and role acceptance limits.
 - **Screen 18 Service Request Status Tracker** received a visual-only polish pass on 25 November 2026. The [validation record](docs/design/SCREEN_18_SERVICE_REQUEST_STATUS_VALIDATION.md) covers the status presentation, responsive layout, polling and cancellation tests, and Android acceptance limits.
 - **Screen 19 Merchant Registration / Claim** received a visual polish pass. The [validation record](docs/design/SCREEN_19_MERCHANT_REGISTRATION_VALIDATION.md) covers wizard progress, register and claim entry points, and Android acceptance limits.
-- **Proposed next screen** is **Screen 20, Merchant Workspace Dashboard** (`apps/mobile/lib/core/screens/merchant_workspace_screen.dart`). Review dashboard hierarchy, cards, and small-screen layout while preserving business controls and permissions.
+- **Screen 20 Merchant Workspace Dashboard** received a visual polish pass. The [validation record](docs/design/SCREEN_20_MERCHANT_WORKSPACE_VALIDATION.md) covers dashboard hierarchy, provider-backed metrics, and Android checks.
+- **Proposed next screen** is **Screen 21, Merchant Catalog Management** (`apps/mobile/lib/core/screens/merchant_catalog_screen.dart`). Review catalog tabs, search, stock labels, and form layout while preserving catalog operations.
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:
