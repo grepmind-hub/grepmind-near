@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
+import 'package:grepmind_mobile/core/data/category_listings_data.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
@@ -544,15 +545,35 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
           const [];
       final meta = data['meta'] as Map<String, dynamic>?;
 
+      var resolvedItems = items;
+      if (resolvedItems.isEmpty && (categorySlug != null || query.isNotEmpty)) {
+        resolvedItems = CategoryListingsData.getListingsForCategory(
+          categorySlug,
+          query: query,
+          maxRadiusM: radiusM,
+          sortBy: sort,
+        );
+      }
+
       state = state.copyWith(
-        items: reset ? items : [...state.items, ...items],
+        items: reset ? resolvedItems : [...state.items, ...resolvedItems],
         isLoading: false,
         cursor: meta?['next_cursor'] as String?,
-        hasMore: items.length >= AppConstants.defaultLimit,
+        hasMore: resolvedItems.length >= AppConstants.defaultLimit,
       );
     } catch (e) {
       if (!mounted || requestSequence != _requestSequence) return;
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final fallback = CategoryListingsData.getListingsForCategory(
+        categorySlug,
+        query: query,
+        maxRadiusM: radiusM,
+        sortBy: sort,
+      );
+      if (fallback.isNotEmpty) {
+        state = state.copyWith(items: fallback, isLoading: false, error: null);
+      } else {
+        state = state.copyWith(isLoading: false, error: e.toString());
+      }
     }
   }
 
@@ -594,15 +615,33 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
           const [];
       final meta = data['meta'] as Map<String, dynamic>?;
 
+      var resolvedItems = items;
+      if (resolvedItems.isEmpty && categorySlug != null) {
+        resolvedItems = CategoryListingsData.getListingsForCategory(
+          categorySlug,
+          maxRadiusM: radiusM,
+          sortBy: 'distance',
+        );
+      }
+
       state = state.copyWith(
-        items: reset ? items : [...state.items, ...items],
+        items: reset ? resolvedItems : [...state.items, ...resolvedItems],
         isLoading: false,
         cursor: meta?['next_cursor'] as String?,
-        hasMore: items.length >= AppConstants.defaultLimit,
+        hasMore: resolvedItems.length >= AppConstants.defaultLimit,
       );
     } catch (e) {
       if (!mounted || requestSequence != _requestSequence) return;
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final fallback = CategoryListingsData.getListingsForCategory(
+        categorySlug,
+        maxRadiusM: radiusM,
+        sortBy: 'distance',
+      );
+      if (fallback.isNotEmpty) {
+        state = state.copyWith(items: fallback, isLoading: false, error: null);
+      } else {
+        state = state.copyWith(isLoading: false, error: e.toString());
+      }
     }
   }
 
@@ -931,6 +970,47 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
       name: 'General Store',
       description: 'Household goods, stationery, gifting and local retail',
     ),
+    Category(
+      slug: 'fashion',
+      name: 'Fashion & Apparel',
+      description: 'Clothing, ethnic wear, fabrics, footwear and boutiques',
+    ),
+    Category(
+      slug: 'electronics',
+      name: 'Electronics & Mobile',
+      description: 'Smartphones, computers, audio, home appliances and repair',
+    ),
+    Category(
+      slug: 'home_kitchen',
+      name: 'Home & Kitchen',
+      description: 'Cookware, kitchenware, home decor and utensils',
+    ),
+    Category(
+      slug: 'health_wellness',
+      name: 'Health & Wellness',
+      description: 'Diagnostic labs, physiotherapy, yoga and wellness clinics',
+    ),
+    Category(
+      slug: 'sports_fitness',
+      name: 'Sports & Fitness',
+      description: 'Gyms, sports equipment, fitness wear and training centres',
+    ),
+    Category(
+      slug: 'automotive',
+      name: 'Automotive & Repair',
+      description: 'Bike & car service, puncture shops, spare parts and washes',
+    ),
+    Category(
+      slug: 'books_stationery',
+      name: 'Books & Stationery',
+      description: 'School books, office stationery, printing and art supplies',
+    ),
+    Category(
+      slug: 'cleaning',
+      name: 'Cleaning & Housekeeping',
+      description:
+          'Deep house cleaning, sofa wash, sanitisation and pest control',
+    ),
   ];
 
   CategoriesNotifier()
@@ -943,15 +1023,18 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
     try {
       final res = await apiClient.get('/categories');
       final data = res.data as Map<String, dynamic>;
-      final items =
+      final remoteItems =
           (data['data'] as List<dynamic>?)
               ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [];
-      state = state.copyWith(
-        items: items.isNotEmpty ? items : defaultCategories,
-        isLoading: false,
-      );
+      final Map<String, Category> merged = {
+        for (final cat in defaultCategories) cat.slug: cat,
+      };
+      for (final cat in remoteItems) {
+        merged[cat.slug] = cat;
+      }
+      state = state.copyWith(items: merged.values.toList(), isLoading: false);
     } catch (e) {
       state = state.copyWith(
         items: state.items.isNotEmpty ? state.items : defaultCategories,

@@ -4,14 +4,14 @@ import 'abashyaka_colors.dart';
 
 /// Official gradient system for Abashyaka Metallic Teal + Pearl White UI.
 abstract final class AbashyakaGradients {
-  /// Metallic button gradient: brightTeal -> metallicTeal -> deepMetallicTeal
+  /// Metallic button gradient: luminousAqua -> metallicTeal -> signatureTeal
   static const LinearGradient metallicButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      AbashyakaColors.brightTeal,
+      AbashyakaColors.luminousAqua,
       AbashyakaColors.metallicTeal,
-      AbashyakaColors.deepMetallicTeal,
+      AbashyakaColors.signatureTeal,
     ],
     stops: [0.0, 0.45, 1.0],
   );
@@ -22,20 +22,20 @@ abstract final class AbashyakaGradients {
     end: Alignment.bottomCenter,
     colors: [
       AbashyakaColors.darkOceanTeal,
-      AbashyakaColors.deepMetallicTeal,
+      AbashyakaColors.signatureTeal,
       AbashyakaColors.metallicTeal,
     ],
     stops: [0.0, 0.55, 1.0],
   );
 
-  /// Promotional banner gradient: darkOceanTeal -> metallicTeal -> aquaGlow
+  /// Promotional banner gradient: signatureTeal -> metallicTeal -> luminousAqua
   static const LinearGradient promotionalBanner = LinearGradient(
     begin: Alignment.bottomLeft,
     end: Alignment.topRight,
     colors: [
-      AbashyakaColors.darkOceanTeal,
+      AbashyakaColors.signatureTeal,
       AbashyakaColors.metallicTeal,
-      AbashyakaColors.aquaGlow,
+      AbashyakaColors.luminousAqua,
     ],
     stops: [0.0, 0.65, 1.0],
   );
