@@ -77,7 +77,10 @@ class FoodItemCard extends StatelessWidget {
                           if (isBestseller) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(4),
@@ -145,13 +148,17 @@ class FoodItemCard extends StatelessWidget {
                           color: AppTheme.brandCanvas,
                           child: imageUrl != null && imageUrl!.isNotEmpty
                               ? CachedNetworkImage(
-                                  imageUrl: apiClient.resolveMediaUrl(imageUrl!),
+                                  imageUrl: apiClient.resolveMediaUrl(
+                                    imageUrl!,
+                                  ),
                                   fit: BoxFit.cover,
                                   placeholder: (_, _) => const Center(
                                     child: SizedBox(
                                       width: 20,
                                       height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
                                   ),
                                   errorWidget: (_, _, _) => const Icon(
@@ -218,10 +225,7 @@ class FoodItemCard extends StatelessWidget {
             ? Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               )
             : CustomPaint(
                 size: const Size(6, 6),
@@ -284,7 +288,9 @@ class FoodItemCard extends StatelessWidget {
           children: [
             InkWell(
               onTap: onDecrement,
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(8),
+              ),
               child: const SizedBox(
                 width: 26,
                 height: 30,
@@ -301,7 +307,9 @@ class FoodItemCard extends StatelessWidget {
             ),
             InkWell(
               onTap: onIncrement,
-              borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(8),
+              ),
               child: const SizedBox(
                 width: 26,
                 height: 30,
@@ -333,5 +341,6 @@ class _TrianglePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TrianglePainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _TrianglePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

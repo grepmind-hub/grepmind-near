@@ -239,15 +239,13 @@ class _MerchantHoursCoverageScreenState
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppTheme.primary.withValues(alpha: 0.2),
+              ),
             ),
             child: const Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppTheme.primary,
-                  size: 22,
-                ),
+                Icon(Icons.info_outline, color: AppTheme.primary, size: 22),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -478,9 +476,7 @@ class _MerchantHoursCoverageScreenState
                       fontSize: 13,
                       color: hour.isClosed
                           ? AppTheme.secondaryText
-                          : (isWeekend
-                                ? AppTheme.coral
-                                : AppTheme.primary),
+                          : (isWeekend ? AppTheme.coral : AppTheme.primary),
                     ),
                   ),
                 ),

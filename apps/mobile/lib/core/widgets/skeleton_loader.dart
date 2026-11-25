@@ -56,9 +56,15 @@ class SkeletonLine extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SkeletonLoader(width: MediaQuery.of(context).size.width * titleWidth, height: height),
+        SkeletonLoader(
+          width: MediaQuery.of(context).size.width * titleWidth,
+          height: height,
+        ),
         SizedBox(height: gap),
-        SkeletonLoader(width: MediaQuery.of(context).size.width * subtitleWidth, height: height),
+        SkeletonLoader(
+          width: MediaQuery.of(context).size.width * subtitleWidth,
+          height: height,
+        ),
       ],
     );
   }

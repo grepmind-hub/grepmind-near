@@ -81,7 +81,9 @@ class CompactGroceryCard extends StatelessWidget {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 ),
                                 errorWidget: (_, _, _) => const Icon(
@@ -102,7 +104,10 @@ class CompactGroceryCard extends StatelessWidget {
                         top: 6,
                         left: 6,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.emerald,
                             borderRadius: BorderRadius.circular(6),
@@ -249,7 +254,9 @@ class CompactGroceryCard extends StatelessWidget {
           children: [
             InkWell(
               onTap: onDecrement,
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(8),
+              ),
               child: const SizedBox(
                 width: 28,
                 height: 32,
@@ -269,7 +276,9 @@ class CompactGroceryCard extends StatelessWidget {
             ),
             InkWell(
               onTap: onIncrement,
-              borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(8),
+              ),
               child: const SizedBox(
                 width: 28,
                 height: 32,

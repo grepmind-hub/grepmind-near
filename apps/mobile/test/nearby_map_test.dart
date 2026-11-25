@@ -208,8 +208,14 @@ void main() {
     // Verify type filter pills are rendered
     expect(find.byKey(const ValueKey('nearby_filter_all')), findsOneWidget);
     expect(find.byKey(const ValueKey('nearby_filter_shops')), findsOneWidget);
-    expect(find.byKey(const ValueKey('nearby_filter_services')), findsOneWidget);
-    expect(find.byKey(const ValueKey('nearby_filter_open_now')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('nearby_filter_services')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('nearby_filter_open_now')),
+      findsOneWidget,
+    );
 
     // Open list view
     await tester.tap(find.byKey(const ValueKey('nearby_list_view_toggle')));

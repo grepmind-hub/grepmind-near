@@ -612,7 +612,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                           const Color(0xFFFFF3E0),
-                          isFavorited ? const Color(0xFFFF8A00) : const Color(0xFFD97706),
+                          isFavorited
+                              ? const Color(0xFFFF8A00)
+                              : const Color(0xFFD97706),
                           () => _toggleFavorite(biz.id),
                         ),
                       ],
@@ -920,112 +922,110 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       ],
                     )
                   : biz.isServiceProvider
-                      ? ElevatedButton(
-                          onPressed: () => _navigateToServiceRequest(biz),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.emerald,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                  ? ElevatedButton(
+                      onPressed: () => _navigateToServiceRequest(biz),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.emerald,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.handyman_rounded,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Request Service / Book Pro',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.handyman_rounded,
-                                size: 20,
+                        ],
+                      ),
+                    )
+                  : Row(
+                      children: [
+                        if (contactPhone != null) ...[
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _launchContact(
+                                () => ref
+                                    .read(contactActionsProvider)
+                                    .call(contactPhone),
+                              ),
+                              icon: const Icon(
+                                Icons.phone_in_talk_rounded,
+                                size: 18,
+                                color: AppTheme.emerald,
+                              ),
+                              label: const Text(
+                                'Call Store',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.emerald,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: AppTheme.emerald,
+                                  width: 1.5,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _tabController.animateTo(1);
+                            },
+                            icon: Icon(
+                              biz.deliveryEnabled
+                                  ? Icons.shopping_bag_outlined
+                                  : Icons.storefront_outlined,
+                              size: 19,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              biz.deliveryEnabled
+                                  ? 'Shop Now'
+                                  : 'View Products',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Request Service / Book Pro',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Row(
-                          children: [
-                            if (contactPhone != null) ...[
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () => _launchContact(
-                                    () => ref
-                                        .read(contactActionsProvider)
-                                        .call(contactPhone),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.phone_in_talk_rounded,
-                                    size: 18,
-                                    color: AppTheme.emerald,
-                                  ),
-                                  label: const Text(
-                                    'Call Store',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.emerald,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(
-                                      color: AppTheme.emerald,
-                                      width: 1.5,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 13,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  _tabController.animateTo(1);
-                                },
-                                icon: Icon(
-                                  biz.deliveryEnabled
-                                      ? Icons.shopping_bag_outlined
-                                      : Icons.storefront_outlined,
-                                  size: 19,
-                                  color: Colors.white,
-                                ),
-                                label: Text(
-                                  biz.deliveryEnabled
-                                      ? 'Shop Now'
-                                      : 'View Products',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.emerald,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 13,
-                                  ),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.emerald,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                          ],
-                        )),
+                          ),
+                        ),
+                      ],
+                    )),
       ),
     );
   }
@@ -1252,8 +1252,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
 
     final filtered = products.where((p) {
       final cat = p.foodCategory ?? p.groceryCategory;
-      if (_selectedFoodCategory != 'All' &&
-          cat != _selectedFoodCategory) {
+      if (_selectedFoodCategory != 'All' && cat != _selectedFoodCategory) {
         return false;
       }
       if (_vegOnly && !p.isVeg) {

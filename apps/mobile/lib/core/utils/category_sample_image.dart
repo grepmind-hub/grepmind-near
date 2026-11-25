@@ -40,7 +40,7 @@ int categorySampleIndex(String slug, String name) {
   }
   if (value.contains('restaurant') ||
       value.contains('food') ||
-       value.contains('cafe')) {
+      value.contains('cafe')) {
     return 3;
   }
   if (value.contains('salon') || value.contains('beauty')) {
@@ -66,7 +66,7 @@ int categorySampleIndex(String slug, String name) {
   }
   if (value.contains('fashion') ||
       value.contains('cloth') ||
-       value.contains('boutique')) {
+      value.contains('boutique')) {
     return 11;
   }
   if (value.contains('book') || value.contains('station')) {
@@ -89,12 +89,12 @@ int categorySampleIndex(String slug, String name) {
   }
   if (value.contains('auto') ||
       value.contains('vehicle') ||
-       value.contains('mechanic')) {
+      value.contains('mechanic')) {
     return 18;
   }
   if (value.contains('handloom') ||
       value.contains('artisan') ||
-       value.contains('weav')) {
+      value.contains('weav')) {
     return 19;
   }
   return 0;

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
@@ -62,18 +63,18 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
         apiClient.get('/rider/profile'),
       ]);
 
-      final locsData = (results[0].data as Map<String, dynamic>)['data']
-          as List<dynamic>? ??
+      final locsData =
+          (results[0].data as Map<String, dynamic>)['data'] as List<dynamic>? ??
           [];
-      final profileData = (results[1].data as Map<String, dynamic>)['data']
-          as Map<String, dynamic>? ??
+      final profileData =
+          (results[1].data as Map<String, dynamic>)['data']
+              as Map<String, dynamic>? ??
           {};
 
-      final approvedLocs = (profileData['approved_localities']
-                  as List<dynamic>? ??
-              [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      final approvedLocs =
+          (profileData['approved_localities'] as List<dynamic>? ?? [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
 
       final approvedIds = approvedLocs
           .map((loc) => loc['id']?.toString() ?? '')
@@ -151,45 +152,45 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
               child: CircularProgressIndicator(color: AppTheme.emerald),
             )
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.cloud_off_rounded,
-                          size: 48,
-                          color: Color(0xFF94A3B8),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.brandText,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.emerald,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: _load,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Retry'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_rounded,
+                      size: 48,
+                      color: Color(0xFF94A3B8),
                     ),
-                  ),
-                )
-              : RefreshIndicator(
+                    const SizedBox(height: 12),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.brandText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.emerald,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
               onRefresh: _load,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -466,8 +467,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                               activeTrackColor: AppTheme.emerald,
                               inactiveTrackColor: const Color(0xFFE2E8F0),
                               thumbColor: AppTheme.emeraldDark,
-                              overlayColor:
-                                  AppTheme.emerald.withValues(alpha: 0.15),
+                              overlayColor: AppTheme.emerald.withValues(
+                                alpha: 0.15,
+                              ),
                               trackHeight: 6,
                             ),
                             child: Slider(
@@ -533,8 +535,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               onPressed: _saving ? null : _savePreferences,
                               icon: _saving
@@ -546,12 +549,12 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Icon(Icons.check_circle_outline,
-                                      size: 18),
+                                  : const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 18,
+                                    ),
                               label: Text(
-                                _saving
-                                    ? 'Updating...'
-                                    : 'Apply Shift Radius',
+                                _saving ? 'Updating...' : 'Apply Shift Radius',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
@@ -651,10 +654,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFFCBD5E1),
-            fontSize: 11,
-          ),
+          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
         ),
       ],
     );
@@ -663,7 +663,8 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
   Widget _buildLocalityTile(Map<String, dynamic> loc) {
     final id = loc['id']?.toString() ?? '';
     final name = loc['name']?.toString() ?? 'Locality';
-    final district = loc['district_name']?.toString() ??
+    final district =
+        loc['district_name']?.toString() ??
         loc['district']?.toString() ??
         'Odisha';
     final isApproved = _approvedLocalityIds.contains(id);
@@ -701,7 +702,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
             ),
             child: Icon(
               Icons.location_on_rounded,
-              color: isApproved ? AppTheme.emeraldDark : const Color(0xFF94A3B8),
+              color: isApproved
+                  ? AppTheme.emeraldDark
+                  : const Color(0xFF94A3B8),
               size: 20,
             ),
           ),
@@ -760,24 +763,24 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
               color: isApproved
                   ? const Color(0xFFE6F4F0)
                   : isDeliveryEnabled
-                      ? const Color(0xFFFEF3C7)
-                      : const Color(0xFFF1F5F9),
+                  ? const Color(0xFFFEF3C7)
+                  : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               isApproved
                   ? 'Approved'
                   : isDeliveryEnabled
-                      ? 'Available'
-                      : 'Queue',
+                  ? 'Available'
+                  : 'Queue',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: isApproved
                     ? AppTheme.emeraldDark
                     : isDeliveryEnabled
-                        ? AppTheme.riderAmberDark
-                        : const Color(0xFF64748B),
+                    ? AppTheme.riderAmberDark
+                    : const Color(0xFF64748B),
               ),
             ),
           ),
@@ -845,14 +848,14 @@ class _HubCoverageRadarPainter extends CustomPainter {
       ..color = AppTheme.emerald.withValues(alpha: 0.35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
-    canvas.drawCircle(center, maxRadius * shiftRadiusFraction, shiftCirclePaint);
-
-    // Central Primary Hub Node
     canvas.drawCircle(
       center,
-      12,
-      Paint()..color = const Color(0xFF064D3A),
+      maxRadius * shiftRadiusFraction,
+      shiftCirclePaint,
     );
+
+    // Central Primary Hub Node
+    canvas.drawCircle(center, 12, Paint()..color = const Color(0xFF064D3A));
     canvas.drawCircle(
       center,
       12,
@@ -864,7 +867,13 @@ class _HubCoverageRadarPainter extends CustomPainter {
 
     // Plot surrounding locality nodes in a radial layout
     final nodeCount = localities.isEmpty ? 5 : localities.length;
-    final fallbackNames = ['Kuanpal', 'Jagatpur', 'Tangi', 'Chhatia', 'Chandikhol'];
+    final fallbackNames = [
+      'Kuanpal',
+      'Jagatpur',
+      'Tangi',
+      'Chhatia',
+      'Chandikhol',
+    ];
 
     for (var i = 0; i < nodeCount; i++) {
       final angle = (i * 2 * math.pi / nodeCount) - (math.pi / 2);
@@ -876,7 +885,8 @@ class _HubCoverageRadarPainter extends CustomPainter {
 
       final loc = i < localities.length ? localities[i] : null;
       final id = loc?['id']?.toString() ?? '';
-      final name = loc?['name']?.toString() ?? fallbackNames[i % fallbackNames.length];
+      final name =
+          loc?['name']?.toString() ?? fallbackNames[i % fallbackNames.length];
       final isApproved = approvedIds.contains(id) || (id.isEmpty && i == 0);
 
       // Connecting dash line to center
@@ -891,8 +901,7 @@ class _HubCoverageRadarPainter extends CustomPainter {
       canvas.drawCircle(
         nodePos,
         isApproved ? 9 : 7,
-        Paint()
-          ..color = isApproved ? AppTheme.emeraldDark : Colors.white,
+        Paint()..color = isApproved ? AppTheme.emeraldDark : Colors.white,
       );
       canvas.drawCircle(
         nodePos,
@@ -914,10 +923,7 @@ class _HubCoverageRadarPainter extends CustomPainter {
         ),
       );
       tp.layout();
-      tp.paint(
-        canvas,
-        Offset(nodePos.dx - tp.width / 2, nodePos.dy + 10),
-      );
+      tp.paint(canvas, Offset(nodePos.dx - tp.width / 2, nodePos.dy + 10));
     }
   }
 

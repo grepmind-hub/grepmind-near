@@ -47,12 +47,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   }
 
   PlatformCartScope get _currentScope => PlatformCartScope(
-        userId: widget.scope.userId,
-        vertical: _activeVertical,
-        localityId: widget.scope.localityId,
-        locality: widget.scope.locality,
-        district: widget.scope.district,
-      );
+    userId: widget.scope.userId,
+    vertical: _activeVertical,
+    localityId: widget.scope.localityId,
+    locality: widget.scope.locality,
+    district: widget.scope.district,
+  );
 
   String _newUUID() {
     final random = Random.secure();
@@ -135,8 +135,8 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         _paymentMethod = quote['upi_sandbox_available'] == true
             ? 'upi'
             : quote['cash_on_delivery_available'] == true
-                ? 'cash_on_delivery'
-                : null;
+            ? 'cash_on_delivery'
+            : null;
         _idempotencyKey = _newUUID();
         _busy = false;
       });
@@ -286,7 +286,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: cart.isEmpty ? null : _buildStickyCheckoutFooter(cart),
+      bottomNavigationBar: cart.isEmpty
+          ? null
+          : _buildStickyCheckoutFooter(cart),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -345,7 +347,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.emerald, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppTheme.emerald,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -364,12 +369,19 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: AppTheme.error, size: 20),
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppTheme.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13),
+                          style: const TextStyle(
+                            color: Color(0xFF991B1B),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -417,7 +429,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     );
   }
 
-  Widget _switcherPill({required String title, required bool active, required VoidCallback onTap}) {
+  Widget _switcherPill({
+    required String title,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -508,7 +524,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           for (int i = 0; i < cart.lines.values.length; i++) ...[
             _buildCartLineRow(cart.lines.values.elementAt(i)),
             if (i < cart.lines.values.length - 1)
-              const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F3)),
+              const Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+                color: Color(0xFFF1F5F3),
+              ),
           ],
         ],
       ),
@@ -555,10 +576,14 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  line.variantName.isNotEmpty && line.variantName != line.unitLabel
+                  line.variantName.isNotEmpty &&
+                          line.variantName != line.unitLabel
                       ? '${line.variantName} · ${line.unitLabel}'
                       : line.unitLabel,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.brandTextMuted),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.brandTextMuted,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -589,11 +614,20 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                         .read(platformCartProvider(_currentScope).notifier)
                         .setQuantity(line.variantId, line.quantity - 1),
                   ),
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(20),
+                  ),
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.remove, size: 14, color: AppTheme.brandTextMuted),
+                    child: const Icon(
+                      Icons.remove,
+                      size: 14,
+                      color: AppTheme.brandTextMuted,
+                    ),
                   ),
                 ),
                 Padding(
@@ -611,13 +645,20 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   onTap: line.quantity >= 50
                       ? null
                       : () => _changeCart(
-                            () => ref
-                                .read(platformCartProvider(_currentScope).notifier)
-                                .setQuantity(line.variantId, line.quantity + 1),
-                          ),
-                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(20)),
+                          () => ref
+                              .read(
+                                platformCartProvider(_currentScope).notifier,
+                              )
+                              .setQuantity(line.variantId, line.quantity + 1),
+                        ),
+                  borderRadius: const BorderRadius.horizontal(
+                    right: Radius.circular(20),
+                  ),
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
                     alignment: Alignment.center,
                     child: Container(
                       width: 22,
@@ -626,7 +667,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                         color: AppTheme.emerald,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.add, size: 14, color: Colors.white),
+                      child: const Icon(
+                        Icons.add,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -641,7 +686,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   Widget _linePlaceholder() {
     return Center(
       child: Icon(
-        _activeVertical == 'food' ? Icons.restaurant_rounded : Icons.eco_rounded,
+        _activeVertical == 'food'
+            ? Icons.restaurant_rounded
+            : Icons.eco_rounded,
         size: 26,
         color: AppTheme.emerald,
       ),
@@ -809,7 +856,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                             : 'Select or confirm your address at checkout',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, color: AppTheme.brandTextMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.brandTextMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -843,7 +893,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.verified_outlined, size: 16, color: AppTheme.emerald),
+              const Icon(
+                Icons.verified_outlined,
+                size: 16,
+                color: AppTheme.emerald,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Fulfilled by ${partner['name'] ?? 'Local Partner'}',
@@ -861,7 +915,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
                 '${raw['quantity']} × ${raw['product_name']} · ${_money((raw['unit_price_minor'] as num).toInt() * (raw['quantity'] as num).toInt())}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.brandTextMuted),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.brandTextMuted,
+                ),
               ),
             ),
         ],
@@ -904,17 +961,41 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   const RadioListTile<String>(
                     value: 'cash_on_delivery',
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Cash on Delivery', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: Text('Synthetic COD · due at doorstep handover', style: TextStyle(fontSize: 11)),
-                    secondary: Icon(Icons.payments_outlined, color: AppTheme.emerald),
+                    title: Text(
+                      'Cash on Delivery',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Synthetic COD · due at doorstep handover',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    secondary: Icon(
+                      Icons.payments_outlined,
+                      color: AppTheme.emerald,
+                    ),
                   ),
                 if (upiAvailable)
                   const RadioListTile<String>(
                     value: 'upi',
                     contentPadding: EdgeInsets.zero,
-                    title: Text('UPI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: Text('Sandbox simulation payment', style: TextStyle(fontSize: 11)),
-                    secondary: Icon(Icons.account_balance_outlined, color: AppTheme.emerald),
+                    title: Text(
+                      'UPI',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Sandbox simulation payment',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    secondary: Icon(
+                      Icons.account_balance_outlined,
+                      color: AppTheme.emerald,
+                    ),
                   ),
               ],
             ),
@@ -947,9 +1028,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _busy
-                ? null
-                : (_quote == null ? _chooseAddress : _submit),
+            onTap: _busy ? null : (_quote == null ? _chooseAddress : _submit),
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),

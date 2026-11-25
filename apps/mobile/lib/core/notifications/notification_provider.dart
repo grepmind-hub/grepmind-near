@@ -4,8 +4,8 @@ import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
 /// Notification state provider.
 final notificationStateProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  return NotificationNotifier();
-});
+      return NotificationNotifier();
+    });
 
 /// Notifier for notification initialization state and token management.
 class NotificationNotifier extends StateNotifier<NotificationState> {
@@ -27,10 +27,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         error: null,
       );
     } catch (e) {
-      state = state.copyWith(
-        isInitialized: true,
-        error: e.toString(),
-      );
+      state = state.copyWith(isInitialized: true, error: e.toString());
     }
   }
 

@@ -39,8 +39,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'biryani-rice',
       vertical: 'food',
       name: 'Chicken Dum Biryani',
-      description:
-          'Aromatic basmati rice cooked with succulent chicken pieces, special spices, and fried onions.',
+      description: 'Aromatic basmati rice cooked with succulent chicken pieces, special spices, and fried onions.',
       imageUrls: [
         'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=500&auto=format&fit=crop&q=80',
       ],
@@ -63,8 +62,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'thali-meals',
       vertical: 'food',
       name: 'Special Odia Thali',
-      description:
-          'Traditional authentic Odia platter with rice, dalma, santula, saaga, tomato khatta and dessert.',
+      description: 'Traditional authentic Odia platter with rice, dalma, santula, saaga, tomato khatta and dessert.',
       imageUrls: [
         'https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=500&auto=format&fit=crop&q=80',
       ],
@@ -87,8 +85,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'curries-gravies',
       vertical: 'food',
       name: 'Paneer Butter Masala',
-      description:
-          'Fresh cottage cheese cubes in rich creamy tomato and butter gravy with aromatic kasuri methi.',
+      description: 'Fresh cottage cheese cubes in rich creamy tomato and butter gravy with aromatic kasuri methi.',
       imageUrls: [
         'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=500&auto=format&fit=crop&q=80',
       ],
@@ -111,8 +108,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'starters-tandoor',
       vertical: 'food',
       name: 'Murgh Malai Tikka',
-      description:
-          'Juicy chicken chunks marinated in cream, cheese, and mild spices, chargrilled to perfection.',
+      description: 'Juicy chicken chunks marinated in cream, cheese, and mild spices, chargrilled to perfection.',
       imageUrls: [
         'https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=500&auto=format&fit=crop&q=80',
       ],
@@ -135,8 +131,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'odia-specials',
       vertical: 'food',
       name: 'Authentic Odia Dalma & Rice',
-      description:
-          'Steaming toor dal simmered with raw papaya, pumpkin, eggplant, tempered with roasted cumin and ghee.',
+      description: 'Steaming toor dal simmered with raw papaya, pumpkin, eggplant, tempered with roasted cumin and ghee.',
       imageUrls: [
         'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop&q=80',
       ],
@@ -159,8 +154,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'desserts-sweets',
       vertical: 'food',
       name: 'Traditional Chhena Poda',
-      description:
-          'Signature roasted cottage cheese dessert from Odisha, baked with caramelized sugar and cardamom.',
+      description: 'Signature roasted cottage cheese dessert from Odisha, baked with caramelized sugar and cardamom.',
       imageUrls: [
         'https://images.unsplash.com/photo-1605197148560-6450684f4794?w=500&auto=format&fit=crop&q=80',
       ],
@@ -187,8 +181,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'fresh-vegetables',
       vertical: 'grocery',
       name: 'Fresh Tomatoes',
-      description:
-          'Farm fresh ripe red local tomatoes, hand-picked daily for top quality.',
+      description: 'Farm fresh ripe red local tomatoes, hand-picked daily for top quality.',
       imageUrls: [
         'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&auto=format&fit=crop&q=80',
       ],
@@ -211,8 +204,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'dairy-eggs',
       vertical: 'grocery',
       name: 'Taaza Milk',
-      description:
-          'Homogenised toned milk, pasteurised and packed for maximum freshness.',
+      description: 'Homogenised toned milk, pasteurised and packed for maximum freshness.',
       imageUrls: [
         'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=80',
       ],
@@ -235,8 +227,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'staples-flours',
       vertical: 'grocery',
       name: 'Wheat Atta',
-      description:
-          '100% pure whole wheat flour processed with traditional chakki grind for soft rotis.',
+      description: '100% pure whole wheat flour processed with traditional chakki grind for soft rotis.',
       imageUrls: [
         'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=80',
       ],
@@ -378,8 +369,7 @@ class _OrderShoppingHubScreenState
       categorySlug: 'staples-flours',
       vertical: 'grocery',
       name: 'Premium Basmati Rice',
-      description:
-          'Long slender aromatic aged grains that elongate twice their size upon cooking.',
+      description: 'Long slender aromatic aged grains that elongate twice their size upon cooking.',
       imageUrls: [
         'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop&q=80',
       ],
@@ -409,8 +399,9 @@ class _OrderShoppingHubScreenState
 
   Future<void> _loadDeliveryLocations() async {
     try {
-      final districts =
-          await ref.read(platformCatalogRepositoryProvider).locations();
+      final districts = await ref
+          .read(platformCatalogRepositoryProvider)
+          .locations();
       final locationStorage = ref.read(deliveryLocationStorageProvider);
       final saved = await locationStorage.read();
       final appCity = ref.read(appLocationProvider).cityName;
@@ -454,7 +445,9 @@ class _OrderShoppingHubScreenState
         _locationsLoading = false;
       });
       if (district != null && locality != null) {
-        await ref.read(deliveryLocationStorageProvider).write(
+        await ref
+            .read(deliveryLocationStorageProvider)
+            .write(
               DeliveryLocationSelection(
                 district: district.name,
                 localityId: locality.id,
@@ -471,7 +464,8 @@ class _OrderShoppingHubScreenState
   Widget build(BuildContext context) {
     final location = ref.watch(appLocationProvider);
     final userId = ref.watch(currentUserProvider)?.id ?? '';
-    final districtName = _selectedDistrict?.name ??
+    final districtName =
+        _selectedDistrict?.name ??
         (_isSupportedCity(location.cityName) ? location.cityName : '');
     final locality = _selectedLocality;
 
@@ -509,10 +503,12 @@ class _OrderShoppingHubScreenState
       locality: locality?.name ?? '',
       localityId: locality?.id ?? '',
     );
-    final backendFoodState =
-        ref.watch(platformCatalogProductsProvider(foodQuery));
-    final backendGroceryState =
-        ref.watch(platformCatalogProductsProvider(groceryQuery));
+    final backendFoodState = ref.watch(
+      platformCatalogProductsProvider(foodQuery),
+    );
+    final backendGroceryState = ref.watch(
+      platformCatalogProductsProvider(groceryQuery),
+    );
 
     // Combine backend products with showcase products (ensure exactly 6 food and 9 grocery)
     final backendFood = backendFoodState.valueOrNull?.products ?? [];
@@ -542,8 +538,10 @@ class _OrderShoppingHubScreenState
               child: SafeArea(
                 top: false,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F5132),
                     borderRadius: BorderRadius.circular(16),
@@ -576,12 +574,12 @@ class _OrderShoppingHubScreenState
                         onTap: locality == null || userId.isEmpty
                             ? null
                             : () => _openCartPicker(
-                                  context,
-                                  foodScope,
-                                  groceryScope,
-                                  foodCart.itemCount,
-                                  groceryCart.itemCount,
-                                ),
+                                context,
+                                foodScope,
+                                groceryScope,
+                                foodCart.itemCount,
+                                groceryCart.itemCount,
+                              ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -672,8 +670,8 @@ class _OrderShoppingHubScreenState
                                           !hasDeliveryCity
                                               ? 'Choose delivery location'
                                               : (locality == null
-                                                  ? districtName
-                                                  : '${locality.name}, $districtName'),
+                                                    ? districtName
+                                                    : '${locality.name}, $districtName'),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
@@ -714,12 +712,12 @@ class _OrderShoppingHubScreenState
                               onPressed: locality == null || userId.isEmpty
                                   ? null
                                   : () => _openCartPicker(
-                                        context,
-                                        foodScope,
-                                        groceryScope,
-                                        foodCart.itemCount,
-                                        groceryCart.itemCount,
-                                      ),
+                                      context,
+                                      foodScope,
+                                      groceryScope,
+                                      foodCart.itemCount,
+                                      groceryCart.itemCount,
+                                    ),
                               icon: Badge(
                                 isLabelVisible: totalCartItems > 0,
                                 label: Text('$totalCartItems'),
@@ -756,12 +754,8 @@ class _OrderShoppingHubScreenState
                     // White rounded search bar
                     InkWell(
                       borderRadius: BorderRadius.circular(14),
-                      onTap: () => _openCatalog(
-                        context,
-                        'food',
-                        location,
-                        search: true,
-                      ),
+                      onTap: () =>
+                          _openCatalog(context, 'food', location, search: true),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -808,8 +802,9 @@ class _OrderShoppingHubScreenState
               child: Builder(
                 builder: (context) {
                   final ordersState = ref.watch(customerOrdersProvider);
-                  final activeOrder =
-                      ordersState.orders.where((o) => o.isActive).firstOrNull;
+                  final activeOrder = ordersState.orders
+                      .where((o) => o.isActive)
+                      .firstOrNull;
                   if (activeOrder == null) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -853,8 +848,7 @@ class _OrderShoppingHubScreenState
                         bgColor: const Color(0xFFE8F5EF),
                         borderColor: const Color(0xFFA7F3D0),
                         imageAsset: 'assets/abashyaka/trending_groceries.png',
-                        onTap: () =>
-                            _openCatalog(context, 'grocery', location),
+                        onTap: () => _openCatalog(context, 'grocery', location),
                       ),
                     ),
                   ],
@@ -893,8 +887,7 @@ class _OrderShoppingHubScreenState
                   children: [
                     _SectionHeader(
                       title: 'Food & Meals',
-                      onSeeAll: () =>
-                          _openCatalog(context, 'food', location),
+                      onSeeAll: () => _openCatalog(context, 'food', location),
                     ),
                     const SizedBox(height: 12),
                     GridView.builder(
@@ -902,11 +895,11 @@ class _OrderShoppingHubScreenState
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.77,
-                      ),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.77,
+                          ),
                       itemCount: foodProducts.length,
                       itemBuilder: (context, index) {
                         final product = foodProducts[index];
@@ -916,11 +909,8 @@ class _OrderShoppingHubScreenState
                           locality: locality?.name ?? '',
                           localityId: locality?.id ?? '',
                           userId: userId,
-                          onTap: () => _openFeaturedProduct(
-                            context,
-                            product,
-                            location,
-                          ),
+                          onTap: () =>
+                              _openFeaturedProduct(context, product, location),
                         );
                       },
                     ),
@@ -947,11 +937,11 @@ class _OrderShoppingHubScreenState
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.60,
-                      ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.60,
+                          ),
                       itemCount: groceryProducts.length,
                       itemBuilder: (context, index) {
                         final product = groceryProducts[index];
@@ -961,11 +951,8 @@ class _OrderShoppingHubScreenState
                           locality: locality?.name ?? '',
                           localityId: locality?.id ?? '',
                           userId: userId,
-                          onTap: () => _openFeaturedProduct(
-                            context,
-                            product,
-                            location,
-                          ),
+                          onTap: () =>
+                              _openFeaturedProduct(context, product, location),
                         );
                       },
                     ),
@@ -1024,8 +1011,7 @@ class _OrderShoppingHubScreenState
     AppLocation location, {
     bool search = false,
   }) {
-    final city =
-        _isSupportedCity(location.cityName) ? location.cityName : '';
+    final city = _isSupportedCity(location.cityName) ? location.cityName : '';
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PlatformCatalogScreen(
@@ -1248,10 +1234,7 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback onSeeAll;
 
-  const _SectionHeader({
-    required this.title,
-    required this.onSeeAll,
-  });
+  const _SectionHeader({required this.title, required this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
@@ -1343,8 +1326,9 @@ class _HeroCategoryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: SizedBox(
                   height: 104,
                   width: double.infinity,
@@ -1426,16 +1410,18 @@ class _FoodGridCard extends ConsumerWidget {
       district: city,
     );
     final cart = ref.watch(platformCartProvider(scope));
-    final defaultVariant =
-        product.variants.isNotEmpty ? product.variants.first : null;
+    final defaultVariant = product.variants.isNotEmpty
+        ? product.variants.first
+        : null;
     final currentQty = defaultVariant != null
         ? (cart.lines[defaultVariant.id]?.quantity ?? 0)
         : 0;
     final price = defaultVariant != null
         ? defaultVariant.priceMinor
         : (product.lowestPriceMinor ?? 14900);
-    final imageUrl =
-        product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
+    final imageUrl = product.imageUrls.isNotEmpty
+        ? product.imageUrls.first
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -1459,8 +1445,9 @@ class _FoodGridCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: SizedBox(
                   height: 116,
                   width: double.infinity,
@@ -1587,7 +1574,8 @@ class _FoodGridCard extends ConsumerWidget {
                                     if (defaultVariant != null) {
                                       ref
                                           .read(
-                                            platformCartProvider(scope).notifier,
+                                            platformCartProvider(scope)
+                                                .notifier,
                                           )
                                           .setQuantity(
                                             defaultVariant.id,
@@ -1614,7 +1602,8 @@ class _FoodGridCard extends ConsumerWidget {
                                     if (defaultVariant != null) {
                                       ref
                                           .read(
-                                            platformCartProvider(scope).notifier,
+                                            platformCartProvider(scope)
+                                                .notifier,
                                           )
                                           .add(product, defaultVariant);
                                     }
@@ -1668,8 +1657,9 @@ class _GroceryGridCard extends ConsumerWidget {
       district: city,
     );
     final cart = ref.watch(platformCartProvider(scope));
-    final defaultVariant =
-        product.variants.isNotEmpty ? product.variants.first : null;
+    final defaultVariant = product.variants.isNotEmpty
+        ? product.variants.first
+        : null;
     final currentQty = defaultVariant != null
         ? (cart.lines[defaultVariant.id]?.quantity ?? 0)
         : 0;
@@ -1677,8 +1667,9 @@ class _GroceryGridCard extends ConsumerWidget {
         ? defaultVariant.priceMinor
         : (product.lowestPriceMinor ?? 2500);
     final unitLabel = defaultVariant?.unitLabel ?? '500 g';
-    final imageUrl =
-        product.imageUrls.isNotEmpty ? product.imageUrls.first : null;
+    final imageUrl = product.imageUrls.isNotEmpty
+        ? product.imageUrls.first
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -1702,8 +1693,9 @@ class _GroceryGridCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(14)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
                 child: Container(
                   height: 82,
                   width: double.infinity,
@@ -1887,17 +1879,17 @@ class _HubAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        key: ValueKey(keyName),
-        minVerticalPadding: 13,
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primaryContainer,
-          child: Icon(icon, color: AppTheme.primary),
-        ),
-        title: Text(title, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
-      );
+    key: ValueKey(keyName),
+    minVerticalPadding: 13,
+    leading: CircleAvatar(
+      backgroundColor: AppTheme.primaryContainer,
+      child: Icon(icon, color: AppTheme.primary),
+    ),
+    title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+    subtitle: Text(subtitle),
+    trailing: const Icon(Icons.chevron_right_rounded),
+    onTap: onTap,
+  );
 }
 
 class _ActiveOrderHubBanner extends StatelessWidget {
@@ -2009,10 +2001,7 @@ class _ActiveOrderHubBanner extends StatelessWidget {
                   ),
                   child: const Text(
                     'Track',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
               ],

@@ -107,6 +107,15 @@ flutter:
 
   assets:
     - assets/abashyaka/
+    - assets/abashyaka/categories/
+    - assets/branding/
+    - assets/backgrounds/
+    - assets/backgrounds/premium/
+    - assets/illustrations/
+    - assets/categories/
+    - assets/icons/authentication/
+    - assets/icons/roles/
+    - assets/icons/categories/
     - assets/images/splash_discovery.png
     - assets/images/screen_illustrations.png
     - assets/images/login_welcome.jpg

@@ -122,13 +122,17 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 return ListTile(
                   leading: Icon(
                     isSel ? Icons.radio_button_checked : Icons.radio_button_off,
-                    color: isSel ? const Color(0xFF087F0D) : const Color(0xFF94A3B8),
+                    color: isSel
+                        ? const Color(0xFF087F0D)
+                        : const Color(0xFF94A3B8),
                   ),
                   title: Text(
                     'Within $km km',
                     style: TextStyle(
                       fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      color: isSel ? const Color(0xFF064D3A) : AppTheme.mainText,
+                      color: isSel
+                          ? const Color(0xFF064D3A)
+                          : AppTheme.mainText,
                     ),
                   ),
                   onTap: () {
@@ -595,9 +599,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive
-              ? const Color(0xFFE4F7E3)
-              : Colors.white,
+          color: isActive ? const Color(0xFFE4F7E3) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive ? const Color(0xFF087F0D) : const Color(0xFFE2E8F0),
@@ -617,7 +619,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             Icon(
               icon,
               size: 14,
-              color: isActive ? const Color(0xFF087F0D) : const Color(0xFF64748B),
+              color: isActive
+                  ? const Color(0xFF087F0D)
+                  : const Color(0xFF64748B),
             ),
             const SizedBox(width: 5),
             Text(

@@ -90,7 +90,9 @@ void main() {
       expect(find.text('SAVE CHANGES'), findsOneWidget);
       expect(find.text('CANCEL'), findsOneWidget);
       expect(
-        find.textContaining('Verified with SMS OTP. Mobile number cannot be changed directly.'),
+        find.textContaining(
+          'Verified with SMS OTP. Mobile number cannot be changed directly.',
+        ),
         findsOneWidget,
       );
 

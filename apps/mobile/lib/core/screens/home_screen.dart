@@ -66,7 +66,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: _HeaderCard(
                   location: location,
                   onChooseLocation: () => LocationSelectionSheet.show(context),
-                  onUseCurrentLocation: () => LocationSelectionSheet.show(context),
+                  onUseCurrentLocation: () =>
+                      LocationSelectionSheet.show(context),
                   onSearchSubmitted: (query) {
                     final trimmed = query.trim();
                     Navigator.push(
@@ -79,9 +80,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                   },
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: _AbashyakaCategoryGrid8(location: location),
               ),
               SliverToBoxAdapter(
                 child: _CompactPromoBanner(
@@ -97,6 +95,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
+              ),
+              SliverToBoxAdapter(
+                child: _AbashyakaCategoryGrid8(location: location),
               ),
               SliverToBoxAdapter(
                 child: _PopularNearYouSection(location: location),
@@ -453,266 +454,305 @@ class _HeaderCardState extends State<_HeaderCard> {
           opacity: 0,
           child: SizedBox(height: 0, child: Text('Browse categories')),
         ),
-        // Premium 2027 Light-First Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+        // Integrated Premium Metallic Teal Fluid Wave Header
+        Stack(
+          children: [
+            // Background Metallic Header Wave Artwork
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 240,
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(
+                      'assets/backgrounds/premium/home_background.webp',
+                    ),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  ),
                 ),
-              ],
+              ),
             ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Brand & Notification Row
-                Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE4F7E3),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF78CE65).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.storefront_rounded,
-                          color: Color(0xFF087F0D),
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'Abashyaka',
-                                style: TextStyle(
-                                  color: Color(0xFF064D3A),
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.4,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'ଆବଶ୍ୟକ',
-                                style: TextStyle(
-                                  color: Color(0xFFFF8A00),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 1),
-                          Text(
-                            'Everything nearby, one tap away',
-                            style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Notification Button with Orange Badge
-                    InkWell(
-                      onTap: () {},
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        width: 38,
-                        height: 38,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Top Brand & Notification Row
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF3FAF0),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AbashyakaColors.pureWhite,
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: const Color(0xFFE2E8F0),
+                            color: AbashyakaColors.silverGlass,
+                            width: 1.2,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A003F46),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(5),
+                        child: Image.asset(
+                          'assets/branding/abashyaka_logo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/abashyaka/splash_emblem.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
-                        child: Stack(
-                          alignment: Alignment.center,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.notifications_none_rounded,
-                              color: Color(0xFF172820),
-                              size: 22,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'Abashyaka',
+                                    style: AbashyakaTypography.brandWordmark(
+                                      fontSize: 21,
+                                      color: AbashyakaColors.metallicTealDark,
+                                    ).copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'ଆବଶ୍ୟକ',
+                                    style: AbashyakaTypography.odiaScript(
+                                      fontSize: 13,
+                                      color: AbashyakaColors.saffronOrange,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Positioned(
-                              top: 8,
-                              right: 9,
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFF8A00),
-                                  shape: BoxShape.circle,
-                                ),
+                            const SizedBox(height: 1),
+                            Text(
+                              'Everything nearby, one tap away',
+                              style: AbashyakaTypography.supportingText(
+                                fontSize: 11,
+                                color: AbashyakaColors.secondaryText,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Location Pill
-                InkWell(
-                  onTap: widget.onChooseLocation,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 26,
-                          height: 26,
+                      // Notification Button with Orange Badge
+                      InkWell(
+                        onTap: () {},
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF8A00).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.location_on_rounded,
-                              color: Color(0xFFFF8A00),
-                              size: 16,
+                            color: AbashyakaColors.pureWhite,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AbashyakaColors.silverGlass,
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'DELIVERING TO',
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                displayLocation,
-                                style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF172820),
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x08003F46),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
                             ],
                           ),
-                        ),
-                        const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF172820),
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFCBD5E1),
-                      width: 1.2,
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.search_rounded,
-                        color: Color(0xFF64748B),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: widget.onSearchSubmitted,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            color: Color(0xFF172820),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Search food, groceries, medicines, services...',
-                            hintStyle: TextStyle(
-                              fontSize: 12.5,
-                              color: Color(0xFF94A3B8),
-                              fontWeight: FontWeight.w400,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 11,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE4F7E3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.mic_none_rounded,
-                            color: Color(0xFF087F0D),
-                            size: 17,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.notifications_none_rounded,
+                                color: AbashyakaColors.inkBlack,
+                                size: 22,
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 9,
+                                child: Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: const BoxDecoration(
+                                    color: AbashyakaColors.saffronOrange,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+
+                  // Location Pill
+                  InkWell(
+                    onTap: widget.onChooseLocation,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AbashyakaColors.pureWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AbashyakaColors.silverGlass,
+                          width: 1.1,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x08003F46),
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AbashyakaColors.saffronGlow.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.location_on_rounded,
+                                color: AbashyakaColors.saffronOrange,
+                                size: 17,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'DELIVERING TO',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    color: AbashyakaColors.secondaryText,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  displayLocation,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AbashyakaColors.inkBlack,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AbashyakaColors.inkBlack,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Floating Search Bar
+                  Container(
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AbashyakaColors.pureWhite,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AbashyakaColors.silverGlass,
+                        width: 1.1,
+                      ),
+                      boxShadow: AbashyakaShadows.card,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search_rounded,
+                          color: AbashyakaColors.metallicTeal,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: widget.onSearchSubmitted,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              color: AbashyakaColors.inkBlack,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: const InputDecoration(
+                              hintText: 'Search food, groceries, medicines, services...',
+                              hintStyle: TextStyle(
+                                fontSize: 12.5,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AbashyakaColors.metallicTealGlow.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.mic_none_rounded,
+                              color: AbashyakaColors.metallicTeal,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
@@ -761,14 +801,14 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF087F0D),
+                          color: Color(0xFF008C95),
                         ),
                       ),
                       SizedBox(width: 2),
                       Icon(
                         Icons.arrow_forward_rounded,
                         size: 14,
-                        color: Color(0xFF087F0D),
+                        color: Color(0xFF008C95),
                       ),
                     ],
                   ),
@@ -776,18 +816,17 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          // Row 1: Food (Warm Peach), Grocery (Light Mint), Medicines (Sky Blue), Clinics (Sky Blue Light)
+          const SizedBox(height: 14),
+          // Row 1: Food, Grocery, Medicines, Doctors
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.restaurant_rounded,
+                  imageAsset: 'assets/icons/categories/food.webp',
                   label: 'Food',
-                  tileColor: const Color(0xFFFFE4D1),
-                  iconColor: const Color(0xFFC2410C),
-                  borderColor: const Color(0xFFFED7AA),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -799,15 +838,13 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.shopping_basket_rounded,
+                  imageAsset: 'assets/icons/categories/grocery.webp',
                   label: 'Grocery',
-                  tileColor: const Color(0xFFE4F7E3),
-                  iconColor: const Color(0xFF087F0D),
-                  borderColor: const Color(0xFFC7EBC5),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -821,15 +858,13 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.medication_rounded,
+                  imageAsset: 'assets/icons/categories/medicines.webp',
                   label: 'Medicines',
-                  tileColor: const Color(0xFFDFEEFF),
-                  iconColor: const Color(0xFF1D4ED8),
-                  borderColor: const Color(0xFFBFDBFE),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -838,15 +873,13 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.health_and_safety_rounded,
-                  label: 'Clinics',
-                  tileColor: const Color(0xFFE0F2FE),
-                  iconColor: const Color(0xFF0284C7),
-                  borderColor: const Color(0xFFBAE6FD),
+                  imageAsset: 'assets/icons/categories/doctors.webp',
+                  label: 'Doctors',
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -858,17 +891,16 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Row 2: Cab & Auto (Soft Lime), Services (Warm Amber), Shops (Warm Coral), More (Slate Pearl)
+          // Row 2: Cab & Auto, Services, Electronics, Shops
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.local_taxi_rounded,
+                  imageAsset: 'assets/icons/categories/cab_auto.webp',
                   label: 'Cab & Auto',
-                  tileColor: const Color(0xFFDDF5A6),
-                  iconColor: const Color(0xFF064D3A),
-                  borderColor: const Color(0xFFC8E68B),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -877,15 +909,13 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.handyman_rounded,
+                  imageAsset: 'assets/icons/categories/services.webp',
                   label: 'Services',
-                  tileColor: const Color(0xFFFFF3E0),
-                  iconColor: const Color(0xFFFF8A00),
-                  borderColor: const Color(0xFFFFE0B2),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -895,15 +925,31 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.devices_other_rounded,
+                  imageAsset: 'assets/icons/categories/electronics.webp',
+                  label: 'Electronics',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'electronics',
+                        categoryName: 'Electronics',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.storefront_rounded,
+                  imageAsset: 'assets/icons/categories/shops.webp',
                   label: 'Shops',
-                  tileColor: const Color(0xFFFFECEB),
-                  iconColor: const Color(0xFFDC2626),
-                  borderColor: const Color(0xFFFECACA),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -913,15 +959,73 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 3: Fashion, Hotels & Stays, Fitness & Wellness, More
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.checkroom_rounded,
+                  imageAsset: 'assets/icons/categories/fashion.webp',
+                  label: 'Fashion',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'fashion',
+                        categoryName: 'Fashion',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.hotel_rounded,
+                  imageAsset: 'assets/icons/categories/hotels_stays.webp',
+                  label: 'Hotels & Stays',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'hotel',
+                        categoryName: 'Hotels & Stays',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTile(
+                  context: context,
+                  icon: Icons.fitness_center_rounded,
+                  imageAsset: 'assets/icons/categories/fitness_wellness.webp',
+                  label: 'Fitness & Wellness',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SearchResultsScreen(
+                        initialCategory: 'fitness',
+                        categoryName: 'Fitness & Wellness',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildTile(
                   context: context,
                   icon: Icons.grid_view_rounded,
+                  imageAsset: 'assets/icons/categories/more.webp',
                   label: 'More',
-                  tileColor: const Color(0xFFF1F5F9),
-                  iconColor: const Color(0xFF475569),
-                  borderColor: const Color(0xFFE2E8F0),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CategoriesScreen()),
@@ -939,47 +1043,60 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
     required BuildContext context,
     required IconData icon,
     required String label,
-    required Color tileColor,
-    required Color iconColor,
-    required Color borderColor,
     required VoidCallback onTap,
+    String? imageAsset,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 64,
+            height: 66,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: tileColor,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: borderColor),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
               boxShadow: [
                 BoxShadow(
-                  color: iconColor.withValues(alpha: 0.06),
+                  color: const Color(0xFF003F46).withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
               ],
             ),
+            padding: const EdgeInsets.all(7),
             child: Center(
-              child: Icon(icon, color: iconColor, size: 28),
+              child: imageAsset != null
+                  ? Image.asset(
+                      imageAsset,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        icon,
+                        color: AbashyakaColors.metallicTeal,
+                        size: 28,
+                      ),
+                    )
+                  : Icon(icon, color: AbashyakaColors.metallicTeal, size: 28),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF172820),
+          const SizedBox(height: 5),
+          SizedBox(
+            height: 28,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0F172A),
+                height: 1.15,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -999,24 +1116,14 @@ class _CompactPromoBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AbashyakaRadius.card20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFDDF5A6), Color(0xFFF7FEE7)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFCCE890), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            gradient: AbashyakaGradients.promotionalBanner,
+            borderRadius: BorderRadius.circular(AbashyakaRadius.card20),
+            border: Border.all(color: AbashyakaColors.silverGlass, width: 1.2),
+            boxShadow: AbashyakaShadows.card,
           ),
           child: Row(
             children: [
@@ -1025,67 +1132,84 @@ class _CompactPromoBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF8A00),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'FAST LOCAL DELIVERY',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
+                    Text(
+                      'Flat 20% OFF on your first order',
+                      style: AbashyakaTypography.displayHeading(
+                        fontSize: 16.5,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Shop from nearby stores',
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF064D3A),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'CODE: LOCAL20',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Food, groceries and daily essentials from local partners',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF172820),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x18000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Explore Now',
+                            style: TextStyle(
+                              color: AbashyakaColors.metallicTealDark,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 14,
+                            color: AbashyakaColors.metallicTealDark,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.delivery_dining_rounded,
-                    size: 28,
-                    color: Color(0xFF087F0D),
-                  ),
+              Image.asset(
+                'assets/illustrations/shopping_bags_3d.webp',
+                width: 86,
+                height: 86,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  'assets/abashyaka/home_banner_bags.png',
+                  width: 86,
+                  height: 86,
+                  fit: BoxFit.contain,
                 ),
               ),
             ],
@@ -1200,15 +1324,9 @@ class _PopularNearYouSection extends StatelessWidget {
                     color: iconContainerColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Center(
-                    child: Icon(icon, color: iconColor, size: 22),
-                  ),
+                  child: Center(child: Icon(icon, color: iconColor, size: 22)),
                 ),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 16,
-                  color: iconColor,
-                ),
+                Icon(Icons.arrow_forward_rounded, size: 16, color: iconColor),
               ],
             ),
             const SizedBox(height: 10),
@@ -1584,7 +1702,10 @@ class _NearbyTrendingSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: badgeColor,
                       borderRadius: BorderRadius.circular(4),

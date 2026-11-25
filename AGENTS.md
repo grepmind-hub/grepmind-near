@@ -1,8 +1,37 @@
-# AGENTS.md — Grepmind Near
+# AGENTS.md — Abashyaka
 
 ## Project identity
 
-Grepmind Near is a local business and service discovery platform under the Grepmind brand. Everything nearby. One tap away.
+Abashyaka is a local business and service discovery platform under the Grepmind brand. Everything nearby. One tap away.
+
+
+## Abashyaka Official Mobile UI Design Standard
+
+All Flutter UI implementation and visual modifications must follow the approved Abashyaka Premium UI Design System.
+
+Design language:
+
+Metallic Teal Abstract Fluid Wave + Pearl White Glossy UI.
+
+Required references:
+
+- `docs/design/ABASHYAKA_MOBILE_AGENT_GUIDE.md`
+- `docs/design/ABASHYAKA_UI_DESIGN_SYSTEM.md`
+- `docs/build/BUILD_COMMANDS.md`
+- `docs/design/reference/premium_five_screens.png`
+- `docs/design/reference/Abashyaka Choose Your Role Screen.png`
+
+Read these references before implementing or modifying mobile UI screens.
+
+Use the centralized theme, colour tokens, spacing tokens, reusable premium headers, fluid-wave painters, glossy buttons and shared UI components.
+
+Do not independently introduce new colours, design systems, fonts, navigation patterns or expensive visual effects without approval.
+
+Preserve all existing authentication logic, API contracts, providers, authorization, user data and business functionality.
+
+Prioritize lightweight Flutter rendering and validate performance on representative Android hardware.
+
+All visual changes must be tested and compared with the approved reference design.
 
 ## Reference UI kit
 
@@ -121,6 +150,12 @@ Before installation or login:
 
 ### Mandatory APK installation
 
+All debug and QA validation APKs must be built using the authoritative command below. Missing parameters will break backend API connectivity and FCM push OTP delivery:
+
+```bash
+cd /mnt/d/grepmind-near/apps/mobile && /home/grepmind/projects/flutter-setup/develop/flutter/bin/flutter build apk --debug --no-pub --flavor development --dart-define=API_BASE_URL=https://api.abashyaka.com --dart-define=FCM_TEST_OTP_ENABLED=true --dart-define=GOOGLE_SERVER_CLIENT_ID=666331814501-v2vtkg0t27b5ld6edavtqkm8dlkr94l3.apps.googleusercontent.com
+```
+
 Whenever a new debug APK is built for validation:
 
 1. Compute and record its SHA-256.
@@ -182,7 +217,7 @@ Do not claim success unless checks were actually executed. If a check cannot run
 
 ## Implementation task template
 
-Implement the following task for Grepmind Near:
+Implement the following task for Abashyaka:
 
 TASK:
 [One narrowly scoped feature or engineering task]
@@ -221,7 +256,7 @@ FINAL REPORT:
 
 ## 22-Screen UI Showcase Implementation Status
 
-Authoritative showcase reference: `Grepmind Near UI_UX App Showcase.png`.
+Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 
 | # | Screen Name | Status | Location / Implementation Details |
 |---|---|---|---|

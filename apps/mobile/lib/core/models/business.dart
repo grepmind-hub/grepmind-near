@@ -183,7 +183,8 @@ class Business extends Equatable {
       (categorySlug == 'restaurant' || categorySlug == 'cafe');
 
   /// Only route to ServiceProScreen if it is an actual service trade provider.
-  bool get shouldOpenServiceProfile => !supportsFoodOrdering && isServiceProvider;
+  bool get shouldOpenServiceProfile =>
+      !supportsFoodOrdering && isServiceProvider;
 
   /// Context-aware call-to-action label for local businesses.
   String get shopActionLabel {

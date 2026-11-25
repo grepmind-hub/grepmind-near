@@ -32,28 +32,40 @@ class CategoryThemedPlaceholder extends StatelessWidget {
 
   static CategoryThemeConfig resolveTheme(String? slug) {
     final s = slug?.toLowerCase().trim() ?? '';
-    if (s.contains('grocer') || s.contains('kirana') || s.contains('supermarket')) {
+    if (s.contains('grocer') ||
+        s.contains('kirana') ||
+        s.contains('supermarket')) {
       return const CategoryThemeConfig(
         gradient: [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
         accent: Color(0xFF16A34A),
         icon: Icons.local_grocery_store_rounded,
       );
     }
-    if (s.contains('med') || s.contains('pharm') || s.contains('clinic') || s.contains('health')) {
+    if (s.contains('med') ||
+        s.contains('pharm') ||
+        s.contains('clinic') ||
+        s.contains('health')) {
       return const CategoryThemeConfig(
         gradient: [Color(0xFFF0FDFA), Color(0xFFCCFBF1)],
         accent: Color(0xFF0D9488),
         icon: Icons.local_pharmacy_rounded,
       );
     }
-    if (s.contains('hard') || s.contains('tool') || s.contains('paint') || s.contains('build')) {
+    if (s.contains('hard') ||
+        s.contains('tool') ||
+        s.contains('paint') ||
+        s.contains('build')) {
       return const CategoryThemeConfig(
         gradient: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
         accent: Color(0xFFD97706),
         icon: Icons.build_rounded,
       );
     }
-    if (s.contains('rest') || s.contains('food') || s.contains('cafe') || s.contains('bake') || s.contains('dine')) {
+    if (s.contains('rest') ||
+        s.contains('food') ||
+        s.contains('cafe') ||
+        s.contains('bake') ||
+        s.contains('dine')) {
       return const CategoryThemeConfig(
         gradient: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
         accent: Color(0xFFEA580C),
@@ -144,11 +156,7 @@ class CategoryThemedPlaceholder extends StatelessWidget {
                     letterSpacing: -0.5,
                   ),
                 )
-              : Icon(
-                  theme.icon,
-                  size: 32,
-                  color: theme.accent,
-                ),
+              : Icon(theme.icon, size: 32, color: theme.accent),
         ),
       );
     }
@@ -194,11 +202,7 @@ class CategoryThemedPlaceholder extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
-                theme.icon,
-                size: 36,
-                color: theme.accent,
-              ),
+              child: Icon(theme.icon, size: 36, color: theme.accent),
             ),
           ),
         ],

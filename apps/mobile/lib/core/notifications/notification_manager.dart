@@ -166,7 +166,9 @@ class NotificationManager {
       // Request Android 13+ notification permission via flutter_local_notifications
       // (more reliable than firebase_messaging on Android).
       final androidPlugin = _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       bool granted = true;
       if (androidPlugin != null) {
         final result = await androidPlugin.requestNotificationsPermission();
@@ -266,7 +268,8 @@ class NotificationManager {
 
     if (type == 'otp') {
       final payload = FcmOtpPayload.fromMap(data);
-      if (payload.otpCode.isEmpty || payload.expiresAt.isBefore(DateTime.now())) {
+      if (payload.otpCode.isEmpty ||
+          payload.expiresAt.isBefore(DateTime.now())) {
         return;
       }
       // Surface the code immediately as a heads-up system notification while

@@ -105,10 +105,7 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                       height: 220,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            AppTheme.emeraldDark,
-                            AppTheme.emerald,
-                          ],
+                          colors: [AppTheme.emeraldDark, AppTheme.emerald],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -239,7 +236,8 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                                       color: const Color(0xFFE4F7E3),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: const Color(0xFF087F0D).withValues(alpha: 0.3),
+                                        color: const Color(0xFF087F0D)
+                                            .withValues(alpha: 0.3),
                                         width: 2,
                                       ),
                                     ),
@@ -657,7 +655,9 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.brandMint,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppTheme.mint.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppTheme.mint.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: IconButton(
                           icon: const Icon(
@@ -678,7 +678,9 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppTheme.emerald.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppTheme.emerald.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: IconButton(
                           icon: const Icon(
@@ -923,6 +925,4 @@ class _ServiceProScreenState extends ConsumerState<ServiceProScreen> {
       ],
     );
   }
-
-
 }

@@ -176,8 +176,7 @@ class _MerchantPlatformOrdersScreenState
         setState(() {
           // Fail closed: stale eligibility must never expose a pickup-code action.
           _dispatchByOrder = const {};
-          _dispatchError =
-              'Delivery handover status is unavailable. Refresh before issuing a code.';
+          _dispatchError = 'Delivery handover status is unavailable. Refresh before issuing a code.';
         });
       }
     } finally {
@@ -373,18 +372,20 @@ class _MerchantPlatformOrdersScreenState
         return _orders.where((o) => o['status'] == 'placed').toList();
       case 2: // Preparing
         return _orders
-            .where((o) => o['status'] == 'accepted' || o['status'] == 'preparing')
+            .where(
+              (o) => o['status'] == 'accepted' || o['status'] == 'preparing',
+            )
             .toList();
       case 3: // Ready for Pickup
-        return _orders
-            .where((o) => o['status'] == 'ready_for_pickup')
-            .toList();
+        return _orders.where((o) => o['status'] == 'ready_for_pickup').toList();
       case 4: // History / Completed
         return _orders
-            .where((o) =>
-                o['status'] == 'delivered' ||
-                o['status'] == 'cancelled' ||
-                o['status'] == 'rejected')
+            .where(
+              (o) =>
+                  o['status'] == 'delivered' ||
+                  o['status'] == 'cancelled' ||
+                  o['status'] == 'rejected',
+            )
             .toList();
       case 0: // All
       default:
@@ -525,7 +526,10 @@ class _MerchantPlatformOrdersScreenState
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -595,8 +599,11 @@ class _MerchantPlatformOrdersScreenState
                     padding: const EdgeInsets.all(12),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning_amber_rounded,
-                            size: 18, color: Color(0xFF92400E)),
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 18,
+                          color: Color(0xFF92400E),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -744,11 +751,15 @@ class _MerchantPlatformOrdersScreenState
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: isGrocery ? const Color(0xFFE0F2FE) : const Color(0xFFE8F5E9),
+            color: isGrocery
+                ? const Color(0xFFE0F2FE)
+                : const Color(0xFFE8F5E9),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-            isGrocery ? Icons.shopping_basket_outlined : Icons.restaurant_outlined,
+            isGrocery
+                ? Icons.shopping_basket_outlined
+                : Icons.restaurant_outlined,
             color: isGrocery ? const Color(0xFF0284C7) : AppTheme.emerald,
             size: 22,
           ),
@@ -794,7 +805,11 @@ class _MerchantPlatformOrdersScreenState
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.payments_outlined, size: 18, color: AppTheme.secondaryText),
+              child: const Icon(
+                Icons.payments_outlined,
+                size: 18,
+                color: AppTheme.secondaryText,
+              ),
             ),
             title: Text(
               _paymentLabel(order),
@@ -802,11 +817,17 @@ class _MerchantPlatformOrdersScreenState
             ),
             subtitle: Text(
               _paymentDetail(order),
-              style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.secondaryText,
+              ),
             ),
             trailing: TextButton.icon(
               icon: const Icon(Icons.receipt_outlined, size: 14),
-              label: const Text('Kitchen Ticket', style: TextStyle(fontSize: 12)),
+              label: const Text(
+                'Kitchen Ticket',
+                style: TextStyle(fontSize: 12),
+              ),
               onPressed: () => _showKitchenTicketModal(order),
             ),
           ),
@@ -819,7 +840,10 @@ class _MerchantPlatformOrdersScreenState
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(6),
@@ -846,7 +870,8 @@ class _MerchantPlatformOrdersScreenState
                             color: AppTheme.mainText,
                           ),
                         ),
-                        if ((item['variant_name'] ?? item['unit_label']) != null)
+                        if ((item['variant_name'] ?? item['unit_label']) !=
+                            null)
                           Text(
                             '${item['variant_name'] ?? ''} · ${item['unit_label'] ?? ''}',
                             style: const TextStyle(
@@ -873,7 +898,11 @@ class _MerchantPlatformOrdersScreenState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.note_alt_outlined, size: 16, color: Color(0xFF92400E)),
+                  const Icon(
+                    Icons.note_alt_outlined,
+                    size: 16,
+                    color: Color(0xFF92400E),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1108,11 +1137,7 @@ class _MerchantPlatformOrdersScreenState
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
@@ -1146,7 +1171,10 @@ class _MerchantPlatformOrdersScreenState
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.receipt_long, color: AppTheme.emerald),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    color: AppTheme.emerald,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1181,11 +1209,18 @@ class _MerchantPlatformOrdersScreenState
             const Divider(height: 24),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.secondaryText),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: AppTheme.secondaryText,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '${order['delivery_locality'] ?? ''}, ${order['delivery_district'] ?? ''}',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -1210,11 +1245,17 @@ class _MerchantPlatformOrdersScreenState
                 children: [
                   for (final item in items)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(6),
@@ -1244,7 +1285,8 @@ class _MerchantPlatformOrdersScreenState
                 ],
               ),
             ),
-            if ((order['special_instructions'] as String? ?? '').isNotEmpty) ...[
+            if ((order['special_instructions'] as String? ?? '')
+                .isNotEmpty) ...[
               const SizedBox(height: 14),
               const Text(
                 'SPECIAL NOTES',
@@ -1400,11 +1442,18 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.timer_outlined, size: 14, color: AppTheme.secondaryText),
+            const Icon(
+              Icons.timer_outlined,
+              size: 14,
+              color: AppTheme.secondaryText,
+            ),
             const SizedBox(width: 4),
             Text(
               'Expires in $_remaining seconds.',
-              style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.secondaryText,
+              ),
             ),
           ],
         ),

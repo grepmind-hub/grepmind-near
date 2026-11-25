@@ -105,7 +105,11 @@ class ServiceProCard extends StatelessWidget {
                                 ),
                               ),
                               if (isVerified)
-                                const Icon(Icons.verified_rounded, size: 16, color: AppTheme.emerald),
+                                const Icon(
+                                  Icons.verified_rounded,
+                                  size: 16,
+                                  color: AppTheme.emerald,
+                                ),
                             ],
                           ),
                           const SizedBox(height: 2),
@@ -123,7 +127,11 @@ class ServiceProCard extends StatelessWidget {
                           Row(
                             children: [
                               if (rating != null) ...[
-                                const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: Color(0xFFF59E0B),
+                                ),
                                 const SizedBox(width: 2),
                                 Text(
                                   rating!.toStringAsFixed(1),
@@ -145,11 +153,16 @@ class ServiceProCard extends StatelessWidget {
                               ],
                               if (experienceYears != null)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppTheme.brandCanvas,
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: AppTheme.brandBorder),
+                                    border: Border.all(
+                                      color: AppTheme.brandBorder,
+                                    ),
                                   ),
                                   child: Text(
                                     '$experienceYears+ yrs exp',
@@ -178,7 +191,8 @@ class ServiceProCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (startingPriceMinor != null && startingPriceMinor! > 0)
+                          if (startingPriceMinor != null &&
+                              startingPriceMinor! > 0)
                             Text(
                               'Starts at ${_formatPrice(startingPriceMinor!)}',
                               style: const TextStyle(
@@ -230,12 +244,18 @@ class ServiceProCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         minimumSize: const Size(100, 42),
                       ),
                       child: const Text(
                         'Book Service',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],

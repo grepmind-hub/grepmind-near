@@ -55,7 +55,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
 
   Future<void> _openDirections() async {
     if (latitude == null || longitude == null) return;
-    final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude');
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude',
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -87,7 +89,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
             children: [
               // Storefront Cover Image
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
                 child: SizedBox(
                   height: 140,
                   width: double.infinity,
@@ -96,7 +100,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                     children: [
                       coverPhotoUrl != null && coverPhotoUrl!.isNotEmpty
                           ? CachedNetworkImage(
-                              imageUrl: apiClient.resolveMediaUrl(coverPhotoUrl!),
+                              imageUrl: apiClient.resolveMediaUrl(
+                                coverPhotoUrl!,
+                              ),
                               fit: BoxFit.cover,
                               errorWidget: (_, _, _) => _placeholder(),
                             )
@@ -109,7 +115,10 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.65),
                                 borderRadius: BorderRadius.circular(8),
@@ -126,7 +135,10 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             const Spacer(),
                             if (isVerified)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.emerald,
                                   borderRadius: BorderRadius.circular(8),
@@ -134,7 +146,11 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.verified_rounded, size: 12, color: Colors.white),
+                                    Icon(
+                                      Icons.verified_rounded,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
                                     SizedBox(width: 4),
                                     Text(
                                       'Verified',
@@ -181,7 +197,11 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 16,
+                                color: Color(0xFFF59E0B),
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 rating!.toStringAsFixed(1),
@@ -210,7 +230,11 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                     Row(
                       children: [
                         if (distanceKm != null) ...[
-                          const Icon(Icons.near_me_outlined, size: 14, color: AppTheme.emerald),
+                          const Icon(
+                            Icons.near_me_outlined,
+                            size: 14,
+                            color: AppTheme.emerald,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             '${distanceKm!.toStringAsFixed(1)} km',
@@ -240,7 +264,8 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: operatingStatus.toLowerCase().contains('closed')
+                            color:
+                                operatingStatus.toLowerCase().contains('closed')
                                 ? AppTheme.error
                                 : AppTheme.emerald,
                           ),
@@ -268,7 +293,10 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                           IconButton(
                             onPressed: _openDirections,
                             tooltip: 'Get directions',
-                            icon: const Icon(Icons.directions_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.directions_outlined,
+                              size: 18,
+                            ),
                             color: AppTheme.brandText,
                             style: IconButton.styleFrom(
                               backgroundColor: AppTheme.brandCanvas,
@@ -286,12 +314,18 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                             minimumSize: const Size(100, 40),
                           ),
                           child: Text(
                             primaryActionLabel,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],

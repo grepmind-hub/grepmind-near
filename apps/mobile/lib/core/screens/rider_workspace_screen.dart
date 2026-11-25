@@ -246,7 +246,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
             : null,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+              color: Colors.white,
+            ),
             tooltip: 'Notifications',
             onPressed: () {},
           ),
@@ -462,10 +465,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       height: 48,
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
-                          backgroundColor:
-                              _online ? Colors.white : AppTheme.emerald,
-                          foregroundColor:
-                              _online ? const Color(0xFF1E293B) : Colors.white,
+                          backgroundColor: _online
+                              ? Colors.white
+                              : AppTheme.emerald,
+                          foregroundColor: _online
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
                           side: _online
                               ? const BorderSide(
                                   color: Color(0xFFCBD5E1),
@@ -774,178 +779,176 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFD8E3F5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.riderAmberLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_active_rounded,
+                            color: AppTheme.riderAmberDark,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Incoming offers',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (_offers.isEmpty)
+                      Text(
+                        _online ? 'No delivery offers right now.' : 'Go online to receive offers for your approved localities.',
+                        style: const TextStyle(color: AppTheme.secondaryText),
+                      ),
+                    for (final item in _offers)
+                      _OfferCard(
+                        offer: item,
+                        busy: _busy,
+                        onAccept: () => _respond(item['id'].toString(), true),
+                        onDecline: () => _respond(item['id'].toString(), false),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _PhaseNotice(
+                title: 'Map & location',
+                body: 'Live GPS tracking is not enabled. No location is collected in this phase.',
+              ),
+              const SizedBox(height: 12),
+              Material(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFD8E3F5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.riderAmberLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_active_rounded,
-                          color: AppTheme.riderAmberDark,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Incoming offers',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (_offers.isEmpty)
-                    Text(
-                      _online
-                          ? 'No delivery offers right now.'
-                          : 'Go online to receive offers for your approved localities.',
-                      style: const TextStyle(color: AppTheme.secondaryText),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Color(0xFFD8E3F5)),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F4F0),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  for (final item in _offers)
-                    _OfferCard(
-                      offer: item,
-                      busy: _busy,
-                      onAccept: () => _respond(item['id'].toString(), true),
-                      onDecline: () => _respond(item['id'].toString(), false),
+                    child: const Icon(
+                      Icons.hub_rounded,
+                      color: AppTheme.emeraldDark,
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            const _PhaseNotice(
-              title: 'Map & location',
-              body: 'Live GPS tracking is not enabled. No location is collected in this phase.',
-            ),
-            const SizedBox(height: 12),
-            Material(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFD8E3F5)),
-              ),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F4F0),
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
-                    Icons.hub_rounded,
-                    color: AppTheme.emeraldDark,
+                  title: const Text(
+                    'Service locality hubs & coverage',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                ),
-                title: const Text(
-                  'Service locality hubs & coverage',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Distribution centers, coverage radar & shift radius settings',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RiderLocalityHubsScreen(),
+                  subtitle: const Text(
+                    'Distribution centers, coverage radar & shift radius settings',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RiderLocalityHubsScreen(),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Material(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppTheme.riderAmberBorder),
-              ),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.riderAmberLight,
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 12),
+              Material(
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppTheme.riderAmberBorder),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.riderAmberLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.payments_rounded,
+                      color: AppTheme.riderAmberDark,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.payments_rounded,
-                    color: AppTheme.riderAmberDark,
+                  title: const Text(
+                    'Cash accountability',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                ),
-                title: const Text(
-                  'Cash accountability',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Synthetic COD collections and remittance status · separate from earnings',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RiderCashAccountabilityScreen(),
+                  subtitle: const Text(
+                    'Synthetic COD collections and remittance status · separate from earnings',
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Material(
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFD8E3F5)),
-              ),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: AppTheme.forest,
-                  ),
-                ),
-                title: const Text(
-                  'Rider earnings & bank details',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Ledger activity, recorded compensation & payouts info',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RiderEarningsScreen(),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RiderCashAccountabilityScreen(),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const _PhaseNotice(
-              title: 'Earnings',
-              body: 'Rider earnings remain separate from cash collected and no payouts are enabled.',
-            ),
-          ],
+              const SizedBox(height: 12),
+              Material(
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Color(0xFFD8E3F5)),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: AppTheme.forest,
+                    ),
+                  ),
+                  title: const Text(
+                    'Rider earnings & bank details',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: const Text(
+                    'Ledger activity, recorded compensation & payouts info',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RiderEarningsScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _PhaseNotice(
+                title: 'Earnings',
+                body: 'Rider earnings remain separate from cash collected and no payouts are enabled.',
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -1516,11 +1519,7 @@ class _OfferCard extends StatelessWidget {
               ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    size: 15,
-                    color: AppTheme.emerald,
-                  ),
+                  Icon(Icons.bolt_rounded, size: 15, color: AppTheme.emerald),
                   SizedBox(width: 4),
                   Text(
                     'NEW DELIVERY OFFER',
@@ -1876,8 +1875,8 @@ class _AssignmentCard extends StatelessWidget {
                     color: i < current
                         ? AppTheme.emerald
                         : i == current
-                            ? AppTheme.emeraldDark
-                            : const Color(0xFFCBD5E1),
+                        ? AppTheme.emeraldDark
+                        : const Color(0xFFCBD5E1),
                   ),
                   child: Center(
                     child: i < current
@@ -1897,7 +1896,9 @@ class _AssignmentCard extends StatelessWidget {
                   steps[i],
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: i == current ? FontWeight.w800 : FontWeight.w500,
+                    fontWeight: i == current
+                        ? FontWeight.w800
+                        : FontWeight.w500,
                     color: i == current
                         ? AppTheme.emeraldDark
                         : const Color(0xFF64748B),
@@ -1940,7 +1941,10 @@ class _AssignmentCard extends StatelessWidget {
                 style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE6F4F0),
                   borderRadius: BorderRadius.circular(12),
@@ -2789,9 +2793,9 @@ class _RiderWorkspaceProfileScreenState
                       );
 
                       // Update auth profile display name
-                      await ref
-                          .read(authProvider.notifier)
-                          .updateProfile({'display_name': newName});
+                      await ref.read(authProvider.notifier).updateProfile({
+                        'display_name': newName,
+                      });
 
                       if (modalCtx.mounted) {
                         Navigator.pop(modalCtx);
@@ -2903,240 +2907,27 @@ class _RiderWorkspaceProfileScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  if (_error != null)
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    if (_error != null)
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
 
-                  // 1. Hero Profile Card with Avatar & Edit Action
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.riderAmberBorder),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0A000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 58,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppTheme.riderAmberBorder,
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.two_wheeler_rounded,
-                                  color: AppTheme.riderAmberDark,
-                                  size: 32,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _profile?['display_name']?.toString() ??
-                                        user?.displayName ??
-                                        'Rider Partner',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.w800),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDCFCE7),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: const Color(0xFF86EFAC),
-                                      ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.verified_rounded,
-                                          color: Color(0xFF16A34A),
-                                          size: 14,
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Verified Partner',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF15803D),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.riderAmberDark,
-                            backgroundColor: Colors.white,
-                            side: const BorderSide(
-                              color: AppTheme.riderAmberBorder,
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            minimumSize: const Size.fromHeight(44),
-                          ),
-                          onPressed: _showEditRiderDetailsDialog,
-                          icon: const Icon(Icons.edit_rounded, size: 18),
-                          label: const Text(
-                            'Edit Rider Details',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 2. Personal & Contact Details Card
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.riderAmberBorder),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Personal & Contact Details',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Identity, mobile, address and vehicle registration',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.secondaryText,
-                          ),
-                        ),
-                        const Divider(height: 24),
-                        _buildDetailRow(
-                          icon: Icons.badge_rounded,
-                          label: 'Full Name',
-                          value:
-                              _profile?['display_name']?.toString() ??
-                              user?.displayName ??
-                              'Rider Partner',
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.phone_android_rounded,
-                          label: 'Registered Mobile',
-                          value: user?.phoneE164 ?? '+91 99900 00173',
-                          iconColor: AppTheme.forest,
-                          containerColor: const Color(0xFFE8F5E9),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCFCE7),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'VERIFIED',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF15803D),
-                              ),
-                            ),
-                          ),
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.alternate_email_rounded,
-                          label: 'Email Address',
-                          value: _email ?? 'rider.partner@abashyaka.near',
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.home_work_rounded,
-                          label: 'Base / Residential Address',
-                          value:
-                              _address ??
-                              'Flat 204, Netaji Subhash Road, Cuttack, Odisha',
-                          iconColor: const Color(0xFF4F46E5),
-                          containerColor: const Color(0xFFEEF2FF),
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.numbers_rounded,
-                          label: 'Vehicle Plate / Reg Number',
-                          value: _vehiclePlate ?? 'OD 05 AX 4921',
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.electric_moped_rounded,
-                          label: 'Vehicle Mode',
-                          value:
-                              (_profile?['vehicle_type']?.toString() ??
-                                      'two_wheeler')
-                                  .replaceAll('_', ' ')
-                                  .toUpperCase(),
-                        ),
-                        _buildDetailRow(
-                          icon: Icons.contact_phone_rounded,
-                          label: 'Emergency Contact',
-                          value: _emergencyPhone ?? '+91 94370 12345',
-                          iconColor: const Color(0xFFE11D48),
-                          containerColor: const Color(0xFFFFE4E6),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 3. Approved Service Localities
-                  if (_profile != null)
+                    // 1. Hero Profile Card with Avatar & Edit Action
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AppTheme.riderAmberBorder),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3144,73 +2935,285 @@ class _RiderWorkspaceProfileScreenState
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(6),
+                                width: 58,
+                                height: 58,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.riderAmberLight,
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.riderAmberBorder,
+                                    width: 2,
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.map_rounded,
-                                  color: AppTheme.riderAmberDark,
-                                  size: 18,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.two_wheeler_rounded,
+                                    color: AppTheme.riderAmberDark,
+                                    size: 32,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Approved service localities',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _profile?['display_name']?.toString() ??
+                                          user?.displayName ??
+                                          'Rider Partner',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: const Color(0xFF86EFAC),
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.verified_rounded,
+                                            color: Color(0xFF16A34A),
+                                            size: 14,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Verified Partner',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF15803D),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          for (final place
-                              in (_profile!['approved_localities']
-                                          as List<dynamic>? ??
-                                      const [])
-                                  .whereType<Map<String, dynamic>>())
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(
-                                Icons.location_on_rounded,
-                                color: AppTheme.riderAmberDark,
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.riderAmberDark,
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(
+                                color: AppTheme.riderAmberBorder,
+                                width: 1.5,
                               ),
-                              title: Text(
-                                '${place['name']}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              subtitle: Text('${place['district']}, Odisha'),
+                              minimumSize: const Size.fromHeight(44),
                             ),
+                            onPressed: _showEditRiderDetailsDialog,
+                            icon: const Icon(Icons.edit_rounded, size: 18),
+                            label: const Text(
+                              'Edit Rider Details',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
-                  const SizedBox(height: 12),
-                  const _PhaseNotice(
-                    title: 'Privacy & Operational Security',
-                    body:
-                        'Your service locality access is controlled by Abashyaka Admin. GPS tracking is not active in this phase and no real customer locations are shared outside assigned delivery scopes.',
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    key: const ValueKey('rider_logout_button'),
-                    onPressed: () => _confirmLogout(context),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Log out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.error,
-                      side: const BorderSide(color: AppTheme.error),
-                      minimumSize: const Size.fromHeight(48),
+                    const SizedBox(height: 16),
+
+                    // 2. Personal & Contact Details Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.riderAmberBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Personal & Contact Details',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Identity, mobile, address and vehicle registration',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.secondaryText,
+                            ),
+                          ),
+                          const Divider(height: 24),
+                          _buildDetailRow(
+                            icon: Icons.badge_rounded,
+                            label: 'Full Name',
+                            value:
+                                _profile?['display_name']?.toString() ??
+                                user?.displayName ??
+                                'Rider Partner',
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.phone_android_rounded,
+                            label: 'Registered Mobile',
+                            value: user?.phoneE164 ?? '+91 99900 00173',
+                            iconColor: AppTheme.forest,
+                            containerColor: const Color(0xFFE8F5E9),
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'VERIFIED',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF15803D),
+                                ),
+                              ),
+                            ),
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.alternate_email_rounded,
+                            label: 'Email Address',
+                            value: _email ?? 'rider.partner@abashyaka.near',
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.home_work_rounded,
+                            label: 'Base / Residential Address',
+                            value: _address ?? 'Flat 204, Netaji Subhash Road, Cuttack, Odisha',
+                            iconColor: const Color(0xFF4F46E5),
+                            containerColor: const Color(0xFFEEF2FF),
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.numbers_rounded,
+                            label: 'Vehicle Plate / Reg Number',
+                            value: _vehiclePlate ?? 'OD 05 AX 4921',
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.electric_moped_rounded,
+                            label: 'Vehicle Mode',
+                            value:
+                                (_profile?['vehicle_type']?.toString() ??
+                                        'two_wheeler')
+                                    .replaceAll('_', ' ')
+                                    .toUpperCase(),
+                          ),
+                          _buildDetailRow(
+                            icon: Icons.contact_phone_rounded,
+                            label: 'Emergency Contact',
+                            value: _emergencyPhone ?? '+91 94370 12345',
+                            iconColor: const Color(0xFFE11D48),
+                            containerColor: const Color(0xFFFFE4E6),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 16),
+
+                    // 3. Approved Service Localities
+                    if (_profile != null)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.riderAmberLight,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.map_rounded,
+                                    color: AppTheme.riderAmberDark,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Approved service localities',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            for (final place
+                                in (_profile!['approved_localities']
+                                            as List<dynamic>? ??
+                                        const [])
+                                    .whereType<Map<String, dynamic>>())
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppTheme.riderAmberDark,
+                                ),
+                                title: Text(
+                                  '${place['name']}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                subtitle: Text('${place['district']}, Odisha'),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+                    const _PhaseNotice(
+                      title: 'Privacy & Operational Security',
+                      body: 'Your service locality access is controlled by Abashyaka Admin. GPS tracking is not active in this phase and no real customer locations are shared outside assigned delivery scopes.',
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      key: const ValueKey('rider_logout_button'),
+                      onPressed: () => _confirmLogout(context),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Log out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.error,
+                        side: const BorderSide(color: AppTheme.error),
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
     );
   }
 

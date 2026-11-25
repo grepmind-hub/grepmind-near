@@ -8,11 +8,7 @@ class ProductDetailScreen extends StatefulWidget {
   final Product product;
   final Business? business;
 
-  const ProductDetailScreen({
-    super.key,
-    required this.product,
-    this.business,
-  });
+  const ProductDetailScreen({super.key, required this.product, this.business});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -33,8 +29,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     final p = widget.product;
     final biz = widget.business;
-    final priceStr = p.price != null ? '₹${p.price!.toStringAsFixed(0)}' : '₹2,499';
-    final mrpStr = p.price != null ? '₹${(p.price! * 1.4).toStringAsFixed(0)}' : '₹3,499';
+    final priceStr = p.price != null
+        ? '₹${p.price!.toStringAsFixed(0)}'
+        : '₹2,499';
+    final mrpStr = p.price != null
+        ? '₹${(p.price! * 1.4).toStringAsFixed(0)}'
+        : '₹3,499';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -42,13 +42,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.mainText, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppTheme.mainText,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
             icon: Icon(
-              _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              _isFavorited
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               color: _isFavorited ? AppTheme.error : AppTheme.mainText,
             ),
             onPressed: () => setState(() => _isFavorited = !_isFavorited),
@@ -105,7 +111,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             Row(
                               children: List.generate(
                                 5,
-                                (index) => const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                                (index) => const Icon(
+                                  Icons.star_rounded,
+                                  size: 18,
+                                  color: Color(0xFFF59E0B),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -143,11 +153,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                             const SizedBox(width: 12),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE6FFFA),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFF38B2AC)),
+                                border: Border.all(
+                                  color: const Color(0xFF38B2AC),
+                                ),
                               ),
                               child: const Text(
                                 '29% OFF',
@@ -166,13 +181,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 16),
 
                         // Features & Highlights checklist matching Screen 12
-                        _buildFeatureRow(Icons.bolt_rounded, '20V Lithium-ion Power System'),
+                        _buildFeatureRow(
+                          Icons.bolt_rounded,
+                          '20V Lithium-ion Power System',
+                        ),
                         const SizedBox(height: 12),
-                        _buildFeatureRow(Icons.verified_user_outlined, '1 Year Official Manufacturer Warranty'),
+                        _buildFeatureRow(
+                          Icons.verified_user_outlined,
+                          '1 Year Official Manufacturer Warranty',
+                        ),
                         const SizedBox(height: 12),
-                        _buildFeatureRow(Icons.local_shipping_outlined, 'Free Fast Home Delivery on orders > ₹500'),
+                        _buildFeatureRow(
+                          Icons.local_shipping_outlined,
+                          'Free Fast Home Delivery on orders > ₹500',
+                        ),
                         const SizedBox(height: 12),
-                        _buildFeatureRow(Icons.assignment_return_outlined, '7 Days Easy Replacement Policy'),
+                        _buildFeatureRow(
+                          Icons.assignment_return_outlined,
+                          '7 Days Easy Replacement Policy',
+                        ),
 
                         const SizedBox(height: 24),
                         const Divider(height: 1, color: Color(0xFFE4E7EC)),
@@ -204,7 +231,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   color: AppTheme.primaryContainer,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.storefront_rounded, color: AppTheme.primary, size: 24),
+                                child: const Icon(
+                                  Icons.storefront_rounded,
+                                  color: AppTheme.primary,
+                                  size: 24,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -212,7 +243,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      biz?.name ?? 'Shree Hardware & Electricals',
+                                      biz?.name ??
+                                          'Shree Hardware & Electricals',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
@@ -233,8 +265,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.phone_rounded, color: AppTheme.primary),
-                                onPressed: () => _makeCall(biz?.phoneE164 ?? '+919876543210'),
+                                icon: const Icon(
+                                  Icons.phone_rounded,
+                                  color: AppTheme.primary,
+                                ),
+                                onPressed: () => _makeCall(
+                                  biz?.phoneE164 ?? '+919876543210',
+                                ),
                               ),
                             ],
                           ),
@@ -252,9 +289,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          p.description?.isNotEmpty == true
-                              ? p.description!
-                              : 'High performance industrial grade copper core motor. Engineered for durability with dual speed gearbox, variable speed trigger and integrated LED work light.',
+                          p.description?.isNotEmpty == true ? p.description! : 'High performance industrial grade copper core motor. Engineered for durability with dual speed gearbox, variable speed trigger and integrated LED work light.',
                           style: const TextStyle(
                             fontSize: 13,
                             height: 1.5,
@@ -288,16 +323,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _makeCall(biz?.phoneE164 ?? '+919876543210'),
+                      onPressed: () =>
+                          _makeCall(biz?.phoneE164 ?? '+919876543210'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.emerald, width: 1.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(
+                          color: AppTheme.emerald,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.call_rounded, size: 18, color: AppTheme.emerald),
+                          Icon(
+                            Icons.call_rounded,
+                            size: 18,
+                            color: AppTheme.emerald,
+                          ),
                           SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -321,7 +366,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Order inquiry placed for ${p.name}!'),
+                            content: Text(
+                              'Order inquiry placed for ${p.name}!',
+                            ),
                             backgroundColor: AppTheme.primary,
                           ),
                         );
@@ -330,12 +377,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         backgroundColor: AppTheme.emerald,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.bolt_rounded, size: 18, color: Colors.white),
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 6),
                           Flexible(
                             child: Text(
@@ -397,7 +450,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         SizedBox(height: 8),
         Text(
           'Cordless Drill Machine 18V',
-          style: TextStyle(color: Color(0xFF9AA5B1), fontSize: 13, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Color(0xFF9AA5B1),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

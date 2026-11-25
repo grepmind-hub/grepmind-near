@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grepmind_mobile/core/providers/app_provider.dart';
+import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
+import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/screens/splash_screen.dart';
+import 'package:grepmind_mobile/core/widgets/metallic_button.dart';
 import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 import 'package:grepmind_mobile/features/onboarding/introduction_preferences.dart';
+import 'package:grepmind_mobile/main.dart';
 
-/// Mounted only after the app has finished restoring an unauthenticated session.
+/// Screen 03: Get Started / Onboarding Screen.
+///
+/// Implements the approved Metallic Teal Fluid Wave + Pearl White UI.
+/// - Top fluid wave header
+/// - Top-right rounded white Skip button
+/// - Large seamless 3D illustration (Storefront + Delivery pro with grocery bag)
+/// - Bold "Everything Local At Your Doorstep" heading
+/// - "Discover shops, book services, order food & grocery — all in one app." subtitle
+/// - 3-dot pagination indicator (metallic teal active pill)
+/// - Full-width glossy MetallicButton "Get started"
 class IntroductionScreen extends ConsumerStatefulWidget {
   const IntroductionScreen({super.key});
 
@@ -42,162 +56,232 @@ class _IntroductionScreenState extends ConsumerState<IntroductionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    if (authState.isAuthenticated) {
+      final activeRole = authState.activeRole;
+      if (activeRole == null) {
+        return const RoleSelectionScreen();
+      } else if (activeRole == 'admin') {
+        return const AdminPortalScreen();
+      } else {
+        return MainNavigator(
+          key: ValueKey('workspace-$activeRole'),
+          activeRole: activeRole,
+        );
+      }
+    }
+
     if (_showLogin) return const OnboardingScreen();
+
     return FutureBuilder<bool>(
       future: _preference,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const SplashScreen();
+          return const SplashScreen.dark();
         }
         if (snapshot.data == true) return const OnboardingScreen();
+
         return Theme(
           data: AbashyakaTheme.theme(context),
-          child: Builder(
-            builder: (context) => Scaffold(
-              backgroundColor: AbashyakaTheme.warmWhite,
-              body: SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AbashyakaTheme.pagePadding,
-                          vertical: 16,
+          child: Scaffold(
+            backgroundColor: AbashyakaColors.pearlWhite,
+            body: Stack(
+              children: [
+                // Background: Approved Full-Screen Metallic Wave Canvas from bg-3.webp
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(
+                          'assets/backgrounds/premium/onboarding_background.webp',
                         ),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 8),
-                            ExcludeSemantics(
-                              child: Image.asset(
-                                AbashyakaTheme.onboardingHero,
-                                height: (constraints.maxHeight * .38).clamp(
-                                  180,
-                                  320,
-                                ),
-                                width: double.infinity,
-                                fit: BoxFit.contain,
-                                cacheWidth: 960,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Semantics(
-                              header: true,
-                              child: Text(
-                                'All Your Needs\nin One App',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      height: 1.2,
-                                      letterSpacing: -.5,
-                                      color: AbashyakaTheme.text,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Main Foreground Content
+                SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AbashyakaSpacing.screenHorizontal,
+                            vertical: 12,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Top Bar with Skip button aligned right
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: InkWell(
+                                  key: const Key('skipButton'),
+                                  onTap: _saving ? null : _getStarted,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 7,
                                     ),
+                                    decoration: BoxDecoration(
+                                      color: AbashyakaColors.pureWhite,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AbashyakaColors.silverGlass,
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x0A003F46),
+                                          blurRadius: 6,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      'Skip',
+                                      style:
+                                          AbashyakaTypography.categoryLabel(
+                                            color: AbashyakaColors.inkBlack,
+                                          ).copyWith(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Shop, book services, ride,\nget medicines and more,\nfrom nearby businesses.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                height: 1.45,
-                                color: AbashyakaTheme.muted,
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(height: 12),
+
+                              // Central Large Seamless 3D Illustration
+                              ExcludeSemantics(
+                                child: Image.asset(
+                                  'assets/illustrations/onboarding_local_3d.webp',
+                                  height: (constraints.maxHeight * 0.38).clamp(
+                                    160.0,
+                                    310.0,
+                                  ),
+                                  width: double.infinity,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => Image.asset(
+                                    'assets/abashyaka/onboarding_3d_phone.png',
+                                    height: (constraints.maxHeight * 0.38)
+                                        .clamp(160.0, 310.0),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            // 3-dot pagination indicator
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AbashyakaTheme.green,
-                                    shape: BoxShape.circle,
-                                  ),
+                              const SizedBox(height: 24),
+
+                              // Heading: Everything Local At Your Doorstep
+                              Semantics(
+                                header: true,
+                                child: Text(
+                                  'Everything Local\nAt Your Doorstep',
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      AbashyakaTypography.displayHeading(
+                                        fontSize: 27,
+                                        color: AbashyakaColors.inkBlack,
+                                      ).copyWith(
+                                        height: 1.25,
+                                        letterSpacing: -0.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFD1D5DB),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFD1D5DB),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                key: const Key('getStartedButton'),
-                                onPressed: _saving ? null : _getStarted,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AbashyakaTheme.green,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size.fromHeight(54),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(27),
-                                  ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Subtitle
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
                                 ),
                                 child: Text(
-                                  _saving ? 'Opening sign in…' : 'Get started',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
+                                  'Discover shops, book services, order food & grocery — all in one app.',
+                                  textAlign: TextAlign.center,
+                                  style: AbashyakaTypography.supportingText(
+                                    fontSize: 14.5,
+                                    color: AbashyakaColors.secondaryText,
+                                  ).copyWith(height: 1.45),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // 3-dot pagination indicator (polished metallic teal active pill)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: AbashyakaColors.metallicTeal,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: AbashyakaColors.silverGlass,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: AbashyakaColors.silverGlass,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
+
+                              // Glossy MetallicButton "Get started"
+                              MetallicButton(
+                                buttonKey: const Key('getStartedButton'),
+                                text: 'Get started',
+                                trailingIcon: const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                isLoading: _saving,
+                                onPressed: _saving ? null : _getStarted,
+                              ),
+                              if (snapshot.hasError)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 16),
+                                  child: TextButton.icon(
+                                    onPressed: () => setState(() {
+                                      _preference = ref
+                                          .read(introductionPreferencesProvider)
+                                          .isComplete();
+                                    }),
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text(
+                                      'Could not load your welcome preference. Retry',
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: _saving ? null : _getStarted,
-                              child: const Text(
-                                'Skip',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AbashyakaTheme.muted,
-                                ),
-                              ),
-                            ),
-                            if (snapshot.hasError)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: TextButton.icon(
-                                  onPressed: () => setState(() {
-                                    _preference = ref
-                                        .read(introductionPreferencesProvider)
-                                        .isComplete();
-                                  }),
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text(
-                                    'Could not load your welcome preference. Retry',
-                                  ),
-                                ),
-                              ),
-                          ],
+                              const SizedBox(height: 16),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         );

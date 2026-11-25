@@ -20,7 +20,8 @@ class ServiceRequestScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
+  ConsumerState<ServiceRequestScreen> createState() =>
+      _ServiceRequestScreenState();
 }
 
 class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
@@ -64,7 +65,9 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
       if (mounted) {
         final businessDetailState = ref.read(businessDetailProvider);
         final biz = businessDetailState.detail;
-        final selectedSvc = businessDetailState.services.where((s) => s.id == _selectedServiceId).firstOrNull;
+        final selectedSvc = businessDetailState.services
+            .where((s) => s.id == _selectedServiceId)
+            .firstOrNull;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -106,108 +109,125 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: Text('Request from ${widget.businessName}'),
-      ),
+      appBar: AppBar(title: Text('Request from ${widget.businessName}')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(kScreenPadding),
         child: PremiumCard(
           padding: const EdgeInsets.all(22),
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const ScreenIllustrationCard(
-              illustration: ScreenIllustration.booking,
-              title: 'Tell us what you need',
-              subtitle: 'Share a few details so the provider can respond',
-              icon: Icons.handyman_outlined,
-              compact: true,
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'What do you need help with?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
-            ),
-            const SizedBox(height: 16),
-            if (services.isNotEmpty)
-              DropdownButtonFormField<String>(
-                hint: const Text('Select a service'),
-                initialValue: _selectedServiceId,
-                items: services
-                    .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  _selectedServiceId = v;
-                }),
-                decoration: const InputDecoration(
-                  labelText: 'Service type',
-                  border: OutlineInputBorder(),
-                ),
-              )
-            else
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'Service type (no services listed)',
-                  border: OutlineInputBorder(),
-                ),
-                readOnly: true,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ScreenIllustrationCard(
+                illustration: ScreenIllustration.booking,
+                title: 'Tell us what you need',
+                subtitle: 'Share a few details so the provider can respond',
+                icon: Icons.handyman_outlined,
+                compact: true,
               ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Describe your request',
-                hintText: 'e.g. Leaking tap in the kitchen, need repair by this weekend',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Material(
-              color: Colors.transparent,
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.emerald),
-                title: const Text('Preferred date & time'),
-                subtitle: Text(
-                  _requestedFor == null ? 'Select when you need the service' : _requestedFor.toString(),
-                  style: const TextStyle(color: AppTheme.secondaryText),
+              const SizedBox(height: 18),
+              const Text(
+                'What do you need help with?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.mainText,
                 ),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.hintText),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 30)),
-                  );
-                  if (picked != null) setState(() => _requestedFor = picked);
-                },
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.emerald,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 16),
+              if (services.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  hint: const Text('Select a service'),
+                  initialValue: _selectedServiceId,
+                  items: services
+                      .map(
+                        (s) =>
+                            DropdownMenuItem(value: s.id, child: Text(s.name)),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    _selectedServiceId = v;
+                  }),
+                  decoration: const InputDecoration(
+                    labelText: 'Service type',
+                    border: OutlineInputBorder(),
                   ),
+                )
+              else
+                const TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Service type (no services listed)',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true,
                 ),
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Submit request'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Describe your request',
+                  hintText: 'e.g. Leaking tap in the kitchen, need repair by this weekend',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.calendar_today_outlined,
+                    color: AppTheme.emerald,
+                  ),
+                  title: const Text('Preferred date & time'),
+                  subtitle: Text(
+                    _requestedFor == null
+                        ? 'Select when you need the service'
+                        : _requestedFor.toString(),
+                    style: const TextStyle(color: AppTheme.secondaryText),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppTheme.hintText,
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 30)),
+                    );
+                    if (picked != null) setState(() => _requestedFor = picked);
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.emerald,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Submit request'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

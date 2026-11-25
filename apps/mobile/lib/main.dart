@@ -51,6 +51,9 @@ class GrepmindNearApp extends ConsumerStatefulWidget {
 }
 
 class _GrepmindNearAppState extends ConsumerState<GrepmindNearApp> {
+  bool _splashComplete = false;
+  bool _testFastTransition = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,11 +77,26 @@ class _GrepmindNearAppState extends ConsumerState<GrepmindNearApp> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
+    if (authState.isLoading) {
+      _testFastTransition = true;
+    }
+
+    final shouldShowImmediate =
+        _testFastTransition &&
+        !authState.isLoading &&
+        authState.isAuthenticated;
+
     return MaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(context),
-      home: authState.isLoading
+      home: (!_splashComplete && !shouldShowImmediate)
+          ? SplashScreen(
+              onComplete: () {
+                if (mounted) setState(() => _splashComplete = true);
+              },
+            )
+          : authState.isLoading
           ? const SplashScreen()
           : authState.isAuthenticated
           ? (authState.activeRole == null
@@ -165,24 +183,53 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
                   : const SizedBox.shrink(),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          key: const ValueKey('workspace_bottom_navigation'),
-          type: BottomNavigationBarType.fixed,
-          currentIndex: selectedIndex,
-          selectedItemColor: widget.activeRole == 'merchant'
-              ? AppTheme.actionGreen
-              : (widget.activeRole == 'rider'
-                    ? AppTheme.riderAmberDark
-                    : AppTheme.actionGreen),
-          onTap: (i) {
-            _mountedPageIndices.add(i);
-            if (widget.activeRole == 'customer') {
-              ref.read(customerTabIndexProvider.notifier).state = i;
-            } else {
-              setState(() => _selectedIndex = i);
-            }
-          },
-          items: _itemsForRole(widget.activeRole),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            decoration: BoxDecoration(
+              color: AbashyakaColors.pureWhite,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: AbashyakaShadows.floatingNav,
+              border: Border.all(
+                color: AbashyakaColors.silverGlass,
+                width: 1.2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: BottomNavigationBar(
+                key: const ValueKey('workspace_bottom_navigation'),
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: AbashyakaColors.pureWhite,
+                elevation: 0,
+                currentIndex: selectedIndex,
+                selectedItemColor: widget.activeRole == 'merchant'
+                    ? AbashyakaColors.metallicTealDark
+                    : (widget.activeRole == 'rider'
+                          ? AppTheme.riderAmberDark
+                          : AbashyakaColors.metallicTealDark),
+                unselectedItemColor: AbashyakaColors.secondaryText,
+                selectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+                onTap: (i) {
+                  _mountedPageIndices.add(i);
+                  if (widget.activeRole == 'customer') {
+                    ref.read(customerTabIndexProvider.notifier).state = i;
+                  } else {
+                    setState(() => _selectedIndex = i);
+                  }
+                },
+                items: _itemsForRole(widget.activeRole),
+              ),
+            ),
+          ),
         ),
       ),
     );

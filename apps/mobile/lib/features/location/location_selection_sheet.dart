@@ -96,11 +96,7 @@ class _LocationSelectionSheetState
         ),
         content: const Text(
           'Abashyaka uses your location to discover nearby local merchants, show real-time delivery estimates, and connect you with verified local service professionals.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Color(0xFF4B5563),
-            height: 1.4,
-          ),
+          style: TextStyle(fontSize: 13, color: Color(0xFF4B5563), height: 1.4),
         ),
         actions: [
           TextButton(
@@ -180,7 +176,9 @@ class _LocationSelectionSheetState
         return;
       }
 
-      ref.read(appLocationProvider.notifier).setLocation(
+      ref
+          .read(appLocationProvider.notifier)
+          .setLocation(
             AppLocation(
               cityName: check.districtName.isNotEmpty
                   ? check.districtName
@@ -252,7 +250,9 @@ class _LocationSelectionSheetState
 
     if (mounted) {
       if (check.serviceable) {
-        ref.read(appLocationProvider.notifier).setLocation(
+        ref
+            .read(appLocationProvider.notifier)
+            .setLocation(
               AppLocation(
                 cityName: check.districtName.isNotEmpty
                     ? check.districtName
@@ -532,183 +532,183 @@ class _LocationSelectionSheetState
                   ),
                 )
               : filtered.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.location_off_outlined,
-                              size: 44,
-                              color: Color(0xFF9CA3AF),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_off_outlined,
+                          size: 44,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No coverage for "${_searchController.text}"',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AbashyakaTheme.carbon,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Try searching another locality or PIN code.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _showOutsideServiceArea = true;
+                              _unservicedPinCode = _searchController.text
+                                  .trim();
+                              _unservicedLocality = _searchController.text
+                                  .trim();
+                              _notified = false;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AbashyakaTheme.vibrantGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No coverage for "${_searchController.text}"',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AbashyakaTheme.carbon,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Try searching another locality or PIN code.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6B7280),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _showOutsideServiceArea = true;
-                                  _unservicedPinCode =
-                                      _searchController.text.trim();
-                                  _unservicedLocality =
-                                      _searchController.text.trim();
-                                  _notified = false;
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AbashyakaTheme.vibrantGreen,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text('Check Coverage Status'),
-                            ),
-                          ],
+                            elevation: 0,
+                          ),
+                          child: const Text('Check Coverage Status'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(color: Color(0xFFF3F4F6), height: 1),
+                  itemBuilder: (context, index) {
+                    final loc = filtered[index];
+                    final isSelected =
+                        currentLocation.localityName.toLowerCase() ==
+                        loc.name.toLowerCase();
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AbashyakaTheme.lightMint
+                              : const Color(0xFFF3F4F6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isSelected
+                              ? Icons.check_circle_rounded
+                              : Icons.location_on_outlined,
+                          color: isSelected
+                              ? AbashyakaTheme.vibrantGreen
+                              : const Color(0xFF6B7280),
+                          size: 20,
                         ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) =>
-                          const Divider(color: Color(0xFFF3F4F6), height: 1),
-                      itemBuilder: (context, index) {
-                        final loc = filtered[index];
-                        final isSelected =
-                            currentLocation.localityName.toLowerCase() ==
-                                loc.name.toLowerCase();
-
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AbashyakaTheme.lightMint
-                                  : const Color(0xFFF3F4F6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isSelected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.location_on_outlined,
-                              color: isSelected
-                                  ? AbashyakaTheme.vibrantGreen
-                                  : const Color(0xFF6B7280),
-                              size: 20,
+                      title: Row(
+                        children: [
+                          Text(
+                            loc.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: AbashyakaTheme.carbon,
                             ),
                           ),
-                          title: Row(
-                            children: [
-                              Text(
-                                loc.name,
+                          const SizedBox(width: 8),
+                          if (loc.deliveryEnabled)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AbashyakaTheme.lightMint,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Delivery Active',
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  color: AbashyakaTheme.carbon,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AbashyakaTheme.actionGreen,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              if (loc.deliveryEnabled)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 1.5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AbashyakaTheme.lightMint,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'Delivery Active',
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AbashyakaTheme.actionGreen,
-                                    ),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 1.5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFEF3F2),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'Discovery Only',
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFFB42318),
-                                    ),
-                                  ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3F2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Discovery Only',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFB42318),
                                 ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            '${loc.districtName}, Odisha · ${loc.pinCodes.isNotEmpty ? loc.pinCodes.join(", ") : "Postal Zone"}',
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF6B7280),
+                              ),
                             ),
-                          ),
-                          trailing: isSelected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: AbashyakaTheme.vibrantGreen,
-                                  size: 20,
-                                )
-                              : null,
-                          onTap: () {
-                            ref
-                                .read(appLocationProvider.notifier)
-                                .setLocation(
-                                  AppLocation(
-                                    cityName: loc.districtName,
-                                    localityName: loc.name,
-                                    localityId: loc.id,
-                                    latitude: loc.latitude ?? 20.6105,
-                                    longitude: loc.longitude ?? 86.0270,
-                                    activeBusinessCount: 15,
-                                  ),
-                                );
-                            Navigator.pop(context);
-                          },
-                        );
+                        ],
+                      ),
+                      subtitle: Text(
+                        '${loc.districtName}, Odisha · ${loc.pinCodes.isNotEmpty ? loc.pinCodes.join(", ") : "Postal Zone"}',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: AbashyakaTheme.vibrantGreen,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () {
+                        ref
+                            .read(appLocationProvider.notifier)
+                            .setLocation(
+                              AppLocation(
+                                cityName: loc.districtName,
+                                localityName: loc.name,
+                                localityId: loc.id,
+                                latitude: loc.latitude ?? 20.6105,
+                                longitude: loc.longitude ?? 86.0270,
+                                activeBusinessCount: 15,
+                              ),
+                            );
+                        Navigator.pop(context);
                       },
-                    ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -964,10 +964,7 @@ class _LocationSelectionSheetState
               ),
               child: const Text(
                 'Change location',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
             ),
           ),

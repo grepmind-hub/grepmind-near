@@ -81,7 +81,10 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
                     children: [
                       // Tag
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF8A00),
                           borderRadius: BorderRadius.circular(6),
@@ -169,7 +172,11 @@ class FeaturedNeighborhoodCard extends StatelessWidget {
         ),
       ),
       child: const Center(
-        child: Icon(Icons.storefront_rounded, size: 54, color: Color(0xFFDDF5A6)),
+        child: Icon(
+          Icons.storefront_rounded,
+          size: 54,
+          color: Color(0xFFDDF5A6),
+        ),
       ),
     );
   }

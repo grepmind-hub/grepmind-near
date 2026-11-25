@@ -1039,9 +1039,7 @@ class _MerchantRegistrationScreenState
                   Container(
                     width: 16,
                     height: 2,
-                    color: isDone
-                        ? AppTheme.emerald
-                        : const Color(0xFFE2E8F0),
+                    color: isDone ? AppTheme.emerald : const Color(0xFFE2E8F0),
                     margin: const EdgeInsets.only(bottom: 14),
                   ),
               ],

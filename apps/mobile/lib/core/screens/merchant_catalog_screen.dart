@@ -234,7 +234,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         ),
       ),
       body: catalogState.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.emerald))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.emerald),
+            )
           : TabBarView(
               controller: _tabController,
               children: [
@@ -353,7 +355,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
   Widget _buildProductCard(Product p) {
     final double? price = p.price;
     final double mrp = price != null ? price * 1.25 : 0;
-    final int qty = p.availableQuantity ?? (p.stockStatus == 'out_of_stock' ? 0 : 10);
+    final int qty =
+        p.availableQuantity ?? (p.stockStatus == 'out_of_stock' ? 0 : 10);
 
     return PremiumCard(
       padding: const EdgeInsets.all(14),
@@ -452,7 +455,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(4),
@@ -497,29 +503,40 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     children: [
                       InkWell(
                         key: Key('decrement_stock_${p.id}'),
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(8),
+                        ),
                         onTap: () {
                           final newQty = qty > 0 ? qty - 1 : 0;
                           final newStatus = newQty == 0
                               ? 'out_of_stock'
                               : (newQty <= 5 ? 'limited' : 'in_stock');
-                          ref.read(merchantCatalogProvider.notifier).updateProduct(
-                            p.id,
-                            {
-                              'available_quantity': newQty,
-                              'stock_status': newStatus,
-                              'inventory_mode': 'finite',
-                            },
-                          );
+                          ref
+                              .read(merchantCatalogProvider.notifier)
+                              .updateProduct(p.id, {
+                                'available_quantity': newQty,
+                                'stock_status': newStatus,
+                                'inventory_mode': 'finite',
+                              });
                         },
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Icon(Icons.remove, size: 16, color: AppTheme.mainText),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Icon(
+                            Icons.remove,
+                            size: 16,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                       ),
                       Container(
                         key: Key('stock_count_${p.id}'),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         color: Colors.white,
                         child: Text(
                           'Qty: $qty',
@@ -532,22 +549,32 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       ),
                       InkWell(
                         key: Key('increment_stock_${p.id}'),
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                        borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(8),
+                        ),
                         onTap: () {
                           final newQty = qty + 1;
-                          final newStatus = newQty <= 5 ? 'limited' : 'in_stock';
-                          ref.read(merchantCatalogProvider.notifier).updateProduct(
-                            p.id,
-                            {
-                              'available_quantity': newQty,
-                              'stock_status': newStatus,
-                              'inventory_mode': 'finite',
-                            },
-                          );
+                          final newStatus = newQty <= 5
+                              ? 'limited'
+                              : 'in_stock';
+                          ref
+                              .read(merchantCatalogProvider.notifier)
+                              .updateProduct(p.id, {
+                                'available_quantity': newQty,
+                                'stock_status': newStatus,
+                                'inventory_mode': 'finite',
+                              });
                         },
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Icon(Icons.add, size: 16, color: AppTheme.emerald),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            size: 16,
+                            color: AppTheme.emerald,
+                          ),
                         ),
                       ),
                     ],
@@ -786,7 +813,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   Switch.adaptive(
                     key: Key('toggle_service_active_${s.id}'),
                     value: s.isActive,
-                    activeThumbColor: AppTheme.coral, activeTrackColor: AppTheme.merchantCoralBorder,
+                    activeThumbColor: AppTheme.coral,
+                    activeTrackColor: AppTheme.merchantCoralBorder,
                     onChanged: (val) {
                       ref.read(merchantCatalogProvider.notifier).updateService(
                         s.id,
@@ -1029,7 +1057,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       text: product?.price != null ? product!.price!.toStringAsFixed(0) : '',
     );
     final mrpCtrl = TextEditingController(
-      text: product?.price != null ? (product!.price! * 1.25).toStringAsFixed(0) : '',
+      text: product?.price != null
+          ? (product!.price! * 1.25).toStringAsFixed(0)
+          : '',
     );
     String selectedUnit = '1 pc';
     final imageCtrl = TextEditingController(text: product?.imageUrl ?? '');
@@ -1136,11 +1166,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.15,
-                          ),
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1.15,
+                              ),
                           itemCount: categorySampleLabels.length,
                           itemBuilder: (context, index) => Material(
                             color: Colors.white,
@@ -1284,7 +1314,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           children: [
                             const Text(
                               'Price (₹ INR) *',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             TextField(
@@ -1312,7 +1345,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           children: [
                             const Text(
                               'MRP (₹ INR)',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             TextField(
@@ -1347,18 +1383,33 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        for (final unit in ['1 kg', '500 g', '250 g', '1 pc', 'Pack of 2', 'Custom'])
+                        for (final unit in [
+                          '1 kg',
+                          '500 g',
+                          '250 g',
+                          '1 pc',
+                          'Pack of 2',
+                          'Custom',
+                        ])
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: ChoiceChip(
-                              label: Text(unit, style: const TextStyle(fontSize: 12)),
+                              label: Text(
+                                unit,
+                                style: const TextStyle(fontSize: 12),
+                              ),
                               selected: selectedUnit == unit,
                               selectedColor: const Color(0xFFE8F5E9),
                               labelStyle: TextStyle(
-                                color: selectedUnit == unit ? AppTheme.emerald : AppTheme.mainText,
-                                fontWeight: selectedUnit == unit ? FontWeight.w700 : FontWeight.w500,
+                                color: selectedUnit == unit
+                                    ? AppTheme.emerald
+                                    : AppTheme.mainText,
+                                fontWeight: selectedUnit == unit
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                               ),
-                              onSelected: (_) => setModalState(() => selectedUnit = unit),
+                              onSelected: (_) =>
+                                  setModalState(() => selectedUnit = unit),
                             ),
                           ),
                       ],
@@ -1490,7 +1541,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   ),
                   const SizedBox(height: 8),
 
-                  if (selectedImageBytes != null || currentImageUrl.isNotEmpty) ...[
+                  if (selectedImageBytes != null ||
+                      currentImageUrl.isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
@@ -1521,12 +1573,15 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                   : Image.network(
                                       currentImageUrl,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => const ColoredBox(
-                                        color: Color(0xFFEAF0F8),
-                                        child: Center(
-                                          child: Text('Image preview unavailable'),
-                                        ),
-                                      ),
+                                      errorBuilder: (_, _, _) =>
+                                          const ColoredBox(
+                                            color: Color(0xFFEAF0F8),
+                                            child: Center(
+                                              child: Text(
+                                                'Image preview unavailable',
+                                              ),
+                                            ),
+                                          ),
                                     ),
                             ),
                           ),
@@ -1580,7 +1635,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                         value: 'camera',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.camera_alt_outlined, size: 18),
+                                            Icon(
+                                              Icons.camera_alt_outlined,
+                                              size: 18,
+                                            ),
                                             SizedBox(width: 8),
                                             Text('Camera'),
                                           ],
@@ -1590,7 +1648,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                         value: 'gallery',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.photo_library_outlined, size: 18),
+                                            Icon(
+                                              Icons.photo_library_outlined,
+                                              size: 18,
+                                            ),
                                             SizedBox(width: 8),
                                             Text('Gallery'),
                                           ],
@@ -1600,7 +1661,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                         value: 'sample',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.collections_outlined, size: 18),
+                                            Icon(
+                                              Icons.collections_outlined,
+                                              size: 18,
+                                            ),
                                             SizedBox(width: 8),
                                             Text('Sample Photos'),
                                           ],
@@ -1745,7 +1809,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: AppTheme.merchantCoralBorder),
+                          side: const BorderSide(
+                            color: AppTheme.merchantCoralBorder,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1808,104 +1874,115 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: isUploadingImage ? null : () async {
-                        final name = nameCtrl.text.trim();
-                        if (name.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Product title is required.'),
-                            ),
-                          );
-                          return;
-                        }
-                        final priceText = priceCtrl.text.trim();
-                        final price = double.tryParse(priceText);
-                        if (priceText.isNotEmpty &&
-                            (price == null || price < 0)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Enter a valid price of zero or more.',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-                        final availableQuantity = inventoryMode == 'finite'
-                            ? int.tryParse(quantityCtrl.text.trim())
-                            : null;
-                        if (inventoryMode == 'finite' &&
-                            (availableQuantity == null ||
-                                availableQuantity < 0)) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Enter a valid available quantity.',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-                        var imageUrl = currentImageUrl;
-                        if (selectedImageBytes != null) {
-                          setModalState(() => isUploadingImage = true);
-                          try {
-                            final upload = await apiClient.uploadMedia(
-                              bytes: selectedImageBytes!,
-                              filename: selectedImageFilename ?? 'product-photo.jpg',
-                              purpose: 'product',
-                            );
-                            final imagePath = upload['url'] as String? ?? '';
-                            if (imagePath.isNotEmpty) {
-                              imageUrl = apiClient.resolveMediaUrl(imagePath);
-                            }
-                          } catch (_) {
-                            // If upload endpoint is unavailable in sandbox, continue
-                          } finally {
-                            if (modalCtx.mounted) {
-                              setModalState(() => isUploadingImage = false);
-                            }
-                          }
-                        }
-                        final saved = isEditing
-                            ? await ref
-                                  .read(merchantCatalogProvider.notifier)
-                                  .updateProduct(product.id, {
-                                    'name': name,
-                                    'description': descCtrl.text.trim(),
-                                    'price': price,
-                                    'stock_status': stockStatus,
-                                    'inventory_mode': inventoryMode,
-                                    'available_quantity': availableQuantity,
-                                    'is_published': isPublished,
-                                    'image_url': imageUrl,
-                                  })
-                            : await ref
-                                  .read(merchantCatalogProvider.notifier)
-                                  .createProduct(
-                                    name: name,
-                                    description: descCtrl.text.trim(),
-                                    price: price,
-                                    stockStatus: stockStatus,
-                                    inventoryMode: inventoryMode,
-                                    availableQuantity: availableQuantity,
-                                    isPublished: isPublished,
-                                    imageUrl: imageUrl,
+                      onPressed: isUploadingImage
+                          ? null
+                          : () async {
+                              final name = nameCtrl.text.trim();
+                              if (name.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Product title is required.'),
+                                  ),
+                                );
+                                return;
+                              }
+                              final priceText = priceCtrl.text.trim();
+                              final price = double.tryParse(priceText);
+                              if (priceText.isNotEmpty &&
+                                  (price == null || price < 0)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Enter a valid price of zero or more.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              final availableQuantity =
+                                  inventoryMode == 'finite'
+                                  ? int.tryParse(quantityCtrl.text.trim())
+                                  : null;
+                              if (inventoryMode == 'finite' &&
+                                  (availableQuantity == null ||
+                                      availableQuantity < 0)) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Enter a valid available quantity.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              var imageUrl = currentImageUrl;
+                              if (selectedImageBytes != null) {
+                                setModalState(() => isUploadingImage = true);
+                                try {
+                                  final upload = await apiClient.uploadMedia(
+                                    bytes: selectedImageBytes!,
+                                    filename:
+                                        selectedImageFilename ??
+                                        'product-photo.jpg',
+                                    purpose: 'product',
                                   );
+                                  final imagePath =
+                                      upload['url'] as String? ?? '';
+                                  if (imagePath.isNotEmpty) {
+                                    imageUrl = apiClient.resolveMediaUrl(
+                                      imagePath,
+                                    );
+                                  }
+                                } catch (_) {
+                                  // If upload endpoint is unavailable in sandbox, continue
+                                } finally {
+                                  if (modalCtx.mounted) {
+                                    setModalState(
+                                      () => isUploadingImage = false,
+                                    );
+                                  }
+                                }
+                              }
+                              final saved = isEditing
+                                  ? await ref
+                                        .read(merchantCatalogProvider.notifier)
+                                        .updateProduct(product.id, {
+                                          'name': name,
+                                          'description': descCtrl.text.trim(),
+                                          'price': price,
+                                          'stock_status': stockStatus,
+                                          'inventory_mode': inventoryMode,
+                                          'available_quantity':
+                                              availableQuantity,
+                                          'is_published': isPublished,
+                                          'image_url': imageUrl,
+                                        })
+                                  : await ref
+                                        .read(merchantCatalogProvider.notifier)
+                                        .createProduct(
+                                          name: name,
+                                          description: descCtrl.text.trim(),
+                                          price: price,
+                                          stockStatus: stockStatus,
+                                          inventoryMode: inventoryMode,
+                                          availableQuantity: availableQuantity,
+                                          isPublished: isPublished,
+                                          imageUrl: imageUrl,
+                                        );
 
-                        if (!context.mounted) return;
-                        if (!saved) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Could not save product. Check your connection and try again.',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-                        Navigator.pop(modalCtx);
-                      },
+                              if (!context.mounted) return;
+                              if (!saved) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Could not save product. Check your connection and try again.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              Navigator.pop(modalCtx);
+                            },
                       child: Text(
                         isEditing ? 'Save Changes' : 'Create Product',
                         style: const TextStyle(
@@ -2112,7 +2189,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     children: [
                       Switch.adaptive(
                         value: isActive,
-                        activeThumbColor: AppTheme.coral, activeTrackColor: AppTheme.merchantCoralBorder,
+                        activeThumbColor: AppTheme.coral,
+                        activeTrackColor: AppTheme.merchantCoralBorder,
                         onChanged: (val) => setModalState(() => isActive = val),
                       ),
                       const SizedBox(width: 8),

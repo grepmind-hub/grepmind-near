@@ -130,11 +130,17 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
               onPressed: () => ref.read(favoritesProvider.notifier).load(),
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry', style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Retry',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),

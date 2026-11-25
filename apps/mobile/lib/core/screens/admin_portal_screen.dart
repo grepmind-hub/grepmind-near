@@ -13,7 +13,8 @@ class AdminPortalScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminPortalScreen> createState() => _AdminPortalScreenState();
 }
 
-class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with SingleTickerProviderStateMixin {
+class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   final List<Map<String, dynamic>> _pendingBusinesses = [];
@@ -67,7 +68,9 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Claim for ${claim["business"]} approved! Ownership transferred.'),
+        content: Text(
+          'Claim for ${claim["business"]} approved! Ownership transferred.',
+        ),
         backgroundColor: const Color(0xFF059669),
       ),
     );
@@ -109,7 +112,9 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
             icon: const Icon(Icons.swap_horiz, color: Color(0xFF7C3AED)),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RoleSelectionScreen(isSwitching: true)),
+                MaterialPageRoute(
+                  builder: (_) => const RoleSelectionScreen(isSwitching: true),
+                ),
               );
             },
           ),
@@ -142,14 +147,25 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline, size: 56, color: Color(0xFF10B981)),
+            Icon(
+              Icons.check_circle_outline,
+              size: 56,
+              color: Color(0xFF10B981),
+            ),
             SizedBox(height: 12),
             Text(
               'All Caught Up!',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.mainText,
+              ),
             ),
             SizedBox(height: 6),
-            Text('No pending merchant registrations.', style: TextStyle(color: AppTheme.secondaryText)),
+            Text(
+              'No pending merchant registrations.',
+              style: TextStyle(color: AppTheme.secondaryText),
+            ),
           ],
         ),
       );
@@ -174,7 +190,11 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.storefront, color: AppTheme.primary, size: 24),
+                    child: const Icon(
+                      Icons.storefront,
+                      color: AppTheme.primary,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -183,25 +203,40 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       children: [
                         Text(
                           biz['name'] as String,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           biz['category'] as String,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F766E)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F766E),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
                       'PENDING',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFD97706),
+                      ),
                     ),
                   ),
                 ],
@@ -209,12 +244,19 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.place_outlined, size: 14, color: AppTheme.secondaryText),
+                  const Icon(
+                    Icons.place_outlined,
+                    size: 14,
+                    color: AppTheme.secondaryText,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       biz['locality'] as String,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ),
                 ],
@@ -222,16 +264,26 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.phone_outlined, size: 14, color: AppTheme.secondaryText),
+                  const Icon(
+                    Icons.phone_outlined,
+                    size: 14,
+                    color: AppTheme.secondaryText,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     biz['phone'] as String,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.secondaryText,
+                    ),
                   ),
                   const Spacer(),
                   Text(
                     biz['date'] as String,
-                    style: const TextStyle(fontSize: 11, color: AppTheme.hintText),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.hintText,
+                    ),
                   ),
                 ],
               ),
@@ -243,7 +295,9 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFDC2626),
                         side: const BorderSide(color: Color(0xFFFCA5A5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: () => _rejectBusiness(index),
                       child: const Text('Reject'),
@@ -255,7 +309,9 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: () => _approveBusiness(index),
@@ -277,14 +333,25 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.verified_user_outlined, size: 56, color: Color(0xFF10B981)),
+            Icon(
+              Icons.verified_user_outlined,
+              size: 56,
+              color: Color(0xFF10B981),
+            ),
             SizedBox(height: 12),
             Text(
               'No Claims Pending',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.mainText,
+              ),
             ),
             SizedBox(height: 6),
-            Text('All business ownership claims processed.', style: TextStyle(color: AppTheme.secondaryText)),
+            Text(
+              'All business ownership claims processed.',
+              style: TextStyle(color: AppTheme.secondaryText),
+            ),
           ],
         ),
       );
@@ -309,7 +376,11 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       color: const Color(0xFFF3E8FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.shield_outlined, color: Color(0xFF7C3AED), size: 24),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: Color(0xFF7C3AED),
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -318,12 +389,20 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                       children: [
                         Text(
                           claim['business'] as String,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.mainText,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           claim['method'] as String,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF059669),
+                          ),
                         ),
                       ],
                     ),
@@ -342,12 +421,19 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                   children: [
                     Text(
                       'Claimant: ${claim["claimedBy"]}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.mainText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.mainText,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Document: ${claim["document"]}',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ],
                 ),
@@ -359,7 +445,9 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7C3AED),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     elevation: 0,
                   ),
                   onPressed: () => _verifyClaim(index),
@@ -393,7 +481,11 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.receipt_long_outlined, color: AppTheme.secondaryText, size: 18),
+                child: const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppTheme.secondaryText,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -402,16 +494,26 @@ class _AdminPortalScreenState extends ConsumerState<AdminPortalScreen> with Sing
                   children: [
                     Text(
                       log['action'] as String,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.mainText),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.mainText,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       'Actor: ${log["actor"]}',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                     Text(
                       'Target: ${log["target"]}',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.secondaryText,
+                      ),
                     ),
                   ],
                 ),

@@ -230,7 +230,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         return false;
       }
       // 2. Category slug filter
-      if (_selectedCategorySlug != 'all' && b.categorySlug != _selectedCategorySlug) {
+      if (_selectedCategorySlug != 'all' &&
+          b.categorySlug != _selectedCategorySlug) {
         return false;
       }
       // 3. Open Now filter
@@ -264,8 +265,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               isSelected
                   ? BitmapDescriptor.hueMagenta
                   : (biz.shouldOpenServiceProfile
-                      ? BitmapDescriptor.hueAzure
-                      : _getCategoryHue(biz.categorySlug)),
+                        ? BitmapDescriptor.hueAzure
+                        : _getCategoryHue(biz.categorySlug)),
             ),
           ),
         );
@@ -277,9 +278,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         Marker(
           markerId: const MarkerId('my_location'),
           position: _currentPosition!.target,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueCyan,
-          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
           infoWindow: const InfoWindow(title: 'Search center'),
         ),
       );
@@ -459,12 +458,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             _buildInteractiveRadarCanvas(businesses),
 
           // Top Floating Type Filter Bar (All Places, Shops, Services, Open Now)
-          Positioned(
-            top: 10,
-            left: 0,
-            right: 0,
-            child: _buildTypeFilterBar(),
-          ),
+          Positioned(top: 10, left: 0, right: 0, child: _buildTypeFilterBar()),
 
           // Floating Category Carousel
           Positioned(
@@ -532,7 +526,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _error ?? 'No approved shops or services are within $_radiusKm km of this search point.',
+                        _error ??
+                            'No approved shops or services are within $_radiusKm km of this search point.',
                         textAlign: TextAlign.center,
                       ),
                       TextButton(
@@ -604,8 +599,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 final filtered = _filteredBusinesses;
                 if (_selectedBusiness != null &&
                     !filtered.any((b) => b.id == _selectedBusiness!.id)) {
-                  _selectedBusiness =
-                      filtered.isNotEmpty ? filtered.first : null;
+                  _selectedBusiness = filtered.isNotEmpty
+                      ? filtered.first
+                      : null;
                 }
               });
               _updateMarkers();
@@ -639,7 +635,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     Icon(
                       icon,
                       size: 15,
-                      color: isSelected ? Colors.white : const Color(0xFF087F0D),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF087F0D),
                     ),
                     const SizedBox(width: 5),
                   ],
@@ -647,9 +645,12 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     label,
                     style: TextStyle(
                       fontSize: 12.5,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? Colors.white : const Color(0xFF172820),
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF172820),
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -1020,8 +1021,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 color: isSelected
                     ? const Color(0xFF087F0D)
                     : (slug == 'all'
-                        ? const Color(0xFFF3FAF0)
-                        : CategoriesScreen.getCategoryBackgroundColor(slug)),
+                          ? const Color(0xFFF3FAF0)
+                          : CategoriesScreen.getCategoryBackgroundColor(slug)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
@@ -1048,8 +1049,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     color: isSelected
                         ? Colors.white
                         : (slug == 'all'
-                            ? const Color(0xFF087F0D)
-                            : CategoriesScreen.getCategoryColor(slug)),
+                              ? const Color(0xFF087F0D)
+                              : CategoriesScreen.getCategoryColor(slug)),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -1057,7 +1058,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : const Color(0xFF172820),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF172820),
                     ),
                   ),
                 ],

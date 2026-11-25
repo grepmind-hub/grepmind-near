@@ -166,7 +166,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               ),
               backgroundColor: const Color(0xFF374151),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           );
         }
@@ -192,7 +194,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       );
 
       final closest = distToChhatia <= distToKuanpal ? chhatia : kuanpal;
-      final shortestDist = distToChhatia <= distToKuanpal ? distToChhatia : distToKuanpal;
+      final shortestDist = distToChhatia <= distToKuanpal
+          ? distToChhatia
+          : distToKuanpal;
       final shortestKm = (shortestDist / 1000).toStringAsFixed(1);
 
       ref.read(appLocationProvider.notifier).setLocation(closest);
@@ -207,14 +211,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.my_location_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.my_location_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(child: Text(message)),
               ],
             ),
             backgroundColor: const Color(0xFF0B6B4A),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -225,10 +235,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('GPS unavailable. Switched to default hub: Chhatia, Jajpur.'),
+            content: const Text(
+              'GPS unavailable. Switched to default hub: Chhatia, Jajpur.',
+            ),
             backgroundColor: const Color(0xFF374151),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -324,15 +338,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF0B6B4A).withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: const Color(0xFF0B6B4A).withValues(alpha: 0.3),
+                      ),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.my_location_rounded, color: Color(0xFF0B6B4A), size: 22),
+                        Icon(
+                          Icons.my_location_rounded,
+                          color: Color(0xFF0B6B4A),
+                          size: 22,
+                        ),
                         SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -356,7 +379,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             ],
                           ),
                         ),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF0B6B4A)),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Color(0xFF0B6B4A),
+                        ),
                       ],
                     ),
                   ),
@@ -406,7 +433,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     required String badge,
     required bool isRecommended,
   }) {
-    final isSelected = ref.watch(appLocationProvider).localityName == location.localityName;
+    final isSelected =
+        ref.watch(appLocationProvider).localityName == location.localityName;
     return InkWell(
       onTap: () {
         Navigator.pop(ctx);
@@ -420,7 +448,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFFE5E7EB),
+            color: isSelected
+                ? const Color(0xFF0B6B4A)
+                : const Color(0xFFE5E7EB),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -429,7 +459,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFFF3F4F6),
+                color: isSelected
+                    ? const Color(0xFF0B6B4A)
+                    : const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -450,15 +482,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          color: isSelected ? const Color(0xFF0B6B4A) : const Color(0xFF1F2937),
+                          color: isSelected
+                              ? const Color(0xFF0B6B4A)
+                              : const Color(0xFF1F2937),
                         ),
                       ),
                       if (isRecommended) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF8A00).withValues(alpha: 0.15),
+                            color: const Color(0xFFFF8A00)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -476,7 +514,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
                   ),
                 ],
               ),
@@ -535,8 +576,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       bottomNavigationBar: groceryCart.itemCount > 0
           ? StickyCartSummaryBar(scope: groceryScope)
           : foodCart.itemCount > 0
-              ? StickyCartSummaryBar(scope: foodScope)
-              : null,
+          ? StickyCartSummaryBar(scope: foodScope)
+          : null,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _onFiltersChanged(),
@@ -571,7 +612,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               'assets/abashyaka/emblem_official.png',
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
-                                  Image.asset('assets/abashyaka/splash_emblem.png', fit: BoxFit.contain),
+                                  Image.asset(
+                                    'assets/abashyaka/splash_emblem.png',
+                                    fit: BoxFit.contain,
+                                  ),
                             ),
                           ),
                           Expanded(
@@ -591,11 +635,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFE8F5E9),
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFF0B6B4A).withValues(alpha: 0.3)),
+                                        border: Border.all(
+                                          color: const Color(0xFF0B6B4A)
+                                              .withValues(alpha: 0.3),
+                                        ),
                                       ),
                                       child: const Text(
                                         'ଆବଶ୍ୟକ',
@@ -658,8 +708,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFECFDF5),
                               shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: const Color(0xFFA7F3D0)),
+                              border: Border.all(
+                                color: const Color(0xFFA7F3D0),
+                              ),
                             ),
                             child: IconButton(
                               tooltip: 'Nearby map',
@@ -1142,7 +1193,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                       child: FeaturedNeighborhoodCard(
                         title: 'Fresh Winter Harvest & Specials',
-                        subtitle: 'Hand-picked daily from local farming cooperatives in ${appLocation.cityName}',
+                        subtitle:
+                            'Hand-picked daily from local farming cooperatives in ${appLocation.cityName}',
                         onTap: () {
                           Navigator.push(
                             context,
@@ -1229,7 +1281,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               priceMinor: 4200,
                               mrpMinor: 5000,
                               badgeText: '16% OFF',
-                              quantityInCart: groceryCart.lines['4e300000-0000-4000-8000-000000000211']?.quantity ?? 0,
+                              quantityInCart:
+                                  groceryCart
+                                      .lines['4e300000-0000-4000-8000-000000000211']
+                                      ?.quantity ??
+                                  0,
                               onAdd: () {
                                 Navigator.push(
                                   context,
@@ -1415,7 +1471,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             ElevatedButton.icon(
                               onPressed: () =>
                                   setState(() => _activeQuickFilter = 'all'),
-                              icon: const Icon(Icons.clear_all_rounded, size: 18),
+                              icon: const Icon(
+                                Icons.clear_all_rounded,
+                                size: 18,
+                              ),
                               label: const Text('Show all nearby'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.emerald,
@@ -1467,7 +1526,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         }
                         return LocalBusinessDiscoveryCard(
                           name: b.name,
-                          category: b.categoryName ??
+                          category:
+                              b.categoryName ??
                               (b.categorySlug.isNotEmpty
                                   ? '${b.categorySlug[0].toUpperCase()}${b.categorySlug.substring(1)}'
                                   : 'Store'),
@@ -2025,8 +2085,9 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                       label,
                       style: TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
                         color: isSelected ? Colors.white : AppTheme.brandText,
                         letterSpacing: -0.2,
                       ),

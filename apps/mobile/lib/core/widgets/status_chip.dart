@@ -47,18 +47,22 @@ class StatusChip extends StatelessWidget {
         : const EdgeInsets.symmetric(horizontal: 10, vertical: 5);
     return Container(
       padding: pad,
-      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: _fg,
-              fontWeight: FontWeight.w600,
-              fontSize: size == StatusChipSize.small ? 10 : 11,
-            ),
+          color: _fg,
+          fontWeight: FontWeight.w600,
+          fontSize: size == StatusChipSize.small ? 10 : 11,
+        ),
       ),
     );
   }
 }
 
 enum StatusChipType { info, success, warning, error }
+
 enum StatusChipSize { small, medium }

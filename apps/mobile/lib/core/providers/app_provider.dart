@@ -252,7 +252,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         '/auth/otp/request',
         data: {
           'phone_e164': phone,
-          ...? (installationId == null ? null : {'installation_id': installationId}),
+          ...?(installationId == null
+              ? null
+              : {'installation_id': installationId}),
         },
       );
       final data = res.data as Map<String, dynamic>;
@@ -286,12 +288,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           if (errMap is Map<String, dynamic> && errMap['message'] != null) {
             _lastOtpError = errMap['message'] as String;
           } else {
-            _lastOtpError =
-                'OTP request limit reached. Please wait a few minutes before trying again.';
+            _lastOtpError = 'OTP request limit reached. Please wait a few minutes before trying again.';
           }
         } else {
-          _lastOtpError =
-              'OTP request limit reached. Please wait a few minutes before trying again.';
+          _lastOtpError = 'OTP request limit reached. Please wait a few minutes before trying again.';
         }
       } else {
         _lastOtpError = null;
@@ -875,20 +875,66 @@ class CategoriesState {
 /// Categories notifier.
 class CategoriesNotifier extends StateNotifier<CategoriesState> {
   static const defaultCategories = <Category>[
-    Category(slug: 'grocery', name: 'Grocery & Kirana', description: 'Fresh groceries, daily provisions and packaged essentials'),
-    Category(slug: 'restaurant', name: 'Food & Dining', description: 'Local restaurants, fast food and authentic regional cuisine'),
-    Category(slug: 'medical', name: 'Pharmacy & Health', description: 'Medicines, first-aid, healthcare and surgical supplies'),
-    Category(slug: 'hardware', name: 'Hardware & Tools', description: 'Tools, paints, sanitaryware and building materials'),
-    Category(slug: 'electrician', name: 'Electrician', description: 'Wiring, appliance repairs and electrical installation'),
-    Category(slug: 'plumber', name: 'Plumber', description: 'Pipe fittings, drainage, water pumps and leak repair'),
-    Category(slug: 'carpenter', name: 'Carpenter', description: 'Custom furniture, wood repairs and interior fitting'),
-    Category(slug: 'salon', name: 'Salon & Grooming', description: 'Men & women hair salons, beauty parlours and spa'),
-    Category(slug: 'hotel', name: 'Hotels & Lodging', description: 'Hotel rooms, guest houses and verified stays'),
-    Category(slug: 'tailor', name: 'Tailoring & Stitching', description: 'Custom tailoring, alterations and dressmaking'),
-    Category(slug: 'general', name: 'General Store', description: 'Household goods, stationery, gifting and local retail'),
+    Category(
+      slug: 'grocery',
+      name: 'Grocery & Kirana',
+      description: 'Fresh groceries, daily provisions and packaged essentials',
+    ),
+    Category(
+      slug: 'restaurant',
+      name: 'Food & Dining',
+      description:
+          'Local restaurants, fast food and authentic regional cuisine',
+    ),
+    Category(
+      slug: 'medical',
+      name: 'Pharmacy & Health',
+      description: 'Medicines, first-aid, healthcare and surgical supplies',
+    ),
+    Category(
+      slug: 'hardware',
+      name: 'Hardware & Tools',
+      description: 'Tools, paints, sanitaryware and building materials',
+    ),
+    Category(
+      slug: 'electrician',
+      name: 'Electrician',
+      description: 'Wiring, appliance repairs and electrical installation',
+    ),
+    Category(
+      slug: 'plumber',
+      name: 'Plumber',
+      description: 'Pipe fittings, drainage, water pumps and leak repair',
+    ),
+    Category(
+      slug: 'carpenter',
+      name: 'Carpenter',
+      description: 'Custom furniture, wood repairs and interior fitting',
+    ),
+    Category(
+      slug: 'salon',
+      name: 'Salon & Grooming',
+      description: 'Men & women hair salons, beauty parlours and spa',
+    ),
+    Category(
+      slug: 'hotel',
+      name: 'Hotels & Lodging',
+      description: 'Hotel rooms, guest houses and verified stays',
+    ),
+    Category(
+      slug: 'tailor',
+      name: 'Tailoring & Stitching',
+      description: 'Custom tailoring, alterations and dressmaking',
+    ),
+    Category(
+      slug: 'general',
+      name: 'General Store',
+      description: 'Household goods, stationery, gifting and local retail',
+    ),
   ];
 
-  CategoriesNotifier() : super(const CategoriesState(items: defaultCategories)) {
+  CategoriesNotifier()
+    : super(const CategoriesState(items: defaultCategories)) {
     load();
   }
 

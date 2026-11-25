@@ -33,9 +33,7 @@ class LuxeCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: radius,
-        border: Border.all(
-          color: borderColor ?? AppTheme.border,
-        ),
+        border: Border.all(color: borderColor ?? AppTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -50,10 +48,7 @@ class LuxeCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: radius,
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+          child: Padding(padding: padding, child: child),
         ),
       ),
     );
@@ -79,14 +74,16 @@ class LuxeStatusBadge extends StatelessWidget {
   final Color? backgroundColor;
   final bool isSmall;
 
-  factory LuxeStatusBadge.verified({String label = 'Verified'}) => LuxeStatusBadge(
+  factory LuxeStatusBadge.verified({String label = 'Verified'}) =>
+      LuxeStatusBadge(
         label: label,
         icon: Icons.verified_rounded,
         color: AppTheme.mint,
         backgroundColor: AppTheme.mintLight,
       );
 
-  factory LuxeStatusBadge.pending({String label = 'Pending'}) => LuxeStatusBadge(
+  factory LuxeStatusBadge.pending({String label = 'Pending'}) =>
+      LuxeStatusBadge(
         label: label,
         icon: Icons.schedule_rounded,
         color: const Color(0xFFB45309),
@@ -94,11 +91,11 @@ class LuxeStatusBadge extends StatelessWidget {
       );
 
   factory LuxeStatusBadge.failed({String label = 'Failed'}) => LuxeStatusBadge(
-        label: label,
-        icon: Icons.error_outline_rounded,
-        color: AppTheme.coral,
-        backgroundColor: AppTheme.coralLight,
-      );
+    label: label,
+    icon: Icons.error_outline_rounded,
+    color: AppTheme.coral,
+    backgroundColor: AppTheme.coralLight,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +159,8 @@ class LuxeProductCard extends StatelessWidget {
   final VoidCallback? onDecrement;
   final VoidCallback? onTap;
 
-  String _formatPrice(int minor) => '₹${(minor / 100).toStringAsFixed(minor % 100 == 0 ? 0 : 2)}';
+  String _formatPrice(int minor) =>
+      '₹${(minor / 100).toStringAsFixed(minor % 100 == 0 ? 0 : 2)}';
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +184,8 @@ class LuxeProductCard extends StatelessWidget {
                   ? Image.network(
                       imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _placeholderIcon(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _placeholderIcon(),
                     )
                   : _placeholderIcon(),
             ),
@@ -255,9 +254,16 @@ class LuxeProductCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove, size: 16, color: Colors.white),
+                        icon: const Icon(
+                          Icons.remove,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 36,
+                        ),
                         onPressed: onDecrement,
                       ),
                       Text(
@@ -269,9 +275,16 @@ class LuxeProductCard extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                        icon: const Icon(
+                          Icons.add,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 36,
+                        ),
                         onPressed: onIncrement,
                       ),
                     ],
@@ -292,7 +305,10 @@ class LuxeProductCard extends StatelessWidget {
                     ),
                     child: const Text(
                       '+ Add',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -304,8 +320,8 @@ class LuxeProductCard extends StatelessWidget {
   }
 
   Widget _placeholderIcon() => const Center(
-        child: Icon(Icons.shopping_bag_outlined, color: AppTheme.mint, size: 38),
-      );
+    child: Icon(Icons.shopping_bag_outlined, color: AppTheme.mint, size: 38),
+  );
 }
 
 /// Horizontal Service Professional Card
@@ -359,7 +375,8 @@ class LuxeServiceCard extends StatelessWidget {
                   ? Image.network(
                       photoUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _avatarFallback(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _avatarFallback(),
                     )
                   : _avatarFallback(),
             ),
@@ -384,7 +401,11 @@ class LuxeServiceCard extends StatelessWidget {
                     ),
                     if (isVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified, size: 16, color: AppTheme.mint),
+                      const Icon(
+                        Icons.verified,
+                        size: 16,
+                        color: AppTheme.mint,
+                      ),
                     ],
                   ],
                 ),
@@ -392,7 +413,11 @@ class LuxeServiceCard extends StatelessWidget {
                 // Rating and jobs
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, size: 16, color: AppTheme.amber),
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: AppTheme.amber,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       rating.toStringAsFixed(1),
@@ -416,7 +441,11 @@ class LuxeServiceCard extends StatelessWidget {
                 // Availability & distance
                 Row(
                   children: [
-                    const Icon(Icons.bolt_rounded, size: 14, color: AppTheme.mint),
+                    const Icon(
+                      Icons.bolt_rounded,
+                      size: 14,
+                      color: AppTheme.mint,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       availabilityText,
@@ -427,7 +456,10 @@ class LuxeServiceCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('·', style: TextStyle(color: AppTheme.textMuted)),
+                    const Text(
+                      '·',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       distanceText,
@@ -484,8 +516,8 @@ class LuxeServiceCard extends StatelessWidget {
   }
 
   Widget _avatarFallback() => const Center(
-        child: Icon(Icons.handyman_rounded, color: AppTheme.forest, size: 32),
-      );
+    child: Icon(Icons.handyman_rounded, color: AppTheme.forest, size: 32),
+  );
 }
 
 /// Nearby Local Shop Card
@@ -529,7 +561,8 @@ class LuxeShopCard extends StatelessWidget {
                       ? Image.network(
                           photoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _coverFallback(),
+                          errorBuilder: (context, error, stackTrace) =>
+                              _coverFallback(),
                         )
                       : _coverFallback(),
                 ),
@@ -537,7 +570,10 @@ class LuxeShopCard extends StatelessWidget {
                   bottom: 6,
                   right: 6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(6),
@@ -551,7 +587,11 @@ class LuxeShopCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, size: 13, color: AppTheme.amber),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: AppTheme.amber,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           rating.toStringAsFixed(1),
@@ -602,8 +642,8 @@ class LuxeShopCard extends StatelessWidget {
   }
 
   Widget _coverFallback() => const Center(
-        child: Icon(Icons.storefront_rounded, color: AppTheme.mint, size: 36),
-      );
+    child: Icon(Icons.storefront_rounded, color: AppTheme.mint, size: 36),
+  );
 }
 
 /// Bank Beneficiary Display Card with Masked Account and Status
@@ -679,7 +719,10 @@ class LuxeBeneficiaryCard extends StatelessWidget {
                 children: [
                   const Text(
                     'Account Number',
-                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -698,7 +741,10 @@ class LuxeBeneficiaryCard extends StatelessWidget {
                 children: [
                   const Text(
                     'IFSC Code',
-                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -719,7 +765,10 @@ class LuxeBeneficiaryCard extends StatelessWidget {
             children: [
               Text(
                 'Holder: $accountHolderName',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
               ),
               if (onEdit != null)
                 TextButton.icon(

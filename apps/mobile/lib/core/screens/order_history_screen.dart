@@ -89,7 +89,9 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
         ],
       ),
       body: !state.hasLoaded && state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.emerald))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.emerald),
+            )
           : state.error != null && state.orders.isEmpty
           ? _ErrorState(
               message: state.error!,
@@ -155,7 +157,10 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
 
                   if (visible.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 36),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 36,
+                      ),
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -272,7 +277,9 @@ class _ActiveOrderHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentStep = switch (order.status) {
       OrderStatus.placed => 1,
-      OrderStatus.accepted || OrderStatus.confirmed || OrderStatus.preparing => 2,
+      OrderStatus.accepted ||
+      OrderStatus.confirmed ||
+      OrderStatus.preparing => 2,
       OrderStatus.readyForPickup || OrderStatus.outForDelivery => 3,
       OrderStatus.delivered || OrderStatus.completed => 4,
       _ => 1,
@@ -310,7 +317,10 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF059669),
                         borderRadius: BorderRadius.circular(20),
@@ -318,7 +328,11 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.radar_rounded, size: 13, color: Colors.white),
+                          Icon(
+                            Icons.radar_rounded,
+                            size: 13,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 5),
                           Text(
                             'LIVE TRACKING',
@@ -334,7 +348,10 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                     ),
                     if (order.etaMinutes > 0)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(10),
@@ -343,7 +360,11 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.timer_outlined, size: 12, color: Color(0xFF15803D)),
+                            const Icon(
+                              Icons.timer_outlined,
+                              size: 12,
+                              color: Color(0xFF15803D),
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '~${order.etaMinutes} mins ETA',
@@ -390,7 +411,10 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -398,7 +422,13 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Track Live', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                          Text(
+                            'Track Live',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
                           SizedBox(width: 4),
                           Icon(Icons.arrow_forward_rounded, size: 14),
                         ],
@@ -410,13 +440,29 @@ class _ActiveOrderHeroCard extends StatelessWidget {
                 // 4-step progress row
                 Row(
                   children: [
-                    _StepItem(label: 'Placed', isActive: currentStep >= 1, isCurrent: currentStep == 1),
+                    _StepItem(
+                      label: 'Placed',
+                      isActive: currentStep >= 1,
+                      isCurrent: currentStep == 1,
+                    ),
                     _StepConnector(isPassed: currentStep >= 2),
-                    _StepItem(label: 'Preparing', isActive: currentStep >= 2, isCurrent: currentStep == 2),
+                    _StepItem(
+                      label: 'Preparing',
+                      isActive: currentStep >= 2,
+                      isCurrent: currentStep == 2,
+                    ),
                     _StepConnector(isPassed: currentStep >= 3),
-                    _StepItem(label: 'On the way', isActive: currentStep >= 3, isCurrent: currentStep == 3),
+                    _StepItem(
+                      label: 'On the way',
+                      isActive: currentStep >= 3,
+                      isCurrent: currentStep == 3,
+                    ),
                     _StepConnector(isPassed: currentStep >= 4),
-                    _StepItem(label: 'Delivered', isActive: currentStep >= 4, isCurrent: currentStep == 4),
+                    _StepItem(
+                      label: 'Delivered',
+                      isActive: currentStep >= 4,
+                      isCurrent: currentStep == 4,
+                    ),
                   ],
                 ),
               ],
@@ -451,7 +497,9 @@ class _StepItem extends StatelessWidget {
             color: isActive ? const Color(0xFF059669) : Colors.white,
             shape: BoxShape.circle,
             border: Border.all(
-              color: isActive ? const Color(0xFF059669) : const Color(0xFFCBD5E1),
+              color: isActive
+                  ? const Color(0xFF059669)
+                  : const Color(0xFFCBD5E1),
               width: 2,
             ),
             boxShadow: isCurrent
@@ -473,7 +521,9 @@ class _StepItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 10,
-            fontWeight: isCurrent ? FontWeight.w800 : (isActive ? FontWeight.w600 : FontWeight.w500),
+            fontWeight: isCurrent
+                ? FontWeight.w800
+                : (isActive ? FontWeight.w600 : FontWeight.w500),
             color: isActive ? const Color(0xFF17352C) : const Color(0xFF94A3B8),
           ),
         ),
@@ -511,7 +561,9 @@ class _OrderCard extends ConsumerWidget {
     final userId = ref.read(currentUserProvider)?.id;
     if (userId == null || order.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No reorderable items found in this order.')),
+        const SnackBar(
+          content: Text('No reorderable items found in this order.'),
+        ),
       );
       return;
     }
@@ -519,57 +571,68 @@ class _OrderCard extends ConsumerWidget {
     var replace = !cart.hasLines;
     if (cart.hasLines) {
       final sameMerchant = cart.businessId == order.businessId;
-      replace = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Replace current cart?'),
-          content: Text(
-            sameMerchant
-                ? 'Your current items will be replaced with the products from this order.'
-                : 'Your cart contains items from another merchant. Replace them?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep cart'),
+      replace =
+          await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Replace current cart?'),
+              content: Text(
+                sameMerchant
+                    ? 'Your current items will be replaced with the products from this order.'
+                    : 'Your cart contains items from another merchant. Replace them?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Keep cart'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Replace cart'),
+                ),
+              ],
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Replace cart'),
-            ),
-          ],
-        ),
-      ) ?? false;
+          ) ??
+          false;
       if (!replace) return;
     }
 
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Adding items to cart…'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Adding items to cart…'),
+        duration: Duration(seconds: 1),
+      ),
     );
 
-    final result = await ref.read(cartProvider.notifier).rebuildFromOrder(
-      userId: userId,
-      businessId: order.businessId,
-      businessName: order.businessName,
-      items: order.items
-          .map((item) => {
-            'product_id': item.id,
-            'quantity': item.quantity,
-            'name': item.name,
-          })
-          .toList(),
-      replaceExisting: replace,
-    );
+    final result = await ref
+        .read(cartProvider.notifier)
+        .rebuildFromOrder(
+          userId: userId,
+          businessId: order.businessId,
+          businessName: order.businessName,
+          items: order.items
+              .map(
+                (item) => {
+                  'product_id': item.id,
+                  'quantity': item.quantity,
+                  'name': item.name,
+                },
+              )
+              .toList(),
+          replaceExisting: replace,
+        );
 
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(result.message)));
     if (result.ready) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CustomerCartScreen()),
-      );
+      await Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const CustomerCartScreen()));
     }
   }
 
@@ -595,8 +658,12 @@ class _OrderCard extends ConsumerWidget {
       OrderType.serviceBooking => 'Service booking',
     };
 
-    final isDelivered = order.status == OrderStatus.delivered || order.status == OrderStatus.completed;
-    final isCancelled = order.status == OrderStatus.cancelled || order.status == OrderStatus.rejected;
+    final isDelivered =
+        order.status == OrderStatus.delivered ||
+        order.status == OrderStatus.completed;
+    final isCancelled =
+        order.status == OrderStatus.cancelled ||
+        order.status == OrderStatus.rejected;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
@@ -624,7 +691,11 @@ class _OrderCard extends ConsumerWidget {
                       width: 44,
                       height: 44,
                       child: CategoryThemedPlaceholder(
-                        categorySlug: order.platformVertical ?? (order.orderType == OrderType.foodDelivery ? 'food' : 'grocery'),
+                        categorySlug:
+                            order.platformVertical ??
+                            (order.orderType == OrderType.foodDelivery
+                                ? 'food'
+                                : 'grocery'),
                         businessName: order.businessName,
                         isAvatar: true,
                       ),
@@ -660,20 +731,23 @@ class _OrderCard extends ConsumerWidget {
                   const SizedBox(width: 8),
                   // Semantic Status Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3.5,
+                    ),
                     decoration: BoxDecoration(
                       color: isDelivered
                           ? const Color(0xFFECFDF5)
                           : isCancelled
-                              ? const Color(0xFFFEF2F2)
-                              : const Color(0xFFEFF6FF),
+                          ? const Color(0xFFFEF2F2)
+                          : const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isDelivered
                             ? const Color(0xFFA7F3D0)
                             : isCancelled
-                                ? const Color(0xFFFECACA)
-                                : const Color(0xFFBFDBFE),
+                            ? const Color(0xFFFECACA)
+                            : const Color(0xFFBFDBFE),
                       ),
                     ),
                     child: Row(
@@ -683,14 +757,14 @@ class _OrderCard extends ConsumerWidget {
                           isDelivered
                               ? Icons.check_circle_rounded
                               : isCancelled
-                                  ? Icons.cancel_rounded
-                                  : Icons.timelapse_rounded,
+                              ? Icons.cancel_rounded
+                              : Icons.timelapse_rounded,
                           size: 12,
                           color: isDelivered
                               ? const Color(0xFF059669)
                               : isCancelled
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFF2563EB),
+                              ? const Color(0xFFDC2626)
+                              : const Color(0xFF2563EB),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -701,8 +775,8 @@ class _OrderCard extends ConsumerWidget {
                             color: isDelivered
                                 ? const Color(0xFF059669)
                                 : isCancelled
-                                    ? const Color(0xFFDC2626)
-                                    : const Color(0xFF2563EB),
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF2563EB),
                           ),
                         ),
                       ],
@@ -715,7 +789,10 @@ class _OrderCard extends ConsumerWidget {
               if (order.items.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAF9),
                     borderRadius: BorderRadius.circular(10),
@@ -723,11 +800,17 @@ class _OrderCard extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.shopping_bag_outlined, size: 14, color: Color(0xFF64748B)),
+                      const Icon(
+                        Icons.shopping_bag_outlined,
+                        size: 14,
+                        color: Color(0xFF64748B),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          order.items.map((i) => '${i.quantity}x ${i.name}').join(', '),
+                          order.items
+                              .map((i) => '${i.quantity}x ${i.name}')
+                              .join(', '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -760,17 +843,23 @@ class _OrderCard extends ConsumerWidget {
                           color: Color(0xFF17352C),
                         ),
                       ),
-                      if (order.paymentMethod != null || order.paymentStatus.isNotEmpty) ...[
+                      if (order.paymentMethod != null ||
+                          order.paymentStatus.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             order.paymentMethod?.toUpperCase() ??
-                                (order.paymentStatus == 'paid' ? 'PAID' : 'COD'),
+                                (order.paymentStatus == 'paid'
+                                    ? 'PAID'
+                                    : 'COD'),
                             style: const TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.w700,
@@ -792,10 +881,15 @@ class _OrderCard extends ConsumerWidget {
                             foregroundColor: const Color(0xFF059669),
                             side: const BorderSide(color: Color(0xFFB8F2DC)),
                             backgroundColor: const Color(0xFFF0FDF4),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             minimumSize: const Size(0, 30),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           onPressed: () => _handleReorder(context, ref),
                           child: const Row(
@@ -803,7 +897,13 @@ class _OrderCard extends ConsumerWidget {
                             children: [
                               Icon(Icons.replay_rounded, size: 13),
                               SizedBox(width: 3),
-                              Text('Reorder', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                              Text(
+                                'Reorder',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -817,14 +917,23 @@ class _OrderCard extends ConsumerWidget {
                           foregroundColor: const Color(0xFF059669),
                           side: const BorderSide(color: Color(0xFFE1EBE5)),
                           backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           minimumSize: const Size(0, 30),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        onPressed: order.isActive ? onTap : () => _showReceipt(context),
+                        onPressed: order.isActive
+                            ? onTap
+                            : () => _showReceipt(context),
                         icon: Icon(
-                          order.isActive ? Icons.moped_rounded : Icons.receipt_long_outlined,
+                          order.isActive
+                              ? Icons.moped_rounded
+                              : Icons.receipt_long_outlined,
                           size: 13,
                         ),
                         label: Text(
@@ -901,7 +1010,11 @@ class _ReceiptModalSheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF2563EB)),
+                      const Icon(
+                        Icons.verified_rounded,
+                        size: 16,
+                        color: Color(0xFF2563EB),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -916,7 +1029,10 @@ class _ReceiptModalSheet extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(10),
@@ -997,16 +1113,37 @@ class _ReceiptModalSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Item total', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-              Text('₹${order.itemTotal > 0 ? order.itemTotal.toStringAsFixed(2) : order.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const Text(
+                'Item total',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+              Text(
+                '₹${order.itemTotal > 0 ? order.itemTotal.toStringAsFixed(2) : order.grandTotal.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Delivery fee', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-              Text(order.deliveryFee > 0 ? '₹${order.deliveryFee.toStringAsFixed(2)}' : 'FREE', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF059669))),
+              const Text(
+                'Delivery fee',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+              Text(
+                order.deliveryFee > 0
+                    ? '₹${order.deliveryFee.toStringAsFixed(2)}'
+                    : 'FREE',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF059669),
+                ),
+              ),
             ],
           ),
           if (order.tax > 0) ...[
@@ -1014,8 +1151,17 @@ class _ReceiptModalSheet extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Taxes & Charges', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                Text('₹${order.tax.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Taxes & Charges',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                Text(
+                  '₹${order.tax.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ],
@@ -1028,11 +1174,19 @@ class _ReceiptModalSheet extends StatelessWidget {
             children: [
               const Text(
                 'Grand Total',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF17352C)),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF17352C),
+                ),
               ),
               Text(
                 '₹${order.grandTotal.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF059669)),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF059669),
+                ),
               ),
             ],
           ),
@@ -1047,11 +1201,19 @@ class _ReceiptModalSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.payment_rounded, size: 16, color: Color(0xFF059669)),
+                const Icon(
+                  Icons.payment_rounded,
+                  size: 16,
+                  color: Color(0xFF059669),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Payment: ${order.paymentMethod?.toUpperCase() ?? (order.paymentStatus == 'paid' ? 'PAID ONLINE' : 'CASH ON DELIVERY')}',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155),
+                  ),
                 ),
               ],
             ),
@@ -1065,17 +1227,24 @@ class _ReceiptModalSheet extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF059669),
                     side: const BorderSide(color: Color(0xFFB8F2DC)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Receipt downloaded to device.')),
+                      const SnackBar(
+                        content: Text('Receipt downloaded to device.'),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Download', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: const Text(
+                    'Download',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1084,11 +1253,16 @@ class _ReceiptModalSheet extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -1134,18 +1308,26 @@ class _FilterRow extends StatelessWidget {
               label: Text(
                 value,
                 style: TextStyle(
-                  fontWeight: selected == value ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected == value
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   fontSize: 12,
-                  color: selected == value ? Colors.white : const Color(0xFF17352C),
+                  color: selected == value
+                      ? Colors.white
+                      : const Color(0xFF17352C),
                 ),
               ),
               selected: selected == value,
               selectedColor: const Color(0xFF059669),
               backgroundColor: Colors.white,
               side: BorderSide(
-                color: selected == value ? const Color(0xFF059669) : const Color(0xFFE1EBE5),
+                color: selected == value
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFE1EBE5),
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               showCheckmark: false,
               onSelected: (_) => onSelected(value),
             ),
@@ -1381,7 +1563,10 @@ class _ErrorBanner extends StatelessWidget {
       side: const BorderSide(color: Color(0xFFFDE68A)),
     ),
     child: ListTile(
-      title: const Text('Could not refresh orders', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      title: const Text(
+        'Could not refresh orders',
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
       subtitle: Text(message, style: const TextStyle(fontSize: 12)),
       trailing: IconButton(onPressed: onRetry, icon: const Icon(Icons.refresh)),
     ),

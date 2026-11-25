@@ -22,7 +22,9 @@ class CategoryCircleItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? (isSelected ? AppTheme.emerald : const Color(0xFFF2F4F7));
+    final bg =
+        backgroundColor ??
+        (isSelected ? AppTheme.emerald : const Color(0xFFF2F4F7));
     final fg = iconColor ?? (isSelected ? Colors.white : AppTheme.emerald);
 
     return InkWell(
@@ -40,21 +42,24 @@ class CategoryCircleItem extends StatelessWidget {
                 color: bg,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF087F0D) : const Color(0xFFE1EBE5),
+                  color: isSelected
+                      ? const Color(0xFF087F0D)
+                      : const Color(0xFFE1EBE5),
                   width: isSelected ? 2.5 : 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (isSelected ? const Color(0xFF087F0D) : (backgroundColor ?? Colors.black))
-                        .withValues(alpha: isSelected ? 0.25 : 0.05),
+                    color:
+                        (isSelected
+                                ? const Color(0xFF087F0D)
+                                : (backgroundColor ?? Colors.black))
+                            .withValues(alpha: isSelected ? 0.25 : 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Center(
-                child: Icon(icon, size: 26, color: fg),
-              ),
+              child: Center(child: Icon(icon, size: 26, color: fg)),
             ),
             const SizedBox(height: 6),
             SizedBox(
@@ -68,7 +73,9 @@ class CategoryCircleItem extends StatelessWidget {
                   fontSize: 11.5,
                   height: 1.2,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected ? const Color(0xFF087F0D) : AppTheme.mainText,
+                  color: isSelected
+                      ? const Color(0xFF087F0D)
+                      : AppTheme.mainText,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -140,4 +147,3 @@ class CategoryChip extends StatelessWidget {
     );
   }
 }
-

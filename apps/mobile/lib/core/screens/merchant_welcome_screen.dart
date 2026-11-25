@@ -83,7 +83,10 @@ class MerchantWelcomeScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF7ED),
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFFFEDD5), width: 2),
+                        border: Border.all(
+                          color: const Color(0xFFFFEDD5),
+                          width: 2,
+                        ),
                       ),
                       child: const Center(
                         child: Icon(
@@ -160,10 +163,7 @@ class MerchantWelcomeScreen extends ConsumerWidget {
                   },
                   child: const Text(
                     'Get Started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -176,7 +176,10 @@ class MerchantWelcomeScreen extends ConsumerWidget {
                   key: const Key('merchantSignInButton'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0B6B4A),
-                    side: const BorderSide(color: Color(0xFF0B6B4A), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFF0B6B4A),
+                      width: 1.5,
+                    ),
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -186,18 +189,14 @@ class MerchantWelcomeScreen extends ConsumerWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const OnboardingScreen(
-                          initialMerchantMode: true,
-                        ),
+                        builder: (_) =>
+                            const OnboardingScreen(initialMerchantMode: true),
                       ),
                     );
                   },
                   child: const Text(
                     'Already registered? Sign In',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

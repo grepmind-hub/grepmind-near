@@ -66,8 +66,7 @@ class _PharmacyMarketplaceScreenState
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error =
-            'Could not load pharmacies. Check your connection and retry.';
+        _error = 'Could not load pharmacies. Check your connection and retry.';
         _loading = false;
       });
     }
@@ -77,7 +76,8 @@ class _PharmacyMarketplaceScreenState
     if (phone == null || phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Contact number unavailable for this pharmacy.')),
+          content: Text('Contact number unavailable for this pharmacy.'),
+        ),
       );
       return;
     }
@@ -100,10 +100,12 @@ class _PharmacyMarketplaceScreenState
         ? location.localityName
         : (location.cityName == 'Cuttack' ? 'Kuanpal' : 'Chhatia');
 
-    final filtered = _pharmacies.where((p) {
-      if (_selectedFilter == 'Open Now') return p.isOpenNow;
-      return true;
-    }).toList(growable: false);
+    final filtered = _pharmacies
+        .where((p) {
+          if (_selectedFilter == 'Open Now') return p.isOpenNow;
+          return true;
+        })
+        .toList(growable: false);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF9),
@@ -278,107 +280,104 @@ class _PharmacyMarketplaceScreenState
                     child: CircularProgressIndicator(color: AppTheme.emerald),
                   )
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.wifi_off_rounded,
-                                size: 48,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style:
-                                    const TextStyle(color: Color(0xFF4B5563)),
-                              ),
-                              const SizedBox(height: 16),
-                              FilledButton(
-                                onPressed: _loadPharmacies,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppTheme.emerald,
-                                ),
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.wifi_off_rounded,
+                            size: 48,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color(0xFF4B5563)),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton(
+                            onPressed: _loadPharmacies,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.emerald,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : filtered.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFF1F2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.medication_rounded,
+                              size: 48,
+                              color: Color(0xFFE11D48),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No pharmacies found',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Medical stores and pharmacies near $locality will appear here as they register.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final biz = filtered[index];
+                      return _PharmacyStoreCard(
+                        business: biz,
+                        onCall: () => _makeCall(biz.phoneE164),
+                        onInquire: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ServiceRequestScreen(
+                              businessId: biz.id,
+                              businessName: biz.name,
+                            ),
                           ),
                         ),
-                      )
-                    : filtered.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFFF1F2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.medication_rounded,
-                                      size: 48,
-                                      color: Color(0xFFE11D48),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'No pharmacies found',
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1F2937),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Medical stores and pharmacies near $locality will appear here as they register.',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 14),
-                            itemBuilder: (context, index) {
-                              final biz = filtered[index];
-                              return _PharmacyStoreCard(
-                                business: biz,
-                                onCall: () => _makeCall(biz.phoneE164),
-                                onInquire: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ServiceRequestScreen(
-                                      businessId: biz.id,
-                                      businessName: biz.name,
-                                    ),
-                                  ),
-                                ),
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BusinessDetailScreen(
-                                      businessId: biz.id,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                BusinessDetailScreen(businessId: biz.id),
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

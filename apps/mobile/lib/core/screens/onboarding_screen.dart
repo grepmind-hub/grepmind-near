@@ -3,20 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_welcome_screen.dart';
+import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:grepmind_mobile/main.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
-/// Phone-number onboarding screen with the production OTP flow.
+/// Screen 04 & 05: Phone OTP Authentication and Login Screen.
+///
+/// Implements the approved Metallic Teal Abstract Fluid Wave + Pearl White Glossy UI
+/// while 100% preserving all existing FCM OTP notifications, device registration,
+/// Google Sign-In, and authentication verification contracts.
 class OnboardingScreen extends ConsumerStatefulWidget {
   final bool initialMerchantMode;
   const OnboardingScreen({super.key, this.initialMerchantMode = false});
@@ -159,7 +165,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       _pendingAutofillCode = null;
     });
     if (result != null) {
-      _focusOtpInput();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusOtpInput();
+      });
     }
     if (result == null) cancel();
     final lastErr = ref.read(authProvider.notifier).lastOtpError;
@@ -174,15 +183,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (clearIfFull && _otpController.text.length == 6) {
       _otpController.clear();
     }
-    _otpFocusNode.unfocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _otpFocusNode.requestFocus();
-        _otpController.selection = TextSelection.collapsed(
-          offset: _otpController.text.length,
-        );
-        SystemChannels.textInput.invokeMethod('TextInput.show');
-      }
+    _otpFocusNode.requestFocus();
+    _otpController.selection = TextSelection.collapsed(
+      offset: _otpController.text.length,
+    );
+    SystemChannels.textInput.invokeMethod('TextInput.show');
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted || !_otpSent) return;
+      _otpFocusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod('TextInput.show');
     });
   }
 
@@ -198,6 +207,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         setState(() => _resendSeconds--);
       }
     });
+  }
+
+  void _navigateToDestination() {
+    if (!mounted) return;
+    final authState = ref.read(authProvider);
+    final activeRole = authState.activeRole;
+    Widget destination;
+    if (activeRole == null) {
+      destination = const RoleSelectionScreen();
+    } else if (activeRole == 'admin') {
+      destination = const AdminPortalScreen();
+    } else {
+      destination = MainNavigator(
+        key: ValueKey('workspace-$activeRole'),
+        activeRole: activeRole,
+      );
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => destination),
+      (route) => false,
+    );
   }
 
   Future<void> _verifyOTP() async {
@@ -229,6 +259,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           ? 'Signed in successfully'
           : 'That code could not be verified. Try again.',
     );
+    if (success) {
+      _navigateToDestination();
+    }
   }
 
   void _useDifferentNumber() {
@@ -295,187 +328,360 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   );
 
   Widget _buildPage(BuildContext context) {
-    final theme = Theme.of(context);
+    final bgImage = _otpSent
+        ? 'assets/backgrounds/premium/otp_background.webp'
+        : 'assets/backgrounds/premium/login_background.webp';
+
     return Scaffold(
-      backgroundColor: AbashyakaTheme.warmWhite,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            kScreenPadding,
-            16,
-            kScreenPadding,
-            28,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_otpSent)
-                    SizedBox(
-                      height: 48,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: 'Back to phone number',
-                          onPressed: _sending ? null : _useDifferentNumber,
-                          icon: const Icon(Icons.arrow_back_rounded),
-                        ),
-                      ),
-                    ),
-                  if (!_otpSent) ...[
-                    Align(
-                      child: TextButton.icon(
-                        key: const Key('toggleMerchantPartnerLogin'),
-                        onPressed: _sending
-                            ? null
-                            : () {
-                                if (_isMerchantMode) {
-                                  setState(() => _isMerchantMode = false);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const MerchantWelcomeScreen(),
-                                    ),
-                                  );
-                                }
-                              },
-                        icon: Icon(
-                          _isMerchantMode
-                              ? Icons.person_outline
-                              : Icons.storefront_outlined,
-                          size: 16,
-                          color: _isMerchantMode
-                              ? const Color(0xFF0B6B4A)
-                              : AppTheme.secondaryText,
-                        ),
-                        label: Text(
-                          _isMerchantMode
-                              ? 'Switch to Customer Login'
-                              : 'Merchant Partner? Sign in here',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _isMerchantMode
-                                ? const Color(0xFF0B6B4A)
-                                : AppTheme.secondaryText,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Image.asset(
-                      AbashyakaTheme.splashEmblem,
-                      key: const Key('loginWelcomeImage'),
-                      height: 80,
-                      width: 80,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _otpSent
-                        ? 'Verify OTP'
-                        : (_isMerchantMode
-                              ? 'Merchant Login'
-                              : 'Login / Sign In'),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.mainText,
-                      fontSize: 26,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _otpSent
-                        ? 'Enter the 6-digit code sent to\n$_normalizedPhone'
-                        : 'Enter your mobile number to continue',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontSize: 15,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  PremiumCard(
-                    padding: const EdgeInsets.all(20),
-                    child: !_otpSent ? _phoneStep() : _otpStep(),
-                  ),
-                  if (!_otpSent) ...[
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        const Expanded(child: Divider(color: AppTheme.border)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'OR',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: AppTheme.secondaryText,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                        const Expanded(child: Divider(color: AppTheme.border)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      key: const Key('googleSignInButton'),
-                      onPressed: _showGoogleSetupMessage,
-                      icon: const _GoogleMark(),
-                      label: const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        foregroundColor: AppTheme.mainText,
-                        backgroundColor: Colors.white,
-                        side: const BorderSide(color: AppTheme.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  Text(
-                    'By continuing, you agree to our',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Terms & Privacy Policy',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AbashyakaTheme.actionGreen,
-                    ),
-                  ),
-                ],
+      backgroundColor: AbashyakaColors.pearlWhite,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background: Approved Edge-to-Edge Metallic Wave Canvas
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(bgImage),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final keyboardOpen =
+                    MediaQuery.of(context).viewInsets.bottom > 0;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(
+                    kScreenPadding,
+                    10,
+                    kScreenPadding,
+                    24,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Top Navigation Bar (Back button or Merchant switch)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (_otpSent)
+                                IconButton(
+                                  tooltip: 'Back to phone number',
+                                  onPressed: _sending
+                                      ? null
+                                      : _useDifferentNumber,
+                                  icon: const Icon(
+                                    Icons.arrow_back_rounded,
+                                    color: AbashyakaColors.inkBlack,
+                                  ),
+                                ),
+                              if (!_otpSent)
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: TextButton.icon(
+                                        key: const Key(
+                                          'toggleMerchantPartnerLogin',
+                                        ),
+                                        onPressed: _sending
+                                            ? null
+                                            : () {
+                                                if (_isMerchantMode) {
+                                                  setState(
+                                                    () =>
+                                                        _isMerchantMode = false,
+                                                  );
+                                                } else {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          const MerchantWelcomeScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                        icon: Icon(
+                                          _isMerchantMode
+                                              ? Icons.person_outline
+                                              : Icons.storefront_outlined,
+                                          size: 16,
+                                          color: AbashyakaColors.metallicTeal,
+                                        ),
+                                        label: Text(
+                                          _isMerchantMode
+                                              ? 'Switch to Customer Login'
+                                              : 'Merchant Partner? Sign in here',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AbashyakaColors.metallicTeal,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Standalone Hero Artwork & Brand Name (Screens 04 & 05):
+                          if (!keyboardOpen) ...[
+                            Center(
+                              child: Image.asset(
+                                'assets/branding/abashyaka_logo.png',
+                                key: const Key('loginWelcomeImage'),
+                                height: 72,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Image.asset(
+                                  'assets/branding/logo_metallic_teal.webp',
+                                  key: const Key('loginWelcomeImage'),
+                                  height: 72,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Abashyaka',
+                              textAlign: TextAlign.center,
+                              style:
+                                  AbashyakaTypography.brandWordmark(
+                                    color: AbashyakaColors.deepMetallicTeal,
+                                  ).copyWith(
+                                    fontSize: 24,
+                                    letterSpacing: -0.3,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+
+                          // Title
+                          Text(
+                            _otpSent
+                                ? 'Verify OTP'
+                                : (_isMerchantMode
+                                      ? 'Merchant Login'
+                                      : 'Login to Continue'),
+                            textAlign: TextAlign.center,
+                            style: AbashyakaTypography.displayHeading(
+                              fontSize: 25,
+                              color: AbashyakaColors.inkBlack,
+                            ).copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Subtitle
+                          Text(
+                            _otpSent
+                                ? 'Enter the 6-digit code sent to\n$_normalizedPhone'
+                                : 'Enter your mobile number to continue',
+                            textAlign: TextAlign.center,
+                            style: AbashyakaTypography.supportingText(
+                              fontSize: 13.5,
+                              color: AbashyakaColors.secondaryText,
+                            ),
+                          ),
+                          if (_otpSent) ...[
+                            const SizedBox(height: 6),
+                            Center(
+                              child: InkWell(
+                                onTap: _sending ? null : _useDifferentNumber,
+                                borderRadius: BorderRadius.circular(8),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  child: Text(
+                                    'Change mobile number',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AbashyakaColors.metallicTeal,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+
+                          // Floating Form Elements (No Enclosing Card)
+                          !_otpSent ? _phoneStep() : _otpStep(),
+
+                          if (!_otpSent) ...[
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Divider(
+                                    color: AbashyakaColors.silverGlass,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  child: Text(
+                                    'OR',
+                                    textAlign: TextAlign.center,
+                                    style: AbashyakaTypography.supportingText(
+                                      fontSize: 12.5,
+                                      color: AbashyakaColors.secondaryText,
+                                    ),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(
+                                    color: AbashyakaColors.silverGlass,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            OutlinedButton.icon(
+                              key: const Key('googleSignInButton'),
+                              onPressed: _showGoogleSetupMessage,
+                              icon: const _GoogleMark(),
+                              label: const Text(
+                                'Continue with Google',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(52),
+                                foregroundColor: AbashyakaColors.inkBlack,
+                                backgroundColor: AbashyakaColors.pureWhite,
+                                side: const BorderSide(
+                                  color: AbashyakaColors.silverGlass,
+                                  width: 1.2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                shadowColor: const Color(0x0A003F46),
+                                elevation: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            _buildTrustBadges(),
+                          ],
+                          if (_otpSent && !keyboardOpen) ...[
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Image.asset(
+                                'assets/illustrations/otp_verification.webp',
+                                height: 110,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 22),
+                          Text(
+                            'By continuing, you agree to our',
+                            textAlign: TextAlign.center,
+                            style: AbashyakaTypography.supportingText(
+                              fontSize: 12,
+                              color: AbashyakaColors.secondaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          const Text(
+                            'Terms & Privacy Policy',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AbashyakaColors.metallicTeal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildTrustBadges() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Expanded(
+          child: _buildBadgeItem(
+            'assets/icons/authentication/secure_login.png',
+            'Secure Login',
+          ),
+        ),
+        Expanded(
+          child: _buildBadgeItem(
+            'assets/icons/authentication/quick_easy.png',
+            'Quick & Easy',
+          ),
+        ),
+        Expanded(
+          child: _buildBadgeItem(
+            'assets/icons/authentication/data_safe.png',
+            'Your Data Safe',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeItem(String assetPath, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          assetPath,
+          width: 32,
+          height: 32,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.security_rounded,
+            size: 24,
+            color: AbashyakaColors.metallicTeal,
+          ),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AbashyakaColors.inkBlack,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -484,68 +690,131 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       key: const ValueKey('phone-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          key: const Key('phoneInput'),
-          focusNode: _phoneFocusNode,
-          controller: _phoneController,
-          keyboardType: TextInputType.phone,
-          textInputAction: TextInputAction.done,
-          maxLength: 10,
-          decoration: InputDecoration(
-            labelText: 'Mobile number',
-            hintText: '98765 43210',
-            counterText: '',
-            prefixIcon: Padding(
-              padding: const EdgeInsetsDirectional.only(start: 14, end: 10),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🇮🇳', style: TextStyle(fontSize: 19)),
-                  const SizedBox(width: 7),
-                  Text(
-                    '+91',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.mainText,
+        Container(
+          decoration: BoxDecoration(
+            color: AbashyakaColors.pureWhite,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AbashyakaShadows.card,
+          ),
+          child: TextField(
+            key: const Key('phoneInput'),
+            focusNode: _phoneFocusNode,
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
+            maxLength: 10,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AbashyakaColors.inkBlack,
+            ),
+            decoration: InputDecoration(
+              labelText: 'Mobile number',
+              hintText: '98765 43210',
+              counterText: '',
+              filled: true,
+              fillColor: AbashyakaColors.pureWhite,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AbashyakaColors.silverGlass,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AbashyakaColors.silverGlass,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AbashyakaColors.metallicTeal,
+                  width: 1.8,
+                ),
+              ),
+              prefixIcon: Padding(
+                padding: const EdgeInsetsDirectional.only(start: 14, end: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🇮🇳', style: TextStyle(fontSize: 19)),
+                    const SizedBox(width: 7),
+                    const Text(
+                      '+91',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AbashyakaColors.inkBlack,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(width: 1, height: 22, color: AppTheme.border),
-                ],
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 1,
+                      height: 22,
+                      color: AbashyakaColors.silverGlass,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 18),
         ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 54),
-          child: ElevatedButton(
-            key: const Key('sendOTPButton'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AbashyakaTheme.vibrantGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: AbashyakaGradients.metallicButton,
+              borderRadius: BorderRadius.circular(AbashyakaRadius.button),
+              boxShadow: AbashyakaShadows.metallicButton,
             ),
-            onPressed: _sending ? null : _sendOTP,
-            child: _sending
-                ? _loadingLabel()
-                : Text(
-                    _isMerchantMode ? 'Send OTP' : 'Continue',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+            child: ElevatedButton(
+              key: const Key('sendOTPButton'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AbashyakaRadius.button),
+                ),
+              ),
+              onPressed: _sending ? null : _sendOTP,
+              child: _sending
+                  ? _loadingLabel()
+                  : const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Send OTP',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        Text(
+        const Text(
           'We’ll send a one-time code to verify your account.',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: AppTheme.secondaryText),
+          style: TextStyle(
+            fontSize: 11.5,
+            color: AbashyakaColors.secondaryText,
+          ),
         ),
       ],
     );
@@ -625,6 +894,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       if (!mounted) return;
       setState(() => _sending = false);
       _showMessage('Signed in successfully');
+      _navigateToDestination();
     } catch (e) {
       _googleInitialization = null;
       if (!mounted) return;
@@ -646,34 +916,58 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
             height: 62,
             child: Stack(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (index) {
-                    final selected = index == digits.length && digits.length < 6;
-                    return Flexible(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        width: 43,
-                        height: 58,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected ? AppTheme.emerald : AppTheme.border,
-                            width: selected ? 1.8 : 1,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) {
+                      final selected =
+                          index == digits.length && digits.length < 6;
+                      final hasDigit = index < digits.length;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          width: 44,
+                          height: 58,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AbashyakaColors.pureWhite,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected
+                                  ? AbashyakaColors.metallicTeal
+                                  : (hasDigit
+                                        ? AbashyakaColors.metallicTealDark
+                                        : AbashyakaColors.silverGlass),
+                              width: selected ? 2.0 : 1.2,
+                            ),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: AbashyakaColors.metallicTeal
+                                          .withValues(alpha: 0.18),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              hasDigit ? digits[index] : '',
+                              style: const TextStyle(
+                                color: AbashyakaColors.inkBlack,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 22,
+                              ),
+                            ),
                           ),
                         ),
-                        child: Text(
-                          index < digits.length ? digits[index] : '',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppTheme.mainText,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
                 Positioned.fill(
                   child: Opacity(
@@ -682,14 +976,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       key: const Key('otpInput'),
                       focusNode: _otpFocusNode,
                       controller: _otpController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        signed: false,
+                        decimal: false,
+                      ),
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.oneTimeCode],
                       maxLength: 6,
-                      showCursor: false,
+                      autofocus: true,
+                      showCursor: true,
+                      cursorColor: Colors.transparent,
+                      enableInteractiveSelection: true,
                       enableSuggestions: false,
                       autocorrect: false,
-                      onTap: () => _focusOtpInput(),
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         counterText: '',
@@ -724,7 +1023,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     Icon(
                       Icons.backspace_outlined,
                       size: 14,
-                      color: AppTheme.secondaryText,
+                      color: AbashyakaColors.secondaryText,
                     ),
                     SizedBox(width: 4),
                     Text(
@@ -732,7 +1031,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.secondaryText,
+                        color: AbashyakaColors.secondaryText,
                       ),
                     ),
                   ],
@@ -743,43 +1042,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         ],
         const SizedBox(height: 20),
         ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 54),
-          child: ElevatedButton(
-            key: const Key('verifyOTPButton'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AbashyakaTheme.vibrantGreen,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: AbashyakaGradients.metallicButton,
+              borderRadius: BorderRadius.circular(AbashyakaRadius.button),
+              boxShadow: AbashyakaShadows.metallicButton,
             ),
-            onPressed:
-                _sending || !RegExp(r'^\d{6}$').hasMatch(_otpController.text)
-                ? null
-                : _verifyOTP,
-            child: _sending
-                ? _loadingLabel()
-                : const Text(
-                    'Verify',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
+            child: ElevatedButton(
+              key: const Key('verifyOTPButton'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AbashyakaRadius.button),
+                ),
+              ),
+              onPressed:
+                  _sending || !RegExp(r'^\d{6}$').hasMatch(_otpController.text)
+                  ? null
+                  : _verifyOTP,
+              child: _sending
+                  ? _loadingLabel()
+                  : const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Verify & Continue',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
           ),
         ),
         const SizedBox(height: 10),
         Center(
           child: TextButton(
+            key: const Key('resendOTPButton'),
             onPressed: _sending || _resendSeconds > 0 ? null : _sendOTP,
             child: Text(
               _resendSeconds > 0
                   ? 'Resend code in 00:${_resendSeconds.toString().padLeft(2, '0')}'
                   : 'Resend code',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: _resendSeconds > 0
+                    ? AbashyakaColors.secondaryText
+                    : AbashyakaColors.metallicTeal,
+              ),
             ),
           ),
         ),
         Center(
           child: TextButton(
             onPressed: _sending ? null : _useDifferentNumber,
-            child: const Text('Use a different number'),
+            child: const Text(
+              'Use a different number',
+              style: TextStyle(
+                color: AbashyakaColors.secondaryText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ],
@@ -797,7 +1135,7 @@ class _GoogleMark extends StatelessWidget {
   const _GoogleMark();
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) => const SizedBox(
     width: 21,
     height: 21,
     child: CustomPaint(painter: _GoogleMarkPainter()),
@@ -805,6 +1143,8 @@ class _GoogleMark extends StatelessWidget {
 }
 
 class _GoogleMarkPainter extends CustomPainter {
+  const _GoogleMarkPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
@@ -815,7 +1155,7 @@ class _GoogleMarkPainter extends CustomPainter {
       const Color(0xFFEA4335),
     ];
     final starts = <double>[-0.52, 1.05, 2.62, 4.19];
-    final sweep = 1.48;
+    const sweep = 1.48;
     final stroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.3

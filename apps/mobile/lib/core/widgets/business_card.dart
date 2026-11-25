@@ -50,7 +50,10 @@ class StatusChip extends StatelessWidget {
         : const EdgeInsets.symmetric(horizontal: 10, vertical: 5);
     return Container(
       padding: pad,
-      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Text(
         label,
         style: TextStyle(
@@ -64,6 +67,7 @@ class StatusChip extends StatelessWidget {
 }
 
 enum StatusChipType { info, success, warning, error }
+
 enum StatusChipSize { small, medium }
 
 /// Business card matching Screen 7 & Screen 9 in the UI showcase.
@@ -93,9 +97,11 @@ class BusinessCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ratingVal = business.rating;
     final reviewsCount = business.reviewCount;
-    final categoryText = business.categoryName ?? (business.categorySlug.isNotEmpty 
-        ? '${business.categorySlug[0].toUpperCase()}${business.categorySlug.substring(1)}'
-        : 'Store');
+    final categoryText =
+        business.categoryName ??
+        (business.categorySlug.isNotEmpty
+            ? '${business.categorySlug[0].toUpperCase()}${business.categorySlug.substring(1)}'
+            : 'Store');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -126,7 +132,9 @@ class BusinessCard extends StatelessWidget {
                   child: SizedBox(
                     width: 78,
                     height: 78,
-                    child: business.coverPhotoUrl != null && business.coverPhotoUrl!.isNotEmpty
+                    child:
+                        business.coverPhotoUrl != null &&
+                            business.coverPhotoUrl!.isNotEmpty
                         ? Image.network(
                             business.coverPhotoUrl!,
                             fit: BoxFit.cover,
@@ -158,7 +166,11 @@ class BusinessCard extends StatelessWidget {
                       // Rating row: ★ 4.8 (128)
                       Row(
                         children: [
-                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Color(0xFFF59E0B),
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             ratingVal?.toStringAsFixed(1) ?? 'Not rated',
@@ -184,7 +196,8 @@ class BusinessCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              business.locality != null && business.locality!.isNotEmpty
+                              business.locality != null &&
+                                      business.locality!.isNotEmpty
                                   ? '$categoryText • ${business.locality}'
                                   : categoryText,
                               maxLines: 1,
@@ -220,10 +233,13 @@ class BusinessCard extends StatelessWidget {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: business.isOpenNow 
-                                  ? const Color(0xFFECFDF3) 
+                              color: business.isOpenNow
+                                  ? const Color(0xFFECFDF3)
                                   : const Color(0xFFF2F4F7),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -235,8 +251,8 @@ class BusinessCard extends StatelessWidget {
                                   height: 6,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: business.isOpenNow 
-                                        ? const Color(0xFF15803D) 
+                                    color: business.isOpenNow
+                                        ? const Color(0xFF15803D)
                                         : const Color(0xFF9AA5B1),
                                   ),
                                 ),
@@ -246,18 +262,22 @@ class BusinessCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: business.isOpenNow 
-                                        ? const Color(0xFF15803D) 
+                                    color: business.isOpenNow
+                                        ? const Color(0xFF15803D)
                                         : const Color(0xFF667085),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          if (business.categorySlug == 'restaurant' || business.categorySlug == 'cafe') ...[
+                          if (business.categorySlug == 'restaurant' ||
+                              business.categorySlug == 'cafe') ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: business.deliveryEnabled
                                     ? const Color(0xFFE8F5E9)
@@ -265,7 +285,9 @@ class BusinessCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                business.deliveryEnabled ? 'Delivery' : 'Dine-in Only',
+                                business.deliveryEnabled
+                                    ? 'Delivery'
+                                    : 'Dine-in Only',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -278,7 +300,11 @@ class BusinessCard extends StatelessWidget {
                           ],
                           if (business.verificationStatus == 'verified') ...[
                             const SizedBox(width: 6),
-                            const Icon(Icons.verified, size: 14, color: AppTheme.primary),
+                            const Icon(
+                              Icons.verified,
+                              size: 14,
+                              color: AppTheme.primary,
+                            ),
                           ],
                         ],
                       ),
@@ -294,7 +320,10 @@ class BusinessCard extends StatelessWidget {
                       onTap: () => _makeCall(business.phoneE164),
                       borderRadius: BorderRadius.circular(18),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primary,
                           borderRadius: BorderRadius.circular(18),
@@ -323,8 +352,12 @@ class BusinessCard extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Icon(
-                          isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: isFavorited ? AppTheme.error : const Color(0xFF9AA5B1),
+                          isFavorited
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: isFavorited
+                              ? AppTheme.error
+                              : const Color(0xFF9AA5B1),
                           size: 20,
                         ),
                       ),
@@ -348,4 +381,3 @@ class BusinessCard extends StatelessWidget {
     );
   }
 }
-

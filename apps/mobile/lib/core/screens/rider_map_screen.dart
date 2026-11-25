@@ -76,9 +76,11 @@ class _RiderDeliveryRouteMapScreenState
 
   @override
   Widget build(BuildContext context) {
-    final state = widget.assignment['execution_state']?.toString() ?? 'assigned';
+    final state =
+        widget.assignment['execution_state']?.toString() ?? 'assigned';
     final isEnRoute = state == 'picked_up' || state == 'en_route';
-    final partnerName = widget.assignment['pickup_business_name']?.toString() ??
+    final partnerName =
+        widget.assignment['pickup_business_name']?.toString() ??
         widget.assignment['pickup_business']?.toString() ??
         'Partner Store';
     final recipientName =
@@ -87,10 +89,12 @@ class _RiderDeliveryRouteMapScreenState
         widget.assignment['destination_locality']?.toString() ?? 'Kuanpal';
     final destDistrict =
         widget.assignment['destination_district']?.toString() ?? 'Cuttack';
-    final destAddress = widget.assignment['destination_address']?.toString() ??
+    final destAddress =
+        widget.assignment['destination_address']?.toString() ??
         '$destLocality, $destDistrict';
     final phone = widget.assignment['contact_phone']?.toString() ?? '';
-    final orderRef = widget.assignment['order_reference']?.toString() ??
+    final orderRef =
+        widget.assignment['order_reference']?.toString() ??
         widget.assignment['order_id']?.toString() ??
         'GN-ORDER';
 
@@ -321,7 +325,9 @@ class _RiderDeliveryRouteMapScreenState
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          isEnRoute ? 'EN ROUTE TO DROP-OFF' : 'AT STORE PICKUP',
+                          isEnRoute
+                              ? 'EN ROUTE TO DROP-OFF'
+                              : 'AT STORE PICKUP',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -592,7 +598,10 @@ class _RiderRouteMapPainter extends CustomPainter {
     );
 
     // 3. Define Route Waypoints
-    final pStart = Offset(size.width * 0.28, size.height * 0.52); // Partner Store
+    final pStart = Offset(
+      size.width * 0.28,
+      size.height * 0.52,
+    ); // Partner Store
     final pMid1 = Offset(size.width * 0.35, size.height * 0.45);
     final pMid2 = Offset(size.width * 0.65, size.height * 0.45);
     final pEnd = Offset(size.width * 0.72, size.height * 0.32); // Customer Drop
@@ -685,7 +694,10 @@ class _RiderRouteMapPainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(riderPos.dx - textPainter.width / 2, riderPos.dy - textPainter.height / 2),
+      Offset(
+        riderPos.dx - textPainter.width / 2,
+        riderPos.dy - textPainter.height / 2,
+      ),
     );
   }
 
@@ -705,11 +717,7 @@ class _RiderRouteMapPainter extends CustomPainter {
     );
 
     // Pin Body
-    canvas.drawCircle(
-      center,
-      15,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawCircle(center, 15, Paint()..color = Colors.white);
     canvas.drawCircle(
       center,
       15,
@@ -756,10 +764,7 @@ class _RiderRouteMapPainter extends CustomPainter {
       ),
       const Radius.circular(6),
     );
-    canvas.drawRRect(
-      labelBg,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawRRect(labelBg, Paint()..color = Colors.white);
     canvas.drawRRect(
       labelBg,
       Paint()

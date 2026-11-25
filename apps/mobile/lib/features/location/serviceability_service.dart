@@ -155,7 +155,8 @@ class ServiceabilityService {
           final id = loc['id'] as String? ?? '';
           final name = loc['name'] as String? ?? '';
           final deliveryEnabled = loc['delivery_enabled'] as bool? ?? false;
-          final pinCodes = (loc['pin_codes'] as List<dynamic>?)
+          final pinCodes =
+              (loc['pin_codes'] as List<dynamic>?)
                   ?.map((e) => e.toString())
                   .toList() ??
               [];
