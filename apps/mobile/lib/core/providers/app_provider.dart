@@ -616,7 +616,7 @@ class BusinessesNotifier extends StateNotifier<BusinessesState> {
       final meta = data['meta'] as Map<String, dynamic>?;
 
       var resolvedItems = items;
-      if (resolvedItems.isEmpty && categorySlug != null) {
+      if (resolvedItems.isEmpty) {
         resolvedItems = CategoryListingsData.getListingsForCategory(
           categorySlug,
           maxRadiusM: radiusM,
