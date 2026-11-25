@@ -58,22 +58,23 @@ Every text element is crafted for crisp readability, high contrast against Pearl
 | Role | Font Family | Size / Weight | Line Height | Tracking | Text Colour | Hex | Usage |
 |---|---|---|---|---|---|---|---|
 | **Brand Wordmark** | Plus Jakarta Sans | 32–36 / ExtraBold 800 | 1.15 | -0.8px | Signature Teal | `#00545B` | App bar brand logo, splash title |
-| **Display Heading** | Plus Jakarta Sans | 24–28 / Bold 800 | 1.25 | -0.5px | Deep Charcoal | `#102B32` | Page heroes, modal main titles |
-| **Page Title** | Plus Jakarta Sans | 20–22 / Bold 700 | 1.30 | -0.3px | Deep Charcoal | `#102B32` | Section titles, header bar titles |
-| **Card Title** | Plus Jakarta Sans | 15–16 / SemiBold 600 | 1.35 | -0.1px | Deep Charcoal | `#102B32` | Business name, product title, pro name |
-| **Body Large** | Plus Jakarta Sans | 15–16 / Regular 400 | 1.45 | 0.0px | Slate Charcoal | `#22383E` | Detail descriptions, long copy |
-| **Body Medium** | Plus Jakarta Sans | 13–14 / Regular 400 | 1.40 | 0.0px | Muted Charcoal | `#4A626A` | Subtitles, addresses, helper copy |
-| **Caption / Helper** | Plus Jakarta Sans | 11–12 / Medium 500 | 1.35 | +0.1px | Muted Charcoal | `#4A626A` | Timestamps, metadata, distance tags |
-| **Category Label** | Plus Jakarta Sans | 11–12 / SemiBold 600 | 1.25 | 0.0px | Deep Charcoal | `#102B32` | 3D category grid titles |
+| **Display Heading** | Plus Jakarta Sans | 24–28 / Bold 800 | 1.25 | -0.5px | Premium Obsidian | `#101820` | Page heroes, modal main titles |
+| **Page Title** | Plus Jakarta Sans | 20–22 / Bold 700 | 1.30 | -0.3px | Premium Obsidian | `#101820` | Section titles, header bar titles |
+| **Card Title** | Plus Jakarta Sans | 15–16 / SemiBold 600 | 1.35 | -0.1px | Premium Obsidian | `#101820` | Business name, product title, pro name |
+| **Body Large** | Plus Jakarta Sans | 15–16 / Regular 400 | 1.45 | 0.0px | Graphite Charcoal | `#374151` | Detail descriptions, long copy |
+| **Body Medium** | Plus Jakarta Sans | 13–14 / Regular 400 | 1.40 | 0.0px | Graphite Charcoal | `#374151` | Subtitles, addresses, helper copy |
+| **Caption / Helper** | Plus Jakarta Sans | 11–12 / Medium 500 | 1.35 | +0.1px | Graphite Charcoal | `#374151` | Timestamps, metadata, distance tags |
+| **Category Label** | Plus Jakarta Sans | 11–12 / SemiBold 600 | 1.25 | 0.0px | Premium Obsidian | `#101820` | 3D category grid titles |
 | **Button Primary** | Plus Jakarta Sans | 15–16 / Bold 700 | 1.20 | +0.3px | Pure White | `#FFFFFF` | Metallic teal primary button text |
 | **Button Secondary** | Plus Jakarta Sans | 14–15 / SemiBold 600 | 1.20 | +0.2px | Signature Teal | `#00545B` | Outlined/ghost button text |
 | **Rating Label** | Plus Jakarta Sans | 13–14 / Bold 700 | 1.20 | 0.0px | Deep Amber | `#92400E` | Rating score next to `#F4B942` gold star |
 | **Odia Script** | sans-serif | 13–15 / Bold 700 | 1.30 | 0.0px | Signature Teal | `#00545B` | Regional greeting (ନମସ୍କାର, etc.) |
 
 ### Typography Principles:
-1. **Never washed out**: Secondary text uses `#4A626A` (contrast ratio > 5.5:1 against `#F5FAFA`), far exceeding WCAG AA requirements.
-2. **Crisp hierarchy**: Distinct font weights (`800`, `700`, `600`, `400`) ensure users instantly parse primary titles vs metadata.
-3. **Tight letter-spacing on headings**: `-0.3px` to `-0.8px` tracking provides a bespoke, high-end mobile app aesthetic.
+1. **Never washed out**: Secondary text uses Graphite Charcoal `#374151` (contrast ratio > 7.1:1 against `#FFFFFF` / `#F5FAFA`), achieving full WCAG AAA requirements.
+2. **Authoritative Headings**: Primary titles and headings use Premium Obsidian `#101820` (contrast ratio > 17.5:1 against `#FFFFFF`).
+3. **Crisp hierarchy**: Distinct font weights (`800`, `700`, `600`, `400`) ensure users instantly parse primary titles vs metadata.
+4. **Tight letter-spacing on headings**: `-0.3px` to `-0.8px` tracking provides a bespoke, high-end mobile app aesthetic.
 
 ---
 
@@ -118,8 +119,8 @@ Color(0xFFF5FAFA) // Pure pearl white surface with zero muddy grey
 
 1. **Screen 8 (Categories Directory)**:
    - Scaffold: `#F5FAFA` (Pearl White).
-   - Category cards: `#FFFFFF` (Pure White) with `12px` rounded corners, `#DCEBED` 1px border, high-contrast `#102B32` typography.
-   - Filter tabs: Inactive `#FFFFFF` with `#4A626A` text; Active Metallic Teal `#007D80` with `#FFFFFF` text.
+   - Category cards: `#FFFFFF` (Pure White) with `12px` rounded corners, `#DCEBED` 1px border, high-contrast `#101820` Premium Obsidian typography.
+   - Filter tabs: Inactive `#FFFFFF` with `#374151` Graphite Charcoal text; Active Metallic Teal `#007D80` with `#FFFFFF` text.
 2. **Screen 9 (Search & Results)**:
    - Search bar: `#FFFFFF` with `#DCEBED` border and `#007D80` icon.
    - Business cards: `#FFFFFF` elevated cards, `#F4B942` rating stars, `#00545B` pricing/title.

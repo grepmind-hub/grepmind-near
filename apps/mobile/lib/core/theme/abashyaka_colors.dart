@@ -40,10 +40,16 @@ abstract final class AbashyakaColors {
   static const Color aquaSilverBorder = Color(0xFFDCEBED);
   static const Color silverGlass = Color(0xFFDCEBED);
   static const Color softGrey = Color(0xFFE8EFF1);
-  static const Color inkBlack = Color(0xFF102B32);
-  static const Color slateCharcoal = Color(0xFF22383E);
-  static const Color secondaryText = Color(0xFF4A626A);
-  static const Color mutedText = Color(0xFF526971);
+
+  // High-contrast clean typography tokens (V2.1 Approved)
+  static const Color premiumObsidian = Color(0xFF101820);
+  static const Color inkBlack =
+      premiumObsidian; // Clean, readable heading black (#101820)
+  static const Color graphiteCharcoal = Color(0xFF374151);
+  static const Color slateCharcoal =
+      graphiteCharcoal; // Clean, readable secondary text (#374151)
+  static const Color secondaryText = graphiteCharcoal;
+  static const Color mutedText = graphiteCharcoal;
 
   // -------------------------------------------------------------
   // Functional Colours

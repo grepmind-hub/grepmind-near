@@ -152,14 +152,15 @@ All widgets and screens must reference tokens from `lib/core/theme/`:
 ### Colors (`AbashyakaColors`)
 | Token Name | Hex Code | Purpose |
 |---|---|---|
-| `deepMetallicTeal` | `#00545B` | Primary brand base, dark buttons, active text |
-| `metallicTeal` | `#008C95` | Primary brand accent, focus rings, hyperlinks |
-| `mintWave` | `#28B7A4` | Secondary gradient accent, active indicators |
-| `pearlWhite` | `#F3F7F8` | Primary light canvas background |
-| `pureWhite` | `#FFFFFF` | Card surface, modal sheets |
-| `inkBlack` | `#0F172A` | Primary typography, headers |
-| `secondaryText` | `#64748B` | Subtitles, supporting copy, captions |
-| `cardBorder` | `#F1F5F9` | Subtle, non-intrusive card outlines |
+| `signatureTeal` | `#00545B` | Primary brand base, dark buttons, active text, hero anchors |
+| `metallicTeal` | `#007D80` | Primary brand accent, interactive buttons, active icons |
+| `luminousAqua` | `#00B3AE` | Secondary gradient accent, glowing wave highlights, active rings |
+| `metallicGold` | `#F4B942` | Warm ratings star, verified badge, promotional accents |
+| `pearlWhite` | `#F5FAFA` | Primary light canvas background (prevents glare) |
+| `pureWhite` | `#FFFFFF` | Card surface, modal sheets, glossy containers |
+| `premiumObsidian` / `inkBlack` | `#101820` | Primary typography, page titles, card headings |
+| `graphiteCharcoal` / `secondaryText` | `#374151` | Subtitles, supporting copy, addresses, metadata |
+| `aquaSilverBorder` | `#DCEBED` | Subtle, refined card outlines with gentle aqua tone |
 | `pillGreen` | `#15803D` / `#E8F7EE` | Customer role accents & pill |
 | `pillAmber` | `#B45309` / `#FEF3C7` | Merchant role accents & pill |
 | `pillBlue` | `#0284C7` / `#E0F2FE` | Rider role accents & pill |
