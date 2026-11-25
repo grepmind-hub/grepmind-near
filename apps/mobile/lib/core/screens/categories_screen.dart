@@ -508,6 +508,19 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
         backgroundColor: AbashyakaColors.pureWhite,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        flexibleSpace: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/backgrounds/premium/home_background.webp',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+            Container(
+              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
+            ),
+          ],
+        ),
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_rounded,

@@ -155,7 +155,7 @@ void main() {
       // Verify title and location subtitle
       expect(find.text('Nearby Map'), findsOneWidget);
       expect(find.text(' (5 km radius)'), findsNothing);
-      expect(find.text(' · 5 km radius'), findsOneWidget);
+      expect(find.textContaining('5 km radius'), findsOneWidget);
 
       // Verify top category chips
       expect(find.text('All'), findsOneWidget);
@@ -247,6 +247,40 @@ void main() {
 
     expect(find.text('Maa Mangala Hardware'), findsOneWidget);
     expect(find.text('Bijay Electric Service'), findsOneWidget);
+  });
+
+  test('Business model correctly returns category nature and contextual action label', () {
+    const cab = Business(id: 'c1', name: 'Maa Cabs', categorySlug: 'cab_auto', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(cab.categoryNatureLabel, 'Transport');
+    expect(cab.primaryActionLabel, 'Book Ride');
+
+    const doc = Business(id: 'd1', name: 'Dr. Panda Clinic', categorySlug: 'doctors', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(doc.categoryNatureLabel, 'Healthcare');
+    expect(doc.primaryActionLabel, 'Book Appointment');
+
+    const edu = Business(id: 'e1', name: 'Drona Coaching', categorySlug: 'education', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(edu.categoryNatureLabel, 'Education');
+    expect(edu.primaryActionLabel, 'Enquire Now');
+
+    const srv = Business(id: 's1', name: 'Maa Plumber', categorySlug: 'services', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(srv.categoryNatureLabel, 'Service');
+    expect(srv.primaryActionLabel, 'Book Service');
+
+    const food = Business(id: 'f1', name: 'Rasagola Hub', categorySlug: 'food', deliveryEnabled: true, addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(food.categoryNatureLabel, 'Dining');
+    expect(food.primaryActionLabel, 'Order Food');
+
+    const hotel = Business(id: 'h1', name: 'Puri Grand Resort', categorySlug: 'hotels_stays', addressText: 'Puri', status: 'approved', verificationStatus: 'verified');
+    expect(hotel.categoryNatureLabel, 'Hospitality');
+    expect(hotel.primaryActionLabel, 'Book Stay');
+
+    const salon = Business(id: 'b1', name: 'Glow Unisex Salon', categorySlug: 'beauty_salon', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(salon.categoryNatureLabel, 'Salon');
+    expect(salon.primaryActionLabel, 'Book Slot');
+
+    const gym = Business(id: 'g1', name: 'Iron Fitness Gym', categorySlug: 'fitness_wellness', addressText: 'Chhatia, Jajpur', status: 'approved', verificationStatus: 'verified');
+    expect(gym.categoryNatureLabel, 'Fitness');
+    expect(gym.primaryActionLabel, 'Join Now');
   });
 }
 

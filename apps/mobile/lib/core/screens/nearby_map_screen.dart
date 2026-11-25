@@ -74,12 +74,12 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
       duration: const Duration(seconds: 4),
     )..repeat();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _useDefaultLocation();
+    });
+
     if (widget.useDeviceLocation) {
       _requestLocationPermission();
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _useDefaultLocation();
-      });
     }
   }
 
@@ -112,19 +112,19 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   void _useDefaultLocation() {
     final location = ref.read(appLocationProvider);
-    if (location.cityName.isEmpty) {
+    if (location.cityName.isEmpty || location.latitude == 0) {
       ref.read(appLocationProvider.notifier).loadDefaultLocation().then((_) {
         if (!mounted) return;
         final updated = ref.read(appLocationProvider);
-        final lat = updated.cityName.isNotEmpty ? updated.latitude : 20.6120;
-        final lng = updated.cityName.isNotEmpty ? updated.longitude : 86.0465;
+        final lat = (updated.latitude != 0) ? updated.latitude : 20.6120;
+        final lng = (updated.longitude != 0) ? updated.longitude : 86.0465;
         _updateMapPosition(lat, lng);
         _loadNearbyBusinesses(lat, lng);
       });
       return;
     }
-    final defLat = location.latitude;
-    final defLng = location.longitude;
+    final defLat = (location.latitude != 0) ? location.latitude : 20.6120;
+    final defLng = (location.longitude != 0) ? location.longitude : 86.0465;
     _updateMapPosition(defLat, defLng);
     _loadNearbyBusinesses(defLat, defLng);
   }
@@ -214,21 +214,20 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   }
 
   List<Business> get _filteredBusinesses {
-    final city = ref.read(appLocationProvider).cityName.toLowerCase();
-    final all = ref.read(mapBusinessesProvider).items;
-    final list = city.isEmpty
-        ? all
-        : all.where((b) {
-            final bCity = b.city?.toLowerCase();
-            return bCity == null || bCity.isEmpty || bCity == city;
-          }).toList();
+    final all = ref.watch(mapBusinessesProvider).items;
 
-    return list.where((b) {
+    return all.where((b) {
       // 1. Entity type: All, Shops, or Services
-      if (_typeFilter == 'shops' && b.shouldOpenServiceProfile) {
+      final isServiceOrPro = b.isServiceProvider ||
+          b.categoryNatureLabel == 'Transport' ||
+          b.categoryNatureLabel == 'Healthcare' ||
+          b.categoryNatureLabel == 'Education' ||
+          b.categoryNatureLabel == 'Service';
+
+      if (_typeFilter == 'shops' && isServiceOrPro) {
         return false;
       }
-      if (_typeFilter == 'services' && !b.shouldOpenServiceProfile) {
+      if (_typeFilter == 'services' && !isServiceOrPro) {
         return false;
       }
       // 2. Category slug filter
@@ -326,10 +325,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
   Future<void> _setSearchRadius(int radiusKm) async {
     if (radiusKm == _radiusKm || !mounted) return;
     setState(() => _radiusKm = radiusKm);
-    final center = _currentPosition?.target;
-    if (center != null) {
-      await _loadNearbyBusinesses(center.latitude, center.longitude);
-    }
+    final loc = ref.read(appLocationProvider);
+    final lat = _currentPosition?.target.latitude ?? loc.latitude;
+    final lng = _currentPosition?.target.longitude ?? loc.longitude;
+    await _loadNearbyBusinesses(lat, lng);
   }
 
   void _openDirections(Business biz) async {
@@ -400,6 +399,19 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        flexibleSpace: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/backgrounds/premium/home_background.webp',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+            Container(
+              color: Colors.white.withValues(alpha: 0.88),
+            ),
+          ],
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -884,24 +896,18 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             vertical: 2.5,
                           ),
                           decoration: BoxDecoration(
-                            color: isService
-                                ? const Color(0xFFE6F7F7)
-                                : const Color(0xFFF8FAFC),
+                            color: const Color(0xFFE6F7F7),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: isService
-                                  ? AbashyakaColors.metallicTeal.withValues(alpha: 0.3)
-                                  : const Color(0xFFE2E8F0),
+                              color: AbashyakaColors.metallicTeal.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
-                            isService ? 'Service' : 'Shop',
-                            style: TextStyle(
+                            business.categoryNatureLabel,
+                            style: const TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              color: isService
-                                  ? AbashyakaColors.signatureTeal
-                                  : AbashyakaColors.graphiteCharcoal,
+                              color: AbashyakaColors.signatureTeal,
                             ),
                           ),
                         ),
@@ -1013,10 +1019,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                 _selectedCategorySlug = slug;
                 _selectedBusiness = null;
               });
-              final center = _currentPosition?.target;
-              if (center != null) {
-                _loadNearbyBusinesses(center.latitude, center.longitude);
-              }
+              final loc = ref.read(appLocationProvider);
+              final lat = _currentPosition?.target.latitude ?? loc.latitude;
+              final lng = _currentPosition?.target.longitude ?? loc.longitude;
+              _loadNearbyBusinesses(lat, lng);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
@@ -1074,6 +1080,82 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         },
       ),
     );
+  }
+
+  IconData _getActionIcon(Business biz) {
+    final slug = biz.categorySlug.toLowerCase().trim();
+    switch (slug) {
+      case 'cab_auto':
+      case 'transport':
+      case 'cab':
+      case 'auto':
+        return Icons.local_taxi_rounded;
+      case 'doctors':
+      case 'doctor':
+      case 'clinic':
+      case 'hospital':
+        return Icons.calendar_month_rounded;
+      case 'education':
+      case 'coaching':
+      case 'school':
+      case 'college':
+        return Icons.school_outlined;
+      case 'food':
+      case 'restaurant':
+      case 'cafe':
+      case 'bakery':
+        return Icons.restaurant_menu_rounded;
+      case 'hotels_stays':
+      case 'hotel':
+      case 'stays':
+        return Icons.hotel_rounded;
+      case 'beauty_salon':
+      case 'salon':
+      case 'beauty':
+        return Icons.spa_rounded;
+      case 'fitness_wellness':
+      case 'fitness':
+      case 'gym':
+        return Icons.fitness_center_rounded;
+      case 'services':
+      case 'service':
+      case 'electrician':
+      case 'plumber':
+      case 'carpenter':
+      case 'ac_mechanic':
+      case 'cleaning':
+      case 'automobile':
+      case 'automotive':
+        return Icons.handyman_rounded;
+      case 'grocery':
+      case 'kirana':
+        return Icons.shopping_basket_rounded;
+      case 'medicines':
+      case 'medical':
+      case 'pharmacy':
+        return Icons.medication_rounded;
+      case 'events_catering':
+      case 'events':
+      case 'catering':
+        return Icons.celebration_rounded;
+      case 'construction':
+      case 'hardware':
+        return Icons.foundation_rounded;
+      case 'home_painting_decor':
+      case 'painting':
+        return Icons.format_paint_rounded;
+      case 'home_furniture':
+      case 'furniture':
+        return Icons.chair_rounded;
+      case 'electronics':
+        return Icons.devices_rounded;
+      case 'fashion':
+        return Icons.checkroom_rounded;
+      default:
+        return biz.isServiceProvider
+            ? Icons.handyman_rounded
+            : Icons.storefront_rounded;
+    }
   }
 
   Widget _buildBottomBusinessCard(Business biz) {
@@ -1216,6 +1298,28 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             vertical: 1.5,
                           ),
                           decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7F7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            biz.categoryNatureLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AbashyakaColors.signatureTeal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
                             color: biz.isOpenNow
                                 ? const Color(0xFFE6F7F7)
                                 : const Color(0xFFF3F4F6),
@@ -1328,16 +1432,14 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            isService
-                                ? Icons.calendar_month_rounded
-                                : Icons.storefront_rounded,
+                            _getActionIcon(biz),
                             size: 18,
                             color: Colors.white,
                           ),
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              isService ? 'Book Service' : biz.shopActionLabel,
+                              biz.primaryActionLabel,
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -1399,18 +1501,20 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               final biz = entry.value;
               final isSelected = _selectedBusiness?.id == biz.id;
 
-              final center = _currentPosition?.target;
-              if (center == null ||
-                  biz.latitude == null ||
-                  biz.longitude == null) {
+              final loc = ref.watch(appLocationProvider);
+              final centerLat =
+                  _currentPosition?.target.latitude ?? loc.latitude;
+              final centerLng =
+                  _currentPosition?.target.longitude ?? loc.longitude;
+              if (biz.latitude == null || biz.longitude == null) {
                 return const SizedBox.shrink();
               }
               // Project actual coordinates around the search center. Never invent positions.
-              final north = (biz.latitude! - center.latitude) * 111320;
+              final north = (biz.latitude! - centerLat) * 111320;
               final east =
-                  (biz.longitude! - center.longitude) *
+                  (biz.longitude! - centerLng) *
                   111320 *
-                  math.cos(center.latitude * math.pi / 180);
+                  math.cos(centerLat * math.pi / 180);
 
               return Align(
                 alignment: Alignment(

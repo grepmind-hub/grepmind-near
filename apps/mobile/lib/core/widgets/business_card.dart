@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -298,6 +299,28 @@ class BusinessCard extends StatelessWidget {
                               ),
                             ),
                           ],
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE6F7F7),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Text(
+                              business.categoryNatureLabel,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AbashyakaColors.signatureTeal,
+                              ),
+                            ),
+                          ),
                           if (business.verificationStatus == 'verified') ...[
                             const SizedBox(width: 6),
                             const Icon(

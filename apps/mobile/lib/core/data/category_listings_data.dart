@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:grepmind_mobile/core/models/business.dart';
 
 /// Curated authentic local listings for the 18 Top-Level Categories across
@@ -1005,7 +1006,26 @@ abstract final class CategoryListingsData {
       sorted.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
     }
 
-    return sorted;
+    return sorted.asMap().entries.map((entry) {
+      final b = entry.value;
+      if (b.latitude != null && b.longitude != null) return b;
+      final (lat, lng) = _getCoordinates(b.locality, entry.key, (b.distanceM ?? 500).toInt());
+      return b.copyWith(latitude: lat, longitude: lng);
+    }).toList();
+  }
+
+  static (double, double) _getCoordinates(String? locality, int index, int distanceM) {
+    final (baseLat, baseLng) = switch (locality?.toLowerCase()) {
+      'kuanpal' => (20.5750, 86.0120),
+      'jagatpur' => (20.5050, 85.9250),
+      'chandikhol' => (20.6850, 86.1550),
+      'tangi' => (20.5900, 85.9800),
+      'chhatia' || _ => (20.6120, 86.0465),
+    };
+    final angle = (index * 137.5) * (3.141592653589793 / 180);
+    final dLat = (distanceM * math.cos(angle)) / 111320;
+    final dLng = (distanceM * math.sin(angle)) / (111320 * math.cos(baseLat * 3.141592653589793 / 180));
+    return (baseLat + dLat, baseLng + dLng);
   }
 
   /// Returns approved service localities (Chhatia, Kuanpal, Jagatpur, Tangi, Chandikhol)

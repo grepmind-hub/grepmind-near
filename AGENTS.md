@@ -270,8 +270,8 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **7** | Home / Explore Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/explore_screen.dart` (Hero banner, category chips, nearby business cards) |
 | **8** | Categories Directory | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/categories_screen.dart` (19 taxonomy entries in the audited local database, search, section filter tabs) |
 | **9** | Search & Filter Results | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/search_results_screen.dart` (radius sheet, sort sheet, verified/open chips, empty recovery) |
-| **10** | Nearby Interactive Map | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/nearby_map_screen.dart` (Category chips, interactive radar canvas with concentric rings, interactive marker selection, bottom preview card with directions & view profile) |
-| **11** | Business Profile & Tabs | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover, About, Products, Offers, Reviews) |
+| **10** | Nearby Interactive Map | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/nearby_map_screen.dart` (18 category nature badges, domain-specific CTAs such as Book Ride / Book Appointment / Enquire Now / Book Service, interactive radar canvas with concentric rings and sweep beam, synchronized list & radar filtering, premium wave background art) |
+| **11** | Business Profile & Tabs | ⏳ Next to Implement | `apps/mobile/lib/core/screens/business_detail_screen.dart` (Hero cover, About, Products, Offers, Reviews) |
 | **12** | Product Details Screen | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/product_detail_screen.dart` (Pricing, discount, specs, store card, dual CTAs) |
 | **13** | Service Professional Profile | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_pro_screen.dart` (Experience badges, verified badge, services, rates, coverage, reviews) |
 | **14** | Service Request Submission | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/service_request_screen.dart` (Service dropdown, description, date/time) |
@@ -286,6 +286,13 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 
 ### UI Showcase Milestone
 - The 22 rows above are the showcase screen inventory, not blanket proof that every workflow is production-complete. Verify current source, API, database behavior, tests, and runtime evidence before describing an item as complete or verified. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
+- **Screen 10 (Nearby Interactive Map) Verification Summary**:
+  - Authentic category nature mapping across all 18 categories (`Transport`, `Healthcare`, `Education`, `Service`, `Dining`, `Salon`, `Fitness`, `Auto Care`, `Events`, `Agriculture`, `Construction`, `Home Decor`, `Furniture`, `Electronics`, `Fashion`, `Grocery`, `Pharmacy`, `Shop`).
+  - Context-aware action buttons: `Cab & Auto` -> `Book Ride` with taxi icon; `Doctors & Clinics` -> `Book Appointment` with calendar icon; `Education` -> `Enquire Now`; `Services` / `Events` / `Auto Care` -> `Book Service`; `Hotels & Stays` -> `Book Stay`; `Food` -> `Order Food`; retail -> `View Store` / `Shop Now`.
+  - Integrated `assets/backgrounds/premium/home_background.webp` for Screen 8, Screen 9, and Screen 10 headers with pearl white fluid wave overlay.
+  - Fully synchronized radar canvas projection (concentric circles + sweep beam), marker selection, and list view with admin-approved service places and real km/meter distances.
+  - Automated tests passing: `nearby_map_test.dart`, `search_results_screen_test.dart`, `categories_directory_test.dart`.
+- **Next Screen to Implement**: **Screen 11: Business Profile & Tabs** (`apps/mobile/lib/core/screens/business_detail_screen.dart`).
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:

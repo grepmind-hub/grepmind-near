@@ -171,7 +171,13 @@ class Business extends Equatable {
     'pest-control',
     'salon',
     'beauty',
+    'beauty_salon',
     'beautician',
+    'ac_mechanic',
+    'home_painting_decor',
+    'automobile',
+    'construction',
+    'events_catering',
   };
 
   /// Whether this business represents an on-demand artisan / service professional.
@@ -180,33 +186,239 @@ class Business extends Equatable {
 
   bool get supportsFoodOrdering =>
       deliveryEnabled &&
-      (categorySlug == 'restaurant' || categorySlug == 'cafe');
+      (categorySlug == 'restaurant' ||
+          categorySlug == 'cafe' ||
+          categorySlug == 'food');
 
   /// Only route to ServiceProScreen if it is an actual service trade provider.
   bool get shouldOpenServiceProfile =>
       !supportsFoodOrdering && isServiceProvider;
 
-  /// Context-aware call-to-action label for local businesses.
-  String get shopActionLabel {
-    if (isServiceProvider) {
-      return 'Book Service';
-    }
+  /// Business category nature label for badge chips (not everything is a shop!).
+  String get categoryNatureLabel {
     final slug = categorySlug.toLowerCase().trim();
-    if (slug == 'restaurant' ||
-        slug == 'cafe' ||
-        slug == 'bakery' ||
-        slug == 'food') {
-      return deliveryEnabled ? 'Order Food' : 'View Menu';
+    switch (slug) {
+      case 'cab_auto':
+      case 'transport':
+      case 'cab':
+      case 'auto':
+        return 'Transport';
+      case 'doctors':
+      case 'doctor':
+      case 'clinic':
+      case 'hospital':
+        return 'Healthcare';
+      case 'education':
+      case 'coaching':
+      case 'school':
+      case 'college':
+        return 'Education';
+      case 'food':
+      case 'restaurant':
+      case 'cafe':
+      case 'bakery':
+        return 'Dining';
+      case 'grocery':
+      case 'kirana':
+        return 'Grocery';
+      case 'medicines':
+      case 'medical':
+      case 'pharmacy':
+        return 'Pharmacy';
+      case 'services':
+      case 'service':
+      case 'electrician':
+      case 'plumber':
+      case 'carpenter':
+      case 'ac_mechanic':
+      case 'cleaning':
+        return 'Service';
+      case 'hotels_stays':
+      case 'hotel':
+      case 'stays':
+        return 'Hospitality';
+      case 'beauty_salon':
+      case 'salon':
+      case 'beauty':
+        return 'Salon';
+      case 'fitness_wellness':
+      case 'fitness':
+      case 'gym':
+        return 'Fitness';
+      case 'automobile':
+      case 'automotive':
+        return 'Auto Care';
+      case 'events_catering':
+      case 'events':
+      case 'catering':
+        return 'Events';
+      case 'agriculture':
+      case 'agri':
+        return 'Agriculture';
+      case 'construction':
+        return 'Construction';
+      case 'home_painting_decor':
+      case 'painting':
+        return 'Home Decor';
+      case 'home_furniture':
+      case 'furniture':
+        return 'Furniture';
+      case 'electronics':
+        return 'Electronics';
+      case 'fashion':
+        return 'Fashion';
+      case 'shops':
+      case 'retail':
+      case 'general':
+      default:
+        return isServiceProvider ? 'Service' : 'Shop';
     }
-    if (slug == 'hotel') {
-      return (roomBookingEnabled || tableBookingEnabled)
-          ? 'Book Stay'
-          : 'View Hotel';
+  }
+
+  /// Context-aware call-to-action label across all 18 categories.
+  String get primaryActionLabel {
+    final slug = categorySlug.toLowerCase().trim();
+    switch (slug) {
+      case 'cab_auto':
+      case 'transport':
+      case 'cab':
+      case 'auto':
+        return 'Book Ride';
+      case 'doctors':
+      case 'doctor':
+      case 'clinic':
+      case 'hospital':
+        return 'Book Appointment';
+      case 'education':
+      case 'coaching':
+      case 'school':
+      case 'college':
+        return 'Enquire Now';
+      case 'services':
+      case 'service':
+      case 'electrician':
+      case 'plumber':
+      case 'carpenter':
+      case 'ac_mechanic':
+      case 'cleaning':
+        return 'Book Service';
+      case 'hotels_stays':
+      case 'hotel':
+      case 'stays':
+        return 'Book Stay';
+      case 'beauty_salon':
+      case 'salon':
+      case 'beauty':
+        return 'Book Slot';
+      case 'fitness_wellness':
+      case 'fitness':
+      case 'gym':
+        return 'Join Now';
+      case 'automobile':
+      case 'automotive':
+        return 'Book Service';
+      case 'events_catering':
+      case 'events':
+      case 'catering':
+        return 'Book Event';
+      case 'construction':
+        return 'Request Quote';
+      case 'home_painting_decor':
+      case 'painting':
+        return 'Book Estimate';
+      case 'food':
+      case 'restaurant':
+      case 'cafe':
+      case 'bakery':
+        return deliveryEnabled ? 'Order Food' : 'View Menu';
+      case 'grocery':
+      case 'kirana':
+        return 'Shop Grocery';
+      case 'medicines':
+      case 'medical':
+      case 'pharmacy':
+        return 'Order Medicines';
+      case 'shops':
+      case 'retail':
+      case 'fashion':
+      case 'electronics':
+      case 'home_furniture':
+      case 'agriculture':
+      default:
+        if (isServiceProvider) {
+          return 'Book Service';
+        }
+        return deliveryEnabled ? 'Shop Now' : 'View Store';
     }
-    if (deliveryEnabled) {
-      return 'Shop Now';
-    }
-    return 'View Store';
+  }
+
+  /// Backward-compatible alias for primaryActionLabel.
+  String get shopActionLabel => primaryActionLabel;
+
+  Business copyWith({
+    String? id,
+    String? name,
+    String? slug,
+    String? categorySlug,
+    String? categoryName,
+    String? categoryIcon,
+    String? addressText,
+    String? locality,
+    String? city,
+    String? postalCode,
+    num? distanceM,
+    String? status,
+    String? verificationStatus,
+    String? phoneE164,
+    String? whatsappE164,
+    bool? isOpenNow,
+    bool? acceptsRequests,
+    String? coverPhotoUrl,
+    double? rating,
+    int? reviewCount,
+    double? latitude,
+    double? longitude,
+    String? description,
+    bool? deliveryEnabled,
+    int? deliveryTimeMins,
+    double? deliveryFee,
+    double? minOrderAmount,
+    bool? tableBookingEnabled,
+    bool? roomBookingEnabled,
+    List<String>? amenities,
+  }) {
+    return Business(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slug: slug ?? this.slug,
+      categorySlug: categorySlug ?? this.categorySlug,
+      categoryName: categoryName ?? this.categoryName,
+      categoryIcon: categoryIcon ?? this.categoryIcon,
+      addressText: addressText ?? this.addressText,
+      locality: locality ?? this.locality,
+      city: city ?? this.city,
+      postalCode: postalCode ?? this.postalCode,
+      distanceM: distanceM?.toDouble() ?? this.distanceM,
+      status: status ?? this.status,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      phoneE164: phoneE164 ?? this.phoneE164,
+      whatsappE164: whatsappE164 ?? this.whatsappE164,
+      isOpenNow: isOpenNow ?? this.isOpenNow,
+      acceptsRequests: acceptsRequests ?? this.acceptsRequests,
+      coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      description: description ?? this.description,
+      deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
+      deliveryTimeMins: deliveryTimeMins ?? this.deliveryTimeMins,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
+      minOrderAmount: minOrderAmount ?? this.minOrderAmount,
+      tableBookingEnabled: tableBookingEnabled ?? this.tableBookingEnabled,
+      roomBookingEnabled: roomBookingEnabled ?? this.roomBookingEnabled,
+      amenities: amenities ?? this.amenities,
+    );
   }
 
   @override

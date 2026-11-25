@@ -406,7 +406,16 @@ class AppLocation {
 
 class LocationNotifier extends StateNotifier<AppLocation> {
   LocationNotifier()
-    : super(const AppLocation(cityName: '', latitude: 0, longitude: 0));
+    : super(
+        const AppLocation(
+          cityName: 'Cuttack',
+          localityName: 'Chhatia',
+          localityId: '02200000-0000-4000-8000-000000000201',
+          latitude: 20.6120,
+          longitude: 86.0465,
+          isSupported: true,
+        ),
+      );
   Future<void>? _defaultLocationLoad;
 
   Future<void> loadDefaultLocation() {
