@@ -96,6 +96,7 @@ void main() {
       expect(find.text('Merchant Onboarding'), findsOneWidget);
       expect(find.text('Register New'), findsOneWidget);
       expect(find.text('Claim Existing'), findsOneWidget);
+      expect(find.text('Step 1 of 4'), findsOneWidget);
 
       // Verify Step 1 content
       expect(find.text('Select Enterprise Classification'), findsOneWidget);
@@ -112,6 +113,7 @@ void main() {
 
       // Verify Step 2: Basic & Tax Info
       expect(find.text('Enterprise & Ownership Details'), findsOneWidget);
+      expect(find.text('Step 2 of 4'), findsOneWidget);
       expect(find.text('Business / Trade Name *'), findsOneWidget);
       expect(find.text('Owner / Authorized Person *'), findsOneWidget);
       expect(find.text('Tax / Registration ID'), findsOneWidget);

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,9 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
+import 'package:grepmind_mobile/core/widgets/metallic_button.dart';
 
 /// Screen 19: Merchant Registration & Claim Screen
 ///
@@ -87,7 +91,7 @@ class _ClaimRequestSheetState extends State<_ClaimRequestSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: AbashyakaColors.iceAquaWhite,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
@@ -95,7 +99,7 @@ class _ClaimRequestSheetState extends State<_ClaimRequestSheet> {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
-                color: Color(0xFF1E3A8A),
+                color: AbashyakaColors.signatureTeal,
               ),
             ),
           ),
@@ -787,7 +791,7 @@ class _MerchantRegistrationScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
         leading: Navigator.canPop(context)
             ? IconButton(
@@ -797,16 +801,16 @@ class _MerchantRegistrationScreenState
               )
             : null,
         title: const Text('Merchant Onboarding'),
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.mainText,
       ),
       body: Column(
         children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _buildModeSegmentedControl(),
+          AbashyakaPremiumHeader(
+            variant: FluidWaveVariant.merchant,
+            bottom: _buildModeSegmentedControl(),
           ),
           Expanded(
             child: _mode == 0
@@ -815,7 +819,9 @@ class _MerchantRegistrationScreenState
           ),
         ],
       ),
-      bottomNavigationBar: _mode == 0 ? _buildWizardBottomBar() : null,
+      bottomNavigationBar: _mode == 0
+          ? SafeArea(top: false, child: _buildWizardBottomBar())
+          : null,
     );
   }
 
@@ -823,114 +829,66 @@ class _MerchantRegistrationScreenState
   // Mode Switcher (Register New vs Claim Existing)
   // -------------------------------------------------------------
   Widget _buildModeSegmentedControl() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(4),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(14),
+        color: AbashyakaColors.softGrey,
+        borderRadius: BorderRadius.circular(AbashyakaRadius.md),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(AbashyakaSpacing.xxs),
+        child: Row(
+          children: [
+            _modeOption(
+              label: 'Register New',
+              selected: _mode == 0,
               onTap: () => setState(() => _mode = 0),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _mode == 0 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: _mode == 0
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_business_outlined,
-                      size: 16,
-                      color: _mode == 0
-                          ? AppTheme.primary
-                          : AppTheme.secondaryText,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Register New',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: _mode == 0
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: _mode == 0
-                            ? AppTheme.primary
-                            : AppTheme.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            _modeOption(
+              label: 'Claim Existing',
+              selected: _mode == 1,
               onTap: _switchToClaims,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _mode == 1 ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: _mode == 1
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.store_mall_directory_outlined,
-                      size: 16,
-                      color: _mode == 1
-                          ? AppTheme.primary
-                          : AppTheme.secondaryText,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Claim Existing',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: _mode == 1
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: _mode == 1
-                            ? AppTheme.primary
-                            : AppTheme.secondaryText,
-                      ),
-                    ),
-                  ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _modeOption({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final radius = BorderRadius.circular(AbashyakaRadius.sm);
+    return Expanded(
+      child: Semantics(
+        selected: selected,
+        child: Material(
+          color: selected ? AbashyakaColors.pureWhite : Colors.transparent,
+          borderRadius: radius,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: AbashyakaSpacing.touchTargetMin,
+              ),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(AbashyakaSpacing.xs),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: selected
+                      ? AbashyakaColors.signatureTeal
+                      : AbashyakaColors.graphiteCharcoal,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -962,90 +920,46 @@ class _MerchantRegistrationScreenState
   }
 
   Widget _buildStepProgressIndicator() {
-    final steps = [
-      'Type & Sector',
-      'Basic Info',
-      'Location & Store',
-      'Operations',
+    const steps = [
+      'Business type and category',
+      'Business details',
+      'Location and photos',
+      'Operations and review',
     ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: List.generate(steps.length, (idx) {
-          final isDone = idx < _currentStep;
-          final isCurrent = idx == _currentStep;
-          return Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDone
-                              ? AppTheme.emerald
-                              : (isCurrent
-                                    ? AppTheme.emerald
-                                    : const Color(0xFFE2E8F0)),
-                        ),
-                        child: Center(
-                          child: isDone
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : Text(
-                                  '${idx + 1}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: isCurrent
-                                        ? Colors.white
-                                        : AppTheme.hintText,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        steps[idx],
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: isCurrent
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: isCurrent
-                              ? AppTheme.primary
-                              : AppTheme.secondaryText,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                if (idx < steps.length - 1)
-                  Container(
-                    width: 16,
-                    height: 2,
-                    color: isDone ? AppTheme.emerald : const Color(0xFFE2E8F0),
-                    margin: const EdgeInsets.only(bottom: 14),
-                  ),
-              ],
+    return PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Step ${_currentStep + 1} of ${steps.length}',
+            style: const TextStyle(
+              color: AbashyakaColors.graphiteCharcoal,
+              fontWeight: FontWeight.w600,
             ),
-          );
-        }),
+          ),
+          const SizedBox(height: AbashyakaSpacing.xxs),
+          Semantics(
+            header: true,
+            child: Text(
+              steps[_currentStep],
+              style: const TextStyle(
+                color: AbashyakaColors.premiumObsidian,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: AbashyakaSpacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AbashyakaRadius.xs),
+            child: LinearProgressIndicator(
+              value: (_currentStep + 1) / steps.length,
+              minHeight: 6,
+              color: AbashyakaColors.signatureTeal,
+              backgroundColor: AbashyakaColors.silverGlass,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1428,7 +1342,7 @@ class _MerchantRegistrationScreenState
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AbashyakaColors.pearlWhite,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
@@ -1848,7 +1762,7 @@ class _MerchantRegistrationScreenState
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                      color: AbashyakaColors.iceAquaWhite,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -1927,7 +1841,7 @@ class _MerchantRegistrationScreenState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AbashyakaColors.pearlWhite,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.border),
           ),
@@ -2050,7 +1964,7 @@ class _MerchantRegistrationScreenState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+          color: isSelected ? AbashyakaColors.iceAquaWhite : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppTheme.primary : AppTheme.border,
@@ -2130,55 +2044,29 @@ class _MerchantRegistrationScreenState
           ],
           Expanded(
             flex: 5,
-            child: SizedBox(
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.emerald,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: _isSubmitting
-                    ? null
-                    : () {
-                        if (_currentStep == 0 &&
-                            _selectedCategoryName == 'Select a category') {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Select a business category to continue.',
-                              ),
+            child: MetallicButton(
+              text: _currentStep < 3 ? 'Save & Continue' : 'Submit Application',
+              isLoading: _isSubmitting,
+              onPressed: _isSubmitting
+                  ? null
+                  : () {
+                      if (_currentStep == 0 &&
+                          _selectedCategoryName == 'Select a category') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Select a business category to continue.',
                             ),
-                          );
-                        } else if (!_validateCurrentStep()) {
-                          return;
-                        } else if (_currentStep < 3) {
-                          setState(() => _currentStep++);
-                        } else {
-                          _submitRegistration();
-                        }
-                      },
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        _currentStep < 3
-                            ? 'Save & Continue'
-                            : 'Submit Application',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
+                          ),
+                        );
+                      } else if (!_validateCurrentStep()) {
+                        return;
+                      } else if (_currentStep < 3) {
+                        setState(() => _currentStep++);
+                      } else {
+                        _submitRegistration();
+                      }
+                    },
             ),
           ),
         ],
@@ -2198,9 +2086,9 @@ class _MerchantRegistrationScreenState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: AbashyakaColors.iceAquaWhite,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            border: Border.all(color: AbashyakaColors.aquaSilverBorder),
           ),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2212,7 +2100,7 @@ class _MerchantRegistrationScreenState
                   'Search approved business listings in Cuttack and Jajpur. You can request a review; ownership changes only after an administrator verifies the claim.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF1E3A8A),
+                    color: AbashyakaColors.signatureTeal,
                     height: 1.35,
                   ),
                 ),
@@ -2449,24 +2337,14 @@ class _MerchantRegistrationScreenState
             style: const TextStyle(color: AppTheme.hintText, fontSize: 12),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 42,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () => _showClaimConfirmationSheet(item),
-              icon: const Icon(Icons.verified_outlined, size: 16),
-              label: const Text(
-                'Request review',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-              ),
+          MetallicButton(
+            text: 'Request review',
+            leadingIcon: const Icon(
+              Icons.verified_outlined,
+              size: 16,
+              color: AbashyakaColors.pureWhite,
             ),
+            onPressed: () => _showClaimConfirmationSheet(item),
           ),
         ],
       ),
@@ -2478,7 +2356,7 @@ class _MerchantRegistrationScreenState
   // -------------------------------------------------------------
   Widget _buildSuccessScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AbashyakaColors.pearlWhite,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -2490,7 +2368,7 @@ class _MerchantRegistrationScreenState
                 height: 88,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF0B6B4A),
+                  color: AbashyakaColors.signatureTeal,
                 ),
                 child: const Center(
                   child: Icon(
@@ -2508,7 +2386,7 @@ class _MerchantRegistrationScreenState
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
+                  color: AbashyakaColors.premiumObsidian,
                   letterSpacing: -0.3,
                 ),
                 textAlign: TextAlign.center,
@@ -2518,7 +2396,7 @@ class _MerchantRegistrationScreenState
                 'Your business details have been submitted. We will verify and activate your store shortly.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF4B5563),
+                  color: AbashyakaColors.graphiteCharcoal,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -2540,7 +2418,7 @@ class _MerchantRegistrationScreenState
                     Icon(
                       Icons.info_outline_rounded,
                       size: 18,
-                      color: Color(0xFF0B6B4A),
+                      color: AbashyakaColors.signatureTeal,
                     ),
                     SizedBox(width: 8),
                     Text(
@@ -2602,7 +2480,7 @@ class _MerchantRegistrationScreenState
                 child: ElevatedButton.icon(
                   key: const Key('goToDashboardButton'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0B6B4A),
+                    backgroundColor: AbashyakaColors.signatureTeal,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
