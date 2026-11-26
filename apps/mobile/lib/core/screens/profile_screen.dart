@@ -242,29 +242,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: IconButton.filled(
-                      key: const ValueKey('profile_photo_button'),
-                      tooltip: 'Change profile photo',
-                      onPressed: _savingPhoto ? null : _chooseProfilePhoto,
-                      style: IconButton.styleFrom(
-                        minimumSize: const Size.square(
-                          AbashyakaSpacing.touchTargetMin,
+                    right: -4,
+                    bottom: -4,
+                    child: Semantics(
+                      button: true,
+                      label: 'Change profile photo',
+                      child: InkWell(
+                        key: const ValueKey('profile_photo_button'),
+                        onTap: _savingPhoto ? null : _chooseProfilePhoto,
+                        borderRadius: BorderRadius.circular(24),
+                        child: SizedBox(
+                          width: AbashyakaSpacing.touchTargetMin,
+                          height: AbashyakaSpacing.touchTargetMin,
+                          child: Align(
+                            alignment: Alignment.bottomRight,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: isRider
+                                    ? AbashyakaColors.rider
+                                    : (isMerchant
+                                          ? AppTheme.coral
+                                          : AbashyakaColors.signatureTeal),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: context.abashyaka.card,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: _savingPhoto
+                                    ? const SizedBox.square(
+                                        dimension: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.camera_alt_outlined,
+                                        size: 13,
+                                        color: AbashyakaColors.pureWhite,
+                                      ),
+                              ),
+                            ),
+                          ),
                         ),
-                        backgroundColor: isRider
-                            ? AbashyakaColors.rider
-                            : (isMerchant
-                                  ? AppTheme.coral
-                                  : AbashyakaColors.signatureTeal),
-                        foregroundColor: AbashyakaColors.pureWhite,
                       ),
-                      icon: _savingPhoto
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.camera_alt_outlined, size: 18),
                     ),
                   ),
                 ],

@@ -361,30 +361,8 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
             label: 'Nearby',
           ),
           const BottomNavigationBarItem(
-            icon: Badge(
-              backgroundColor: Color(0xFFFF8A00),
-              label: Text(
-                '1',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              child: Icon(Icons.inventory_2_outlined),
-            ),
-            activeIcon: Badge(
-              backgroundColor: Color(0xFFFF8A00),
-              label: Text(
-                '1',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              child: Icon(Icons.inventory_2),
-            ),
+            icon: Icon(Icons.inventory_2_outlined),
+            activeIcon: Icon(Icons.inventory_2),
             label: 'Orders',
           ),
           const BottomNavigationBarItem(

@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/data/category_listings_data.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
-import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
-import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/widgets/business_card.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
@@ -327,7 +325,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           variant: FluidWaveVariant.compact,
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: AbashyakaColors.pureWhite,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
@@ -335,34 +336,35 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           margin: const EdgeInsets.only(right: 8),
           height: 44,
           decoration: BoxDecoration(
-            color: AbashyakaColors.unavailableSurface,
+            color: palette.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AbashyakaColors.softGrey),
+            border: Border.all(color: palette.border),
           ),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AbashyakaColors.premiumObsidian,
+              color: palette.textPrimary,
               fontWeight: FontWeight.w500,
             ),
             onSubmitted: (_) => _executeSearch(),
             decoration: InputDecoration(
+              filled: false,
               hintText: 'Search food, shops, services, doctors...',
-              hintStyle: const TextStyle(
-                color: AbashyakaColors.disabledText,
+              hintStyle: TextStyle(
+                color: palette.textSecondary,
                 fontSize: 14,
               ),
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.search_rounded,
-                color: AbashyakaColors.signatureTeal,
+                color: palette.accent,
                 size: 20,
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.clear_rounded,
-                        color: AbashyakaColors.disabledText,
+                        color: palette.textSecondary,
                         size: 18,
                       ),
                       onPressed: () {
@@ -372,7 +374,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 11),
             ),
           ),
         ),
@@ -380,11 +384,12 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: AbashyakaColors.iceAquaWhite,
+              color: palette.card,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.border),
             ),
             child: IconButton(
-              icon: const Icon(Icons.map_outlined, color: AbashyakaColors.signatureTeal),
+              icon: Icon(Icons.map_outlined, color: palette.accent),
               tooltip: 'Map view',
               onPressed: () {
                 Navigator.push(
@@ -426,10 +431,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AbashyakaColors.iceAquaWhite,
+                            color: palette.card,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AbashyakaColors.metallicTeal,
+                              color: palette.accent,
                               width: 1.5,
                             ),
                           ),
@@ -438,17 +443,17 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             children: [
                               Text(
                                 _selectedCategoryName ?? _selectedCategory!,
-                                style: const TextStyle(
-                                  color: AbashyakaColors.signatureTeal,
+                                style: TextStyle(
+                                  color: palette.accent,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(
+                              Icon(
                                 Icons.close_rounded,
                                 size: 14,
-                                color: AbashyakaColors.signatureTeal,
+                                color: palette.accent,
                               ),
                             ],
                           ),
@@ -503,7 +508,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, thickness: 1, color: AbashyakaColors.softGrey),
+              Divider(height: 1, thickness: 1, color: palette.border),
             ],
           ),
         ),
@@ -514,7 +519,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           if (_selectedCategory == null) ...[
             Container(
               height: 42,
-              color: AbashyakaColors.pureWhite,
+              color: palette.card,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -534,16 +539,16 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AbashyakaColors.pearlWhite,
+                        color: palette.canvas,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AbashyakaColors.softGrey),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Text(
                         cat['name']!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AbashyakaColors.graphiteCharcoal,
+                          color: palette.textPrimary,
                         ),
                       ),
                     ),
@@ -551,7 +556,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 },
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: AbashyakaColors.softGrey),
+            Divider(height: 1, thickness: 1, color: palette.border),
           ],
 
           // Results Header bar
@@ -564,10 +569,10 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   state.isLoading
                       ? 'Searching...'
                       : 'Showing ${items.length} nearby places',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AbashyakaColors.graphiteCharcoal,
+                    color: palette.textSecondary,
                   ),
                 ),
                 if (_selectedCategory != null ||
@@ -596,17 +601,6 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     ),
                   ),
               ],
-            ),
-          ),
-
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 2, 16, 10),
-            child: ScreenIllustrationCard(
-              illustration: ScreenIllustration.search,
-              title: 'Search your neighborhood',
-              subtitle: 'Compare nearby options at a glance',
-              icon: Icons.travel_explore_rounded,
-              compact: true,
             ),
           ),
 
@@ -741,18 +735,17 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final palette = context.abashyaka;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? AbashyakaColors.iceAquaWhite : AbashyakaColors.pureWhite,
+          color: isActive ? palette.card : palette.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive
-                ? AbashyakaColors.metallicTeal
-                : AbashyakaColors.softGrey,
+            color: isActive ? palette.accent : palette.border,
             width: isActive ? 1.5 : 1.0,
           ),
           boxShadow: [
@@ -769,9 +762,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             Icon(
               icon,
               size: 14,
-              color: isActive
-                  ? AbashyakaColors.metallicTeal
-                  : AbashyakaColors.mutedText,
+              color: isActive ? palette.accent : palette.textSecondary,
             ),
             const SizedBox(width: 5),
             Text(
@@ -779,9 +770,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                color: isActive
-                    ? AbashyakaColors.signatureTeal
-                    : AbashyakaColors.graphiteCharcoal,
+                color: isActive ? palette.accent : palette.textPrimary,
               ),
             ),
           ],

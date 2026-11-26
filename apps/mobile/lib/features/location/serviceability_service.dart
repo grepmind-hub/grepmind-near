@@ -32,7 +32,8 @@ class ServiceabilityCapabilities {
 
 class ServiceabilityResult {
   final bool serviceable;
-  final String status; // "active", "coming_soon", "outside_service_area"
+  final String status;
+  bool get isUnavailable => status == 'unavailable';
   final String localityId;
   final String localityName;
   final String districtName;
@@ -54,9 +55,16 @@ class ServiceabilityResult {
   });
 
   factory ServiceabilityResult.fromJson(Map<String, dynamic> json) {
+    final status = json['status'];
+    final serviceable = json['serviceable'];
+    if (!((serviceable == true &&
+            (status == 'active' || status == 'coming_soon')) ||
+        (serviceable == false && status == 'outside_service_area'))) {
+      throw const FormatException('Invalid coverage decision');
+    }
     return ServiceabilityResult(
-      serviceable: json['serviceable'] as bool? ?? false,
-      status: json['status'] as String? ?? 'outside_service_area',
+      serviceable: serviceable as bool,
+      status: status as String,
       localityId: json['locality_id'] as String? ?? '',
       localityName: json['locality_name'] as String? ?? '',
       districtName: json['district_name'] as String? ?? '',
@@ -110,120 +118,44 @@ class ServiceabilityService {
       );
       final data = response.data['data'] as Map<String, dynamic>;
       return ServiceabilityResult.fromJson(data);
-    } catch (e) {
-      // Fallback check if API is unreachable or fails
-      final pin = pinCode?.trim() ?? '';
-      if (pin == '754023') {
-        return const ServiceabilityResult(
-          serviceable: true,
-          status: 'active',
-          localityId: '02200000-0000-4000-8000-000000000201',
-          localityName: 'Chhatia',
-          districtName: 'Jajpur',
-          pinCode: '754023',
-          message: 'Active delivery hub.',
-        );
-      } else if (pin == '754204' || pin == '754200') {
-        return const ServiceabilityResult(
-          serviceable: true,
-          status: 'active',
-          localityId: '02200000-0000-4000-8000-000000000101',
-          localityName: 'Kuanpal',
-          districtName: 'Cuttack',
-          pinCode: '754204',
-          message: 'Active delivery hub.',
-        );
-      }
-      return ServiceabilityResult(
+    } catch (_) {
+      return const ServiceabilityResult(
         serviceable: false,
-        status: 'outside_service_area',
-        pinCode: pin,
-        message: "We're not in your area just yet. Abashyaka is expanding neighbourhood by neighbourhood.",
+        status: 'unavailable',
       );
     }
   }
 
   Future<List<LocalitySummary>> fetchServiceableLocalities() async {
-    try {
-      final response = await _client.dio.get('/serviceability/locations');
-      final data = response.data['data'] as List<dynamic>? ?? [];
-      final List<LocalitySummary> results = [];
-      for (final district in data) {
-        final dName = district['name'] as String? ?? 'Odisha';
-        final localities = district['localities'] as List<dynamic>? ?? [];
-        for (final loc in localities) {
-          final id = loc['id'] as String? ?? '';
-          final name = loc['name'] as String? ?? '';
-          final deliveryEnabled = loc['delivery_enabled'] as bool? ?? false;
-          final pinCodes =
-              (loc['pin_codes'] as List<dynamic>?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
-              [];
-          results.add(
-            LocalitySummary(
-              id: id,
-              name: name,
-              districtName: dName,
-              deliveryEnabled: deliveryEnabled,
-              pinCodes: pinCodes,
-              latitude: (loc['latitude'] as num?)?.toDouble(),
-              longitude: (loc['longitude'] as num?)?.toDouble(),
-            ),
-          );
-        }
+    final response = await _client.dio.get('/serviceability/locations');
+    final data = response.data['data'] as List<dynamic>;
+    final List<LocalitySummary> results = [];
+    for (final district in data) {
+      final dName = district['name'] as String? ?? 'Odisha';
+      final localities = district['localities'] as List<dynamic>? ?? [];
+      for (final loc in localities) {
+        final id = loc['id'] as String? ?? '';
+        final name = loc['name'] as String? ?? '';
+        final deliveryEnabled = loc['delivery_enabled'] as bool? ?? false;
+        final pinCodes =
+            (loc['pin_codes'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+        results.add(
+          LocalitySummary(
+            id: id,
+            name: name,
+            districtName: dName,
+            deliveryEnabled: deliveryEnabled,
+            pinCodes: pinCodes,
+            latitude: (loc['latitude'] as num?)?.toDouble(),
+            longitude: (loc['longitude'] as num?)?.toDouble(),
+          ),
+        );
       }
-      return results;
-    } catch (_) {
-      // Offline fallback
-      return const [
-        LocalitySummary(
-          id: '02200000-0000-4000-8000-000000000201',
-          name: 'Chhatia',
-          districtName: 'Jajpur',
-          deliveryEnabled: true,
-          pinCodes: ['754023'],
-          latitude: 20.6105,
-          longitude: 86.0270,
-        ),
-        LocalitySummary(
-          id: '02200000-0000-4000-8000-000000000101',
-          name: 'Kuanpal',
-          districtName: 'Cuttack',
-          deliveryEnabled: true,
-          pinCodes: ['754204', '754200'],
-          latitude: 20.5348,
-          longitude: 86.0827,
-        ),
-        LocalitySummary(
-          id: '02200000-0000-4000-8000-000000000102',
-          name: 'Jagatpur',
-          districtName: 'Cuttack',
-          deliveryEnabled: false,
-          pinCodes: ['754021'],
-          latitude: 20.5100,
-          longitude: 85.9200,
-        ),
-        LocalitySummary(
-          id: '02200000-0000-4000-8000-000000000103',
-          name: 'Tangi',
-          districtName: 'Cuttack',
-          deliveryEnabled: false,
-          pinCodes: ['754022'],
-          latitude: 20.5800,
-          longitude: 85.9800,
-        ),
-        LocalitySummary(
-          id: '02200000-0000-4000-8000-000000000202',
-          name: 'Chandikhol',
-          districtName: 'Jajpur',
-          deliveryEnabled: false,
-          pinCodes: ['755044'],
-          latitude: 20.6900,
-          longitude: 86.1500,
-        ),
-      ];
     }
+    return results;
   }
 
   Future<bool> notifyInterest({

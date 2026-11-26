@@ -65,12 +65,13 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.brandBorder),
+        border: Border.all(color: palette.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A17352C),
@@ -185,10 +186,10 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.brandText,
+                              color: palette.textPrimary,
                             ),
                           ),
                         ),
@@ -205,18 +206,18 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                               const SizedBox(width: 2),
                               Text(
                                 rating!.toStringAsFixed(1),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.brandText,
+                                  color: palette.textPrimary,
                                 ),
                               ),
                               if (reviewCount != null)
                                 Text(
                                   ' ($reviewCount)',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppTheme.brandTextMuted,
+                                    color: palette.textSecondary,
                                   ),
                                 ),
                             ],
@@ -252,9 +253,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                               locality!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.brandTextMuted,
+                                color: palette.textSecondary,
                               ),
                             ),
                           ),
@@ -282,9 +283,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             onPressed: _makeCall,
                             tooltip: 'Call store',
                             icon: const Icon(Icons.phone_outlined, size: 18),
-                            color: AppTheme.brandText,
+                            color: palette.textPrimary,
                             style: IconButton.styleFrom(
-                              backgroundColor: AppTheme.brandCanvas,
+                              backgroundColor: palette.canvas,
                               minimumSize: const Size(40, 40),
                             ),
                           ),
@@ -297,9 +298,9 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                               Icons.directions_outlined,
                               size: 18,
                             ),
-                            color: AppTheme.brandText,
+                            color: palette.textPrimary,
                             style: IconButton.styleFrom(
-                              backgroundColor: AppTheme.brandCanvas,
+                              backgroundColor: palette.canvas,
                               minimumSize: const Size(40, 40),
                             ),
                           ),

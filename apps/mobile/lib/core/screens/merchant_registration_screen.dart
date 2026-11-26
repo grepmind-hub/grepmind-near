@@ -586,6 +586,17 @@ class _MerchantRegistrationScreenState
           'latitude': _businessLatitude,
           'longitude': _businessLongitude,
           if (_coverPhotoUrl != null) 'cover_photo_url': _coverPhotoUrl,
+          'application': {
+            'owner_name': _ownerNameController.text.trim(),
+            if (_emailController.text.trim().isNotEmpty)
+              'email': _emailController.text.trim(),
+            if (!_isUnorganized && _taxIdController.text.trim().isNotEmpty)
+              'tax_id': _taxIdController.text.trim(),
+            'no_gst': _isUnorganized,
+            'enterprise_type': _enterpriseType,
+            'operating_mode': _operatingMode,
+            'service_radius_km': _serviceRadiusKm.round(),
+          },
           'hours': List.generate(7, (weekday) {
             final isClosed =
                 _hoursPreset == 'mon_sat' && weekday == DateTime.sunday % 7;

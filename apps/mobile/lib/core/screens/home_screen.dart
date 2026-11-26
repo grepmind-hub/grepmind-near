@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:grepmind_mobile/core/notifications/notification_provider.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
@@ -547,50 +548,59 @@ class _HeaderCardState extends State<_HeaderCard> {
                           ],
                         ),
                       ),
-                      // Notification Button with Orange Badge
-                      InkWell(
-                        onTap: () {},
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                        decoration: BoxDecoration(
-                          color: context.abashyaka.card,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: context.abashyaka.border,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x08003F46),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              Icons.notifications_none_rounded,
-                              color: context.abashyaka.textPrimary,
-                              size: 22,
-                            ),
-                              Positioned(
-                                top: 8,
-                                right: 9,
-                                child: Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: const BoxDecoration(
-                                    color: AbashyakaColors.saffronOrange,
-                                    shape: BoxShape.circle,
-                                  ),
+                      // Notification Button with Live Unread Badge
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final notifications = ref.watch(
+                            inAppNotificationsProvider,
+                          );
+                          final hasUnread = notifications.any((n) => !n.isRead);
+                          return InkWell(
+                            onTap: () => _showNotificationsSheet(context, ref),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: context.abashyaka.card,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: context.abashyaka.border,
                                 ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x08003F46),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: context.abashyaka.textPrimary,
+                                    size: 22,
+                                  ),
+                                  if (hasUnread)
+                                    Positioned(
+                                      top: 8,
+                                      right: 9,
+                                      child: Container(
+                                        width: 7,
+                                        height: 7,
+                                        decoration: const BoxDecoration(
+                                          color: AbashyakaColors.saffronOrange,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -2383,5 +2393,139 @@ class _InlineState extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+void _showNotificationsSheet(BuildContext context, WidgetRef ref) {
+  final notifications = ref.read(inAppNotificationsProvider);
+  ref.read(inAppNotificationsProvider.notifier).markAllRead();
+
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: context.abashyaka.card,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetCtx) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: sheetCtx.abashyaka.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(
+                    Icons.notifications_active_rounded,
+                    color: sheetCtx.abashyaka.accent,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Notifications',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: sheetCtx.abashyaka.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (notifications.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: sheetCtx.abashyaka.canvas,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: sheetCtx.abashyaka.border),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        size: 36,
+                        color: sheetCtx.abashyaka.textSecondary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'You\'re all caught up',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: sheetCtx.abashyaka.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Order updates, booking alerts, and local offers will appear here.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: sheetCtx.abashyaka.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 320),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: notifications.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, index) {
+                      final item = notifications[index];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: sheetCtx.abashyaka.canvas,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: sheetCtx.abashyaka.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: sheetCtx.abashyaka.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.body,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: sheetCtx.abashyaka.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }

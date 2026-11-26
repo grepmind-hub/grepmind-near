@@ -90,10 +90,11 @@ class _DoctorDirectoryScreenState extends ConsumerState<DoctorDirectoryScreen> {
         : (location.cityName == 'Cuttack' ? 'Kuanpal' : 'Chhatia');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: context.abashyaka.canvas,
       appBar: AppBar(
         title: const Text('Clinics & Medical Facilities'),
-        backgroundColor: Colors.white,
+        backgroundColor: context.abashyaka.card,
+        foregroundColor: context.abashyaka.textPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -105,7 +106,7 @@ class _DoctorDirectoryScreenState extends ConsumerState<DoctorDirectoryScreen> {
         children: [
           // Subheader context
           Container(
-            color: Colors.white,
+            color: context.abashyaka.card,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
@@ -286,9 +287,9 @@ class _MedicalFacilityCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE1EBE5)),
+        border: Border.all(color: context.abashyaka.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A000000),

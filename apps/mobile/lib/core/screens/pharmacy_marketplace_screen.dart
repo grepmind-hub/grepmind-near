@@ -108,10 +108,11 @@ class _PharmacyMarketplaceScreenState
         .toList(growable: false);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: context.abashyaka.canvas,
       appBar: AppBar(
         title: const Text('Medicines & Pharmacy'),
-        backgroundColor: Colors.white,
+        backgroundColor: context.abashyaka.card,
+        foregroundColor: context.abashyaka.textPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -123,7 +124,7 @@ class _PharmacyMarketplaceScreenState
         children: [
           // Subheader context
           Container(
-            color: Colors.white,
+            color: context.abashyaka.card,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
@@ -251,18 +252,18 @@ class _PharmacyMarketplaceScreenState
                   label: Text(filter),
                   selected: isSelected,
                   selectedColor: const Color(0xFFE8F5E9),
-                  backgroundColor: Colors.white,
+                  backgroundColor: context.abashyaka.card,
                   side: BorderSide(
                     color: isSelected
                         ? AppTheme.emerald
-                        : const Color(0xFFE5E7EB),
+                        : context.abashyaka.border,
                   ),
                   labelStyle: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected
                         ? AppTheme.emeraldDark
-                        : const Color(0xFF374151),
+                        : context.abashyaka.textPrimary,
                   ),
                   showCheckmark: false,
                   onSelected: (selected) {
@@ -402,9 +403,9 @@ class _PharmacyStoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE1EBE5)),
+        border: Border.all(color: context.abashyaka.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A000000),

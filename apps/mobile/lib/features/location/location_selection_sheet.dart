@@ -30,6 +30,10 @@ class _LocationSelectionSheetState
   List<LocalitySummary> _localities = [];
   bool _loading = true;
   bool _checkingGps = false;
+  bool _checkingPin = false;
+  bool _locationsUnavailable = false;
+  int _pinCheckGeneration = 0;
+  Future<void> Function()? _coverageRetry;
 
   // Unserviced location state
   bool _showOutsideServiceArea = false;
@@ -51,13 +55,17 @@ class _LocationSelectionSheetState
   }
 
   Future<void> _loadLocations() async {
-    setState(() => _loading = true);
-    final results = await _serviceabilityService.fetchServiceableLocalities();
-    if (mounted) {
-      setState(() {
-        _localities = results;
-        _loading = false;
-      });
+    setState(() {
+      _loading = true;
+      _locationsUnavailable = false;
+    });
+    try {
+      final results = await _serviceabilityService.fetchServiceableLocalities();
+      if (mounted) setState(() => _localities = results);
+    } catch (_) {
+      if (mounted) setState(() => _locationsUnavailable = true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -161,11 +169,45 @@ class _LocationSelectionSheetState
         timeLimit: const Duration(seconds: 6),
       );
 
+      if (mounted) await _checkGpsCoverage(pos.latitude, pos.longitude);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'GPS timed out or unavailable. Please choose your locality manually.',
+            ),
+            backgroundColor: const Color(0xFF374151),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _checkingGps = false);
+    }
+  }
+
+  Future<void> _checkGpsCoverage(double latitude, double longitude) async {
+    setState(() {
+      _coverageRetry = null;
+      _checkingGps = true;
+    });
+    try {
       final check = await _serviceabilityService.checkServiceability(
-        latitude: pos.latitude,
-        longitude: pos.longitude,
+        latitude: latitude,
+        longitude: longitude,
       );
 
+      if (!mounted) return;
+      if (check.isUnavailable) {
+        setState(
+          () => _coverageRetry = () => _checkGpsCoverage(latitude, longitude),
+        );
+        return;
+      }
       if (!check.serviceable) {
         setState(() {
           _showOutsideServiceArea = true;
@@ -187,8 +229,8 @@ class _LocationSelectionSheetState
                   ? check.localityName
                   : 'Chhatia',
               localityId: check.localityId,
-              latitude: pos.latitude,
-              longitude: pos.longitude,
+              latitude: latitude,
+              longitude: longitude,
               activeBusinessCount: 15,
             ),
           );
@@ -206,27 +248,12 @@ class _LocationSelectionSheetState
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Delivering to ${check.localityName}, ${check.districtName}',
+                  'Location set to ${check.localityName}, ${check.districtName}',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
             backgroundColor: AbashyakaTheme.actionGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'GPS timed out or unavailable. Please choose your locality manually.',
-            ),
-            backgroundColor: const Color(0xFF374151),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -243,12 +270,21 @@ class _LocationSelectionSheetState
     final trimmed = pin.trim();
     if (trimmed.length != 6 || int.tryParse(trimmed) == null) return;
 
-    setState(() => _loading = true);
+    final generation = ++_pinCheckGeneration;
+    setState(() {
+      _coverageRetry = null;
+      _checkingPin = true;
+    });
     final check = await _serviceabilityService.checkServiceability(
       pinCode: trimmed,
     );
 
-    if (mounted) {
+    if (mounted && generation == _pinCheckGeneration) {
+      setState(() => _checkingPin = false);
+      if (check.isUnavailable) {
+        setState(() => _coverageRetry = () => _handleManualPinSearch(trimmed));
+        return;
+      }
       if (check.serviceable) {
         ref
             .read(appLocationProvider.notifier)
@@ -269,7 +305,6 @@ class _LocationSelectionSheetState
         Navigator.pop(context);
       } else {
         setState(() {
-          _loading = false;
           _showOutsideServiceArea = true;
           _unservicedPinCode = trimmed;
           _unservicedLocality = 'PIN $trimmed';
@@ -281,16 +316,50 @@ class _LocationSelectionSheetState
 
   Future<void> _handleNotifyLead() async {
     setState(() => _notifying = true);
-    await _serviceabilityService.notifyInterest(
+    final notified = await _serviceabilityService.notifyInterest(
       pinCode: _unservicedPinCode,
       localityName: _unservicedLocality,
     );
     if (mounted) {
       setState(() {
         _notifying = false;
-        _notified = true;
+        _notified = notified;
       });
+      if (!notified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save your request. Try again.'),
+          ),
+        );
+      }
     }
+  }
+
+  Widget _buildCoverageUnavailable(
+    Future<void> Function() retry, {
+    bool canGoBack = false,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'We couldn’t check coverage right now',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: retry, child: const Text('Retry')),
+            if (canGoBack)
+              TextButton(
+                onPressed: () => setState(() => _coverageRetry = null),
+                child: const Text('Back to location selection'),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -347,7 +416,9 @@ class _LocationSelectionSheetState
 
           // Body
           Expanded(
-            child: _showOutsideServiceArea
+            child: _coverageRetry != null
+                ? _buildCoverageUnavailable(_coverageRetry!, canGoBack: true)
+                : _showOutsideServiceArea
                 ? _buildOutsideServiceAreaView()
                 : _buildSelectionView(currentLocation),
           ),
@@ -391,7 +462,8 @@ class _LocationSelectionSheetState
                   child: TextField(
                     controller: _searchController,
                     onChanged: (val) {
-                      setState(() {});
+                      ++_pinCheckGeneration;
+                      setState(() => _checkingPin = false);
                       if (val.trim().length == 6) {
                         _handleManualPinSearch(val.trim());
                       }
@@ -411,8 +483,9 @@ class _LocationSelectionSheetState
                 if (_searchController.text.isNotEmpty)
                   GestureDetector(
                     onTap: () {
+                      ++_pinCheckGeneration;
                       _searchController.clear();
-                      setState(() {});
+                      setState(() => _checkingPin = false);
                     },
                     child: const Icon(
                       Icons.cancel_rounded,
@@ -524,13 +597,15 @@ class _LocationSelectionSheetState
         ),
 
         Expanded(
-          child: _loading
+          child: _loading || _checkingPin
               ? const Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: AbashyakaTheme.vibrantGreen,
                   ),
                 )
+              : _locationsUnavailable
+              ? _buildCoverageUnavailable(_loadLocations)
               : filtered.isEmpty
               ? Center(
                   child: Padding(
@@ -545,7 +620,9 @@ class _LocationSelectionSheetState
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No coverage for "${_searchController.text}"',
+                          query.isEmpty
+                              ? 'No locations available'
+                              : 'No matching locations',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -559,28 +636,6 @@ class _LocationSelectionSheetState
                             fontSize: 12,
                             color: Color(0xFF6B7280),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _showOutsideServiceArea = true;
-                              _unservicedPinCode = _searchController.text
-                                  .trim();
-                              _unservicedLocality = _searchController.text
-                                  .trim();
-                              _notified = false;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AbashyakaTheme.vibrantGreen,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text('Check Coverage Status'),
                         ),
                       ],
                     ),

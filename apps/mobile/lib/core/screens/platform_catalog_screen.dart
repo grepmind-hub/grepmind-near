@@ -782,12 +782,14 @@ class _CategoryChip extends StatelessWidget {
     selected: selected,
     onSelected: (_) => onTap(),
     selectedColor: AppTheme.emerald,
-    backgroundColor: Colors.white,
+    backgroundColor: context.abashyaka.card,
     labelStyle: TextStyle(
-      color: selected ? Colors.white : AppTheme.mainText,
+      color: selected ? Colors.white : context.abashyaka.textPrimary,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
     ),
-    side: BorderSide(color: selected ? AppTheme.emerald : AppTheme.border),
+    side: BorderSide(
+      color: selected ? AppTheme.emerald : context.abashyaka.border,
+    ),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
   );
 }

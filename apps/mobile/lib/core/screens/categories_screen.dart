@@ -550,13 +550,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
-            color: AbashyakaColors.pureWhite,
+            color: context.abashyaka.card,
             child: TabBar(
               controller: _tabController,
               indicatorColor: AbashyakaColors.metallicTeal,
               indicatorWeight: 3,
-              labelColor: AbashyakaColors.signatureTeal,
-              unselectedLabelColor: AbashyakaColors.secondaryText,
+              labelColor: context.abashyaka.accent,
+              unselectedLabelColor: context.abashyaka.textSecondary,
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
@@ -674,15 +674,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
           // Search & Section Filter Bar
           // ---------------------------------------------------------
           Container(
-            color: AbashyakaColors.pureWhite,
+            color: context.abashyaka.card,
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Column(
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: AbashyakaColors.pearlWhite,
+                    color: context.abashyaka.canvas,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+                    border: Border.all(color: context.abashyaka.border),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -1183,9 +1183,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AbashyakaColors.pureWhite,
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+              border: Border.all(color: context.abashyaka.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),

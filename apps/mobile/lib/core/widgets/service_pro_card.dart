@@ -40,12 +40,13 @@ class ServiceProCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.brandBorder),
+        border: Border.all(color: palette.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0817352C),
@@ -73,7 +74,7 @@ class ServiceProCard extends StatelessWidget {
                       child: Container(
                         width: 76,
                         height: 76,
-                        color: AppTheme.brandCanvas,
+                        color: palette.canvas,
                         child: photoUrl != null && photoUrl!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: apiClient.resolveMediaUrl(photoUrl!),
@@ -97,10 +98,10 @@ class ServiceProCard extends StatelessWidget {
                                   name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.brandText,
+                                    color: palette.textPrimary,
                                   ),
                                 ),
                               ),
@@ -135,18 +136,18 @@ class ServiceProCard extends StatelessWidget {
                                 const SizedBox(width: 2),
                                 Text(
                                   rating!.toStringAsFixed(1),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.brandText,
+                                    color: palette.textPrimary,
                                   ),
                                 ),
                                 if (jobsCompleted != null)
                                   Text(
                                     ' ($jobsCompleted jobs)',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: AppTheme.brandTextMuted,
+                                      color: palette.textSecondary,
                                     ),
                                   ),
                                 const SizedBox(width: 8),
@@ -158,18 +159,18 @@ class ServiceProCard extends StatelessWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.brandCanvas,
+                                    color: palette.canvas,
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
-                                      color: AppTheme.brandBorder,
+                                      color: palette.border,
                                     ),
                                   ),
                                   child: Text(
                                     '$experienceYears+ yrs exp',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.brandText,
+                                      color: palette.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -181,7 +182,7 @@ class ServiceProCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Divider(height: 1, color: AppTheme.brandBorder),
+                Divider(height: 1, color: palette.border),
                 const SizedBox(height: 8),
 
                 // Bottom row: Starting fee / Availability & Book CTA
@@ -195,19 +196,19 @@ class ServiceProCard extends StatelessWidget {
                               startingPriceMinor! > 0)
                             Text(
                               'Starts at ${_formatPrice(startingPriceMinor!)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: AppTheme.brandText,
+                                color: palette.textPrimary,
                               ),
                             )
                           else
-                            const Text(
+                            Text(
                               'Free quote & inspection',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.brandText,
+                                color: palette.textPrimary,
                               ),
                             ),
                           const SizedBox(height: 2),
@@ -224,9 +225,9 @@ class ServiceProCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Text(
                                 availability,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: AppTheme.brandTextMuted,
+                                  color: palette.textSecondary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
