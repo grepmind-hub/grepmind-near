@@ -585,7 +585,9 @@ class _RiderApplicationScreenState
                                 []);
                             final uploaded = docs
                                 .whereType<Map<String, dynamic>>()
-                                .where((d) => d['requirement_id'] == req['id'])
+                                .where((d) =>
+                                    d['requirement_id'] == req['id'] &&
+                                    d['review_status'] != 'superseded')
                                 .toList();
                             final isDone = uploaded.isNotEmpty;
                             return Container(

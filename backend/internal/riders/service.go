@@ -290,8 +290,11 @@ func (s *Service) ensurePrivateBucket(ctx context.Context) error {
 	if err == nil && strings.Contains(strings.ToLower(policy), `"principal"`) && strings.Contains(policy, "*") {
 		return fmt.Errorf("private bucket policy permits public access")
 	}
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "policy") && !strings.Contains(strings.ToLower(err.Error()), "not found") {
-		return err
+	if err != nil {
+		lower := strings.ToLower(err.Error())
+		if !strings.Contains(lower, "policy") && !strings.Contains(lower, "not found") && !strings.Contains(lower, "access denied") {
+			return err
+		}
 	}
 	return nil
 }
