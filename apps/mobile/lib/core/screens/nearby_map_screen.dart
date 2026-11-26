@@ -15,6 +15,7 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -983,10 +984,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     if (coverPhotoUrl == null || coverPhotoUrl.isEmpty) {
       return fallback;
     }
-    return Image.network(
-      apiClient.resolveMediaUrl(coverPhotoUrl),
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => fallback,
+    return PremiumNetworkImage(
+      imageUrl: apiClient.resolveMediaUrl(coverPhotoUrl),
+      errorWidget: fallback,
     );
   }
 
@@ -1221,10 +1221,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   width: 52,
                   height: 52,
                   child: (biz.coverPhotoUrl?.isNotEmpty ?? false)
-                      ? Image.network(
-                          apiClient.resolveMediaUrl(biz.coverPhotoUrl!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => CategoryThemedPlaceholder(
+                      ? PremiumNetworkImage(
+                          imageUrl: apiClient.resolveMediaUrl(biz.coverPhotoUrl!),
+                          errorWidget: CategoryThemedPlaceholder(
                             categorySlug: biz.categorySlug,
                             categoryName: biz.categoryName,
                             businessName: biz.name,

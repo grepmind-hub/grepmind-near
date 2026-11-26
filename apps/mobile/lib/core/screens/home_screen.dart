@@ -13,6 +13,7 @@ import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/features/location/location_selection_sheet.dart';
 
 /// Customer Home is a live local feed: current offers, categories and approved
@@ -1960,11 +1961,9 @@ class _OfferCard extends StatelessWidget {
                       width: 164,
                       height: double.infinity,
                       child: image != null && image.isNotEmpty
-                          ? Image.network(
-                              image,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const _OfferPlaceholder(),
+                          ? PremiumNetworkImage(
+                              imageUrl: image,
+                              errorWidget: const _OfferPlaceholder(),
                             )
                           : const _OfferPlaceholder(),
                     ),
@@ -2111,10 +2110,9 @@ class _BusinessTile extends StatelessWidget {
                 width: serviceStyle ? 88 : 66,
                 height: serviceStyle ? 82 : 66,
                 child: business.coverPhotoUrl?.isNotEmpty == true
-                    ? Image.network(
-                        business.coverPhotoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const _BusinessPlaceholder(),
+                    ? PremiumNetworkImage(
+                        imageUrl: business.coverPhotoUrl!,
+                        errorWidget: const _BusinessPlaceholder(),
                       )
                     : const _BusinessPlaceholder(),
               ),
@@ -2232,11 +2230,9 @@ class _NewArrivalCard extends StatelessWidget {
                   children: [
                     image == null
                         ? const _BusinessPlaceholder()
-                        : Image.network(
-                            image,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                const _BusinessPlaceholder(),
+                        : PremiumNetworkImage(
+                            imageUrl: image,
+                            errorWidget: const _BusinessPlaceholder(),
                           ),
                     Positioned(
                       left: 9,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
 /// Base container for GrepMind Local Luxe design language.
 /// 20px radius, 1px subtle neutral border, soft elevation.
@@ -181,11 +182,9 @@ class LuxeProductCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: imageUrl != null && imageUrl!.startsWith('http')
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _placeholderIcon(),
+                  ? PremiumNetworkImage(
+                      imageUrl: imageUrl!,
+                      errorWidget: _placeholderIcon(),
                     )
                   : _placeholderIcon(),
             ),
@@ -372,11 +371,9 @@ class LuxeServiceCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: photoUrl != null && photoUrl!.startsWith('http')
-                  ? Image.network(
-                      photoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _avatarFallback(),
+                  ? PremiumNetworkImage(
+                      imageUrl: photoUrl!,
+                      errorWidget: _avatarFallback(),
                     )
                   : _avatarFallback(),
             ),
@@ -558,11 +555,9 @@ class LuxeShopCard extends StatelessWidget {
                   width: double.infinity,
                   color: AppTheme.canvas,
                   child: photoUrl != null && photoUrl!.startsWith('http')
-                      ? Image.network(
-                          photoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _coverFallback(),
+                      ? PremiumNetworkImage(
+                          imageUrl: photoUrl!,
+                          errorWidget: _coverFallback(),
                         )
                       : _coverFallback(),
                 ),

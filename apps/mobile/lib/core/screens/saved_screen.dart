@@ -6,6 +6,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/skeleton_loader.dart';
 
 /// Screen 16: Saved / Bookmarked Businesses.
 ///
@@ -106,16 +107,25 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         ],
       ),
       body: state.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: AbashyakaColors.signatureTeal,
+          ? ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: 4,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, _) => const SkeletonLoader(
+                height: 108,
+                radius: AbashyakaRadius.md,
               ),
             )
-          : state.error != null
-              ? _buildError(state.error!)
-              : state.items.isEmpty
+          : RefreshIndicator(
+              color: AbashyakaColors.metallicTeal,
+              backgroundColor: AbashyakaColors.pureWhite,
+              onRefresh: () => ref.read(favoritesProvider.notifier).load(),
+              child: state.error != null
+                  ? _buildError(state.error!)
+                  : state.items.isEmpty
                   ? _buildEmpty()
                   : _buildList(filteredItems, state.items.length),
+            ),
     );
   }
 

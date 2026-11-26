@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
@@ -252,11 +253,9 @@ class _CatalogArrivalTile extends StatelessWidget {
                   height: 94,
                   child: image == null
                       ? const _ArrivalPlaceholder()
-                      : Image.network(
-                          image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const _ArrivalPlaceholder(),
+                      : PremiumNetworkImage(
+                          imageUrl: image,
+                          errorWidget: const _ArrivalPlaceholder(),
                         ),
                 ),
               ),

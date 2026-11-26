@@ -11,6 +11,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
 import 'package:grepmind_mobile/core/widgets/marketplace_cards.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/widgets/skeleton_loader.dart';
 import 'package:grepmind_mobile/core/widgets/sticky_cart_summary_bar.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
@@ -1097,10 +1098,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                                           .coverPhotoUrl
                                                           ?.isNotEmpty ==
                                                       true
-                                                  ? Image.network(
-                                                      business.coverPhotoUrl!,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (_, _, _) =>
+                                                  ? PremiumNetworkImage(
+                                                      imageUrl: business
+                                                          .coverPhotoUrl!,
+                                                      errorWidget:
                                                           const _RecentBusinessPlaceholder(),
                                                     )
                                                   : const _RecentBusinessPlaceholder(),

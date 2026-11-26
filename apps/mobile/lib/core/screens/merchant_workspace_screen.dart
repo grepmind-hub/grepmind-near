@@ -13,6 +13,7 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
 /// Merchant Workspace Screen - Main dashboard for business owners.
 /// Shows business profile, service requests, and management tools.
@@ -528,11 +529,11 @@ class _MerchantWorkspaceScreenState
                     width: 90,
                     height: 90,
                     child: _extractString(profile['cover_photo_url']).isNotEmpty
-                        ? Image.network(
-                            _extractString(profile['cover_photo_url']),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                const _MerchantProfilePlaceholder(),
+                        ? PremiumNetworkImage(
+                            imageUrl: _extractString(
+                              profile['cover_photo_url'],
+                            ),
+                            errorWidget: const _MerchantProfilePlaceholder(),
                           )
                         : const _MerchantProfilePlaceholder(),
                   ),
@@ -1576,12 +1577,11 @@ class _MerchantProfileEditDialogState
                   if (_coverPhotoUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        ApiClient().resolveMediaUrl(_coverPhotoUrl),
+                      child: PremiumNetworkImage(
+                        imageUrl: ApiClient().resolveMediaUrl(_coverPhotoUrl),
                         height: 130,
                         width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        errorWidget: const SizedBox.shrink(),
                       ),
                     ),
                   const SizedBox(height: 10),

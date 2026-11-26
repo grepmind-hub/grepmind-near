@@ -9,6 +9,7 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 import 'package:grepmind_mobile/core/utils/catalog_pricing.dart';
@@ -389,10 +390,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          p.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
+                        child: PremiumNetworkImage(
+                          imageUrl: p.imageUrl!,
+                          errorWidget: const Icon(
                             Icons.inventory_2_outlined,
                             color: AppTheme.emerald,
                             size: 30,
@@ -1716,19 +1716,17 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                       selectedImageBytes!,
                                       fit: BoxFit.cover,
                                     )
-                                  : Image.network(
-                                      currentImageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          const ColoredBox(
-                                            color: AbashyakaColors
-                                                .informationSurface,
-                                            child: Center(
-                                              child: Text(
-                                                'Image preview unavailable',
-                                              ),
-                                            ),
+                                  : PremiumNetworkImage(
+                                      imageUrl: currentImageUrl,
+                                      errorWidget: const ColoredBox(
+                                        color: AbashyakaColors
+                                            .informationSurface,
+                                        child: Center(
+                                          child: Text(
+                                            'Image preview unavailable',
                                           ),
+                                        ),
+                                      ),
                                     ),
                             ),
                           ),

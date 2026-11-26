@@ -13,6 +13,7 @@ import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
 import 'package:grepmind_mobile/core/screens/checkout_review_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/utils/contact_actions.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
 /// Screen 11: Business Profile & Tabs matching showcase with Hospitality, Food Delivery & Table Reservation
 class BusinessDetailScreen extends ConsumerStatefulWidget {
@@ -606,10 +607,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     ),
                     if (biz.coverPhotoUrl != null &&
                         biz.coverPhotoUrl!.isNotEmpty)
-                      Image.network(
-                        biz.coverPhotoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      PremiumNetworkImage(
+                        imageUrl: biz.coverPhotoUrl!,
+                        errorWidget: const SizedBox.shrink(),
                       ),
                     Container(
                       decoration: BoxDecoration(

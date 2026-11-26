@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Verification / open-status badge chip.
@@ -128,10 +129,10 @@ class BusinessCard extends StatelessWidget {
                     child:
                         business.coverPhotoUrl != null &&
                             business.coverPhotoUrl!.isNotEmpty
-                        ? Image.network(
-                            business.coverPhotoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _placeholder(),
+                        ? PremiumNetworkImage(
+                            imageUrl: business.coverPhotoUrl!,
+                            placeholderRadius: 12,
+                            errorWidget: _placeholder(),
                           )
                         : _placeholder(),
                   ),

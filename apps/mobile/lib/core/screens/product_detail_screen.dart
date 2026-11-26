@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -79,10 +80,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     color: const Color(0xFFF8F9FA),
                     child: Center(
                       child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                          ? Image.network(
-                              p.imageUrl!,
+                          ? PremiumNetworkImage(
+                              imageUrl: p.imageUrl!,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => _placeholder(),
+                              errorWidget: _placeholder(),
                             )
                           : _placeholder(),
                     ),
