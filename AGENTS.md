@@ -257,7 +257,7 @@ FINAL REPORT:
 - Known limitations and remaining risks.
 - Recommended next task.
 
-## 22-Screen UI Showcase Implementation Status
+## Mobile UI Showcase Implementation Status
 
 Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 
@@ -285,9 +285,10 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **20** | Merchant Workspace Dashboard | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` (Dashboard, stats, request management, quick actions) |
 | **21** | Merchant Catalog Management | Live draft flow verified. Category units and optional GST estimate implemented. | [Screen 21 validation](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) |
 | **22** | Merchant Hours & Coverage Setup | UI and widget tests passed. Live save verification pending for the intended merchant. | [Screen 22 validation](docs/design/SCREEN_22_MERCHANT_HOURS_COVERAGE_VALIDATION.md) |
+| **23** | Merchant Order Details & Fulfillment | V2.0 applied. Live order-detail acceptance pending an assigned order. | [Screen 23 validation](docs/design/SCREEN_23_MERCHANT_ORDER_DETAILS_VALIDATION.md) |
 
 ### UI Showcase Milestone
-- The 22 rows above are the showcase screen inventory, not blanket proof that every workflow is production-complete. Verify current source, API, database behavior, tests, and runtime evidence before describing an item as complete or verified. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
+- The showcase inventory includes the original 22 screens and approved additions. Verify current source, API, database behavior, tests, and runtime evidence before describing a workflow as complete. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
 - **Screen 10 (Nearby Interactive Map) Verification Summary**:
   - Authentic category nature mapping across all 18 categories (`Transport`, `Healthcare`, `Education`, `Service`, `Dining`, `Salon`, `Fitness`, `Auto Care`, `Events`, `Agriculture`, `Construction`, `Home Decor`, `Furniture`, `Electronics`, `Fashion`, `Grocery`, `Pharmacy`, `Shop`).
   - Context-aware action buttons: `Cab & Auto` -> `Book Ride` with taxi icon; `Doctors & Clinics` -> `Book Appointment` with calendar icon; `Education` -> `Enquire Now`; `Services` / `Events` / `Auto Care` -> `Book Service`; `Hotels & Stays` -> `Book Stay`; `Food` -> `Order Food`; retail -> `View Store` / `Shop Now`.
@@ -316,7 +317,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 - **Screen 19 Merchant Registration / Claim** received a visual polish pass. The [validation record](docs/design/SCREEN_19_MERCHANT_REGISTRATION_VALIDATION.md) covers wizard progress, register and claim entry points, and Android acceptance limits.
 - **Screen 20 Merchant Workspace Dashboard** received a visual polish pass. The [validation record](docs/design/SCREEN_20_MERCHANT_WORKSPACE_VALIDATION.md) covers dashboard hierarchy, provider-backed metrics, and Android checks.
 - **Screen 21 Merchant Catalog Management** passed its live draft-product create, edit, stock status, and relaunch checks. The [validation record](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) tracks category-based units, optional GST, and the MRP and stock display fixes.
-- The next showcase screen is **Screen 22, Merchant Hours & Coverage Setup** (`apps/mobile/lib/core/screens/merchant_hours_coverage_screen.dart`).
+- **Screen 23 Merchant Order Details & Fulfillment** uses the existing Orders entry point. Its [validation record](docs/design/SCREEN_23_MERCHANT_ORDER_DETAILS_VALIDATION.md) covers the V2.0 design, recorded order events, and limits of live acceptance.
 
 ### Merchant Desktop & Multi-User Access Management Milestone
 - **Option 2 (Merchant Desktop Web Portal `apps/merchant-web`)**:

@@ -185,6 +185,10 @@ void main() {
         'delivery_locality': 'Infocity',
         'delivery_district': 'Bhubaneswar',
         'special_instructions': 'Extra spicy, less oil please.',
+        'fulfillment_type': 'takeaway',
+        'status_events': [
+          {'status': 'placed', 'created_at': '2026-11-26T09:30:00+05:30'},
+        ],
         'items': [
           {
             'product_name': 'Dalma Rice Combo',
@@ -245,6 +249,10 @@ void main() {
       // Expand the order card
       await tester.tap(find.textContaining('AB-TICKET-200'));
       await tester.pumpAndSettle();
+
+      expect(find.text('Order details · Customer pickup'), findsOneWidget);
+      expect(find.text('Order timeline'), findsOneWidget);
+      expect(find.text('Awaiting response'), findsNWidgets(2));
 
       // Verify Kitchen Ticket button
       final ticketButton = find.widgetWithText(TextButton, 'Kitchen Ticket');

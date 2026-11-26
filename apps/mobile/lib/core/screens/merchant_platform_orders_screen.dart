@@ -11,6 +11,7 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 /// Screen 9: Orders Hub & Fulfillment Pipeline
 /// Screen 10: Order Detail & Kitchen Ticket
 /// Screen 11: Order Handover & Pickup Verification
+/// Showcase Screen 23: Merchant Order Details & Fulfillment
 class MerchantPlatformOrdersScreen extends ConsumerStatefulWidget {
   const MerchantPlatformOrdersScreen({super.key});
 
@@ -337,7 +338,7 @@ class _MerchantPlatformOrdersScreenState
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.coral,
+              backgroundColor: AbashyakaColors.error,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -402,9 +403,9 @@ class _MerchantPlatformOrdersScreenState
     final activeTabOrders = _filteredOrders(_tabController.index);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AbashyakaColors.pureWhite,
         foregroundColor: AppTheme.mainText,
         elevation: 0,
         title: const Column(
@@ -415,7 +416,7 @@ class _MerchantPlatformOrdersScreenState
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF111827),
+                color: AbashyakaColors.primaryText,
               ),
             ),
             Text(
@@ -439,8 +440,10 @@ class _MerchantPlatformOrdersScreenState
           preferredSize: const Size.fromHeight(48),
           child: Container(
             decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+              color: AbashyakaColors.pureWhite,
+              border: Border(
+                bottom: BorderSide(color: AbashyakaColors.aquaSilverBorder),
+              ),
             ),
             child: TabBar(
               controller: _tabController,
@@ -481,9 +484,9 @@ class _MerchantPlatformOrdersScreenState
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: AbashyakaColors.verifiedSurface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFC8E6C9)),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Row(
                 children: [
@@ -491,7 +494,7 @@ class _MerchantPlatformOrdersScreenState
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AbashyakaColors.pureWhite,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -518,7 +521,7 @@ class _MerchantPlatformOrdersScreenState
                           '${_orders.length} total orders · ${_countForTab(1)} awaiting response',
                           style: const TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF0B6B4A),
+                            color: AbashyakaColors.success,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -531,21 +534,27 @@ class _MerchantPlatformOrdersScreenState
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AbashyakaColors.pureWhite,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFC8E6C9)),
+                      border: Border.all(
+                        color: AbashyakaColors.aquaSilverBorder,
+                      ),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.circle, size: 8, color: Color(0xFF0B6B4A)),
+                        Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: AbashyakaColors.success,
+                        ),
                         SizedBox(width: 5),
                         Text(
                           'Store Open',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0B6B4A),
+                            color: AbashyakaColors.success,
                           ),
                         ),
                       ],
@@ -561,9 +570,9 @@ class _MerchantPlatformOrdersScreenState
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  side: const BorderSide(color: AbashyakaColors.error),
                 ),
-                color: const Color(0xFFFEF2F2),
+                color: AbashyakaColors.errorSurface,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -571,7 +580,7 @@ class _MerchantPlatformOrdersScreenState
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xFF991B1B)),
+                        style: const TextStyle(color: AbashyakaColors.error),
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
@@ -590,10 +599,12 @@ class _MerchantPlatformOrdersScreenState
                 padding: const EdgeInsets.only(top: 8),
                 child: Card(
                   elevation: 0,
-                  color: const Color(0xFFFEF3C7),
+                  color: AbashyakaColors.warningSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFFFDE68A)),
+                    side: const BorderSide(
+                      color: AbashyakaColors.warningSurface,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -602,7 +613,7 @@ class _MerchantPlatformOrdersScreenState
                         const Icon(
                           Icons.warning_amber_rounded,
                           size: 18,
-                          color: Color(0xFF92400E),
+                          color: AbashyakaColors.warning,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -610,7 +621,7 @@ class _MerchantPlatformOrdersScreenState
                             _dispatchError!,
                             style: const TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF92400E),
+                              color: AbashyakaColors.warning,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -638,7 +649,7 @@ class _MerchantPlatformOrdersScreenState
                       width: 72,
                       height: 72,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFE8F5E9),
+                        color: AbashyakaColors.verifiedSurface,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -691,7 +702,7 @@ class _MerchantPlatformOrdersScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: AbashyakaColors.verifiedSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -728,52 +739,56 @@ class _MerchantPlatformOrdersScreenState
     final dispatch = _dispatchByOrder[order['id']];
     final isGrocery = order['vertical'] == 'grocery';
     final vertical = isGrocery ? 'Grocery order' : 'Food order';
-    final statusLabel = switch (status) {
-      'placed' => 'Awaiting response',
-      'accepted' => 'Accepted',
-      'preparing' => 'Preparing',
-      'ready_for_pickup' => 'Ready for pickup',
-      'rejected' => 'Rejected',
-      'cancelled' => 'Cancelled by customer',
-      _ => status,
+    final fulfillment = switch (order['fulfillment_type']) {
+      'delivery' => 'Delivery',
+      'takeaway' || 'pickup' => 'Customer pickup',
+      _ => null,
     };
+    final statusLabel = _statusLabel(status);
+    final events = (order['status_events'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .where((event) => event['status'] is String)
+        .toList();
 
     return Card(
+      color: AbashyakaColors.pureWhite,
       margin: const EdgeInsets.only(top: 12),
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
       ),
       child: ExpansionTile(
+        key: PageStorageKey('merchant-order-${order['id']}'),
         leading: Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
             color: isGrocery
-                ? const Color(0xFFE0F2FE)
-                : const Color(0xFFE8F5E9),
+                ? AbashyakaColors.informationSurface
+                : AbashyakaColors.verifiedSurface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             isGrocery
                 ? Icons.shopping_basket_outlined
                 : Icons.restaurant_outlined,
-            color: isGrocery ? const Color(0xFF0284C7) : AppTheme.emerald,
+            color: isGrocery ? AbashyakaColors.information : AppTheme.emerald,
             size: 22,
           ),
         ),
-        title: Row(
+        title: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Expanded(
-              child: Text(
-                vertical,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: AppTheme.mainText,
-                ),
+            Text(
+              vertical,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: AppTheme.mainText,
               ),
             ),
             _buildStatusPill(status, statusLabel),
@@ -792,7 +807,19 @@ class _MerchantPlatformOrdersScreenState
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-          const Divider(color: Color(0xFFE5E7EB)),
+          const Divider(color: AbashyakaColors.aquaSilverBorder),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              fulfillment == null
+                  ? 'Order details'
+                  : 'Order details · $fulfillment',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AbashyakaColors.primaryText,
+              ),
+            ),
+          ),
 
           // Payment details row
           ListTile(
@@ -802,7 +829,7 @@ class _MerchantPlatformOrdersScreenState
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AbashyakaColors.unavailableSurface,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -822,7 +849,10 @@ class _MerchantPlatformOrdersScreenState
                 color: AppTheme.secondaryText,
               ),
             ),
-            trailing: TextButton.icon(
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
               icon: const Icon(Icons.receipt_outlined, size: 14),
               label: const Text(
                 'Kitchen Ticket',
@@ -845,7 +875,7 @@ class _MerchantPlatformOrdersScreenState
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: AbashyakaColors.verifiedSurface,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -891,9 +921,9 @@ class _MerchantPlatformOrdersScreenState
               margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: AbashyakaColors.warningSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFDE68A)),
+                border: Border.all(color: AbashyakaColors.warningSurface),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -901,7 +931,7 @@ class _MerchantPlatformOrdersScreenState
                   const Icon(
                     Icons.note_alt_outlined,
                     size: 16,
-                    color: Color(0xFF92400E),
+                    color: AbashyakaColors.warning,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -910,7 +940,7 @@ class _MerchantPlatformOrdersScreenState
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF92400E),
+                        color: AbashyakaColors.warning,
                       ),
                     ),
                   ),
@@ -918,6 +948,7 @@ class _MerchantPlatformOrdersScreenState
               ),
             ),
 
+          if (events.isNotEmpty) _orderTimeline(events, status),
           const SizedBox(height: 10),
 
           // Stage transitions
@@ -927,8 +958,8 @@ class _MerchantPlatformOrdersScreenState
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.coral,
-                      side: const BorderSide(color: Color(0xFFFCA5A5)),
+                      foregroundColor: AbashyakaColors.error,
+                      side: const BorderSide(color: AbashyakaColors.error),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -964,7 +995,7 @@ class _MerchantPlatformOrdersScreenState
                   'UPI payment must be verified before this order can be accepted.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF991B1B),
+                    color: AbashyakaColors.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -998,7 +1029,7 @@ class _MerchantPlatformOrdersScreenState
                   'UPI payment must remain verified before preparation.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF991B1B),
+                    color: AbashyakaColors.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1087,7 +1118,7 @@ class _MerchantPlatformOrdersScreenState
                       'Recorded reason: ${event['reason']}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF991B1B),
+                        color: AbashyakaColors.error,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -1099,34 +1130,105 @@ class _MerchantPlatformOrdersScreenState
     );
   }
 
+  String _statusLabel(String status) => switch (status) {
+    'placed' => 'Awaiting response',
+    'accepted' => 'Accepted',
+    'preparing' => 'Preparing',
+    'ready_for_pickup' => 'Ready for pickup',
+    'delivered' => 'Delivered',
+    'rejected' => 'Rejected',
+    'cancelled' => 'Cancelled by customer',
+    _ => status.replaceAll('_', ' '),
+  };
+
+  Widget _orderTimeline(List<Map<String, dynamic>> events, String status) {
+    final localizations = MaterialLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: 12),
+      decoration: BoxDecoration(
+        color: AbashyakaColors.iceAquaWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Order timeline',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          for (final (index, event) in events.indexed)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    index == events.length - 1 && event['status'] == status
+                        ? Icons.radio_button_checked
+                        : Icons.history,
+                    size: 16,
+                    color: AbashyakaColors.signatureTeal,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_statusLabel(event['status'] as String)),
+                        if (DateTime.tryParse(
+                              event['created_at']?.toString() ?? '',
+                            )
+                            case final DateTime timestamp)
+                          Text(
+                            '${localizations.formatShortDate(timestamp.toLocal())} · '
+                            '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(timestamp.toLocal()))}',
+                            style: const TextStyle(
+                              color: AbashyakaColors.secondaryText,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusPill(String status, String label) {
     Color bg;
     Color fg;
     switch (status) {
       case 'placed':
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
+        bg = AbashyakaColors.warningSurface;
+        fg = AbashyakaColors.warning;
         break;
       case 'accepted':
       case 'preparing':
-        bg = const Color(0xFFE0F2FE);
-        fg = const Color(0xFF0369A1);
+        bg = AbashyakaColors.informationSurface;
+        fg = AbashyakaColors.information;
         break;
       case 'ready_for_pickup':
-        bg = const Color(0xFFE8F5E9);
-        fg = const Color(0xFF0B6B4A);
+        bg = AbashyakaColors.verifiedSurface;
+        fg = AbashyakaColors.success;
         break;
       case 'delivered':
-        bg = const Color(0xFFD1FAE5);
-        fg = const Color(0xFF065F46);
+        bg = AbashyakaColors.successSurface;
+        fg = AbashyakaColors.success;
         break;
       case 'rejected':
       case 'cancelled':
-        bg = const Color(0xFFFEE2E2);
-        fg = const Color(0xFF991B1B);
+        bg = AbashyakaColors.errorSurface;
+        fg = AbashyakaColors.error;
         break;
       default:
-        bg = const Color(0xFFF1F5F9);
+        bg = AbashyakaColors.unavailableSurface;
         fg = AppTheme.secondaryText;
     }
     return Container(
@@ -1153,11 +1255,11 @@ class _MerchantPlatformOrdersScreenState
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AbashyakaColors.pureWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1168,7 +1270,7 @@ class _MerchantPlatformOrdersScreenState
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: AbashyakaColors.verifiedSurface,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -1191,7 +1293,7 @@ class _MerchantPlatformOrdersScreenState
                         ),
                       ),
                       Text(
-                        '$vertical Delivery · $reference',
+                        '$vertical · $reference',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryText,
@@ -1237,9 +1339,9 @@ class _MerchantPlatformOrdersScreenState
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAF9),
+                color: AbashyakaColors.pearlWhite,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Column(
                 children: [
@@ -1257,7 +1359,7 @@ class _MerchantPlatformOrdersScreenState
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: AbashyakaColors.verifiedSurface,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1302,16 +1404,16 @@ class _MerchantPlatformOrdersScreenState
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: AbashyakaColors.warningSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
+                  border: Border.all(color: AbashyakaColors.warningSurface),
                 ),
                 child: Text(
                   order['special_instructions'],
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF92400E),
+                    color: AbashyakaColors.warning,
                   ),
                 ),
               ),
@@ -1425,9 +1527,9 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
+            color: AbashyakaColors.verifiedSurface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFC8E6C9)),
+            border: Border.all(color: AbashyakaColors.aquaSilverBorder),
           ),
           child: SelectableText(
             widget.code,
