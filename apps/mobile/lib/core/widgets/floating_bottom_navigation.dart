@@ -78,15 +78,14 @@ class FloatingBottomNavigation extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               item.label,
-              style:
-                  AbashyakaTypography.categoryLabel(
-                    color: isSelected
-                        ? AbashyakaColors.metallicTeal
-                        : AbashyakaColors.secondaryText,
-                  ).copyWith(
-                    fontSize: 10,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
+              style: AbashyakaTypography.categoryLabel(
+                fontSize: 10.5,
+                color: isSelected
+                    ? AbashyakaColors.metallicTeal
+                    : AbashyakaColors.secondaryText,
+              ).copyWith(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ],
         ),

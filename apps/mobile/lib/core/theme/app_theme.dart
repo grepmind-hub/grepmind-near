@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'abashyaka_colors.dart';
 import 'abashyaka_tokens.dart';
@@ -104,18 +105,21 @@ class AppTheme {
 
   // Typography
   static TextTheme _textTheme(BuildContext context) {
-    return Theme.of(context).textTheme
-        .apply(fontFamily: 'sans-serif')
-        .copyWith(
-          displayLarge: AbashyakaTypography.displayHeading().copyWith(
-            fontSize: 32,
-          ),
+    final baseTheme = Theme.of(context).textTheme;
+    TextTheme jakartaBase;
+    try {
+      jakartaBase = GoogleFonts.plusJakartaSansTextTheme(baseTheme);
+    } catch (_) {
+      jakartaBase = baseTheme.apply(fontFamily: 'sans-serif');
+    }
+    return jakartaBase.copyWith(
+          displayLarge: AbashyakaTypography.displayHeading(fontSize: 32),
           displayMedium: AbashyakaTypography.displayHeading(),
           headlineLarge: AbashyakaTypography.pageTitle(),
           headlineMedium: AbashyakaTypography.sectionTitle(),
-          headlineSmall: AbashyakaTypography.cardTitle().copyWith(fontSize: 18),
+          headlineSmall: AbashyakaTypography.cardTitle(fontSize: 18),
           titleLarge: AbashyakaTypography.cardTitle(),
-          titleMedium: AbashyakaTypography.cardTitle().copyWith(fontSize: 14),
+          titleMedium: AbashyakaTypography.cardTitle(fontSize: 14),
           bodyLarge: AbashyakaTypography.bodyLarge(),
           bodyMedium: AbashyakaTypography.bodyMedium(),
           bodySmall: AbashyakaTypography.supportingText(),
@@ -261,17 +265,15 @@ class AppTheme {
           fontWeight: FontWeight.w500,
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
-        iconTheme: IconThemeData(color: mainText),
-        titleTextStyle: TextStyle(
+        iconTheme: const IconThemeData(color: mainText),
+        titleTextStyle: AbashyakaTypography.pageTitle(
           color: mainText,
           fontSize: 18,
-          fontWeight: FontWeight.w700,
-          fontFamily: 'sans-serif',
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(

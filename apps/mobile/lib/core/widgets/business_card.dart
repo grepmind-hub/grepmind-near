@@ -56,9 +56,8 @@ class StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: AbashyakaTypography.categoryLabel(
           color: _fg,
-          fontWeight: FontWeight.w600,
           fontSize: size == StatusChipSize.small ? 10 : 11,
         ),
       ),
@@ -149,12 +148,9 @@ class BusinessCard extends StatelessWidget {
                         business.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                        style: AbashyakaTypography.cardTitle(
                           color: AppTheme.mainText,
-                          letterSpacing: -0.2,
-                        ),
+                        ).copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       // Rating row: ★ 4.8 (128)
@@ -168,18 +164,17 @@ class BusinessCard extends StatelessWidget {
                           const SizedBox(width: 3),
                           Text(
                             ratingVal?.toStringAsFixed(1) ?? 'Not rated',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                            style: AbashyakaTypography.ratingText(
                               color: AppTheme.mainText,
+                              fontSize: 12,
                             ),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             reviewsCount == null ? '' : '($reviewsCount)',
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: AbashyakaTypography.supportingText(
                               color: AppTheme.secondaryText,
+                              fontSize: 12,
                             ),
                           ),
                         ],
@@ -196,27 +191,25 @@ class BusinessCard extends StatelessWidget {
                                   : categoryText,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
+                              style: AbashyakaTypography.supportingText(
                                 color: AppTheme.secondaryText,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
                               ),
                             ),
                           ),
                           if (business.distanceM != null) ...[
-                            const Text(
+                            Text(
                               ' • ',
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: AbashyakaTypography.supportingText(
                                 color: AppTheme.secondaryText,
+                                fontSize: 12,
                               ),
                             ),
                             Text(
                               business.distanceText,
-                              style: const TextStyle(
-                                fontSize: 12,
+                              style: AbashyakaTypography.supportingText(
                                 color: AppTheme.secondaryText,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -351,12 +344,11 @@ class BusinessCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Text(
+                        child: Text(
                           'Call',
-                          style: TextStyle(
+                          style: AbashyakaTypography.buttonText(
                             color: AbashyakaColors.pureWhite,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),

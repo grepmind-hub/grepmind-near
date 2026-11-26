@@ -74,24 +74,21 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Saved Places',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
+              style: AbashyakaTypography.pageTitle(
                 color: AbashyakaColors.premiumObsidian,
-                letterSpacing: -0.3,
-              ),
+                fontSize: 18,
+              ).copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 2),
             Text(
               state.items.isEmpty
                   ? 'Chhatia, Kuanpal & nearby'
                   : '${state.items.length} ${state.items.length == 1 ? 'place' : 'places'} bookmarked',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+              style: AbashyakaTypography.supportingText(
                 color: AbashyakaColors.graphiteCharcoal,
+                fontSize: 12,
               ),
             ),
           ],

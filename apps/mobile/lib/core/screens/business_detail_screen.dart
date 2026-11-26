@@ -88,13 +88,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Write a Review',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
+                                style: AbashyakaTypography.sectionTitle(
                                   color: AbashyakaColors.premiumObsidian,
-                                ),
+                                ).copyWith(fontWeight: FontWeight.w800),
                               ),
                               const SizedBox(height: 2),
                               Text(

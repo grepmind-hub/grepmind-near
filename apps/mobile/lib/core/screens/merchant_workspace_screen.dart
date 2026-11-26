@@ -62,7 +62,10 @@ class _MerchantWorkspaceScreenState
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
-        title: const Text('Merchant Workspace'),
+        title: Text(
+          'Merchant Workspace',
+          style: AbashyakaTypography.pageTitle(fontSize: 18),
+        ),
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         bottom: TabBar(
           controller: _tabController,
