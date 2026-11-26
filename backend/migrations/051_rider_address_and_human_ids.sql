@@ -87,3 +87,13 @@ CREATE INDEX IF NOT EXISTS idx_rider_profiles_field_executive
 
 CREATE INDEX IF NOT EXISTS idx_businesses_field_executive
   ON businesses (onboarding_source, field_executive_id);
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'abashyaka_api') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE field_executives TO abashyaka_api;
+    GRANT USAGE, SELECT ON SEQUENCE rider_code_seq TO abashyaka_api;
+    GRANT USAGE, SELECT ON SEQUENCE merchant_code_seq TO abashyaka_api;
+    GRANT USAGE, SELECT ON SEQUENCE field_executive_code_seq TO abashyaka_api;
+  END IF;
+END $$;
