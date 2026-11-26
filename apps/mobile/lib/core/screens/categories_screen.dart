@@ -516,31 +516,34 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
           variant: FluidWaveVariant.compact,
         ),
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back_rounded,
-            color: palette.textPrimary,
+            color: AbashyakaColors.pureWhite,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Categories Directory',
-          style: AbashyakaTypography.pageTitle(fontSize: 18),
+          style: AbashyakaTypography.pageTitle(
+            fontSize: 18,
+            color: AbashyakaColors.pureWhite,
+          ),
         ),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AbashyakaColors.tealTint,
+              color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
+                color: Colors.white.withValues(alpha: 0.35),
               ),
             ),
             child: Text(
               '${allCategories.length} Categories',
               style: const TextStyle(
-                color: AbashyakaColors.metallicTeal,
+                color: AbashyakaColors.pureWhite,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
@@ -575,7 +578,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
           // Admin-Approved Service Area Filter Ribbon (NO pincodes displayed)
           // ---------------------------------------------------------
           Container(
-            color: AbashyakaColors.pureWhite,
+            color: context.abashyaka.card,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
             child: Row(
               children: [
@@ -589,18 +592,18 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: AbashyakaColors.iceAquaWhite,
+                        color: context.abashyaka.canvas,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AbashyakaColors.aquaSilverBorder,
+                          color: context.abashyaka.border,
                         ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on_rounded,
                             size: 16,
-                            color: AbashyakaColors.signatureTeal,
+                            color: context.abashyaka.accent,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -611,17 +614,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                   : 'Service Area: $_selectedLocality',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: AbashyakaColors.signatureTeal,
+                                color: context.abashyaka.accent,
                               ),
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.keyboard_arrow_down_rounded,
                             size: 18,
-                            color: AbashyakaColors.signatureTeal,
+                            color: context.abashyaka.accent,
                           ),
                         ],
                       ),
@@ -638,28 +641,30 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: AbashyakaColors.tealTint,
+                      color: context.abashyaka.isDark
+                          ? context.abashyaka.accentSurface
+                          : AbashyakaColors.tealTint,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AbashyakaColors.metallicTeal.withValues(
-                          alpha: 0.3,
+                        color: context.abashyaka.accent.withValues(
+                          alpha: 0.35,
                         ),
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.near_me_rounded,
                           size: 14,
-                          color: AbashyakaColors.metallicTeal,
+                          color: context.abashyaka.accent,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${_selectedRadiusM ~/ 1000} km',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AbashyakaColors.metallicTeal,
+                            color: context.abashyaka.accent,
                           ),
                         ),
                       ],
@@ -687,8 +692,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                   child: TextField(
                     controller: _searchController,
                     onChanged: (v) => setState(() => _searchQuery = v),
-                    style: AbashyakaTypography.bodyLarge(fontSize: 14),
+                    style: AbashyakaTypography.bodyLarge(
+                      fontSize: 14,
+                      color: context.abashyaka.textPrimary,
+                    ),
                     decoration: InputDecoration(
+                      filled: false,
                       hintText: 'Search 18 categories, shops or services...',
                       hintStyle: AbashyakaTypography.bodyMedium(
                         color: AbashyakaColors.secondaryText,
@@ -742,12 +751,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                 : null,
                             color: isSelected
                                 ? null
-                                : AbashyakaColors.pureWhite,
+                                : context.abashyaka.card,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isSelected
                                   ? AbashyakaColors.metallicTeal
-                                  : AbashyakaColors.aquaSilverBorder,
+                                  : context.abashyaka.border,
                             ),
                           ),
                           alignment: Alignment.center,
@@ -760,7 +769,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                   : FontWeight.w600,
                               color: isSelected
                                   ? Colors.white
-                                  : AbashyakaColors.inkBlack,
+                                  : context.abashyaka.textPrimary,
                             ),
                           ),
                         ),
@@ -873,9 +882,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
           child: Container(
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
-              color: AbashyakaColors.pureWhite,
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+              border: Border.all(color: context.abashyaka.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
@@ -917,7 +926,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                         children: [
                           Text(
                             category.name,
-                            style: AbashyakaTypography.cardTitle(fontSize: 15),
+                            style: AbashyakaTypography.cardTitle(
+                              fontSize: 15,
+                              color: context.abashyaka.textPrimary,
+                            ),
                           ),
                           if (category.description != null &&
                               category.description!.isNotEmpty) ...[
@@ -926,6 +938,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                               category.description!,
                               style: AbashyakaTypography.bodyMedium(
                                 fontSize: 12,
+                                color: context.abashyaka.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -941,24 +954,26 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AbashyakaColors.iceAquaWhite,
+                                  color: context.abashyaka.isDark
+                                      ? context.abashyaka.accentSurface
+                                      : AbashyakaColors.iceAquaWhite,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.store_rounded,
                                       size: 11,
-                                      color: AbashyakaColors.metallicTeal,
+                                      color: context.abashyaka.accent,
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
                                       '$count available',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w700,
-                                        color: AbashyakaColors.signatureTeal,
+                                        color: context.abashyaka.accent,
                                       ),
                                     ),
                                   ],
@@ -971,27 +986,27 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AbashyakaColors.pearlWhite,
+                                  color: context.abashyaka.canvas,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: AbashyakaColors.aquaSilverBorder,
+                                    color: context.abashyaka.border,
                                   ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.place_rounded,
                                       size: 10,
-                                      color: AbashyakaColors.secondaryText,
+                                      color: context.abashyaka.textSecondary,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(
                                       '$nearestPlace • $nearestText',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w600,
-                                        color: AbashyakaColors.secondaryText,
+                                        color: context.abashyaka.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -1007,15 +1022,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: AbashyakaColors.pearlWhite,
+                        color: context.abashyaka.canvas,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AbashyakaColors.aquaSilverBorder,
+                          color: context.abashyaka.border,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.chevron_right_rounded,
-                        color: AbashyakaColors.metallicTeal,
+                        color: context.abashyaka.accent,
                         size: 20,
                       ),
                     ),
@@ -1222,6 +1237,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                               b.name,
                               style: AbashyakaTypography.cardTitle(
                                 fontSize: 15,
+                                color: context.abashyaka.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1234,7 +1250,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AbashyakaColors.iceAquaWhite,
+                              color: context.abashyaka.isDark
+                                  ? context.abashyaka.accentSurface
+                                  : AbashyakaColors.iceAquaWhite,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -1247,10 +1265,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                 const SizedBox(width: 2),
                                 Text(
                                   (b.rating ?? 4.8).toStringAsFixed(1),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: AbashyakaColors.ratingText,
+                                    color: context.abashyaka.textPrimary,
                                   ),
                                 ),
                               ],
@@ -1264,16 +1282,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                         children: [
                           Text(
                             b.categoryName ?? b.categorySlug,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AbashyakaColors.signatureTeal,
+                              color: context.abashyaka.accent,
                             ),
                           ),
-                          const Text(
+                          Text(
                             ' • ',
                             style: TextStyle(
-                              color: AbashyakaColors.secondaryText,
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                           Expanded(
@@ -1281,6 +1299,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                               b.locality ?? 'Chhatia',
                               style: AbashyakaTypography.supportingText(
                                 fontSize: 12,
+                                color: context.abashyaka.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1299,26 +1318,26 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AbashyakaColors.pearlWhite,
+                              color: context.abashyaka.canvas,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: AbashyakaColors.aquaSilverBorder,
+                                color: context.abashyaka.border,
                               ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.place_rounded,
                                   size: 11,
-                                  color: AbashyakaColors.metallicTeal,
+                                  color: context.abashyaka.accent,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
                                   b.distanceText,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: AbashyakaColors.metallicTeal,
+                                    color: context.abashyaka.accent,
                                   ),
                                 ),
                               ],
@@ -1340,10 +1359,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.phone_rounded,
                                       size: 13,
-                                      color: AbashyakaColors.signatureTeal,
+                                      color: context.abashyaka.accent,
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -1351,7 +1370,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                                       style: TextStyle(
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w700,
-                                        color: AbashyakaColors.signatureTeal,
+                                        color: context.abashyaka.accent,
                                       ),
                                     ),
                                   ],

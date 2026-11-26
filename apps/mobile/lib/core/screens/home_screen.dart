@@ -796,8 +796,8 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const CategoriesScreen()),
                 ),
                 borderRadius: BorderRadius.circular(4),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -806,14 +806,14 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF008C95),
+                          color: context.abashyaka.accent,
                         ),
                       ),
-                      SizedBox(width: 2),
+                      const SizedBox(width: 2),
                       Icon(
                         Icons.arrow_forward_rounded,
                         size: 14,
-                        color: Color(0xFF008C95),
+                        color: context.abashyaka.accent,
                       ),
                     ],
                   ),
@@ -1597,7 +1597,7 @@ class _NearbyTrendingSection extends StatelessWidget {
               InkWell(
                 onTap: onExplore,
                 borderRadius: BorderRadius.circular(4),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
@@ -1605,14 +1605,14 @@ class _NearbyTrendingSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF087F0D),
+                        color: context.abashyaka.accent,
                       ),
                     ),
-                    SizedBox(width: 2),
+                    const SizedBox(width: 2),
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 14,
-                      color: Color(0xFF087F0D),
+                      color: context.abashyaka.accent,
                     ),
                   ],
                 ),
@@ -1771,9 +1771,16 @@ class _BuyLocalBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3FAF0),
+        color: context.abashyaka.isDark
+            ? context.abashyaka.card
+            : const Color(0xFFF3FAF0),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD1E7DD), width: 1.2),
+        border: Border.all(
+          color: context.abashyaka.isDark
+              ? context.abashyaka.border
+              : const Color(0xFFD1E7DD),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1810,8 +1817,10 @@ class _BuyLocalBanner extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Support $cityName\nBusinesses ❤️',
-                  style: const TextStyle(
-                    color: Color(0xFF064D3A),
+                  style: TextStyle(
+                    color: context.abashyaka.isDark
+                        ? context.abashyaka.textPrimary
+                        : const Color(0xFF064D3A),
                     fontSize: 16.5,
                     fontWeight: FontWeight.w900,
                     height: 1.25,
@@ -1820,7 +1829,10 @@ class _BuyLocalBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Fresh groceries, local food & trusted pros nearby.',
-                  style: TextStyle(color: context.abashyaka.textPrimary, fontSize: 11.5),
+                  style: TextStyle(
+                    color: context.abashyaka.textSecondary,
+                    fontSize: 11.5,
+                  ),
                 ),
               ],
             ),
@@ -1908,17 +1920,17 @@ class _SectionHeading extends StatelessWidget {
                 children: [
                   Text(
                     action!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF087F0D),
+                      color: context.abashyaka.accent,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
                     size: 14,
-                    color: Color(0xFF087F0D),
+                    color: context.abashyaka.accent,
                   ),
                 ],
               ),

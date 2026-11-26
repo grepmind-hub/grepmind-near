@@ -353,10 +353,10 @@ class _TransportOperatorCard extends StatelessWidget {
                         children: [
                           Text(
                             business.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 3),
@@ -364,9 +364,9 @@ class _TransportOperatorCard extends StatelessWidget {
                             business.addressText.isNotEmpty
                                 ? business.addressText
                                 : '${business.locality ?? ""}, ${business.city ?? ""}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF6B7280),
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                         ],
@@ -402,8 +402,8 @@ class _TransportOperatorCard extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: onCall,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1F2937),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            foregroundColor: context.abashyaka.textPrimary,
+                            side: BorderSide(color: context.abashyaka.border),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -436,6 +436,7 @@ class _TransportOperatorCard extends StatelessWidget {
                         onPressed: onTap,
                         style: FilledButton.styleFrom(
                           backgroundColor: AbashyakaColors.signatureTeal,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

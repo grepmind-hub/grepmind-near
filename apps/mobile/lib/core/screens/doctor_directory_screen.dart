@@ -334,19 +334,19 @@ class _MedicalFacilityCard extends StatelessWidget {
                         children: [
                           Text(
                             business.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF111827),
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
                             business.categoryName ??
                                 'Medical Facility & Clinic',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF6B7280),
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                         ],
@@ -382,19 +382,19 @@ class _MedicalFacilityCard extends StatelessWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: context.abashyaka.canvas,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                    border: Border.all(color: context.abashyaka.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on_outlined,
                             size: 15,
-                            color: Color(0xFF6B7280),
+                            color: context.abashyaka.textSecondary,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -402,10 +402,10 @@ class _MedicalFacilityCard extends StatelessWidget {
                               business.addressText.isNotEmpty
                                   ? business.addressText
                                   : '${business.locality ?? ""}, ${business.city ?? ""}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
+                                color: context.abashyaka.textPrimary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -450,9 +450,9 @@ class _MedicalFacilityCard extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: onCall,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1F2937),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
-                            backgroundColor: Colors.white,
+                            foregroundColor: context.abashyaka.textPrimary,
+                            side: BorderSide(color: context.abashyaka.border),
+                            backgroundColor: context.abashyaka.card,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -484,7 +484,9 @@ class _MedicalFacilityCard extends StatelessWidget {
                       child: FilledButton.icon(
                         onPressed: onTap,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF111827),
+                          backgroundColor: context.abashyaka.isDark
+                              ? AbashyakaColors.signatureTeal
+                              : const Color(0xFF111827),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(

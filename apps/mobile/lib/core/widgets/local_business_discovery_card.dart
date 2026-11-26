@@ -231,18 +231,18 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                     Row(
                       children: [
                         if (distanceKm != null) ...[
-                          const Icon(
+                          Icon(
                             Icons.near_me_outlined,
                             size: 14,
-                            color: AppTheme.emerald,
+                            color: palette.accent,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             '${distanceKm!.toStringAsFixed(1)} km',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.emerald,
+                              color: palette.accent,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -268,7 +268,7 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             color:
                                 operatingStatus.toLowerCase().contains('closed')
                                 ? AppTheme.error
-                                : AppTheme.emerald,
+                                : palette.accent,
                           ),
                         ),
                       ],
@@ -283,9 +283,12 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                             onPressed: _makeCall,
                             tooltip: 'Call store',
                             icon: const Icon(Icons.phone_outlined, size: 18),
-                            color: palette.textPrimary,
+                            color: palette.accent,
                             style: IconButton.styleFrom(
-                              backgroundColor: palette.canvas,
+                              backgroundColor: palette.isDark
+                                  ? palette.accentSurface
+                                  : palette.canvas,
+                              side: BorderSide(color: palette.border),
                               minimumSize: const Size(40, 40),
                             ),
                           ),
@@ -298,9 +301,12 @@ class LocalBusinessDiscoveryCard extends StatelessWidget {
                               Icons.directions_outlined,
                               size: 18,
                             ),
-                            color: palette.textPrimary,
+                            color: palette.accent,
                             style: IconButton.styleFrom(
-                              backgroundColor: palette.canvas,
+                              backgroundColor: palette.isDark
+                                  ? palette.accentSurface
+                                  : palette.canvas,
+                              side: BorderSide(color: palette.border),
                               minimumSize: const Size(40, 40),
                             ),
                           ),

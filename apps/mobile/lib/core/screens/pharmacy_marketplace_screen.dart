@@ -449,18 +449,18 @@ class _PharmacyStoreCard extends StatelessWidget {
                         children: [
                           Text(
                             business.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
                             'Chemist & Druggist · ${business.locality ?? business.city ?? 'Local'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF6B7280),
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                         ],
@@ -505,9 +505,9 @@ class _PharmacyStoreCard extends StatelessWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: context.abashyaka.canvas,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF3F4F6)),
+                    border: Border.all(color: context.abashyaka.border),
                   ),
                   child: Row(
                     children: [
