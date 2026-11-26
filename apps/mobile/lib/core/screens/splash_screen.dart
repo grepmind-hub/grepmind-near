@@ -108,28 +108,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
             ),
 
-            // Odisha Heritage landscape anchored cleanly at the bottom
+            // Odisha Heritage landscape anchored cleanly at the bottom (uncropped temple spire & flag)
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: IgnorePointer(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      'assets/abashyaka/splash_landscape.png',
-                      width: double.infinity,
-                      height: 175,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.bottomCenter,
-                      color: dark
-                          ? const Color(0xFF0B1320).withValues(alpha: 0.25)
-                          : null,
-                      colorBlendMode: dark ? BlendMode.darken : null,
-                      errorBuilder: (_, _, _) => const SizedBox(height: 80),
-                    ),
-                  ],
+                child: ShaderMask(
+                  shaderCallback: (rect) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.white,
+                      Colors.white,
+                    ],
+                    stops: [0.0, 0.16, 1.0],
+                  ).createShader(rect),
+                  blendMode: BlendMode.dstIn,
+                  child: Image.asset(
+                    'assets/abashyaka/splash_landscape.png',
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                    alignment: Alignment.bottomCenter,
+                    color: dark
+                        ? const Color(0xFF0B1320).withValues(alpha: 0.25)
+                        : null,
+                    colorBlendMode: dark ? BlendMode.darken : null,
+                    errorBuilder: (_, _, _) => const SizedBox(height: 80),
+                  ),
                 ),
               ),
             ),
@@ -137,12 +144,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // Foreground: Centered Option 2 Commerce-A Brand Lockup + Heritage Tagline
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 36, 24, 190),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 235),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     AbashyakaLogoMark(
-                      size: 108,
+                      size: 96,
                       badgeColor: dark
                           ? const Color(0xFF152232)
                           : AbashyakaColors.signatureTeal,
@@ -150,13 +157,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           ? const Color(0xFF243447)
                           : Colors.white.withValues(alpha: 0.35),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     Text(
                       'Abashyaka',
                       style: AbashyakaTypography.brandWordmark(
                         color: primaryText,
                       ).copyWith(
-                        fontSize: 38,
+                        fontSize: 36,
                         letterSpacing: -0.6,
                         fontWeight: FontWeight.w800,
                       ),
@@ -191,7 +198,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Container(
                       width: 44,
                       height: 3,
@@ -200,19 +207,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       'ସବୁ ଆବଶ୍ୟକତା,\nଆପଣଙ୍କ ପାଖରେ।',
                       locale: const Locale('or'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 21,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: primaryText,
-                        height: 1.35,
+                        height: 1.32,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       'Everything You Need, Locally.',
                       textAlign: TextAlign.center,
@@ -223,7 +230,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         color: subtitleText,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     _SplashLoadingDots(
                       color: dark
                           ? const Color(0xFF55D6CD)
