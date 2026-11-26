@@ -39,9 +39,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(favoritesProvider);
     final filteredItems = _filterItems(state.items);
-    debugPrint(
-      'SAVED_SCREEN_BUILD: isLoading=${state.isLoading}, error=${state.error}, items=${state.items.length}',
-    );
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -280,10 +278,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   }
 
   Widget _buildEmpty() {
-    debugPrint('BUILD_EMPTY_CALLED: starting');
     // Curated recommendations for instant exploration
     final suggestedPlaces = CategoryListingsData.allListings.take(4).toList();
-    debugPrint('BUILD_EMPTY_CALLED: suggestedPlaces count=${suggestedPlaces.length}');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),

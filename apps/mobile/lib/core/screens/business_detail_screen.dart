@@ -36,31 +36,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   // Custom User Submitted Reviews
   final List<Map<String, dynamic>> _customReviews = [];
 
+  // Returns only user-submitted reviews (no fake static data).
   List<Map<String, dynamic>> _getAllReviews(Business biz) {
-    final defaultReviews = [
-      {
-        'author': 'Debabrata Sahu',
-        'time': '2 days ago',
-        'rating': 5,
-        'comment':
-            'The Biryani and Paneer Butter Masala are fantastic! Hot food arrived in 25 minutes.',
-      },
-      {
-        'author': 'Ananya Patnaik',
-        'time': '1 week ago',
-        'rating': 5,
-        'comment':
-            'Superb hospitality and clean ocean view rooms. The staff went above and beyond.',
-      },
-      {
-        'author': 'Rajesh Mohanty',
-        'time': '2 weeks ago',
-        'rating': 4,
-        'comment':
-            'Very good food and prompt service. Authentic Odia Chhena Poda dessert was rich and tasty.',
-      },
-    ];
-    return [..._customReviews, ...defaultReviews];
+    return List.unmodifiable(_customReviews);
   }
 
   void _showWriteReviewModal(Business biz) {
@@ -780,7 +758,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              '(${biz.reviewCount ?? (120 + _customReviews.length)})',
+                              '(${biz.reviewCount ?? _customReviews.length})',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AbashyakaColors.graphiteCharcoal,
@@ -3410,7 +3388,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
 
   Widget _buildReviewsTab(Business biz) {
     final allReviews = _getAllReviews(biz);
-    final count = (biz.reviewCount ?? 120) + _customReviews.length;
+    final count = (biz.reviewCount ?? 0) + _customReviews.length;
     final ratingVal = biz.rating ?? 4.8;
 
     return ListView(
@@ -3508,15 +3486,39 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         ),
         const SizedBox(height: 20),
 
-        // List of all reviews
-        for (final rev in allReviews) ...[
-          _buildReviewCard(
-            rev['author'] as String,
-            rev['time'] as String,
-            rev['rating'] as int,
-            rev['comment'] as String,
+        // List of user-submitted reviews, or empty state if none
+        if (allReviews.isEmpty) ...[
+          const SizedBox(height: 32),
+          Center(
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.rate_review_outlined,
+                  size: 48,
+                  color: AbashyakaColors.metallicTeal,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No reviews yet',
+                  style: AbashyakaTypography.sectionTitle(),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Be the first to review this business',
+                  style: AbashyakaTypography.bodyMedium(),
+                ),
+              ],
+            ),
           ),
-        ],
+        ] else
+          for (final rev in allReviews) ...[
+            _buildReviewCard(
+              rev['author'] as String,
+              rev['time'] as String,
+              rev['rating'] as int,
+              rev['comment'] as String,
+            ),
+          ],
       ],
     );
   }

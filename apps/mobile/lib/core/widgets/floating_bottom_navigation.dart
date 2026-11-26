@@ -40,7 +40,7 @@ class FloatingBottomNavigation extends StatelessWidget {
           color: AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.circular(AbashyakaRadius.nav),
           border: Border.all(
-            color: AbashyakaColors.silverGlass.withOpacity(0.8),
+            color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
             width: 1.2,
           ),
           boxShadow: AbashyakaShadows.floatingNav,

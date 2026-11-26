@@ -176,7 +176,7 @@ class Category3DIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.12),
+        color: iconColor.withValues(alpha: 0.12),
         shape: BoxShape.circle,
       ),
       child: Center(

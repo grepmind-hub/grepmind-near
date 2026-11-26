@@ -84,7 +84,7 @@ class FluidWavePainter extends CustomPainter {
         center: const Alignment(-0.2, -0.1),
         radius: 0.9,
         colors: [
-          AbashyakaColors.aquaGlow.withOpacity(0.18),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.18),
           Colors.transparent,
         ],
       ).createShader(bgRect);
@@ -103,8 +103,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.deepMetallicTeal.withOpacity(0.4),
-          AbashyakaColors.metallicTeal.withOpacity(0.25),
+          AbashyakaColors.deepMetallicTeal.withValues(alpha: 0.4),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
         ],
       ).createShader(bgRect);
     canvas.drawPath(path1, paint1);
@@ -122,9 +122,9 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.bottomLeft,
         end: Alignment.topRight,
         colors: [
-          AbashyakaColors.aquaGlow.withOpacity(0.22),
-          AbashyakaColors.brightTeal.withOpacity(0.35),
-          AbashyakaColors.metallicTeal.withOpacity(0.15),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.22),
+          AbashyakaColors.brightTeal.withValues(alpha: 0.35),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.15),
         ],
       ).createShader(bgRect);
     canvas.drawPath(path2, paint2);
@@ -141,8 +141,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.bottomLeft,
         end: Alignment.topRight,
         colors: [
-          AbashyakaColors.lightAqua.withOpacity(0.55),
-          AbashyakaColors.aquaGlow.withOpacity(0.85),
+          AbashyakaColors.lightAqua.withValues(alpha: 0.55),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.85),
           Colors.transparent,
         ],
       ).createShader(bgRect);
@@ -161,8 +161,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AbashyakaColors.deepMetallicTeal.withOpacity(0.5),
-          AbashyakaColors.darkOceanTeal.withOpacity(0.8),
+          AbashyakaColors.deepMetallicTeal.withValues(alpha: 0.5),
+          AbashyakaColors.darkOceanTeal.withValues(alpha: 0.8),
         ],
       ).createShader(bgRect);
     canvas.drawPath(pathBottom, paintBottom);
@@ -199,8 +199,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.lightAqua.withOpacity(0.45),
-          AbashyakaColors.aquaGlow.withOpacity(0.20),
+          AbashyakaColors.lightAqua.withValues(alpha: 0.45),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.20),
         ],
       ).createShader(bgRect);
     canvas.drawPath(topPath1, topPaint1);
@@ -218,8 +218,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.metallicTeal.withOpacity(0.55),
-          AbashyakaColors.brightTeal.withOpacity(0.35),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.55),
+          AbashyakaColors.brightTeal.withValues(alpha: 0.35),
         ],
       ).createShader(bgRect);
     canvas.drawPath(topPath2, topPaint2);
@@ -233,7 +233,7 @@ class FluidWavePainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.6
-        ..color = AbashyakaColors.aquaGlow.withOpacity(0.6),
+        ..color = AbashyakaColors.aquaGlow.withValues(alpha: 0.6),
     );
 
     // 3. Bottom waves (blending with Odisha landmark)
@@ -249,8 +249,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AbashyakaColors.metallicTeal.withOpacity(0.35),
-          AbashyakaColors.deepMetallicTeal.withOpacity(0.70),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.35),
+          AbashyakaColors.deepMetallicTeal.withValues(alpha: 0.70),
         ],
       ).createShader(bgRect);
     canvas.drawPath(bottomPath1, bottomPaint1);
@@ -293,8 +293,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.lightAqua.withOpacity(0.35),
-          AbashyakaColors.iceAquaWhite.withOpacity(0.60),
+          AbashyakaColors.lightAqua.withValues(alpha: 0.35),
+          AbashyakaColors.iceAquaWhite.withValues(alpha: 0.60),
         ],
       ).createShader(bgRect);
     canvas.drawPath(wave1, paint1);
@@ -311,8 +311,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.metallicTeal.withOpacity(0.20),
-          AbashyakaColors.aquaGlow.withOpacity(0.12),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.20),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.12),
         ],
       ).createShader(bgRect);
     canvas.drawPath(wave2, paint2);
@@ -337,8 +337,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.metallicTeal.withOpacity(0.25),
-          AbashyakaColors.brightTeal.withOpacity(0.12),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
+          AbashyakaColors.brightTeal.withValues(alpha: 0.12),
         ],
       ).createShader(bgRect);
     canvas.drawPath(topWave1, paintTop1);
@@ -355,8 +355,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.brightTeal.withOpacity(0.35),
-          AbashyakaColors.aquaGlow.withOpacity(0.20),
+          AbashyakaColors.brightTeal.withValues(alpha: 0.35),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.20),
         ],
       ).createShader(bgRect);
     canvas.drawPath(topWave2, paintTop2);
@@ -374,8 +374,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          AbashyakaColors.lightAqua.withOpacity(0.25),
-          AbashyakaColors.iceAquaWhite.withOpacity(0.50),
+          AbashyakaColors.lightAqua.withValues(alpha: 0.25),
+          AbashyakaColors.iceAquaWhite.withValues(alpha: 0.50),
         ],
       ).createShader(bgRect);
     canvas.drawPath(bottomWave, paintBottom);
@@ -414,8 +414,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.metallicTeal.withOpacity(0.12),
-          AbashyakaColors.aquaGlow.withOpacity(0.06),
+          AbashyakaColors.metallicTeal.withValues(alpha: 0.12),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.06),
         ],
       ).createShader(bgRect);
     canvas.drawPath(path2, paint2);
@@ -439,8 +439,8 @@ class FluidWavePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AbashyakaColors.brightTeal.withOpacity(0.25),
-          AbashyakaColors.aquaGlow.withOpacity(0.15),
+          AbashyakaColors.brightTeal.withValues(alpha: 0.25),
+          AbashyakaColors.aquaGlow.withValues(alpha: 0.15),
         ],
       ).createShader(bgRect);
     canvas.drawPath(path, paint);
@@ -463,8 +463,8 @@ class FluidWavePainter extends CustomPainter {
       Paint()
         ..shader = LinearGradient(
           colors: [
-            AbashyakaColors.metallicTeal.withOpacity(0.15),
-            AbashyakaColors.lightAqua.withOpacity(0.2),
+            AbashyakaColors.metallicTeal.withValues(alpha: 0.15),
+            AbashyakaColors.lightAqua.withValues(alpha: 0.2),
           ],
         ).createShader(bgRect),
     );

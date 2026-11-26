@@ -133,7 +133,7 @@ class AbashyakaPremiumHeader extends StatelessWidget {
                 color: AbashyakaColors.pureWhite,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AbashyakaColors.silverGlass.withOpacity(0.8),
+                  color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
                   width: 1.0,
                 ),
                 boxShadow: const [
