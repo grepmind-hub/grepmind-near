@@ -7,7 +7,6 @@ import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
-import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/features/onboarding/introduction_screen.dart';
 import 'package:grepmind_mobile/main.dart';
@@ -80,8 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.abashyaka;
-    final dark = widget.isDark || palette.isDark;
+    final dark = widget.isDark;
     final canvas = dark ? const Color(0xFF0B1320) : AbashyakaColors.pearlWhite;
     final primaryText = dark ? AbashyakaColors.pureWhite : AbashyakaColors.signatureTeal;
     final subtitleText = dark
@@ -96,15 +94,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Top crisp vector FluidWave curve (no raster opening_complete.png)
-            const Positioned(
+            // Top crisp vector FluidWave curve matching splash brightness
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
               height: 190,
-              child: FluidWaveBackground(
-                variant: FluidWaveVariant.discovery,
-                child: SizedBox.expand(),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: FluidWavePainter(
+                    variant: FluidWaveVariant.discovery,
+                    brightness: dark ? Brightness.dark : Brightness.light,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
               ),
             ),
 
