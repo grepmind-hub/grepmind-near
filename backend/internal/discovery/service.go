@@ -99,6 +99,7 @@ type Product struct {
 	AvailableQuantity  *int     `json:"available_quantity,omitempty"`
 	UnitLabel          string   `json:"unit_label,omitempty"`
 	MRP                *float64 `json:"mrp,omitempty"`
+	GSTRateBPS         *int     `json:"gst_rate_bps,omitempty"`
 	Barcode            string   `json:"barcode,omitempty"`
 	GroceryCategory    string   `json:"grocery_category,omitempty"`
 	IsPublished        bool     `json:"is_published"`

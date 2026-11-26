@@ -1721,7 +1721,7 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 	}
 	rows, err := db.QueryxContext(r.Context(), `
 		SELECT id, business_id, name, description, price, currency, stock_status, inventory_mode, available_quantity, is_published, image_url, updated_at,
-		       COALESCE(unit_label, ''), mrp, COALESCE(barcode, ''), COALESCE(grocery_category, '')
+		       COALESCE(unit_label, ''), mrp, COALESCE(barcode, ''), COALESCE(grocery_category, ''), gst_rate_bps
 		FROM products
 		WHERE business_id = $1
 		ORDER BY updated_at DESC
@@ -1742,8 +1742,9 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		var unitLabel, barcode, groceryCategory string
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &desc, &price, &p.Currency,
 			&p.StockStatus, &p.InventoryMode, &available, &p.IsPublished, &image, &updated,
-			&unitLabel, &mrp, &barcode, &groceryCategory); err != nil {
-			continue
+			&unitLabel, &mrp, &barcode, &groceryCategory, &p.GSTRateBPS); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to read product details.")
+			return
 		}
 		if desc.Valid {
 			p.Description = desc.String
@@ -1766,9 +1767,13 @@ func merchantListProducts(authSvc *auth.Service, db *database.DB, w http.Respons
 		}
 		products = append(products, p)
 	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load products.")
+		return
+	}
 	writeJSON(w, http.StatusOK, envelope{
 		"data": products,
-		"meta": map[string]string{"request_id": "merchant-products"},
+		"meta": map[string]interface{}{"request_id": "merchant-products", "supports_catalog_gst": true},
 	})
 }
 
@@ -1786,6 +1791,7 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		AvailableQuantity *int     `json:"available_quantity"`
 		UnitLabel         *string  `json:"unit_label"`
 		MRP               *float64 `json:"mrp"`
+		GSTRateBPS        *int     `json:"gst_rate_bps"`
 		Barcode           *string  `json:"barcode"`
 		GroceryCategory   *string  `json:"grocery_category"`
 		IsPublished       bool     `json:"is_published"`
@@ -1809,6 +1815,10 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Finite inventory requires a non-negative available quantity.")
 		return
 	}
+	if !validCatalogPricing(req.UnitLabel, req.MRP, req.GSTRateBPS) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Check the unit, MRP and GST rate.")
+		return
+	}
 	if req.InventoryMode == "finite" {
 		if *req.AvailableQuantity == 0 {
 			req.StockStatus = "out_of_stock"
@@ -1819,10 +1829,10 @@ func merchantCreateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	req.Name = strings.TrimSpace(req.Name)
 	var newID string
 	err := db.QueryRowxContext(r.Context(), `
-		INSERT INTO products (business_id, name, description, price, stock_status, inventory_mode, available_quantity, unit_label, mrp, barcode, grocery_category, is_published, image_url, updated_at, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now(), CASE WHEN $12 THEN now() ELSE NULL END)
+		INSERT INTO products (business_id, name, description, price, stock_status, inventory_mode, available_quantity, unit_label, mrp, barcode, grocery_category, is_published, image_url, gst_rate_bps, updated_at, published_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now(), CASE WHEN $12 THEN now() ELSE NULL END)
 		RETURNING id
-	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.InventoryMode, req.AvailableQuantity, req.UnitLabel, req.MRP, req.Barcode, req.GroceryCategory, req.IsPublished, req.ImageURL).Scan(&newID)
+	`, bizID, req.Name, req.Description, req.Price, req.StockStatus, req.InventoryMode, req.AvailableQuantity, req.UnitLabel, req.MRP, req.Barcode, req.GroceryCategory, req.IsPublished, req.ImageURL, req.GSTRateBPS).Scan(&newID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to create product.")
 		return
@@ -1840,21 +1850,30 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 	prodID := r.PathValue("id")
 	var req struct {
-		Name              *string  `json:"name"`
-		Description       *string  `json:"description"`
-		Price             *float64 `json:"price"`
-		StockStatus       *string  `json:"stock_status"`
-		InventoryMode     *string  `json:"inventory_mode"`
-		AvailableQuantity *int     `json:"available_quantity"`
-		UnitLabel         *string  `json:"unit_label"`
-		MRP               *float64 `json:"mrp"`
-		Barcode           *string  `json:"barcode"`
-		GroceryCategory   *string  `json:"grocery_category"`
-		IsPublished       *bool    `json:"is_published"`
-		ImageURL          *string  `json:"image_url"`
+		Name              *string         `json:"name"`
+		Description       *string         `json:"description"`
+		Price             *float64        `json:"price"`
+		StockStatus       *string         `json:"stock_status"`
+		InventoryMode     *string         `json:"inventory_mode"`
+		AvailableQuantity *int            `json:"available_quantity"`
+		UnitLabel         *string         `json:"unit_label"`
+		MRP               json.RawMessage `json:"mrp"`
+		GSTRateBPS        json.RawMessage `json:"gst_rate_bps"`
+		Barcode           *string         `json:"barcode"`
+		GroceryCategory   *string         `json:"grocery_category"`
+		IsPublished       *bool           `json:"is_published"`
+		ImageURL          *string         `json:"image_url"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid payload.")
+		return
+	}
+	var mrp *float64
+	var gstRate *int
+	if (req.MRP != nil && json.Unmarshal(req.MRP, &mrp) != nil) ||
+		(req.GSTRateBPS != nil && json.Unmarshal(req.GSTRateBPS, &gstRate) != nil) ||
+		!validCatalogPricing(req.UnitLabel, mrp, gstRate) {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Check the unit, MRP and GST rate.")
 		return
 	}
 	if req.Name != nil && (len(strings.TrimSpace(*req.Name)) < 2 || len(strings.TrimSpace(*req.Name)) > 100) || req.Description != nil && len(*req.Description) > 2000 || req.Price != nil && (*req.Price < 0 || *req.Price > 9999999999.99) || req.StockStatus != nil && !validStockStatus(*req.StockStatus) {
@@ -1865,7 +1884,7 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		trimmed := strings.TrimSpace(*req.Name)
 		req.Name = &trimmed
 	}
-	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.InventoryMode == nil && req.AvailableQuantity == nil && req.IsPublished == nil && req.ImageURL == nil && req.UnitLabel == nil && req.MRP == nil && req.Barcode == nil && req.GroceryCategory == nil {
+	if req.Name == nil && req.Description == nil && req.Price == nil && req.StockStatus == nil && req.InventoryMode == nil && req.AvailableQuantity == nil && req.IsPublished == nil && req.ImageURL == nil && req.UnitLabel == nil && req.MRP == nil && req.Barcode == nil && req.GroceryCategory == nil && req.GSTRateBPS == nil {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "No product fields to update.")
 		return
 	}
@@ -1906,10 +1925,10 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 			status := "in_stock"
 			if *quantity == 0 {
 				status = "out_of_stock"
+			} else if req.StockStatus != nil && *req.StockStatus == "limited" {
+				status = "limited"
 			}
-			setParts = append(setParts, fmt.Sprintf("stock_status = $%d", argIdx))
-			args = append(args, status)
-			argIdx++
+			req.StockStatus = &status
 		}
 	}
 	if req.Name != nil {
@@ -1951,7 +1970,12 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 	}
 	if req.MRP != nil {
 		setParts = append(setParts, fmt.Sprintf("mrp = $%d", argIdx))
-		args = append(args, *req.MRP)
+		args = append(args, mrp)
+		argIdx++
+	}
+	if req.GSTRateBPS != nil {
+		setParts = append(setParts, fmt.Sprintf("gst_rate_bps = $%d", argIdx))
+		args = append(args, gstRate)
 		argIdx++
 	}
 	if req.Barcode != nil {
@@ -1978,6 +2002,17 @@ func merchantUpdateProduct(authSvc *auth.Service, db *database.DB, w http.Respon
 		"data": map[string]string{"status": "updated"},
 		"meta": map[string]string{"request_id": "merchant-update-product"},
 	})
+}
+
+func validCatalogPricing(unit *string, mrp *float64, gstRate *int) bool {
+	if unit != nil {
+		*unit = strings.TrimSpace(*unit)
+		if len([]rune(*unit)) < 1 || len([]rune(*unit)) > 40 {
+			return false
+		}
+	}
+	return (mrp == nil || (*mrp >= 0 && *mrp <= 9999999999.99)) &&
+		(gstRate == nil || (*gstRate >= 0 && *gstRate <= 10000))
 }
 
 func merchantDeleteProduct(authSvc *auth.Service, db *database.DB, w http.ResponseWriter, r *http.Request, userID string) {

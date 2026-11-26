@@ -91,7 +91,22 @@ class _MerchantWorkspaceScreenState
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildDashboardTab(merchantState, analyticsState),
+          Stack(
+            fit: StackFit.expand,
+            children: [
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(
+                      'assets/backgrounds/premium/login_background.webp',
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              _buildDashboardTab(merchantState, analyticsState),
+            ],
+          ),
           _buildRequestsTab(merchantState),
           _buildProfileTab(profileState),
         ],

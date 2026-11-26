@@ -281,8 +281,8 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **18** | Service Request Status Tracker | UI polish complete. Widget checks passed. Live tracker acceptance partial. | [Screen 18 validation](docs/design/SCREEN_18_SERVICE_REQUEST_STATUS_VALIDATION.md) |
 | **19** | Merchant Registration / Claim | UI polish complete. Widget checks passed. Live role acceptance partial. | [Screen 19 validation](docs/design/SCREEN_19_MERCHANT_REGISTRATION_VALIDATION.md) |
 | **20** | Merchant Workspace Dashboard | ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_workspace_screen.dart` (Dashboard, stats, request management, quick actions) |
-| **21** | Merchant Catalog Management | Live product workflow verified. Display issues recorded. | [Screen 21 validation](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) |
-| **22** | Merchant Hours & Coverage Setup| ✅ Complete (Verified) | `apps/mobile/lib/core/screens/merchant_hours_coverage_screen.dart` (7-day schedule, time pickers, radius slider, localities tags, on-demand toggle) |
+| **21** | Merchant Catalog Management | Live draft flow verified. Category units and optional GST estimate implemented. | [Screen 21 validation](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) |
+| **22** | Merchant Hours & Coverage Setup | UI and widget tests passed. Live save verification pending for the intended merchant. | [Screen 22 validation](docs/design/SCREEN_22_MERCHANT_HOURS_COVERAGE_VALIDATION.md) |
 
 ### UI Showcase Milestone
 - The 22 rows above are the showcase screen inventory, not blanket proof that every workflow is production-complete. Verify current source, API, database behavior, tests, and runtime evidence before describing an item as complete or verified. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
@@ -313,7 +313,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 - **Screen 18 Service Request Status Tracker** received a visual-only polish pass on 25 November 2026. The [validation record](docs/design/SCREEN_18_SERVICE_REQUEST_STATUS_VALIDATION.md) covers the status presentation, responsive layout, polling and cancellation tests, and Android acceptance limits.
 - **Screen 19 Merchant Registration / Claim** received a visual polish pass. The [validation record](docs/design/SCREEN_19_MERCHANT_REGISTRATION_VALIDATION.md) covers wizard progress, register and claim entry points, and Android acceptance limits.
 - **Screen 20 Merchant Workspace Dashboard** received a visual polish pass. The [validation record](docs/design/SCREEN_20_MERCHANT_WORKSPACE_VALIDATION.md) covers dashboard hierarchy, provider-backed metrics, and Android checks.
-- **Screen 21 Merchant Catalog Management** passed its live draft-product create, edit, stock status, and relaunch checks. The [validation record](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) includes the price and quantity display issues.
+- **Screen 21 Merchant Catalog Management** passed its live draft-product create, edit, stock status, and relaunch checks. The [validation record](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) tracks category-based units, optional GST, and the MRP and stock display fixes.
 - The next showcase screen is **Screen 22, Merchant Hours & Coverage Setup** (`apps/mobile/lib/core/screens/merchant_hours_coverage_screen.dart`).
 
 ### Merchant Desktop & Multi-User Access Management Milestone

@@ -22,6 +22,7 @@ void main() {
           'name': 'Asian Paints Apex 20L',
           'description': 'Weatherproof exterior emulsion paint',
           'price': 4500,
+          'mrp': 5625,
           'stock_status': 'in_stock',
           'inventory_mode': 'finite',
           'available_quantity': 12,
@@ -34,8 +35,7 @@ void main() {
           'description': 'Hardened steel shackle 3 keys',
           'price': 320,
           'stock_status': 'limited',
-          'inventory_mode': 'finite',
-          'available_quantity': 3,
+          'inventory_mode': 'untracked',
           'is_published': true,
         },
       ];
@@ -81,10 +81,7 @@ void main() {
       expect(find.text('Asian Paints Apex 20L'), findsOneWidget);
       expect(find.text('Weatherproof exterior emulsion paint'), findsOneWidget);
       expect(find.text('₹4,500'), findsOneWidget);
-      expect(
-        find.text('20% OFF'),
-        findsNWidgets(2),
-      ); // Both products have 20% OFF pill
+      expect(find.text('20% OFF'), findsOneWidget);
       expect(
         find.text('In Stock'),
         findsNWidgets(2),
@@ -98,7 +95,8 @@ void main() {
         find.text('Limited'),
         findsNWidgets(2),
       ); // Filter chip + Product badge
-      expect(find.text('Qty: 3'), findsOneWidget);
+      expect(find.text('Untracked'), findsOneWidget);
+      expect(find.byKey(const Key('increment_stock_prod-002')), findsNothing);
     },
   );
 
@@ -189,8 +187,33 @@ void main() {
   );
 
   testWidgets(
-    'Phase 02D: Screen 13 Add Product modal accepts MRP, unit chip, and price',
+    'Product form calculates GST and saves the rate, selling unit and MRP',
     (tester) async {
+      Map<String, dynamic>? savedProduct;
+      apiClient.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (options.method == 'POST' &&
+                options.path.endsWith('/merchant/products')) {
+              savedProduct = options.data as Map<String, dynamic>;
+            }
+            return handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: options.method == 'POST' ? 201 : 200,
+                data: options.path.endsWith('/merchant/profile')
+                    ? {
+                        'data': {'category_slug': 'hardware'},
+                      }
+                    : {
+                        'data': [],
+                        'meta': {'supports_catalog_gst': true},
+                      },
+              ),
+            );
+          },
+        ),
+      );
       await tester.pumpWidget(
         const ProviderScope(child: MaterialApp(home: MerchantCatalogScreen())),
       );
@@ -205,9 +228,8 @@ void main() {
       expect(find.byKey(const Key('modal_product_name')), findsOneWidget);
       expect(find.byKey(const Key('modal_product_price')), findsOneWidget);
       expect(find.byKey(const Key('modal_product_mrp')), findsOneWidget);
-      expect(find.text('Unit / Measure'), findsOneWidget);
-      expect(find.text('1 kg'), findsOneWidget);
-      expect(find.text('500 g'), findsOneWidget);
+      final unitPicker = find.byKey(const Key('modal_product_unit'));
+      expect(unitPicker, findsOneWidget);
 
       // Enter product data
       await tester.enterText(
@@ -225,14 +247,33 @@ void main() {
       expect(find.text('480'), findsOneWidget);
       expect(find.text('600'), findsOneWidget);
 
-      // Select Unit Chip
-      await tester.tap(find.text('500 g'));
-      await tester.pump();
+      await tester.ensureVisible(unitPicker);
+      await tester.tap(unitPicker);
+      await tester.pumpAndSettle();
+      expect(find.text('500 g'), findsNothing);
+      await tester.tap(find.text('Box').last);
+      await tester.pumpAndSettle();
+      final gstSwitch = find.widgetWithText(SwitchListTile, 'GST calculation');
+      await tester.ensureVisible(gstSwitch);
+      await tester.tap(gstSwitch);
+      await tester.pumpAndSettle();
+      final ratePicker = find.byKey(const Key('modal_product_gst_rate'));
+      await tester.ensureVisible(ratePicker);
+      await tester.tap(ratePicker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('18%').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Estimated GST  ₹86.40'), findsOneWidget);
+      expect(find.text('Total incl. GST  ₹566.40'), findsOneWidget);
 
-      // Close modal
-      await tester.tap(find.byKey(const Key('modal_product_close_btn')));
+      await tester.ensureVisible(find.text('Create Product'));
+      await tester.tap(find.text('Create Product'));
       await tester.pumpAndSettle();
       expect(find.text('Add New Product'), findsNothing);
+      expect(savedProduct?['unit_label'], 'Box');
+      expect(savedProduct?['mrp'], 600);
+      expect(savedProduct?['price'], 480);
+      expect(savedProduct?['gst_rate_bps'], 1800);
     },
   );
 }

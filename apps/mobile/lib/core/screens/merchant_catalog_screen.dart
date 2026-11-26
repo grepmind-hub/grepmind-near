@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:grepmind_mobile/core/screens/merchant_categories_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
@@ -10,6 +11,7 @@ import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
+import 'package:grepmind_mobile/core/utils/catalog_pricing.dart';
 
 /// Screen 21: Merchant Catalog Management
 /// Allows merchants and service professionals to manage their product inventory
@@ -35,7 +37,12 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       if (mounted) setState(() {});
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(merchantCatalogProvider.notifier).loadCatalog();
+      final profile = ref.read(merchantProfileProvider(''));
+      if (profile.profile == null && !profile.isLoading) {
+        ref.read(merchantProfileProvider('').notifier).load();
+      }
     });
   }
 
@@ -49,6 +56,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
   @override
   Widget build(BuildContext context) {
     final catalogState = ref.watch(merchantCatalogProvider);
+    ref.watch(merchantProfileProvider(''));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -248,12 +256,15 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         key: Key(
           _tabController.index == 0 ? 'add_product_fab' : 'add_service_fab',
         ),
-        backgroundColor: AppTheme.emerald,
+        backgroundColor: AbashyakaColors.signatureTeal,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add, size: 20),
+        shape: const StadiumBorder(),
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+        extendedIconLabelSpacing: 6,
+        icon: const Icon(Icons.add, size: 18),
         label: Text(
           _tabController.index == 0 ? 'Add Product' : 'Add Service',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
         onPressed: () {
           if (_tabController.index == 0) {
@@ -353,10 +364,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
   }
 
   Widget _buildProductCard(Product p) {
-    final double? price = p.price;
-    final double mrp = price != null ? price * 1.25 : 0;
-    final int qty =
-        p.availableQuantity ?? (p.stockStatus == 'out_of_stock' ? 0 : 10);
+    final price = p.price;
+    final mrp = p.mrp;
+    final discount = p.discountPercent;
+    final qty = p.inventoryMode == 'finite' ? p.availableQuantity : null;
 
     return PremiumCard(
       padding: const EdgeInsets.all(14),
@@ -432,28 +443,32 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     ],
                     const SizedBox(height: 8),
 
-                    // Price & MRP & Discount & Stock Badge
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
-                          p.priceText,
+                          price != null
+                              ? _catalogPriceText(price)
+                              : p.priceText,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.emerald,
                           ),
                         ),
-                        if (price != null && price > 0) ...[
-                          const SizedBox(width: 6),
+                        if (mrp != null &&
+                            discount != null &&
+                            discount > 0) ...[
                           Text(
-                            '₹${mrp.toStringAsFixed(0)}',
+                            _catalogPriceText(mrp),
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.hintText,
                               decoration: TextDecoration.lineThrough,
                             ),
                           ),
-                          const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 5,
@@ -463,9 +478,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               color: const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              '20% OFF',
-                              style: TextStyle(
+                            child: Text(
+                              '$discount% OFF',
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF92400E),
@@ -473,7 +488,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             ),
                           ),
                         ],
-                        const Spacer(),
+                        if (p.unitLabel case final String unit
+                            when unit.isNotEmpty)
+                          Text(unit, style: const TextStyle(fontSize: 12)),
                         _buildStockStatusBadge(p.stockStatus),
                       ],
                     ),
@@ -490,97 +507,100 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           Row(
             children: [
               // Screen 14 Quick Stock Stepper
-              Material(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        key: Key('decrement_stock_${p.id}'),
-                        borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(8),
+              if (qty != null)
+                Material(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          key: Key('decrement_stock_${p.id}'),
+                          borderRadius: const BorderRadius.horizontal(
+                            left: Radius.circular(8),
+                          ),
+                          onTap: () {
+                            final newQty = qty > 0 ? qty - 1 : 0;
+                            final newStatus = newQty == 0
+                                ? 'out_of_stock'
+                                : (newQty <= 5 ? 'limited' : 'in_stock');
+                            ref
+                                .read(merchantCatalogProvider.notifier)
+                                .updateProduct(p.id, {
+                                  'available_quantity': newQty,
+                                  'stock_status': newStatus,
+                                  'inventory_mode': 'finite',
+                                });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            child: Icon(
+                              Icons.remove,
+                              size: 16,
+                              color: AppTheme.mainText,
+                            ),
+                          ),
                         ),
-                        onTap: () {
-                          final newQty = qty > 0 ? qty - 1 : 0;
-                          final newStatus = newQty == 0
-                              ? 'out_of_stock'
-                              : (newQty <= 5 ? 'limited' : 'in_stock');
-                          ref
-                              .read(merchantCatalogProvider.notifier)
-                              .updateProduct(p.id, {
-                                'available_quantity': newQty,
-                                'stock_status': newStatus,
-                                'inventory_mode': 'finite',
-                              });
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
+                        Container(
+                          key: Key('stock_count_${p.id}'),
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 10,
                             vertical: 8,
                           ),
-                          child: Icon(
-                            Icons.remove,
-                            size: 16,
-                            color: AppTheme.mainText,
+                          color: Colors.white,
+                          child: Text(
+                            'Qty: $qty',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.mainText,
+                            ),
                           ),
                         ),
-                      ),
-                      Container(
-                        key: Key('stock_count_${p.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        color: Colors.white,
-                        child: Text(
-                          'Qty: $qty',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                        InkWell(
+                          key: Key('increment_stock_${p.id}'),
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(8),
+                          ),
+                          onTap: () {
+                            final newQty = qty + 1;
+                            final newStatus = newQty <= 5
+                                ? 'limited'
+                                : 'in_stock';
+                            ref
+                                .read(merchantCatalogProvider.notifier)
+                                .updateProduct(p.id, {
+                                  'available_quantity': newQty,
+                                  'stock_status': newStatus,
+                                  'inventory_mode': 'finite',
+                                });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              size: 16,
+                              color: AppTheme.emerald,
+                            ),
                           ),
                         ),
-                      ),
-                      InkWell(
-                        key: Key('increment_stock_${p.id}'),
-                        borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(8),
-                        ),
-                        onTap: () {
-                          final newQty = qty + 1;
-                          final newStatus = newQty <= 5
-                              ? 'limited'
-                              : 'in_stock';
-                          ref
-                              .read(merchantCatalogProvider.notifier)
-                              .updateProduct(p.id, {
-                                'available_quantity': newQty,
-                                'stock_status': newStatus,
-                                'inventory_mode': 'finite',
-                              });
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            size: 16,
-                            color: AppTheme.emerald,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                )
+              else
+                const Text('Untracked', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 8),
 
               // Publish / Unpublish quick toggle
@@ -639,6 +659,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       ),
     );
   }
+
+  String _catalogPriceText(double value) => NumberFormat.currency(
+    symbol: '₹',
+    decimalDigits: value == value.roundToDouble() ? 0 : 2,
+  ).format(value);
 
   // ---------------------------------------------------------------------------
   // SERVICES TAB
@@ -1051,17 +1076,34 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
 
   void _showProductModal(BuildContext context, Product? product) {
     final isEditing = product != null;
+    const customUnit = '__custom_unit__';
+    const gstPresets = [0, 500, 1800, 4000];
+    final profile = ref.read(merchantProfileProvider('')).profile;
+    final units = catalogUnits(profile?['category_slug'] as String?);
+    final savedUnit = product?.unitLabel;
+    String? selectedUnit = savedUnit == null || savedUnit.isEmpty
+        ? null
+        : units.contains(savedUnit)
+        ? savedUnit
+        : customUnit;
+    final unitCtrl = TextEditingController(text: savedUnit ?? '');
+    final supportsGst = ref.read(merchantCatalogProvider).supportsGst;
+    final savedRate = product?.gstRateBasisPoints;
+    bool gstEnabled = savedRate != null;
+    int? selectedRate = savedRate != null && !gstPresets.contains(savedRate)
+        ? -1
+        : savedRate;
+    final gstCtrl = TextEditingController(
+      text: savedRate == null ? '' : (savedRate / 100).toStringAsFixed(2),
+    );
     final nameCtrl = TextEditingController(text: product?.name ?? '');
     final descCtrl = TextEditingController(text: product?.description ?? '');
     final priceCtrl = TextEditingController(
-      text: product?.price != null ? product!.price!.toStringAsFixed(0) : '',
+      text: product?.price?.toStringAsFixed(2) ?? '',
     );
     final mrpCtrl = TextEditingController(
-      text: product?.price != null
-          ? (product!.price! * 1.25).toStringAsFixed(0)
-          : '',
+      text: product?.mrp?.toStringAsFixed(2) ?? '',
     );
-    String selectedUnit = '1 pc';
     final imageCtrl = TextEditingController(text: product?.imageUrl ?? '');
     String stockStatus = product?.stockStatus ?? 'in_stock';
     String inventoryMode = product?.inventoryMode ?? 'untracked';
@@ -1085,6 +1127,20 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (modalCtx, setModalState) {
+          final gstRate = selectedRate == -1
+              ? parseCatalogGstRate(gstCtrl.text)
+              : selectedRate;
+          final enteredPrice = double.tryParse(priceCtrl.text.trim());
+          final pricePaise =
+              enteredPrice != null &&
+                  enteredPrice.isFinite &&
+                  enteredPrice >= 0 &&
+                  enteredPrice <= 9999999999.99
+              ? (enteredPrice * 100).round()
+              : null;
+          final gstPaise = pricePaise != null && gstRate != null
+              ? catalogGstPaise(pricePaise, gstRate)
+              : null;
           Future<void> pickImage(ImageSource source) async {
             try {
               final picker = ImagePicker();
@@ -1323,7 +1379,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             TextField(
                               key: const Key('modal_product_price'),
                               controller: priceCtrl,
-                              keyboardType: TextInputType.number,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              onChanged: (_) {
+                                if (gstEnabled) setModalState(() {});
+                              },
                               decoration: InputDecoration(
                                 prefixText: '₹ ',
                                 hintText: '299',
@@ -1354,7 +1416,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             TextField(
                               key: const Key('modal_product_mrp'),
                               controller: mrpCtrl,
-                              keyboardType: TextInputType.number,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: InputDecoration(
                                 prefixText: '₹ ',
                                 hintText: '399',
@@ -1373,45 +1438,120 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   ),
                   const SizedBox(height: 14),
 
-                  // Unit / Measure selector chips
-                  const Text(
-                    'Unit / Measure',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  DropdownButtonFormField<String>(
+                    key: const Key('modal_product_unit'),
+                    initialValue: selectedUnit,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Selling unit',
+                      prefixIcon: Icon(Icons.straighten_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      for (final unit in units)
+                        DropdownMenuItem(value: unit, child: Text(unit)),
+                      const DropdownMenuItem(
+                        value: customUnit,
+                        child: Text('Custom unit'),
+                      ),
+                    ],
+                    onChanged: (unit) =>
+                        setModalState(() => selectedUnit = unit),
                   ),
-                  const SizedBox(height: 6),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                  if (selectedUnit == customUnit) ...[
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: unitCtrl,
+                      maxLength: 40,
+                      decoration: const InputDecoration(
+                        labelText: 'Unit label',
+                        hintText: '750 g, case of 12',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  PremiumCard(
+                    padding: const EdgeInsets.all(14),
+                    color: AbashyakaColors.pearlWhite,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        for (final unit in [
-                          '1 kg',
-                          '500 g',
-                          '250 g',
-                          '1 pc',
-                          'Pack of 2',
-                          'Custom',
-                        ])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: ChoiceChip(
-                              label: Text(
-                                unit,
-                                style: const TextStyle(fontSize: 12),
+                        Material(
+                          type: MaterialType.transparency,
+                          child: SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('GST calculation'),
+                            subtitle: const Text(
+                              'Optional estimate on the entered price',
+                            ),
+                            value: gstEnabled,
+                            onChanged: (value) =>
+                                setModalState(() => gstEnabled = value),
+                          ),
+                        ),
+                        if (gstEnabled) ...[
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<int>(
+                            key: const Key('modal_product_gst_rate'),
+                            initialValue: selectedRate,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'GST rate',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: [
+                              for (final rate in gstPresets)
+                                DropdownMenuItem(
+                                  value: rate,
+                                  child: Text('${rate ~/ 100}%'),
+                                ),
+                              const DropdownMenuItem(
+                                value: -1,
+                                child: Text('Custom rate'),
                               ),
-                              selected: selectedUnit == unit,
-                              selectedColor: const Color(0xFFE8F5E9),
-                              labelStyle: TextStyle(
-                                color: selectedUnit == unit
-                                    ? AppTheme.emerald
-                                    : AppTheme.mainText,
-                                fontWeight: selectedUnit == unit
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                            ],
+                            onChanged: (rate) =>
+                                setModalState(() => selectedRate = rate),
+                          ),
+                          if (selectedRate == -1) ...[
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: gstCtrl,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              onChanged: (_) => setModalState(() {}),
+                              decoration: const InputDecoration(
+                                labelText: 'GST rate (%)',
+                                border: OutlineInputBorder(),
                               ),
-                              onSelected: (_) =>
-                                  setModalState(() => selectedUnit = unit),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          if (gstPaise != null && pricePaise != null) ...[
+                            Text(
+                              'Estimated GST  ₹${(gstPaise / 100).toStringAsFixed(2)}',
+                            ),
+                            Text(
+                              'Total incl. GST  ₹${((pricePaise + gstPaise) / 100).toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          Text(
+                            supportsGst
+                                ? 'Catalog estimate. Storefront and checkout prices use the entered price.'
+                                : 'Preview only until GST is enabled on the catalog server.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.secondaryText,
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -1889,13 +2029,43 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               final priceText = priceCtrl.text.trim();
                               final price = double.tryParse(priceText);
                               if (priceText.isNotEmpty &&
-                                  (price == null || price < 0)) {
+                                  (price == null ||
+                                      !RegExp(r'^\d{1,10}(\.\d{1,2})?$')
+                                          .hasMatch(priceText))) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
                                       'Enter a valid price of zero or more.',
                                     ),
                                   ),
+                                );
+                                return;
+                              }
+                              final mrpText = mrpCtrl.text.trim();
+                              final mrp = double.tryParse(mrpText);
+                              final unit = selectedUnit == customUnit
+                                  ? unitCtrl.text.trim()
+                                  : selectedUnit;
+                              final String? pricingError;
+                              if (mrpText.isNotEmpty &&
+                                  !RegExp(r'^\d{1,10}(\.\d{1,2})?$')
+                                      .hasMatch(mrpText)) {
+                                pricingError = 'Enter a valid MRP with up to two decimals.';
+                              } else if (unit != null &&
+                                  (unit.isEmpty || unit.runes.length > 40)) {
+                                pricingError =
+                                    'Enter a selling unit of 1–40 characters.';
+                              } else if (gstEnabled && !supportsGst) {
+                                pricingError = 'Turn off GST to save. This server currently supports preview only.';
+                              } else if (gstEnabled &&
+                                  (gstRate == null || pricePaise == null)) {
+                                pricingError = 'Enter a price and choose a GST rate from 0 to 100%.';
+                              } else {
+                                pricingError = null;
+                              }
+                              if (pricingError != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(pricingError)),
                                 );
                                 return;
                               }
@@ -1956,6 +2126,12 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                               availableQuantity,
                                           'is_published': isPublished,
                                           'image_url': imageUrl,
+                                          'unit_label': ?unit,
+                                          'mrp': mrp,
+                                          if (supportsGst)
+                                            'gst_rate_bps': gstEnabled
+                                                ? gstRate
+                                                : null,
                                         })
                                   : await ref
                                         .read(merchantCatalogProvider.notifier)
@@ -1968,6 +2144,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                           availableQuantity: availableQuantity,
                                           isPublished: isPublished,
                                           imageUrl: imageUrl,
+                                          unitLabel: unit,
+                                          mrp: mrp,
+                                          gstRateBasisPoints: gstEnabled
+                                              ? gstRate
+                                              : null,
                                         );
 
                               if (!context.mounted) return;

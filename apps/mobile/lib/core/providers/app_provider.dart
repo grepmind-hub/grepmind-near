@@ -1434,6 +1434,7 @@ class MerchantCatalogState {
   final String searchQuery;
   final String selectedProductFilter;
   final String selectedServiceFilter;
+  final bool supportsGst;
 
   const MerchantCatalogState({
     this.products = const [],
@@ -1443,6 +1444,7 @@ class MerchantCatalogState {
     this.searchQuery = '',
     this.selectedProductFilter = 'all',
     this.selectedServiceFilter = 'all',
+    this.supportsGst = false,
   });
 
   MerchantCatalogState copyWith({
@@ -1454,6 +1456,7 @@ class MerchantCatalogState {
     String? searchQuery,
     String? selectedProductFilter,
     String? selectedServiceFilter,
+    bool? supportsGst,
   }) {
     return MerchantCatalogState(
       products: products ?? this.products,
@@ -1465,6 +1468,7 @@ class MerchantCatalogState {
           selectedProductFilter ?? this.selectedProductFilter,
       selectedServiceFilter:
           selectedServiceFilter ?? this.selectedServiceFilter,
+      supportsGst: supportsGst ?? this.supportsGst,
     );
   }
 
@@ -1553,6 +1557,10 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
       state = state.copyWith(
         products: prodsList,
         services: srvsList,
+        supportsGst:
+            (prodsData['meta']
+                as Map<String, dynamic>?)?['supports_catalog_gst'] ==
+            true,
         isLoading: false,
       );
     } catch (e) {
@@ -1569,6 +1577,9 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
     int? availableQuantity,
     bool isPublished = true,
     String? imageUrl,
+    String? unitLabel,
+    double? mrp,
+    int? gstRateBasisPoints,
   }) async {
     try {
       await apiClient.post(
@@ -1582,6 +1593,9 @@ class MerchantCatalogNotifier extends StateNotifier<MerchantCatalogState> {
           'available_quantity': availableQuantity,
           'is_published': isPublished,
           'image_url': imageUrl,
+          'unit_label': ?unitLabel,
+          'mrp': ?mrp,
+          'gst_rate_bps': ?gstRateBasisPoints,
         },
       );
       await loadCatalog();

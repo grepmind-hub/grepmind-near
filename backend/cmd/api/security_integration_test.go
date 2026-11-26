@@ -64,6 +64,50 @@ func TestCatalogInputValidation(t *testing.T) {
 	}
 }
 
+func TestMerchantCatalogPricingFlow(t *testing.T) {
+	db, ownerID, _, _, _, _, _, _, _, _, _ := newAPISecurityFixture(t)
+
+	admit := func(method, id, body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, "/api/v1/merchant/products", strings.NewReader(body))
+		r.SetPathValue("id", id)
+		w := httptest.NewRecorder()
+		switch method {
+		case http.MethodPost:
+			merchantCreateProduct(nil, db, w, r, ownerID)
+		case http.MethodPatch:
+			merchantUpdateProduct(nil, db, w, r, ownerID)
+		case http.MethodGet:
+			merchantListProducts(nil, db, w, r, ownerID)
+		}
+		return w
+	}
+
+	w := admit(http.MethodPost, "", `{"name":"Catalog item","price":100.25,"mrp":125,"unit_label":"750 g","gst_rate_bps":1800}`)
+	var created struct {
+		Data struct{ ID string } `json:"data"`
+	}
+	if w.Code != http.StatusCreated || json.Unmarshal(w.Body.Bytes(), &created) != nil || created.Data.ID == "" {
+		t.Fatalf("create catalog item: %d %s", w.Code, w.Body.String())
+	}
+	w = admit(http.MethodGet, "", "")
+	for _, value := range []string{`"supports_catalog_gst":true`, `"gst_rate_bps":1800`, `"unit_label":"750 g"`, `"price":100.25`, `"mrp":125`} {
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), value) {
+			t.Fatalf("catalog missing %s: %d %s", value, w.Code, w.Body.String())
+		}
+	}
+	if w = admit(http.MethodPatch, created.Data.ID, `{"gst_rate_bps":10001}`); w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid GST rate: %d %s", w.Code, w.Body.String())
+	}
+	if w = admit(http.MethodPatch, created.Data.ID, `{"mrp":null,"gst_rate_bps":null,"inventory_mode":"finite","available_quantity":2,"stock_status":"limited"}`); w.Code != http.StatusOK {
+		t.Fatalf("clear optional values and update stock: %d %s", w.Code, w.Body.String())
+	}
+	w = admit(http.MethodGet, "", "")
+	if w.Code != http.StatusOK || strings.Contains(w.Body.String(), "gst_rate_bps") || strings.Contains(w.Body.String(), `"mrp"`) ||
+		!strings.Contains(w.Body.String(), `"stock_status":"limited"`) || !strings.Contains(w.Body.String(), `"available_quantity":2`) {
+		t.Fatalf("catalog after edit: %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestOwnershipAndTenantRoutes(t *testing.T) {
 	logger.Init("error")
 	db, ownerA, memberA, customerA, customerB, businessA, businessB, productB, requestB, notificationB, orderB := newAPISecurityFixture(t)
@@ -1823,7 +1867,7 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 		`CREATE TABLE business_members(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, user_id UUID NOT NULL, role TEXT NOT NULL DEFAULT 'staff', status TEXT NOT NULL)`,
 		`CREATE TABLE business_hours(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, weekday SMALLINT NOT NULL, opens_at TIME, closes_at TIME, is_closed BOOLEAN NOT NULL, UNIQUE(business_id,weekday))`,
 		`CREATE TABLE business_hour_exceptions(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, local_date DATE NOT NULL, is_closed BOOLEAN NOT NULL DEFAULT false, opens_at TIME, closes_at TIME, UNIQUE(business_id,local_date))`,
-		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', inventory_mode TEXT NOT NULL DEFAULT 'untracked', available_quantity INT, dietary_type TEXT, is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), published_at TIMESTAMPTZ)`,
+		`CREATE TABLE products(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), business_id UUID NOT NULL, name TEXT NOT NULL, description TEXT, price NUMERIC(12,2), currency CHAR(3) NOT NULL DEFAULT 'INR', stock_status TEXT NOT NULL DEFAULT 'unknown', inventory_mode TEXT NOT NULL DEFAULT 'untracked', available_quantity INT, dietary_type TEXT, unit_label TEXT, mrp NUMERIC(12,2), barcode TEXT, grocery_category TEXT, is_published BOOLEAN NOT NULL DEFAULT false, image_url TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), published_at TIMESTAMPTZ)`,
 		`CREATE TABLE services(id UUID PRIMARY KEY, business_id UUID, name TEXT, description TEXT, indicative_price_min NUMERIC, indicative_price_max NUMERIC, currency CHAR(3) NOT NULL DEFAULT 'INR', is_active BOOLEAN NOT NULL DEFAULT true, activated_at TIMESTAMPTZ)`,
 		`CREATE TABLE service_requests(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), customer_user_id UUID NOT NULL, business_id UUID NOT NULL, service_id UUID, slot_id UUID, description TEXT, requested_for TIMESTAMPTZ, status TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
 		`CREATE TABLE service_request_events(id UUID PRIMARY KEY DEFAULT gen_random_uuid(), request_id UUID, status TEXT, actor_user_id UUID, created_at TIMESTAMPTZ DEFAULT now())`,
@@ -1846,7 +1890,7 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 			t.Fatalf("create isolated fixture: %v", err)
 		}
 	}
-	for _, migration := range []string{"021_platform_catalog.sql", "022_delivery_locality_hierarchy.sql", "023_platform_cart_checkout.sql", "024_platform_partner_fulfillment.sql", "025_rider_onboarding.sql"} {
+	for _, migration := range []string{"021_platform_catalog.sql", "022_delivery_locality_hierarchy.sql", "023_platform_cart_checkout.sql", "024_platform_partner_fulfillment.sql", "025_rider_onboarding.sql", "050_merchant_product_gst.sql"} {
 		migrationSQL, err := os.ReadFile("../../migrations/" + migration)
 		if err != nil {
 			t.Fatalf("read %s: %v", migration, err)

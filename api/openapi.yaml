@@ -1953,7 +1953,21 @@ paths:
       tags: [merchant]
       security: [{bearerAuth: []}]
       responses:
-        '200': {description: Merchant product catalog}
+        '200':
+          description: Merchant product catalog with catalog GST capability metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: '#/components/schemas/Product'}
+                  meta:
+                    type: object
+                    properties:
+                      request_id: {type: string}
+                      supports_catalog_gst: {type: boolean}
         '404': {description: Business profile not found}
     post:
       summary: Create a product for the authenticated merchant's business
@@ -5823,6 +5837,8 @@ components:
           type: number
           format: double
           nullable: true
+        gst_rate_bps:
+          $ref: '#/components/schemas/CatalogGstRate'
         barcode:
           type: string
           nullable: true
@@ -5832,6 +5848,13 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    CatalogGstRate:
+      type: integer
+      nullable: true
+      minimum: 0
+      maximum: 10000
+      description: Optional merchant catalog estimate rate in basis points. The selling price and checkout tax policy are independent.
 
     CreateProductRequest:
       type: object
@@ -5869,6 +5892,8 @@ components:
           type: number
           format: double
           nullable: true
+        gst_rate_bps:
+          $ref: '#/components/schemas/CatalogGstRate'
         barcode:
           type: string
           nullable: true
@@ -5910,28 +5935,14 @@ components:
           type: number
           format: double
           nullable: true
+          description: Pass null to clear the stored MRP.
+        gst_rate_bps:
+          $ref: '#/components/schemas/CatalogGstRate'
         barcode:
           type: string
           nullable: true
         grocery_category:
           type: string
-          nullable: true
-        description:
-          type: string
-        price:
-          type: number
-          format: double
-        currency:
-          type: string
-        stock_status:
-          type: string
-          enum: [unknown, in_stock, out_of_stock, limited]
-        inventory_mode:
-          type: string
-          enum: [untracked, finite]
-        available_quantity:
-          type: integer
-          minimum: 0
           nullable: true
         is_published:
           type: boolean

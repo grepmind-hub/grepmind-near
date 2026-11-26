@@ -791,6 +791,7 @@ class Product extends Equatable {
   final int? preparationTimeMin;
   final String? unitLabel;
   final double? mrp;
+  final int? gstRateBasisPoints;
   final String? barcode;
   final String? groceryCategory;
 
@@ -812,6 +813,7 @@ class Product extends Equatable {
     this.preparationTimeMin,
     this.unitLabel,
     this.mrp,
+    this.gstRateBasisPoints,
     this.barcode,
     this.groceryCategory,
   });
@@ -837,6 +839,7 @@ class Product extends Equatable {
       preparationTimeMin: json['preparation_time_min'] as int?,
       unitLabel: json['unit_label'] as String?,
       mrp: (json['mrp'] as num?)?.toDouble(),
+      gstRateBasisPoints: (json['gst_rate_bps'] as num?)?.toInt(),
       barcode: json['barcode'] as String?,
       groceryCategory: json['grocery_category'] as String?,
     );
@@ -878,6 +881,7 @@ class Product extends Equatable {
     preparationTimeMin,
     unitLabel,
     mrp,
+    gstRateBasisPoints,
     barcode,
     groceryCategory,
   ];
