@@ -716,22 +716,27 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               value: _radiusKm,
               isDense: true,
               borderRadius: BorderRadius.circular(14),
-              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                size: 18,
+                color: context.abashyaka.textSecondary,
+              ),
+              dropdownColor: context.abashyaka.card,
               selectedItemBuilder: (context) => [
                 for (final radius in const [1, 3, 5, 10, 20, 50])
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.radar_rounded,
                         size: 17,
-                        color: AbashyakaColors.signatureTeal,
+                        color: context.abashyaka.accent,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Within $radius km',
-                        style: const TextStyle(
-                          color: AbashyakaColors.premiumObsidian,
+                        style: TextStyle(
+                          color: context.abashyaka.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

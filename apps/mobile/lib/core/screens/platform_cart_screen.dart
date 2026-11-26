@@ -641,10 +641,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                       minHeight: 36,
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.remove,
                       size: 14,
-                      color: AppTheme.brandTextMuted,
+                      color: palette.textSecondary,
                     ),
                   ),
                 ),
@@ -652,10 +652,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     '${line.quantity}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.brandText,
+                      color: palette.textPrimary,
                     ),
                   ),
                 ),
@@ -789,15 +789,15 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   fontSize: 13,
                   color: deliveryFee != null && deliveryFee == 0
                       ? AppTheme.emerald
-                      : AppTheme.brandTextMuted,
+                      : palette.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0xFFF1F5F3)),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: palette.border),
           ),
 
           // Items subtotal
@@ -806,10 +806,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
             children: [
               Text(
                 quote != null ? 'Grand total' : 'Items subtotal',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.brandText,
+                  color: palette.textPrimary,
                 ),
               ),
               Text(
