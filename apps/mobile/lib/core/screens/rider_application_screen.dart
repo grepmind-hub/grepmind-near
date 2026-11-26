@@ -644,9 +644,12 @@ class _RiderApplicationScreenState
                                     label: Text(isDone ? 'Replace' : 'Upload'),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: palette.accent,
+                                      minimumSize: const Size(0, 40),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       side: BorderSide(color: palette.border),
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
+                                        horizontal: 12,
                                         vertical: 8,
                                       ),
                                     ),
