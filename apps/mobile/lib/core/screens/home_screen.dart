@@ -1242,6 +1242,7 @@ class _PopularNearYouSection extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildPopularCard(
+                  context: context,
                   icon: Icons.restaurant_rounded,
                   iconContainerColor: const Color(0xFFFFE4D1),
                   iconColor: const Color(0xFFC2410C),
@@ -1261,6 +1262,7 @@ class _PopularNearYouSection extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildPopularCard(
+                  context: context,
                   icon: Icons.medication_rounded,
                   iconContainerColor: const Color(0xFFDFEEFF),
                   iconColor: const Color(0xFF1D4ED8),
@@ -1282,6 +1284,7 @@ class _PopularNearYouSection extends StatelessWidget {
   }
 
   Widget _buildPopularCard({
+    required BuildContext context,
     required IconData icon,
     required Color iconContainerColor,
     required Color iconColor,
@@ -1295,9 +1298,9 @@ class _PopularNearYouSection extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.abashyaka.card,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: context.abashyaka.border),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -1330,13 +1333,16 @@ class _PopularNearYouSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: AbashyakaColors.primaryText,
+                color: context.abashyaka.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.abashyaka.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1374,9 +1380,9 @@ class _HealthcareNearYouSection extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: context.abashyaka.border),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -1470,9 +1476,9 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: context.abashyaka.border),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -1666,9 +1672,9 @@ class _NearbyTrendingSection extends StatelessWidget {
       child: Container(
         width: 220,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.abashyaka.card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: context.abashyaka.border),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),

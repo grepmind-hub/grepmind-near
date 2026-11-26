@@ -625,12 +625,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Explore',
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF153D30),
+                                        color: context.abashyaka.textPrimary,
                                         letterSpacing: -0.3,
                                       ),
                                     ),
