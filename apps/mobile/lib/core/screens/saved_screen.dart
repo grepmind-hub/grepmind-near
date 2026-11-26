@@ -6,6 +6,8 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/skeleton_loader.dart';
 
 /// Screen 16: Saved / Bookmarked Businesses.
@@ -42,30 +44,21 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final filteredItems = _filterItems(state.items);
 
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: AbashyakaColors.pureWhite,
+        backgroundColor: palette.card,
         surfaceTintColor: Colors.transparent,
-        flexibleSpace: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/backgrounds/premium/home_background.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
-            Container(
-              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
-            ),
-          ],
+        flexibleSpace: const FluidWaveBackground(
+          variant: FluidWaveVariant.compact,
         ),
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_rounded,
-                  color: AbashyakaColors.premiumObsidian,
+                  color: palette.textPrimary,
                 ),
                 tooltip: 'Back',
                 onPressed: () => Navigator.of(context).pop(),

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
+import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 /// Screen 06: Role Selection Screen (RBAC Portal Selection).
 ///
@@ -99,19 +102,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     final user = authState.user;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8FAFC),
-          image: DecorationImage(
-            image: AssetImage(
-              'assets/backgrounds/premium/role_selection_background.webp',
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
+      backgroundColor: context.abashyaka.canvas,
+      body: FluidWaveBackground(
+        variant: FluidWaveVariant.onboarding,
         child: SafeArea(
           child: Stack(
             children: [

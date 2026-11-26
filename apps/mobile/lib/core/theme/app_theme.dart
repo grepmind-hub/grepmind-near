@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'abashyaka_colors.dart';
+import 'abashyaka_palette.dart';
 import 'abashyaka_tokens.dart';
 import 'abashyaka_typography.dart';
 
 export 'abashyaka_colors.dart';
 export 'abashyaka_gradients.dart';
+export 'abashyaka_palette.dart';
 export 'abashyaka_tokens.dart';
 export 'abashyaka_typography.dart';
 
@@ -130,6 +132,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      extensions: const [AbashyakaPalette.light],
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.light(
         primary: primary,
@@ -281,6 +284,168 @@ class AppTheme {
         foregroundColor: onSecondary,
         elevation: 4,
         shape: CircleBorder(),
+      ),
+    );
+  }
+
+  /// Option 2: Midnight Slate & Luminous Aqua Dark Mode theme.
+  static ThemeData darkTheme(BuildContext context) {
+    const p = AbashyakaPalette.dark;
+    final baseText = _textTheme(context).apply(
+      bodyColor: p.textPrimary,
+      displayColor: p.textPrimary,
+    );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      extensions: const [AbashyakaPalette.dark],
+      scaffoldBackgroundColor: p.canvas,
+      colorScheme: ColorScheme.dark(
+        primary: p.accent,
+        onPrimary: const Color(0xFF071A1E),
+        primaryContainer: p.accentSurface,
+        secondary: p.accentSoft,
+        onSecondary: const Color(0xFF071A1E),
+        secondaryContainer: p.cardElevated,
+        surface: p.card,
+        onSurface: p.textPrimary,
+        onSurfaceVariant: p.textSecondary,
+        surfaceContainerHighest: p.cardElevated,
+        outline: p.border,
+        error: AbashyakaColors.error,
+        errorContainer: const Color(0xFF4C0519),
+      ),
+      textTheme: baseText,
+      primaryColor: p.accent,
+      dividerTheme: DividerThemeData(
+        color: p.border,
+        space: 1,
+        thickness: 1,
+      ),
+      cardTheme: CardThemeData(
+        color: p.card,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(color: p.border),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: p.card,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: BorderSide(color: p.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: BorderSide(color: p.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: BorderSide(color: p.accentSoft, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(buttonRadius),
+          borderSide: const BorderSide(color: AbashyakaColors.error),
+        ),
+        hintStyle: TextStyle(color: p.textMuted, fontSize: 14),
+        labelStyle: TextStyle(
+          color: p.textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: p.accent,
+          foregroundColor: const Color(0xFF071A1E),
+          elevation: 0,
+          minimumSize: const Size(double.infinity, 54),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.accent,
+          foregroundColor: const Color(0xFF071A1E),
+          elevation: 0,
+          minimumSize: const Size(double.infinity, 54),
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: p.accentSoft,
+          minimumSize: const Size(double.infinity, 50),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: BorderSide(color: p.border, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: p.accentSoft,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: p.navBackground,
+        elevation: 6,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: p.accentSoft,
+        unselectedItemColor: p.textMuted,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: p.textPrimary),
+        titleTextStyle: AbashyakaTypography.pageTitle(
+          color: p.textPrimary,
+          fontSize: 18,
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.accent,
+        foregroundColor: const Color(0xFF071A1E),
+        elevation: 4,
+        shape: const CircleBorder(),
       ),
     );
   }

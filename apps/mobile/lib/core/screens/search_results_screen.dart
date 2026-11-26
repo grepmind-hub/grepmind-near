@@ -7,6 +7,8 @@ import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/widgets/business_card.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/screens/business_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
 import 'package:grepmind_mobile/core/screens/nearby_map_screen.dart';
@@ -314,27 +316,18 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       items = items.where((b) => b.isOpenNow).toList();
     }
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
-        backgroundColor: AbashyakaColors.pureWhite,
+        backgroundColor: palette.card,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        flexibleSpace: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/backgrounds/premium/home_background.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
-            Container(
-              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
-            ),
-          ],
+        flexibleSpace: const FluidWaveBackground(
+          variant: FluidWaveVariant.compact,
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AbashyakaColors.premiumObsidian),
+          icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,

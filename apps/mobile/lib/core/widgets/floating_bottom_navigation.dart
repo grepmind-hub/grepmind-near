@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/abashyaka_colors.dart';
+import '../theme/abashyaka_palette.dart';
 import '../theme/abashyaka_tokens.dart';
 import '../theme/abashyaka_typography.dart';
 
@@ -32,16 +32,17 @@ class FloatingBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     return SafeArea(
       top: false,
       child: Container(
         height: 68,
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
         decoration: BoxDecoration(
-          color: AbashyakaColors.pureWhite,
+          color: palette.navBackground,
           borderRadius: BorderRadius.circular(AbashyakaRadius.nav),
           border: Border.all(
-            color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
+            color: palette.border.withValues(alpha: 0.9),
             width: 1.2,
           ),
           boxShadow: AbashyakaShadows.floatingNav,
@@ -59,6 +60,7 @@ class FloatingBottomNavigation extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, int index, FloatingNavItem item) {
     final isSelected = index == currentIndex;
+    final palette = context.abashyaka;
 
     return Semantics(
       selected: isSelected,
@@ -82,7 +84,7 @@ class FloatingBottomNavigation extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AbashyakaColors.iceAquaWhite
+                      ? palette.navActivePill
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -90,8 +92,8 @@ class FloatingBottomNavigation extends StatelessWidget {
                   isSelected ? item.activeIcon : item.icon,
                   size: 22,
                   color: isSelected
-                      ? AbashyakaColors.metallicTeal
-                      : AbashyakaColors.inkBlack,
+                      ? palette.navActiveText
+                      : palette.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -100,8 +102,8 @@ class FloatingBottomNavigation extends StatelessWidget {
                 style: AbashyakaTypography.categoryLabel(
                   fontSize: 10.5,
                   color: isSelected
-                      ? AbashyakaColors.metallicTeal
-                      : AbashyakaColors.secondaryText,
+                      ? palette.navActiveText
+                      : palette.textSecondary,
                 ).copyWith(
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),

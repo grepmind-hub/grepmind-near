@@ -23,15 +23,22 @@ enum FluidWaveVariant {
 class FluidWavePainter extends CustomPainter {
   final FluidWaveVariant variant;
   final double progress; // For optional subtle motion or transition
+  final Brightness brightness;
 
   const FluidWavePainter({
     this.variant = FluidWaveVariant.brandLight,
     this.progress = 1.0,
+    this.brightness = Brightness.light,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
+
+    if (brightness == Brightness.dark && variant != FluidWaveVariant.brandDark) {
+      _paintMidnightSlateWave(canvas, size);
+      return;
+    }
 
     switch (variant) {
       case FluidWaveVariant.brandDark:
@@ -470,8 +477,83 @@ class FluidWavePainter extends CustomPainter {
     );
   }
 
+  /// Option 2: Midnight Slate & Luminous Aqua Dark Mode vector wave
+  void _paintMidnightSlateWave(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final bgRect = Offset.zero & size;
+
+    canvas.drawRect(
+      bgRect,
+      Paint()..color = const Color(0xFF0B1320),
+    );
+
+    final isHeader =
+        variant == FluidWaveVariant.discovery ||
+        variant == FluidWaveVariant.compact ||
+        variant == FluidWaveVariant.profile;
+    final waveBottom = isHeader ? h * 0.85 : h * 0.42;
+
+    final primaryWave = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, waveBottom * 0.85)
+      ..quadraticBezierTo(w * 0.72, waveBottom * 1.12, w * 0.45, waveBottom * 0.88)
+      ..quadraticBezierTo(w * 0.2, waveBottom * 0.68, 0, waveBottom * 0.94)
+      ..close();
+
+    canvas.drawPath(
+      primaryWave,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AbashyakaColors.signatureTeal.withValues(alpha: 0.72),
+            AbashyakaColors.metallicTeal.withValues(alpha: 0.48),
+          ],
+        ).createShader(bgRect),
+    );
+
+    final accentWave = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, waveBottom * 0.62)
+      ..quadraticBezierTo(w * 0.65, waveBottom * 0.92, w * 0.35, waveBottom * 0.68)
+      ..quadraticBezierTo(w * 0.14, waveBottom * 0.52, 0, waveBottom * 0.74)
+      ..close();
+
+    canvas.drawPath(
+      accentWave,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            AbashyakaColors.aquaGlow.withValues(alpha: 0.30),
+            AbashyakaColors.luminousAqua.withValues(alpha: 0.14),
+          ],
+        ).createShader(bgRect),
+    );
+
+    final rimPath = Path()
+      ..moveTo(0, waveBottom * 0.94)
+      ..quadraticBezierTo(w * 0.2, waveBottom * 0.68, w * 0.45, waveBottom * 0.88)
+      ..quadraticBezierTo(w * 0.72, waveBottom * 1.12, w, waveBottom * 0.85);
+
+    canvas.drawPath(
+      rimPath,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..color = AbashyakaColors.aquaGlow.withValues(alpha: 0.45),
+    );
+  }
+
   @override
   bool shouldRepaint(covariant FluidWavePainter oldDelegate) {
-    return oldDelegate.variant != variant || oldDelegate.progress != progress;
+    return oldDelegate.variant != variant ||
+        oldDelegate.progress != progress ||
+        oldDelegate.brightness != brightness;
   }
 }

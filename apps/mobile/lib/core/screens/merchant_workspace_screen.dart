@@ -12,6 +12,7 @@ import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
@@ -54,7 +55,7 @@ class _MerchantWorkspaceScreenState
     final analyticsState = ref.watch(merchantAnalyticsProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.abashyaka.canvas,
       appBar: AppBar(
         leading: Navigator.canPop(context)
             ? IconButton(
@@ -98,16 +99,7 @@ class _MerchantWorkspaceScreenState
           Stack(
             fit: StackFit.expand,
             children: [
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(
-                      'assets/backgrounds/premium/login_background.webp',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+              const FluidWaveBackground(variant: FluidWaveVariant.discovery),
               _buildDashboardTab(merchantState, analyticsState),
             ],
           ),

@@ -8,8 +8,11 @@ import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_gradients.dart';
+import 'package:grepmind_mobile/core/theme/abashyaka_palette.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_typography.dart';
 import 'package:grepmind_mobile/core/widgets/category_3d_icon.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen 8: Categories Directory
@@ -502,29 +505,20 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
       sortBy: _sortBy,
     );
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
-        backgroundColor: AbashyakaColors.pureWhite,
+        backgroundColor: palette.card,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        flexibleSpace: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/backgrounds/premium/home_background.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
-            Container(
-              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
-            ),
-          ],
+        flexibleSpace: const FluidWaveBackground(
+          variant: FluidWaveVariant.compact,
         ),
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_rounded,
-            color: AbashyakaColors.inkBlack,
+            color: palette.textPrimary,
           ),
           onPressed: () => Navigator.pop(context),
         ),

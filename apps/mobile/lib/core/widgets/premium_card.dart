@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/abashyaka_colors.dart';
+import '../theme/abashyaka_palette.dart';
 import '../theme/abashyaka_tokens.dart';
 
 /// The official glossy Pure White card for Abashyaka content and categories.
@@ -10,8 +11,8 @@ class PremiumCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final double radius;
   final double elevation;
-  final Color borderColor;
-  final Color color;
+  final Color? borderColor;
+  final Color? color;
   final VoidCallback? onTap;
   final List<BoxShadow>? shadow;
   final Border? border;
@@ -25,8 +26,8 @@ class PremiumCard extends StatelessWidget {
     this.margin,
     this.radius = AbashyakaRadius.lg,
     this.elevation = 0,
-    this.borderColor = AbashyakaColors.silverGlass,
-    this.color = AbashyakaColors.pureWhite,
+    this.borderColor,
+    this.color,
     this.onTap,
     this.shadow,
     this.border,
@@ -36,6 +37,9 @@ class PremiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    final resolvedColor = color ?? palette.card;
+    final resolvedBorderColor = borderColor ?? palette.border;
     final borderRadius = BorderRadius.circular(radius);
 
     Widget content = Container(
@@ -43,9 +47,9 @@ class PremiumCard extends StatelessWidget {
       height: height,
       margin: margin,
       decoration: BoxDecoration(
-        color: color,
+        color: resolvedColor,
         borderRadius: borderRadius,
-        border: border ?? Border.all(color: borderColor),
+        border: border ?? Border.all(color: resolvedBorderColor),
         boxShadow:
             shadow ??
             (elevation > 0

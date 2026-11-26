@@ -129,7 +129,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profileCard = _buildProfileHeader(user, activeRole);
 
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: context.abashyaka.canvas,
       appBar: AppBar(
         title: const Text('My Profile'),
         systemOverlayStyle: isCustomer ? SystemUiOverlayStyle.dark : null,
@@ -150,22 +150,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (isCustomer)
-                DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: AbashyakaColors.pearlWhite,
-                    image: DecorationImage(
-                      image: AssetImage(
-                        'assets/backgrounds/premium/role_selection_background.webp',
-                      ),
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      opacity: 0.45,
-                    ),
-                  ),
-                  child: AbashyakaPremiumHeader(
-                    variant: FluidWaveVariant.profile,
-                    bottom: profileCard,
-                  ),
+                AbashyakaPremiumHeader(
+                  variant: FluidWaveVariant.profile,
+                  bottom: profileCard,
                 ),
               Padding(
                 padding: const EdgeInsets.all(AbashyakaSpacing.md),
@@ -984,6 +971,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       const Divider(),
       _buildAccountOption(
+        icon: Icons.palette_outlined,
+        title: 'Appearance',
+        subtitle: switch (ref.watch(themeModeProvider)) {
+          ThemeMode.light => 'Light (Pearl White)',
+          ThemeMode.dark => 'Dark (Midnight Slate)',
+          ThemeMode.system => 'System default',
+        },
+        iconColor: AbashyakaColors.metallicTeal,
+        iconBgColor: AbashyakaColors.iceAquaWhite,
+        onTap: () => _showAppearanceSheet(context),
+      ),
+      const Divider(),
+      _buildAccountOption(
         icon: Icons.privacy_tip_outlined,
         title: 'Privacy & data',
         subtitle: 'How account and location data are used',
@@ -1628,6 +1628,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       nameController.dispose();
       emailController.dispose();
     });
+  }
+
+  void _showAppearanceSheet(BuildContext context) {
+    final current = ref.read(themeModeProvider);
+    final palette = context.abashyaka;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: palette.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(
+                'Appearance',
+                style: AbashyakaTypography.sectionTitle(
+                  color: palette.textPrimary,
+                ),
+              ),
+            ),
+            for (final option in const [
+              (ThemeMode.system, 'System default', Icons.brightness_auto_rounded),
+              (ThemeMode.light, 'Light (Pearl White)', Icons.light_mode_rounded),
+              (ThemeMode.dark, 'Dark (Midnight Slate)', Icons.dark_mode_rounded),
+            ])
+              ListTile(
+                leading: Icon(
+                  option.$3,
+                  color: current == option.$1
+                      ? palette.accent
+                      : palette.textSecondary,
+                ),
+                title: Text(
+                  option.$2,
+                  style: AbashyakaTypography.cardTitle(
+                    color: palette.textPrimary,
+                  ),
+                ),
+                trailing: current == option.$1
+                    ? Icon(Icons.check_circle_rounded, color: palette.accent)
+                    : null,
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(option.$1);
+                  Navigator.pop(ctx);
+                },
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSecurityDialog(BuildContext context) {

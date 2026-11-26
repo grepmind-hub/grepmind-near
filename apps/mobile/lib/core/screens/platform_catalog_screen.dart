@@ -109,7 +109,7 @@ class _PlatformCatalogScreenState extends ConsumerState<PlatformCatalogScreen> {
           )
         : ref.watch(platformCatalogProductsProvider(_query));
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.abashyaka.canvas,
       bottomNavigationBar: StickyCartSummaryBar(scope: cartScope),
       appBar: AppBar(
         title: Text(title),
@@ -614,10 +614,14 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     final image = product.imageUrls.isEmpty ? null : product.imageUrls.first;
     final amount = product.lowestPriceMinor;
+    final unitBadge = product.variants.isNotEmpty
+        ? product.variants.first.unitLabel
+        : '';
     return Material(
-      color: AppTheme.surface,
+      color: palette.card,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -625,7 +629,7 @@ class _ProductCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: palette.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -645,19 +649,42 @@ class _ProductCard extends StatelessWidget {
                       )
                     else
                       const _ProductImagePlaceholder(),
+                    if (unitBadge.isNotEmpty)
+                      Positioned(
+                        left: 9,
+                        top: 9,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xBF0B1320),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            unitBadge,
+                            style: AbashyakaTypography.categoryLabel(
+                              color: AbashyakaColors.pureWhite,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       right: 9,
                       top: 9,
                       child: Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: .94),
+                          color: palette.card.withValues(alpha: 0.94),
                           shape: BoxShape.circle,
+                          border: Border.all(color: palette.border),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_outward_rounded,
-                          color: AppTheme.emerald,
-                          size: 17,
+                          color: palette.accent,
+                          size: 16,
                         ),
                       ),
                     ),
@@ -673,31 +700,46 @@ class _ProductCard extends StatelessWidget {
                       product.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: AbashyakaTypography.cardTitle(
+                        color: palette.textPrimary,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       product.categoryName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppTheme.secondaryText),
+                      style: AbashyakaTypography.supportingText(
+                        color: palette.textMuted,
+                        fontSize: 11.5,
+                      ),
                     ),
                     const SizedBox(height: 7),
                     if (amount != null)
-                      Text(
-                        'From ₹${(amount / 100).toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.emerald,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.accentSurface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'From ₹${(amount / 100).toStringAsFixed(2)}',
+                          style: AbashyakaTypography.ratingText(
+                            color: palette.accent,
+                            fontSize: 12.5,
+                          ),
                         ),
                       )
                     else
                       Text(
                         'View available options',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: AppTheme.secondaryText),
+                        style: AbashyakaTypography.supportingText(
+                          color: palette.textMuted,
+                        ),
                       ),
                   ],
                 ),

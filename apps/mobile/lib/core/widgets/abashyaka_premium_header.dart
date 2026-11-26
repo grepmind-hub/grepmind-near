@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/abashyaka_colors.dart';
+import '../theme/abashyaka_palette.dart';
 import '../theme/abashyaka_tokens.dart';
 import '../theme/abashyaka_typography.dart';
 import 'fluid_wave_painter.dart';
@@ -50,8 +51,12 @@ class AbashyakaPremiumHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return CustomPaint(
-          painter: FluidWavePainter(variant: variant),
+        return RepaintBoundary(
+          child: CustomPaint(
+            painter: FluidWavePainter(
+              variant: variant,
+              brightness: Theme.of(context).brightness,
+            ),
           child: SafeArea(
             bottom: false,
             child: Padding(
@@ -88,12 +93,14 @@ class AbashyakaPremiumHeader extends StatelessWidget {
               ),
             ),
           ),
+          ),
         );
       },
     );
   }
 
   Widget _buildDiscoveryTopRow(BuildContext context) {
+    final palette = context.abashyaka;
     return Row(
       children: [
         // Brand Logo
@@ -102,7 +109,7 @@ class AbashyakaPremiumHeader extends StatelessWidget {
           width: 32,
           height: 32,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Image.asset(
+          errorBuilder: (_, _, _) => Image.asset(
             'assets/abashyaka/splash_emblem.png',
             width: 32,
             height: 32,
@@ -116,7 +123,9 @@ class AbashyakaPremiumHeader extends StatelessWidget {
           style: AbashyakaTypography.brandWordmark().copyWith(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AbashyakaColors.deepMetallicTeal,
+            color: palette.isDark
+                ? palette.textPrimary
+                : AbashyakaColors.deepMetallicTeal,
           ),
         ),
 
@@ -135,10 +144,10 @@ class AbashyakaPremiumHeader extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: AbashyakaColors.pureWhite,
+                  color: palette.card,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
+                    color: palette.border.withValues(alpha: 0.9),
                     width: 1.0,
                   ),
                   boxShadow: const [
@@ -152,9 +161,9 @@ class AbashyakaPremiumHeader extends StatelessWidget {
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   tooltip: 'Notifications',
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.notifications_none_rounded,
-                    color: AbashyakaColors.inkBlack,
+                    color: palette.textPrimary,
                     size: 20,
                   ),
                   onPressed: onNotificationTap,
@@ -196,13 +205,14 @@ class AbashyakaPremiumHeader extends StatelessWidget {
   }
 
   Widget _buildNavigationRow(BuildContext context) {
+    final palette = context.abashyaka;
     return Row(
       children: [
         if (showBack)
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: AbashyakaColors.inkBlack,
+              color: palette.textPrimary,
             ),
             onPressed: onBackTap ?? () => Navigator.of(context).maybePop(),
           )
@@ -214,7 +224,7 @@ class AbashyakaPremiumHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title!,
-              style: AbashyakaTypography.pageTitle(),
+              style: AbashyakaTypography.pageTitle(color: palette.textPrimary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -228,6 +238,7 @@ class AbashyakaPremiumHeader extends StatelessWidget {
   }
 
   Widget _buildLocationBar(BuildContext context) {
+    final palette = context.abashyaka;
     return InkWell(
       onTap: onLocationTap,
       borderRadius: BorderRadius.circular(16),
@@ -236,35 +247,36 @@ class AbashyakaPremiumHeader extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.location_on_outlined,
               size: 18,
-              color: AbashyakaColors.metallicTeal,
+              color: palette.accent,
             ),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
                 locationText ?? '',
-                style: AbashyakaTypography.cardTitle().copyWith(
+                style: AbashyakaTypography.cardTitle(
+                  color: palette.textPrimary,
+                ).copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AbashyakaColors.inkBlack,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 18,
-              color: AbashyakaColors.secondaryText,
+              color: palette.textSecondary,
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
               size: 11,
-              color: AbashyakaColors.secondaryText,
+              color: palette.textSecondary,
             ),
           ],
         ),

@@ -13,6 +13,8 @@ import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
 import 'package:grepmind_mobile/core/screens/checkout_review_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/utils/contact_actions.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
 
@@ -331,9 +333,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(
-                      'assets/backgrounds/premium/role_selection_background.webp',
-                      fit: BoxFit.cover,
+                    const FluidWaveBackground(
+                      variant: FluidWaveVariant.discovery,
                     ),
                     if (biz.coverPhotoUrl != null &&
                         biz.coverPhotoUrl!.isNotEmpty)

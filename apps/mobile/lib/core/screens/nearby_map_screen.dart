@@ -15,6 +15,8 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -397,24 +399,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     ref.watch(mapBusinessesProvider);
     final businesses = _filteredBusinesses;
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: palette.card,
         elevation: 0,
         centerTitle: false,
-        flexibleSpace: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/backgrounds/premium/home_background.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
-            Container(
-              color: Colors.white.withValues(alpha: 0.88),
-            ),
-          ],
+        flexibleSpace: const FluidWaveBackground(
+          variant: FluidWaveVariant.compact,
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

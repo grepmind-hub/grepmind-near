@@ -76,6 +76,7 @@ class _GrepmindNearAppState extends ConsumerState<GrepmindNearApp> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     if (authState.isLoading) {
       _testFastTransition = true;
@@ -90,6 +91,8 @@ class _GrepmindNearAppState extends ConsumerState<GrepmindNearApp> {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(context),
+      darkTheme: AppTheme.darkTheme(context),
+      themeMode: themeMode,
       home: (!_splashComplete && !shouldShowImmediate)
           ? SplashScreen(
               onComplete: () {

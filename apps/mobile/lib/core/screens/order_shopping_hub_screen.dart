@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
@@ -1423,69 +1424,129 @@ class _FoodGridCard extends ConsumerWidget {
         ? product.imageUrls.first
         : null;
 
+    final palette = context.abashyaka;
+    final unitBadge = defaultVariant?.unitLabel.isNotEmpty == true
+        ? defaultVariant!.unitLabel
+        : '1 Serving';
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.border),
+        boxShadow: palette.isDark ? null : AbashyakaShadows.card,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
+                  top: Radius.circular(18),
                 ),
                 child: SizedBox(
-                  height: 116,
+                  height: 118,
                   width: double.infinity,
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imageUrl != null && imageUrl.isNotEmpty)
+                        CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
                           placeholder: (_, _) => Container(
-                            color: const Color(0xFFF1F5F9),
-                            child: const Center(
+                            color: palette.cardElevated,
+                            child: Center(
                               child: Icon(
                                 Icons.restaurant_rounded,
-                                color: Color(0xFFCBD5E1),
+                                color: palette.textMuted,
                                 size: 28,
                               ),
                             ),
                           ),
                           errorWidget: (_, _, _) => Container(
-                            color: const Color(0xFFFFF3E8),
-                            child: const Icon(
+                            color: palette.accentSurface,
+                            child: Icon(
                               Icons.restaurant_rounded,
-                              color: Color(0xFFF28C45),
+                              color: palette.accent,
                               size: 36,
                             ),
                           ),
                         )
-                      : Container(
-                          color: const Color(0xFFFFF3E8),
-                          child: const Icon(
+                      else
+                        Container(
+                          color: palette.accentSurface,
+                          child: Icon(
                             Icons.restaurant_rounded,
-                            color: Color(0xFFF28C45),
+                            color: palette.accent,
                             size: 36,
                           ),
                         ),
+                      // Subtle bottom scrim for depth
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.42),
+                              ],
+                              stops: const [0.55, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Top-left portion badge
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xBF0B1320),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            unitBadge,
+                            style: AbashyakaTypography.categoryLabel(
+                              color: AbashyakaColors.pureWhite,
+                              fontSize: 9.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Top-right chef/trending badge
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xBF0B1320),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.local_fire_department_rounded,
+                            size: 13,
+                            color: AbashyakaColors.metallicGold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1493,11 +1554,10 @@ class _FoodGridCard extends ConsumerWidget {
                       product.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AbashyakaTypography.cardTitle(
+                        color: palette.textPrimary,
                         fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1506,10 +1566,9 @@ class _FoodGridCard extends ConsumerWidget {
                           : 'Restaurant menu',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AbashyakaTypography.supportingText(
+                        color: palette.textMuted,
                         fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1518,18 +1577,18 @@ class _FoodGridCard extends ConsumerWidget {
                       children: [
                         Text(
                           '₹${(price / 100).toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                          ),
+                          style: AbashyakaTypography.cardTitle(
+                            color: palette.textPrimary,
+                            fontSize: 14.5,
+                          ).copyWith(fontWeight: FontWeight.w800),
                         ),
                         if (currentQty == 0)
                           SizedBox(
                             height: 28,
-                            width: 62,
+                            width: 64,
                             child: OutlinedButton(
                               onPressed: () {
+                                HapticFeedback.lightImpact();
                                 if (defaultVariant != null) {
                                   ref
                                       .read(
@@ -1539,20 +1598,20 @@ class _FoodGridCard extends ConsumerWidget {
                                 }
                               },
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Color(0xFF059669),
-                                  width: 1.3,
+                                backgroundColor: palette.accentSurface,
+                                side: BorderSide(
+                                  color: palette.accent,
+                                  width: 1.2,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 padding: EdgeInsets.zero,
                               ),
-                              child: const Text(
+                              child: Text(
                                 'ADD +',
-                                style: TextStyle(
-                                  color: Color(0xFF059669),
-                                  fontWeight: FontWeight.w800,
+                                style: AbashyakaTypography.buttonText(
+                                  color: palette.accent,
                                   fontSize: 11,
                                 ),
                               ),
@@ -1561,16 +1620,17 @@ class _FoodGridCard extends ConsumerWidget {
                         else
                           Container(
                             height: 28,
-                            width: 68,
+                            width: 72,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF059669),
-                              borderRadius: BorderRadius.circular(8),
+                              gradient: AbashyakaGradients.metallicButton,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 InkWell(
                                   onTap: () {
+                                    HapticFeedback.selectionClick();
                                     if (defaultVariant != null) {
                                       ref
                                           .read(
@@ -1585,20 +1645,20 @@ class _FoodGridCard extends ConsumerWidget {
                                   },
                                   child: const Icon(
                                     Icons.remove,
-                                    color: Colors.white,
+                                    color: AbashyakaColors.pureWhite,
                                     size: 14,
                                   ),
                                 ),
                                 Text(
                                   '$currentQty',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
+                                  style: AbashyakaTypography.buttonText(
+                                    color: AbashyakaColors.pureWhite,
                                     fontSize: 12,
                                   ),
                                 ),
                                 InkWell(
                                   onTap: () {
+                                    HapticFeedback.selectionClick();
                                     if (defaultVariant != null) {
                                       ref
                                           .read(
@@ -1610,7 +1670,7 @@ class _FoodGridCard extends ConsumerWidget {
                                   },
                                   child: const Icon(
                                     Icons.add,
-                                    color: Colors.white,
+                                    color: AbashyakaColors.pureWhite,
                                     size: 14,
                                   ),
                                 ),
@@ -1671,64 +1731,89 @@ class _GroceryGridCard extends ConsumerWidget {
         ? product.imageUrls.first
         : null;
 
+    final palette = context.abashyaka;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: palette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+        boxShadow: palette.isDark ? null : AbashyakaShadows.card,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14),
+                  top: Radius.circular(16),
                 ),
                 child: Container(
-                  height: 82,
+                  height: 84,
                   width: double.infinity,
-                  color: const Color(0xFFF8FAFC),
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
+                  color: palette.cardElevated,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imageUrl != null && imageUrl.isNotEmpty)
+                        CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
                           placeholder: (_, _) => Container(
-                            color: const Color(0xFFF8FAFC),
-                            child: const Center(
+                            color: palette.cardElevated,
+                            child: Center(
                               child: Icon(
                                 Icons.shopping_basket_rounded,
-                                color: Color(0xFFCBD5E1),
+                                color: palette.textMuted,
                                 size: 24,
                               ),
                             ),
                           ),
-                          errorWidget: (_, _, _) => const Icon(
+                          errorWidget: (_, _, _) => Icon(
                             Icons.shopping_basket_rounded,
-                            color: Color(0xFF0F766E),
+                            color: palette.accent,
                             size: 28,
                           ),
                         )
-                      : const Icon(
+                      else
+                        Icon(
                           Icons.shopping_basket_rounded,
-                          color: Color(0xFF0F766E),
+                          color: palette.accent,
                           size: 28,
                         ),
+                      // Top-left weight/pack pill
+                      Positioned(
+                        left: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.card.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: palette.border),
+                          ),
+                          child: Text(
+                            unitLabel,
+                            style: AbashyakaTypography.categoryLabel(
+                              color: palette.accent,
+                              fontSize: 9,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1736,38 +1821,27 @@ class _GroceryGridCard extends ConsumerWidget {
                       product.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AbashyakaTypography.cardTitle(
+                        color: palette.textPrimary,
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
+                      ).copyWith(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      unitLabel,
-                      maxLines: 1,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       '₹${(price / 100).toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
+                      style: AbashyakaTypography.cardTitle(
+                        color: palette.textPrimary,
+                        fontSize: 13,
+                      ).copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
                     if (currentQty == 0)
                       SizedBox(
-                        height: 26,
+                        height: 27,
                         width: double.infinity,
                         child: OutlinedButton(
                           onPressed: () {
+                            HapticFeedback.lightImpact();
                             if (defaultVariant != null) {
                               ref
                                   .read(platformCartProvider(scope).notifier)
@@ -1775,20 +1849,20 @@ class _GroceryGridCard extends ConsumerWidget {
                             }
                           },
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Color(0xFF059669),
+                            backgroundColor: palette.accentSurface,
+                            side: BorderSide(
+                              color: palette.accent,
                               width: 1.2,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             padding: EdgeInsets.zero,
                           ),
-                          child: const Text(
+                          child: Text(
                             'ADD +',
-                            style: TextStyle(
-                              color: Color(0xFF059669),
-                              fontWeight: FontWeight.w800,
+                            style: AbashyakaTypography.buttonText(
+                              color: palette.accent,
                               fontSize: 10.5,
                             ),
                           ),
@@ -1796,17 +1870,18 @@ class _GroceryGridCard extends ConsumerWidget {
                       )
                     else
                       Container(
-                        height: 26,
+                        height: 27,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF059669),
-                          borderRadius: BorderRadius.circular(6),
+                          gradient: AbashyakaGradients.metallicButton,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             InkWell(
                               onTap: () {
+                                HapticFeedback.selectionClick();
                                 if (defaultVariant != null) {
                                   ref
                                       .read(
@@ -1820,20 +1895,20 @@ class _GroceryGridCard extends ConsumerWidget {
                               },
                               child: const Icon(
                                 Icons.remove,
-                                color: Colors.white,
+                                color: AbashyakaColors.pureWhite,
                                 size: 12,
                               ),
                             ),
                             Text(
                               '$currentQty',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
+                              style: AbashyakaTypography.buttonText(
+                                color: AbashyakaColors.pureWhite,
                                 fontSize: 11,
                               ),
                             ),
                             InkWell(
                               onTap: () {
+                                HapticFeedback.selectionClick();
                                 if (defaultVariant != null) {
                                   ref
                                       .read(
@@ -1844,7 +1919,7 @@ class _GroceryGridCard extends ConsumerWidget {
                               },
                               child: const Icon(
                                 Icons.add,
-                                color: Colors.white,
+                                color: AbashyakaColors.pureWhite,
                                 size: 12,
                               ),
                             ),

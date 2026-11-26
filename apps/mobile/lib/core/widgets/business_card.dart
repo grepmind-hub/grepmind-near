@@ -95,6 +95,7 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     final ratingVal = business.rating;
     final reviewsCount = business.reviewCount;
     final categoryText =
@@ -106,10 +107,10 @@ class BusinessCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AbashyakaColors.pureWhite,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AbashyakaColors.aquaSilverBorder),
-        boxShadow: AbashyakaShadows.card,
+        border: Border.all(color: palette.border),
+        boxShadow: palette.isDark ? null : AbashyakaShadows.card,
       ),
       child: Material(
         color: Colors.transparent,
@@ -150,7 +151,7 @@ class BusinessCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AbashyakaTypography.cardTitle(
-                          color: AppTheme.mainText,
+                          color: palette.textPrimary,
                         ).copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
@@ -170,7 +171,7 @@ class BusinessCard extends StatelessWidget {
                             Text(
                               ratingVal?.toStringAsFixed(1) ?? 'Not rated',
                               style: AbashyakaTypography.ratingText(
-                                color: AppTheme.mainText,
+                                color: palette.textPrimary,
                                 fontSize: 12,
                               ),
                             ),
@@ -178,7 +179,7 @@ class BusinessCard extends StatelessWidget {
                             Text(
                               reviewsCount == null ? '' : '($reviewsCount)',
                               style: AbashyakaTypography.supportingText(
-                                color: AppTheme.secondaryText,
+                                color: palette.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
@@ -198,7 +199,7 @@ class BusinessCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AbashyakaTypography.supportingText(
-                                color: AppTheme.secondaryText,
+                                color: palette.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
@@ -207,14 +208,14 @@ class BusinessCard extends StatelessWidget {
                             Text(
                               ' • ',
                               style: AbashyakaTypography.supportingText(
-                                color: AppTheme.secondaryText,
+                                color: palette.textSecondary,
                                 fontSize: 12,
                               ),
                             ),
                             Text(
                               business.distanceText,
                               style: AbashyakaTypography.supportingText(
-                                color: AppTheme.secondaryText,
+                                color: palette.textSecondary,
                                 fontSize: 12,
                               ),
                             ),

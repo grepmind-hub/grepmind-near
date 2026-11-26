@@ -10,6 +10,8 @@ import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
@@ -328,25 +330,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   );
 
   Widget _buildPage(BuildContext context) {
-    final bgImage = _otpSent
-        ? 'assets/backgrounds/premium/otp_background.webp'
-        : 'assets/backgrounds/premium/login_background.webp';
-
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: context.abashyaka.canvas,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background: Approved Edge-to-Edge Metallic Wave Canvas
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(bgImage),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+          // Background: Approved Edge-to-Edge Vector Metallic Wave Canvas
+          const Positioned.fill(
+            child: FluidWaveBackground(variant: FluidWaveVariant.auth),
           ),
           SafeArea(
             child: LayoutBuilder(

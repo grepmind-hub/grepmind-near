@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart'
     show debugPrint, kDebugMode, visibleForTesting;
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/constants/app_constants.dart';
@@ -1958,3 +1959,37 @@ final merchantHoursCoverageProvider =
     });
 
 final customerTabIndexProvider = StateProvider<int>((ref) => 0);
+
+/// Persisted theme mode (System, Light Pearl White, Dark Midnight Slate).
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  ThemeModeNotifier() : super(ThemeMode.system) {
+    _load();
+  }
+
+  static const _storageKey = 'app_theme_mode';
+  final _storage = const FlutterSecureStorage();
+
+  Future<void> _load() async {
+    try {
+      final saved = await _storage.read(key: _storageKey);
+      if (saved == 'light') {
+        state = ThemeMode.light;
+      } else if (saved == 'dark') {
+        state = ThemeMode.dark;
+      } else if (saved == 'system') {
+        state = ThemeMode.system;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    try {
+      await _storage.write(key: _storageKey, value: mode.name);
+    } catch (_) {}
+  }
+}
+
+final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
+  (ref) => ThemeModeNotifier(),
+);

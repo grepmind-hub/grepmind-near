@@ -2885,11 +2885,12 @@ class _RiderWorkspaceProfileScreenState
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
         title: const Text('Rider profile'),
-        backgroundColor: AbashyakaColors.pureWhite,
+        backgroundColor: palette.card,
         leading: Navigator.canPop(context)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_rounded),

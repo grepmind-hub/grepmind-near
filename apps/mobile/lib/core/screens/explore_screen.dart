@@ -573,7 +573,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final foodCart = ref.watch(platformCartProvider(foodScope));
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.abashyaka.canvas,
       bottomNavigationBar: groceryCart.itemCount > 0
           ? StickyCartSummaryBar(scope: groceryScope)
           : foodCart.itemCount > 0

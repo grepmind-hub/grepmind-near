@@ -13,6 +13,8 @@ import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/features/location/location_selection_sheet.dart';
 
@@ -459,22 +461,12 @@ class _HeaderCardState extends State<_HeaderCard> {
         Stack(
           children: [
             // Background Metallic Header Wave Artwork
-            Positioned(
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
               height: 240,
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(
-                      'assets/backgrounds/premium/home_background.webp',
-                    ),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  ),
-                ),
-              ),
+              child: FluidWaveBackground(variant: FluidWaveVariant.discovery),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
