@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
@@ -78,24 +79,33 @@ class _HomeNewNearYouScreenState extends State<HomeNewNearYouScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppTheme.background,
-    appBar: AppBar(
-      title: const Text('New near you'),
-      backgroundColor: AppTheme.background,
-      surfaceTintColor: Colors.transparent,
-    ),
-    body: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-          child: Text(
-            'Recently published in ${widget.city}',
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(color: AppTheme.secondaryText),
-          ),
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Scaffold(
+      backgroundColor: palette.canvas,
+      appBar: AppBar(
+        title: Text(
+          'New near you',
+          style: TextStyle(color: palette.textPrimary),
         ),
+        backgroundColor: palette.canvas,
+        foregroundColor: palette.textPrimary,
+        systemOverlayStyle: palette.isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: Text(
+              'Recently published in ${widget.city}',
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: palette.textSecondary),
+            ),
+          ),
         SizedBox(
           height: 48,
           child: ListView(
@@ -173,52 +183,67 @@ class _HomeNewNearYouScreenState extends State<HomeNewNearYouScreen> {
       ],
     ),
   );
+  }
 
-  Widget _filterChip(String value, String label) => ChoiceChip(
-    label: Text(label),
-    selected: _filter == value,
-    onSelected: (_) => _setFilter(value),
-    showCheckmark: false,
-    selectedColor: AppTheme.primary,
-    labelStyle: TextStyle(
-      color: _filter == value ? Colors.white : AppTheme.mainText,
-      fontWeight: FontWeight.w700,
-    ),
-    shape: const StadiumBorder(side: BorderSide(color: AppTheme.border)),
-  );
+  Widget _filterChip(String value, String label) {
+    final palette = context.abashyaka;
+    final selected = _filter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => _setFilter(value),
+      showCheckmark: false,
+      selectedColor: AppTheme.primary,
+      backgroundColor: palette.card,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : palette.textPrimary,
+        fontWeight: FontWeight.w700,
+      ),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: selected ? AppTheme.primary : palette.border,
+        ),
+      ),
+    );
+  }
 
   Widget _message(
     IconData icon,
     String title, {
     String? subtitle,
     Widget? action,
-  }) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 42, color: AppTheme.secondary),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 6),
+  }) {
+    final palette = context.abashyaka;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: palette.accent),
+            const SizedBox(height: 12),
             Text(
-              subtitle,
+              title,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.secondaryText),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: palette.textPrimary,
+              ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: palette.textSecondary),
+              ),
+            ],
+            ?action,
           ],
-          ?action,
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _CatalogArrivalTile extends StatelessWidget {
@@ -236,9 +261,13 @@ class _CatalogArrivalTile extends StatelessWidget {
         : item.priceMax == null || item.priceMax == item.price
         ? '₹${item.price!.toStringAsFixed(0)}'
         : '₹${item.price!.toStringAsFixed(0)} – ₹${item.priceMax!.toStringAsFixed(0)}';
+    final palette = context.abashyaka;
     return Material(
-      color: AppTheme.surface,
-      borderRadius: BorderRadius.circular(18),
+      color: palette.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: palette.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -278,23 +307,28 @@ class _CatalogArrivalTile extends StatelessWidget {
                       item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: palette.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       item.businessName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${item.categoryName} · ${item.locality?.isNotEmpty == true ? item.locality : item.city}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppTheme.secondaryText),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
                     ),
                     if (price != null) ...[
                       const SizedBox(height: 5),
