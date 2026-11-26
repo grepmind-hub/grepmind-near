@@ -77,7 +77,7 @@ class _IntroductionScreenState extends ConsumerState<IntroductionScreen> {
       future: _preference,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const SplashScreen.dark();
+          return const SplashScreen();
         }
         if (snapshot.data == true) return const OnboardingScreen();
 
