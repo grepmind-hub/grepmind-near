@@ -371,12 +371,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _online ? AbashyakaColors.successSurface : AbashyakaColors.pureWhite,
+                  color: _online
+                      ? (palette.isDark
+                          ? const Color(0xFF0E3A2F)
+                          : AbashyakaColors.successSurface)
+                      : palette.card,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: _online
-                        ? const Color(0xFF86EFAC)
-                        : AbashyakaColors.softGrey,
+                    color: _online ? AbashyakaColors.success : palette.border,
                     width: 1.5,
                   ),
                   boxShadow: const [
@@ -395,8 +397,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: _online
-                                ? AbashyakaColors.successSurface
-                                : AbashyakaColors.unavailableSurface,
+                                ? AbashyakaColors.success
+                                    .withValues(alpha: 0.2)
+                                : palette.cardElevated,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -405,7 +408,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 : Icons.pause_circle_outline_rounded,
                             color: _online
                                 ? AbashyakaColors.success
-                                : AbashyakaColors.mutedText,
+                                : palette.textMuted,
                             size: 24,
                           ),
                         ),
@@ -420,8 +423,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
                                   color: _online
-                                      ? const Color(0xFF064D3A)
-                                      : AbashyakaColors.primaryText,
+                                      ? (palette.isDark
+                                          ? const Color(0xFF6EE7B7)
+                                          : const Color(0xFF064D3A))
+                                      : palette.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -432,8 +437,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: _online
-                                      ? AbashyakaColors.success
-                                      : AbashyakaColors.mutedText,
+                                      ? (palette.isDark
+                                          ? const Color(0xFFA7F3D0)
+                                          : AbashyakaColors.success)
+                                      : palette.textSecondary,
                                 ),
                               ),
                             ],
@@ -523,14 +530,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: context.abashyaka.card,
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AbashyakaColors.softGrey),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
@@ -538,10 +545,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AbashyakaColors.mutedText,
+                                  color: palette.textSecondary,
                                 ),
                               ),
-                              Icon(
+                              const Icon(
                                 Icons.currency_rupee_rounded,
                                 size: 16,
                                 color: AppTheme.emerald,
@@ -551,10 +558,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           const SizedBox(height: 4),
                           Text(
                             _online ? '₹680' : '₹0',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: AbashyakaColors.primaryText,
+                              color: palette.textPrimary,
                             ),
                           ),
                         ],
@@ -569,14 +576,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: context.abashyaka.card,
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AbashyakaColors.softGrey),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
@@ -584,10 +591,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AbashyakaColors.mutedText,
+                                  color: palette.textSecondary,
                                 ),
                               ),
-                              Icon(
+                              const Icon(
                                 Icons.moped_rounded,
                                 size: 16,
                                 color: AppTheme.riderAmberDark,
@@ -597,10 +604,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           const SizedBox(height: 4),
                           Text(
                             _online ? '6' : '0',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: AbashyakaColors.primaryText,
+                              color: palette.textPrimary,
                             ),
                           ),
                         ],
