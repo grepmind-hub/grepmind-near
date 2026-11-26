@@ -204,6 +204,12 @@ class _MerchantPlatformOrdersScreenState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
+          backgroundColor: AbashyakaColors.pureWhite,
+          scrollable: true,
+          icon: const Icon(
+            Icons.verified_user_outlined,
+            color: AbashyakaColors.signatureTeal,
+          ),
           title: const Text('Issue pickup code?'),
           content: Text(
             'Confirm order $reference is ready and the assigned rider is physically at your pickup location. The short-lived code can be used to verify this handover.',
@@ -215,7 +221,9 @@ class _MerchantPlatformOrdersScreenState
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.emerald,
+                backgroundColor: AbashyakaColors.signatureTeal,
+                foregroundColor: AbashyakaColors.inverseText,
+                minimumSize: const Size(0, 48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1056,44 +1064,59 @@ class _MerchantPlatformOrdersScreenState
 
           if (status == 'ready_for_pickup' && dispatch != null) ...[
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Delivery progress: ${(dispatch['execution_state'] as String? ?? 'assigned').replaceAll('_', ' ')}${(dispatch['rider_name'] as String? ?? '').isNotEmpty ? ' · ${dispatch['rider_name']}' : ''}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.secondaryText,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: AbashyakaColors.iceAquaWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Rider handover',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Delivery progress: ${(dispatch['execution_state'] as String? ?? 'unavailable').replaceAll('_', ' ')}${(dispatch['rider_name'] as String? ?? '').isNotEmpty ? ' · ${dispatch['rider_name']}' : ''}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AbashyakaColors.secondaryText,
+                      ),
+                    ),
+                    if (dispatch['execution_state'] == 'at_pickup' &&
+                        dispatch['rider_assigned'] == true) ...[
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        key: ValueKey('issue_pickup_code_${order['id']}'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AbashyakaColors.signatureTeal,
+                          foregroundColor: AbashyakaColors.inverseText,
+                          minimumSize: const Size(0, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: busy || confirmingPickup
+                            ? null
+                            : () => _issuePickupCode(order),
+                        icon: const Icon(Icons.verified_user_outlined),
+                        label: Text(
+                          busy
+                              ? 'Issuing…'
+                              : confirmingPickup
+                              ? 'Confirming…'
+                              : 'Issue pickup code',
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
-            if (dispatch['execution_state'] == 'at_pickup' &&
-                dispatch['rider_assigned'] == true) ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  key: ValueKey('issue_pickup_code_${order['id']}'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.emerald,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: busy || confirmingPickup
-                      ? null
-                      : () => _issuePickupCode(order),
-                  icon: const Icon(Icons.verified_user_outlined),
-                  label: Text(
-                    busy
-                        ? 'Issuing…'
-                        : confirmingPickup
-                        ? 'Confirming…'
-                        : 'Issue pickup code',
-                  ),
-                ),
-              ),
-            ],
           ],
 
           if (busy)
@@ -1505,14 +1528,18 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: AbashyakaColors.pureWhite,
+    scrollable: true,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     title: const Row(
       children: [
         Icon(Icons.verified_user_outlined, color: AppTheme.emerald),
         SizedBox(width: 8),
-        Text(
-          'Partner-to-rider handover',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        Flexible(
+          child: Text(
+            'Partner-to-rider handover',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     ),
@@ -1525,7 +1552,7 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
         ),
         const SizedBox(height: 18),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: AbashyakaColors.verifiedSurface,
             borderRadius: BorderRadius.circular(14),
@@ -1535,14 +1562,15 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
             widget.code,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: 6,
-              color: AppTheme.emerald,
+              letterSpacing: 2,
+              color: AbashyakaColors.signatureTeal,
             ),
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const Icon(
               Icons.timer_outlined,
@@ -1564,7 +1592,9 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
     actions: [
       FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.emerald,
+          backgroundColor: AbashyakaColors.signatureTeal,
+          foregroundColor: AbashyakaColors.inverseText,
+          minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),

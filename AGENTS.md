@@ -286,6 +286,7 @@ Authoritative showcase reference: `Abashyaka UI_UX App Showcase.png`.
 | **21** | Merchant Catalog Management | Live draft flow verified. Category units and optional GST estimate implemented. | [Screen 21 validation](docs/design/SCREEN_21_MERCHANT_CATALOG_VALIDATION.md) |
 | **22** | Merchant Hours & Coverage Setup | UI and widget tests passed. Live save verification pending for the intended merchant. | [Screen 22 validation](docs/design/SCREEN_22_MERCHANT_HOURS_COVERAGE_VALIDATION.md) |
 | **23** | Merchant Order Details & Fulfillment | V2.0 applied. Live order-detail acceptance pending an assigned order. | [Screen 23 validation](docs/design/SCREEN_23_MERCHANT_ORDER_DETAILS_VALIDATION.md) |
+| **24** | Merchant Pickup & Rider Handover | V2.0 UI pass. Live handover acceptance pending an assigned order. | [Screen 24 validation](docs/design/SCREEN_24_MERCHANT_HANDOVER_VALIDATION.md) |
 
 ### UI Showcase Milestone
 - The showcase inventory includes the original 22 screens and approved additions. Verify current source, API, database behavior, tests, and runtime evidence before describing a workflow as complete. Historical audit evidence is indexed in `docs/phases/` and `docs/project-audit/`.
