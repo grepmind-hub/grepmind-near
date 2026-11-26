@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Screen 14 & 18: Rider Active Delivery Route & Navigation Screen.
@@ -98,64 +100,46 @@ class _RiderDeliveryRouteMapScreenState
         widget.assignment['order_id']?.toString() ??
         'GN-ORDER';
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Delivery Route Navigation',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 17,
-                color: Colors.white,
-              ),
-            ),
-            Text(
-              'Order: $orderRef',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFE2E8F0),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppTheme.emeraldDark,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.shield_outlined, size: 14, color: Colors.white),
-                SizedBox(width: 4),
-                Text(
-                  'Route Preview',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
+      backgroundColor: palette.canvas,
+      body: Column(
         children: [
+          AbashyakaWaveHeader(
+            title: 'Delivery Route Navigation',
+            subtitle: 'Order: $orderRef',
+            variant: FluidWaveVariant.rider,
+            actions: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_outlined, size: 14, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text(
+                      'Route Preview',
+                      style: TextStyle(
+                        color: context.abashyaka.card,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: Stack(
+              children: [
           // 1. Central Route Canvas (Stylized map representation with road grid & path)
           Positioned.fill(
             child: AnimatedBuilder(
@@ -206,7 +190,7 @@ class _RiderDeliveryRouteMapScreenState
                       isEnRoute
                           ? Icons.turn_right_rounded
                           : Icons.straight_rounded,
-                      color: Colors.white,
+                      color: context.abashyaka.card,
                       size: 26,
                     ),
                   ),
@@ -220,8 +204,8 @@ class _RiderDeliveryRouteMapScreenState
                           isEnRoute
                               ? 'In 250m, continue onto Cuttack-Kuanpal Road'
                               : 'Head North towards $partnerName',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.abashyaka.card,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -276,7 +260,7 @@ class _RiderDeliveryRouteMapScreenState
                       ? Icons.my_location_rounded
                       : Icons.location_searching_rounded,
                   color: _isRecentered ? AppTheme.emerald : Colors.white,
-                  iconColor: _isRecentered ? Colors.white : AppTheme.brandText,
+                  iconColor: _isRecentered ? Colors.white : context.abashyaka.textPrimary,
                   onPressed: () {
                     setState(() {
                       _isRecentered = !_isRecentered;
@@ -296,7 +280,7 @@ class _RiderDeliveryRouteMapScreenState
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
                 boxShadow: const [
@@ -338,17 +322,17 @@ class _RiderDeliveryRouteMapScreenState
                         ),
                       ),
                       const Spacer(),
-                      const Icon(
+                      Icon(
                         Icons.lock_clock_outlined,
                         size: 14,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         'Single-use code required',
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -379,10 +363,10 @@ class _RiderDeliveryRouteMapScreenState
                           children: [
                             Text(
                               isEnRoute ? recipientName : partnerName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.brandText,
+                                color: context.abashyaka.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -392,9 +376,9 @@ class _RiderDeliveryRouteMapScreenState
                               isEnRoute
                                   ? destAddress
                                   : 'Pickup location · $partnerName',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.secondaryText,
+                                color: context.abashyaka.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -413,7 +397,7 @@ class _RiderDeliveryRouteMapScreenState
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.brandText,
+                              foregroundColor: context.abashyaka.textPrimary,
                               side: const BorderSide(color: Color(0xFFCBD5E1)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -436,7 +420,7 @@ class _RiderDeliveryRouteMapScreenState
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.brandText,
+                            foregroundColor: context.abashyaka.textPrimary,
                             side: const BorderSide(color: Color(0xFFCBD5E1)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -513,22 +497,26 @@ class _RiderDeliveryRouteMapScreenState
           ),
         ],
       ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildMapFloatingButton({
     required IconData icon,
     required VoidCallback onPressed,
-    Color color = Colors.white,
-    Color iconColor = AppTheme.brandText,
+    Color? color,
+    Color? iconColor,
   }) {
+    final palette = context.abashyaka;
     return Container(
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? palette.card,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: palette.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x14000000),
@@ -539,7 +527,7 @@ class _RiderDeliveryRouteMapScreenState
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 20, color: iconColor),
+        icon: Icon(icon, size: 20, color: iconColor ?? palette.textPrimary),
         onPressed: onPressed,
       ),
     );
@@ -751,7 +739,7 @@ class _RiderRouteMapPainter extends CustomPainter {
       style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: AppTheme.brandText,
+        color: Color(0xFF0F172A),
       ),
     );
     labelTp.layout();

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/screens/onboarding_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
+import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 
 /// Screen 2 of the Abashyaka Merchant App Collection:
@@ -14,8 +16,9 @@ class MerchantWelcomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF9F2), // Abashyaka Warm White
+      backgroundColor: palette.canvas,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -26,12 +29,7 @@ class MerchantWelcomeScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    AbashyakaTheme.splashEmblem,
-                    height: 48,
-                    width: 48,
-                    fit: BoxFit.contain,
-                  ),
+                  const AbashyakaLogoMark(size: 48),
                   const SizedBox(width: 10),
                   const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +61,7 @@ class MerchantWelcomeScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: const Color(0xFFE8F5E9)),
                   boxShadow: const [
@@ -180,7 +178,7 @@ class MerchantWelcomeScreen extends ConsumerWidget {
                       color: Color(0xFF0B6B4A),
                       width: 1.5,
                     ),
-                    backgroundColor: Colors.white,
+                    backgroundColor: context.abashyaka.card,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 class RiderApplicationScreen extends ConsumerStatefulWidget {
   const RiderApplicationScreen({super.key});
@@ -208,28 +210,28 @@ class _RiderApplicationScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final status = _application?['status'] as String?;
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Rider application'),
-        backgroundColor: Colors.white,
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _load,
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          const AbashyakaWaveHeader(
+            title: 'Rider Application',
+            subtitle: 'Apply to deliver with Abashyaka',
+            variant: FluidWaveVariant.rider,
+          ),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: RefreshIndicator(
+                onRefresh: _load,
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppTheme.riderAmberBorder),
                 ),
@@ -404,12 +406,12 @@ class _RiderApplicationScreenState
                     ),
                     onPressed: _saving ? null : () => _save(submit: false),
                     child: _saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: context.abashyaka.card,
                             ),
                           )
                         : const Text(
@@ -486,6 +488,9 @@ class _RiderApplicationScreenState
           ),
         ),
       ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -498,7 +503,7 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.abashyaka.card,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: const Color(0xFFE4EAF2)),
     ),

@@ -9,6 +9,8 @@ import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
@@ -56,203 +58,187 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     final catalogState = ref.watch(merchantCatalogProvider);
     ref.watch(merchantProfileProvider(''));
 
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
-      appBar: AppBar(
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        title: const Text(
-          'Catalog Management',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.mainText,
-        elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: 'Manage categories',
-            icon: const Icon(Icons.category_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const MerchantCategoriesScreen(),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Catalog',
-            onPressed: () =>
-                ref.read(merchantCatalogProvider.notifier).loadCatalog(),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(108),
-          child: Column(
-            children: [
-              // Search input
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                child: TextField(
-                  key: const Key('search_catalog_input'),
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search products or services...',
-                    hintStyle: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.hintText,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      size: 20,
-                      color: AppTheme.secondaryText,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              ref
-                                  .read(merchantCatalogProvider.notifier)
-                                  .setSearchQuery('');
-                              setState(() {});
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AbashyakaColors.pureWhite,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Catalog Management',
+            subtitle: 'Products & services inventory',
+            variant: FluidWaveVariant.merchant,
+            actions: [
+              AbashyakaWaveActionButton(
+                tooltip: 'Manage categories',
+                icon: Icons.category_outlined,
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MerchantCategoriesScreen(),
                   ),
-                  onChanged: (val) {
-                    ref
-                        .read(merchantCatalogProvider.notifier)
-                        .setSearchQuery(val);
-                    setState(() {});
-                  },
                 ),
               ),
-
-              // Segmented TabBar
-              TabBar(
-                controller: _tabController,
-                labelColor: AppTheme.emerald,
-                unselectedLabelColor: AppTheme.secondaryText,
-                indicatorColor: AppTheme.emerald,
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.inventory_2_outlined, size: 18),
-                        const SizedBox(width: 8),
-                        const Text('Products'),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _tabController.index == 0
-                                ? AbashyakaColors.verifiedSurface
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${catalogState.products.length}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _tabController.index == 0
-                                  ? AppTheme.emerald
-                                  : AppTheme.secondaryText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.home_repair_service_outlined,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Services'),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _tabController.index == 1
-                                ? AbashyakaColors.verifiedSurface
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${catalogState.services.length}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _tabController.index == 1
-                                  ? AppTheme.emerald
-                                  : AppTheme.secondaryText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              AbashyakaWaveActionButton(
+                icon: Icons.refresh,
+                tooltip: 'Refresh Catalog',
+                onPressed: () =>
+                    ref.read(merchantCatalogProvider.notifier).loadCatalog(),
               ),
             ],
+            bottom: TextField(
+              key: const Key('search_catalog_input'),
+              controller: _searchController,
+              style: TextStyle(fontSize: 14, color: palette.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Search products or services...',
+                hintStyle: TextStyle(fontSize: 14, color: palette.textMuted),
+                prefixIcon: Icon(
+                  Icons.search,
+                  size: 20,
+                  color: palette.textSecondary,
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          size: 18,
+                          color: palette.textSecondary,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          ref
+                              .read(merchantCatalogProvider.notifier)
+                              .setSearchQuery('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: palette.card,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (val) {
+                ref.read(merchantCatalogProvider.notifier).setSearchQuery(val);
+                setState(() {});
+              },
+            ),
           ),
-        ),
-      ),
-      body: catalogState.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.emerald),
-            )
-          : TabBarView(
+          Container(
+            decoration: BoxDecoration(
+              color: palette.card,
+              border: Border(bottom: BorderSide(color: palette.border)),
+            ),
+            child: TabBar(
               controller: _tabController,
-              children: [
-                _buildProductsTab(catalogState),
-                _buildServicesTab(catalogState),
+              labelColor: palette.accent,
+              unselectedLabelColor: palette.textSecondary,
+              indicatorColor: palette.accent,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.inventory_2_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('Products'),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _tabController.index == 0
+                              ? palette.accentSurface
+                              : palette.cardElevated,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${catalogState.products.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _tabController.index == 0
+                                ? palette.accent
+                                : palette.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.home_repair_service_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      const Text('Services'),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _tabController.index == 1
+                              ? palette.accentSurface
+                              : palette.cardElevated,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${catalogState.services.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _tabController.index == 1
+                                ? palette.accent
+                                : palette.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
+          ),
+          Expanded(
+            child: catalogState.isLoading
+                ? Center(
+                    child: CircularProgressIndicator(color: palette.accent),
+                  )
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildProductsTab(catalogState),
+                      _buildServicesTab(catalogState),
+                    ],
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         key: Key(
           _tabController.index == 0 ? 'add_product_fab' : 'add_service_fab',
@@ -417,10 +403,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         Expanded(
                           child: Text(
                             p.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.mainText,
+                              color: context.abashyaka.textPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -433,9 +419,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       const SizedBox(height: 4),
                       Text(
                         p.description!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -539,7 +525,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                   'inventory_mode': 'finite',
                                 });
                           },
-                          child: const Padding(
+                          child: Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 8,
@@ -547,7 +533,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             child: Icon(
                               Icons.remove,
                               size: 16,
-                              color: AppTheme.mainText,
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                         ),
@@ -557,13 +543,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             horizontal: 10,
                             vertical: 8,
                           ),
-                          color: Colors.white,
+                          color: context.abashyaka.card,
                           child: Text(
                             'Qty: $qty',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.mainText,
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                         ),
@@ -615,7 +601,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   size: 20,
                   color: p.isPublished
                       ? AppTheme.emerald
-                      : AppTheme.secondaryText,
+                      : context.abashyaka.textSecondary,
                 ),
                 tooltip: p.isPublished
                     ? 'Unpublish (make draft)'
@@ -770,10 +756,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         Expanded(
                           child: Text(
                             s.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.mainText,
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                         ),
@@ -795,7 +781,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontWeight: FontWeight.w700,
                               color: s.isActive
                                   ? AbashyakaColors.success
-                                  : AppTheme.secondaryText,
+                                  : context.abashyaka.textSecondary,
                             ),
                           ),
                         ),
@@ -805,9 +791,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       const SizedBox(height: 4),
                       Text(
                         s.description!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -851,9 +837,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   ),
                   Text(
                     s.isActive ? 'Available' : 'Paused',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ],
@@ -923,7 +909,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppTheme.mainText,
+            color: isSelected ? Colors.white : context.abashyaka.textPrimary,
           ),
         ),
       ),
@@ -957,7 +943,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         break;
       default:
         bg = AbashyakaColors.unavailableSurface;
-        fg = AppTheme.secondaryText;
+        fg = context.abashyaka.textSecondary;
         label = 'Unknown';
         icon = Icons.help_outline;
     }
@@ -1000,7 +986,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: isPublished ? AppTheme.primary : AppTheme.secondaryText,
+          color: isPublished ? AppTheme.primary : context.abashyaka.textSecondary,
         ),
       ),
     );
@@ -1034,19 +1020,19 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -1127,7 +1113,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.abashyaka.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1180,7 +1166,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               isScrollControlled: true,
               useSafeArea: true,
               showDragHandle: true,
-              backgroundColor: Colors.white,
+              backgroundColor: context.abashyaka.card,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
@@ -1194,13 +1180,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                         child: Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 'Choose a category photo',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
-                                  color: AppTheme.mainText,
+                                  color: context.abashyaka.textPrimary,
                                 ),
                               ),
                             ),
@@ -1212,13 +1198,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ],
                         ),
                       ),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: Text(
                           'Select one of our curated high-quality photos for your product category.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                           ),
                         ),
                       ),
@@ -1235,13 +1221,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               ),
                           itemCount: categorySampleLabels.length,
                           itemBuilder: (context, index) => Material(
-                            color: Colors.white,
+                            color: context.abashyaka.card,
                             elevation: 1,
                             shadowColor: Colors.black.withValues(alpha: 0.06),
                             clipBehavior: Clip.antiAlias,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: Colors.grey.shade200),
+                              side: BorderSide(color: context.abashyaka.border),
                             ),
                             child: InkWell(
                               key: ValueKey('category_sample_$index'),
@@ -1264,10 +1250,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                       categorySampleLabels[index],
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
-                                        color: AppTheme.mainText,
+                                        color: context.abashyaka.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -1328,10 +1314,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       Expanded(
                         child: Text(
                           isEditing ? 'Edit Product' : 'Add New Product',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                       ),
@@ -1357,7 +1343,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'e.g. Copper Water Bottle 1L',
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1396,7 +1382,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '299',
                                 filled: true,
-                                fillColor: AbashyakaColors.pureWhite,
+                                fillColor: context.abashyaka.cardElevated,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -1430,7 +1416,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '399',
                                 filled: true,
-                                fillColor: AbashyakaColors.pureWhite,
+                                fillColor: context.abashyaka.cardElevated,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -1479,7 +1465,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                   const SizedBox(height: 14),
                   PremiumCard(
                     padding: const EdgeInsets.all(14),
-                    color: AbashyakaColors.pearlWhite,
+                    color: context.abashyaka.cardElevated,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1552,9 +1538,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             supportsGst
                                 ? 'Catalog estimate. Storefront and checkout prices use the entered price.'
                                 : 'Preview only until GST is enabled on the catalog server.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.secondaryText,
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                         ],
@@ -1573,7 +1559,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     initialValue: stockStatus,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1607,7 +1593,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     initialValue: inventoryMode,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1629,13 +1615,13 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       }
                     },
                   ),
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                       'Use not tracked for made-to-order items. Finite stock is reduced after an order is created.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                   ),
@@ -1649,7 +1635,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         labelText: 'Available quantity',
                         hintText: 'Enter current stock',
                         filled: true,
-                        fillColor: AbashyakaColors.pureWhite,
+                        fillColor: context.abashyaka.cardElevated,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -1672,7 +1658,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       hintText:
                           'Add details, material, dimensions or warranty...',
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -1692,7 +1678,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.abashyaka.card,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppTheme.merchantCoralBorder),
                         boxShadow: [
@@ -1886,11 +1872,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               size: 18,
                               color: AppTheme.coral,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Camera',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.mainText,
+                                color: context.abashyaka.textPrimary,
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
@@ -1901,7 +1887,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              backgroundColor: Colors.white,
+                              backgroundColor: context.abashyaka.card,
                             ),
                           ),
                         ),
@@ -1917,11 +1903,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               size: 18,
                               color: AppTheme.coral,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Gallery',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.mainText,
+                                color: context.abashyaka.textPrimary,
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
@@ -1932,7 +1918,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              backgroundColor: Colors.white,
+                              backgroundColor: context.abashyaka.card,
                             ),
                           ),
                         ),
@@ -1949,11 +1935,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           size: 18,
                           color: AppTheme.coral,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Choose a sample photo',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
@@ -1969,11 +1955,11 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Capture with camera, choose from gallery, or select from curated sample photos.',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                   ],
@@ -2217,7 +2203,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.abashyaka.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -2247,10 +2233,10 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       Expanded(
                         child: Text(
                           isEditing ? 'Edit Service' : 'Add New Service',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                       ),
@@ -2276,7 +2262,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'e.g. Fan Installation & Repair',
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -2308,7 +2294,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '199',
                                 filled: true,
-                                fillColor: AbashyakaColors.pureWhite,
+                                fillColor: context.abashyaka.cardElevated,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -2339,7 +2325,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '499',
                                 filled: true,
-                                fillColor: AbashyakaColors.pureWhite,
+                                fillColor: context.abashyaka.cardElevated,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -2366,7 +2352,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'Includes diagnostic inspection, wiring check, and safety testing...',
                       filled: true,
-                      fillColor: AbashyakaColors.pureWhite,
+                      fillColor: context.abashyaka.cardElevated,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

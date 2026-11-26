@@ -6,6 +6,8 @@ import 'package:grepmind_mobile/core/models/merchant_finance.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/merchant_finance_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/luxe_components.dart';
 
 class MerchantEarningsScreen extends ConsumerStatefulWidget {
@@ -67,25 +69,43 @@ class _MerchantEarningsScreenState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppTheme.background,
-    appBar: AppBar(
-      title: const Text('Earnings & Payouts'),
-      backgroundColor: Colors.white,
-      actions: [
-        IconButton(
-          tooltip: 'Refresh financial records',
-          onPressed: _refresh,
-          icon: const Icon(Icons.refresh_rounded),
-        ),
-      ],
-    ),
-    body: _businessError != null
-        ? _BusinessErrorState(message: _businessError!, onRetry: _initialize)
-        : _businessId == null
-        ? const Center(child: CircularProgressIndicator())
-        : _MerchantFinanceBody(businessId: _businessId!, onRefresh: _refresh),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Scaffold(
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Earnings & Payouts',
+            subtitle: 'Read-only settlement & payable ledger',
+            variant: FluidWaveVariant.merchant,
+            actions: [
+              AbashyakaWaveActionButton(
+                tooltip: 'Refresh financial records',
+                onPressed: _refresh,
+                icon: Icons.refresh_rounded,
+              ),
+            ],
+          ),
+          Expanded(
+            child: _businessError != null
+                ? _BusinessErrorState(
+                    message: _businessError!,
+                    onRetry: _initialize,
+                  )
+                : _businessId == null
+                ? Center(
+                    child: CircularProgressIndicator(color: palette.accent),
+                  )
+                : _MerchantFinanceBody(
+                    businessId: _businessId!,
+                    onRefresh: _refresh,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MerchantFinanceBody extends ConsumerStatefulWidget {
@@ -259,11 +279,11 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
           },
         ),
         if (!overview.realPayoutsEnabled)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 10),
             child: Text(
               'No amount is available for withdrawal. Real payouts are disabled.',
-              style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+              style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
             ),
           ),
       ],
@@ -281,19 +301,20 @@ class _MerchantFinanceBodyState extends ConsumerState<_MerchantFinanceBody> {
   );
 
   Widget _filterChip(String label, int? days) {
+    final palette = context.abashyaka;
     final isSelected = _historyDays == days;
     return ChoiceChip(
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : AppTheme.mainText,
+          color: isSelected ? Colors.white : palette.textPrimary,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         ),
       ),
       selected: isSelected,
       selectedColor: AppTheme.coral,
-      backgroundColor: Colors.white,
-      side: BorderSide(color: isSelected ? AppTheme.coral : AppTheme.border),
+      backgroundColor: palette.card,
+      side: BorderSide(color: isSelected ? AppTheme.coral : palette.border),
       onSelected: (_) => setState(() => _historyDays = days),
     );
   }
@@ -486,7 +507,7 @@ class _MerchantBeneficiarySectionState
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.abashyaka.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -522,9 +543,9 @@ class _MerchantBeneficiarySectionState
                   ],
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Account details will be verified via automated penny-drop validation before platform settlements.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -671,12 +692,13 @@ class _MerchantBeneficiarySectionState
         onEdit: _openAddBankSheet,
       );
     }
+    final palette = context.abashyaka;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: palette.border),
       ),
       child: Row(
         children: [
@@ -693,7 +715,7 @@ class _MerchantBeneficiarySectionState
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -702,13 +724,13 @@ class _MerchantBeneficiarySectionState
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: AppTheme.textPrimary,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'Register your bank details for verified settlements.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
                 ),
               ],
             ),
@@ -748,33 +770,40 @@ class _Metric extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minHeight: 116),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE2EAF5)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: AppTheme.coral, size: 20),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.blueGrey.shade700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          _money(amount, currency),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 116),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppTheme.coral, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: palette.textSecondary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _money(amount, currency),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: palette.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PayableTile extends StatelessWidget {
@@ -783,41 +812,51 @@ class _PayableTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: Colors.white,
-    margin: const EdgeInsets.only(bottom: 8),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(15),
-      side: const BorderSide(color: Color(0xFFE4EAF4)),
-    ),
-    child: ListTile(
-      minVerticalPadding: 12,
-      leading: const CircleAvatar(
-        backgroundColor: AppTheme.merchantCoralContainer,
-        child: Icon(Icons.receipt_long_outlined, color: AppTheme.coral),
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Card(
+      color: palette.card,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: palette.border),
       ),
-      title: Text(
-        record.referenceCode,
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
-      subtitle: Text(
-        '${_paymentLabel(record.paymentSource)} · ${_stateLabel(record.state)}',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _money(record.netPayableMinor, record.currency),
-            style: const TextStyle(fontWeight: FontWeight.w800),
+      child: ListTile(
+        minVerticalPadding: 12,
+        leading: const CircleAvatar(
+          backgroundColor: AppTheme.merchantCoralContainer,
+          child: Icon(Icons.receipt_long_outlined, color: AppTheme.coral),
+        ),
+        title: Text(
+          record.referenceCode,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: palette.textPrimary,
           ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+        ),
+        subtitle: Text(
+          '${_paymentLabel(record.paymentSource)} · ${_stateLabel(record.state)}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _money(record.netPayableMinor, record.currency),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: palette.textPrimary,
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+          ],
+        ),
+        onTap: onTap,
       ),
-      onTap: onTap,
-    ),
-  );
+    );
+  }
 }
 
 class _SettlementTile extends StatelessWidget {
@@ -826,32 +865,39 @@ class _SettlementTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: Colors.white,
-    margin: const EdgeInsets.only(bottom: 8),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(15),
-      side: const BorderSide(color: Color(0xFFE4EAF4)),
-    ),
-    child: ListTile(
-      minVerticalPadding: 12,
-      leading: const CircleAvatar(
-        backgroundColor: Color(0xFFE9F7F2),
-        child: Icon(Icons.account_balance_outlined, color: AppTheme.coral),
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Card(
+      color: palette.card,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(color: palette.border),
       ),
-      title: Text(
-        '${_money(record.simulatedNetMinor, record.currency)} · ${_stateLabel(record.status)}',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+      child: ListTile(
+        minVerticalPadding: 12,
+        leading: CircleAvatar(
+          backgroundColor: palette.accentSurface,
+          child: const Icon(Icons.account_balance_outlined, color: AppTheme.coral),
+        ),
+        title: Text(
+          '${_money(record.simulatedNetMinor, record.currency)} · ${_stateLabel(record.status)}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: palette.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '${record.periodStart} – ${record.periodEnd} · ${_merchantPayoutSummary(record)}',
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+        onTap: onTap,
       ),
-      subtitle: Text(
-        '${record.periodStart} – ${record.periodEnd} · ${_merchantPayoutSummary(record)}',
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    ),
-  );
+    );
+  }
 }
 
 String _merchantPayoutSummary(MerchantSettlementRecord record) {
@@ -889,7 +935,7 @@ class _DetailsSheet extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: AppTheme.secondaryText)),
+          Text(subtitle, style: TextStyle(color: context.abashyaka.textSecondary)),
           const SizedBox(height: 14),
           for (final row in rows)
             Padding(
@@ -922,7 +968,7 @@ class _DetailsSheet extends StatelessWidget {
           const Divider(height: 22),
           Text(
             disclosure,
-            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
           ),
         ],
       ),
@@ -948,30 +994,37 @@ class _EmptyCard extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-    ),
-    child: Column(
-      children: [
-        Icon(icon, color: AppTheme.secondaryText, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(color: AppTheme.secondaryText, fontSize: 12),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: palette.textSecondary, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: palette.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(color: palette.textSecondary, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ErrorCard extends StatelessWidget {
@@ -980,22 +1033,35 @@ class _ErrorCard extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 14),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF1F0),
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.error_outline, color: Colors.redAccent),
-        const SizedBox(width: 10),
-        Expanded(child: Text(message)),
-        TextButton(onPressed: onRetry, child: const Text('Retry')),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.isDark
+            ? const Color(0xFF3A1A1E)
+            : const Color(0xFFFFF1F0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.redAccent.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: palette.textPrimary),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
 }
 
 class _BusinessErrorState extends StatelessWidget {

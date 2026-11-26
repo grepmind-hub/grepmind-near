@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 /// Screen 9: Orders Hub & Fulfillment Pipeline
 /// Screen 10: Order Detail & Kitchen Ticket
@@ -204,7 +206,7 @@ class _MerchantPlatformOrdersScreenState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: AbashyakaColors.pureWhite,
+          backgroundColor: context.abashyaka.card,
           scrollable: true,
           icon: const Icon(
             Icons.verified_user_outlined,
@@ -408,59 +410,40 @@ class _MerchantPlatformOrdersScreenState
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     final activeTabOrders = _filteredOrders(_tabController.index);
 
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
-      appBar: AppBar(
-        backgroundColor: AbashyakaColors.pureWhite,
-        foregroundColor: AppTheme.mainText,
-        elevation: 0,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Orders & Fulfillment',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AbashyakaColors.primaryText,
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Orders & Fulfillment',
+            subtitle: 'Partner Orders Pipeline · Abashyaka',
+            variant: FluidWaveVariant.merchant,
+            actions: [
+              AbashyakaWaveActionButton(
+                icon: Icons.refresh_rounded,
+                tooltip: 'Refresh orders',
+                onPressed: _loading ? null : _refresh,
               ),
-            ),
-            Text(
-              'Partner Orders Pipeline · Abashyaka',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppTheme.secondaryText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: _loading ? null : _refresh,
-            tooltip: 'Refresh orders',
-            icon: const Icon(Icons.refresh_rounded, color: AppTheme.emerald),
+            ],
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AbashyakaColors.pureWhite,
+          Container(
+            decoration: BoxDecoration(
+              color: palette.card,
               border: Border(
-                bottom: BorderSide(color: AbashyakaColors.aquaSilverBorder),
+                bottom: BorderSide(color: palette.border),
               ),
             ),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              indicatorColor: AppTheme.emerald,
+              indicatorColor: palette.accent,
               indicatorWeight: 3,
-              labelColor: AppTheme.emerald,
-              unselectedLabelColor: AppTheme.secondaryText,
+              labelColor: palette.accent,
+              unselectedLabelColor: palette.textSecondary,
               labelStyle: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -478,50 +461,49 @@ class _MerchantPlatformOrdersScreenState
               ],
             ),
           ),
-        ),
-      ),
-      body: RefreshIndicator(
-        color: AppTheme.emerald,
-        onRefresh: _refresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Screen 9 Header Summary Card
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AbashyakaColors.verifiedSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
-              ),
-              child: Row(
+          Expanded(
+            child: RefreshIndicator(
+              color: palette.accent,
+              onRefresh: _refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
                 children: [
+                  // Screen 9 Header Summary Card
                   Container(
-                    width: 42,
-                    height: 42,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AbashyakaColors.pureWhite,
-                      borderRadius: BorderRadius.circular(12),
+                      color: palette.accentSurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: palette.border),
                     ),
-                    child: const Icon(
-                      Icons.storefront_rounded,
-                      color: AppTheme.emerald,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: palette.card,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.storefront_rounded,
+                            color: palette.accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Partner Fulfillment Orders',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -542,10 +524,10 @@ class _MerchantPlatformOrdersScreenState
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AbashyakaColors.pureWhite,
+                      color: palette.card,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AbashyakaColors.aquaSilverBorder,
+                        color: palette.border,
                       ),
                     ),
                     child: const Row(
@@ -667,23 +649,23 @@ class _MerchantPlatformOrdersScreenState
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
+                    Text(
                       'No assigned platform orders',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
                         'New orders will appear after Abashyaka assigns your business to fulfill the complete basket.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                       ),
                     ),
@@ -693,13 +675,17 @@ class _MerchantPlatformOrdersScreenState
 
             // Order cards in current tab
             for (final order in activeTabOrders) _orderCard(order),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTab(String label, int count) {
+    final palette = context.abashyaka;
     return Tab(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -710,15 +696,15 @@ class _MerchantPlatformOrdersScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AbashyakaColors.verifiedSurface,
+                color: palette.accentSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '$count',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.emerald,
+                  color: palette.accent,
                 ),
               ),
             ),
@@ -758,14 +744,15 @@ class _MerchantPlatformOrdersScreenState
         .where((event) => event['status'] is String)
         .toList();
 
+    final palette = context.abashyaka;
     return Card(
-      color: AbashyakaColors.pureWhite,
+      color: palette.card,
       margin: const EdgeInsets.only(top: 12),
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
+        side: BorderSide(color: palette.border),
       ),
       child: ExpansionTile(
         key: PageStorageKey('merchant-order-${order['id']}'),
@@ -793,10 +780,10 @@ class _MerchantPlatformOrdersScreenState
           children: [
             Text(
               vertical,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
             ),
             _buildStatusPill(status, statusLabel),
@@ -806,9 +793,9 @@ class _MerchantPlatformOrdersScreenState
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             '${order['reference_code'] ?? 'Platform order'} · ${order['delivery_locality'] ?? ''}, ${order['delivery_district'] ?? ''}\n$statusLabel',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.secondaryText,
+              color: context.abashyaka.textSecondary,
               height: 1.3,
             ),
           ),
@@ -840,10 +827,10 @@ class _MerchantPlatformOrdersScreenState
                 color: AbashyakaColors.unavailableSurface,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.payments_outlined,
                 size: 18,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
             title: Text(
@@ -852,9 +839,9 @@ class _MerchantPlatformOrdersScreenState
             ),
             subtitle: Text(
               _paymentDetail(order),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           ),
@@ -902,19 +889,19 @@ class _MerchantPlatformOrdersScreenState
                       children: [
                         Text(
                           item['product_name'] as String? ?? 'Product',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         if ((item['variant_name'] ?? item['unit_label']) !=
                             null)
                           Text(
                             '${item['variant_name'] ?? ''} · ${item['unit_label'] ?? ''}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.secondaryText,
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                       ],
@@ -1252,7 +1239,7 @@ class _MerchantPlatformOrdersScreenState
         break;
       default:
         bg = AbashyakaColors.unavailableSurface;
-        fg = AppTheme.secondaryText;
+        fg = context.abashyaka.textSecondary;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1278,7 +1265,7 @@ class _MerchantPlatformOrdersScreenState
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: AbashyakaColors.pureWhite,
+      backgroundColor: context.abashyaka.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1306,20 +1293,20 @@ class _MerchantPlatformOrdersScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'KITCHEN TICKET',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.2,
-                          color: AppTheme.mainText,
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                       Text(
                         '$vertical · $reference',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                       ),
                     ],
@@ -1334,10 +1321,10 @@ class _MerchantPlatformOrdersScreenState
             const Divider(height: 24),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.location_on_outlined,
                   size: 16,
-                  color: AppTheme.secondaryText,
+                  color: context.abashyaka.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -1350,21 +1337,21 @@ class _MerchantPlatformOrdersScreenState
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'ORDER ITEMS',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
                 letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: AbashyakaColors.pearlWhite,
+                color: context.abashyaka.cardElevated,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+                border: Border.all(color: context.abashyaka.border),
               ),
               child: Column(
                 children: [
@@ -1413,12 +1400,12 @@ class _MerchantPlatformOrdersScreenState
             if ((order['special_instructions'] as String? ?? '')
                 .isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'SPECIAL NOTES',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.secondaryText,
+                  color: context.abashyaka.textSecondary,
                   letterSpacing: 1.0,
                 ),
               ),
@@ -1528,7 +1515,7 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: AbashyakaColors.pureWhite,
+    backgroundColor: context.abashyaka.card,
     scrollable: true,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     title: const Row(
@@ -1548,7 +1535,7 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
       children: [
         Text(
           'Share this code only with the assigned rider collecting ${widget.reference}.',
-          style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const SizedBox(height: 18),
         Container(
@@ -1572,17 +1559,17 @@ class _PickupCodeDialogState extends State<_PickupCodeDialog> {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.timer_outlined,
               size: 14,
-              color: AppTheme.secondaryText,
+              color: context.abashyaka.textSecondary,
             ),
             const SizedBox(width: 4),
             Text(
               'Expires in $_remaining seconds.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           ],

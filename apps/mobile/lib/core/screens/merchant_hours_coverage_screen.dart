@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/business.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/abashyaka_wave_header.dart';
+import '../widgets/fluid_wave_painter.dart';
 import '../widgets/screen_illustration_card.dart';
 import '../widgets/premium_card.dart';
 import 'merchant_availability_screen.dart';
@@ -83,9 +85,9 @@ class _MerchantHoursCoverageScreenState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppTheme.primary,
-              onSurface: AppTheme.mainText,
+              onSurface: context.abashyaka.textPrimary,
             ),
           ),
           child: child ?? const SizedBox(),
@@ -142,61 +144,55 @@ class _MerchantHoursCoverageScreenState
       }
     });
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
-      appBar: AppBar(
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Hours & Coverage',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Hours & Coverage',
+            subtitle: state.businessName.isNotEmpty
+                ? state.businessName
+                : 'Merchant Setup',
+            variant: FluidWaveVariant.merchant,
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: palette.card,
+              border: Border(bottom: BorderSide(color: palette.border)),
             ),
-            Text(
-              state.businessName.isNotEmpty
-                  ? state.businessName
-                  : 'Merchant Setup',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.secondaryText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.coral,
-          unselectedLabelColor: AppTheme.secondaryText,
-          indicatorColor: AppTheme.coral,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(icon: Icon(Icons.schedule), text: 'Operating Hours'),
-            Tab(
-              icon: Icon(Icons.event_available_outlined),
-              text: 'Appointments',
-            ),
-            Tab(icon: Icon(Icons.radar), text: 'Service Coverage'),
-          ],
-        ),
-      ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _tabController.index,
-              children: [
-                _buildOperatingHoursTab(state, notifier),
-                const MerchantAvailabilityScreen(),
-                _buildServiceCoverageTab(state, notifier),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppTheme.coral,
+              unselectedLabelColor: palette.textSecondary,
+              indicatorColor: AppTheme.coral,
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.schedule), text: 'Operating Hours'),
+                Tab(
+                  icon: Icon(Icons.event_available_outlined),
+                  text: 'Appointments',
+                ),
+                Tab(icon: Icon(Icons.radar), text: 'Service Coverage'),
               ],
             ),
+          ),
+          Expanded(
+            child: state.isLoading
+                ? Center(
+                    child: CircularProgressIndicator(color: palette.accent),
+                  )
+                : IndexedStack(
+                    index: _tabController.index,
+                    children: [
+                      _buildOperatingHoursTab(state, notifier),
+                      const MerchantAvailabilityScreen(),
+                      _buildServiceCoverageTab(state, notifier),
+                    ],
+                  ),
+          ),
+        ],
+      ),
       bottomNavigationBar: _tabController.index == 1
           ? null
           : _buildBottomBar(
@@ -243,7 +239,7 @@ class _MerchantHoursCoverageScreenState
                 color: AppTheme.primary.withValues(alpha: 0.2),
               ),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.info_outline, color: AppTheme.primary, size: 22),
                 SizedBox(width: 12),
@@ -252,7 +248,7 @@ class _MerchantHoursCoverageScreenState
                     'Set weekly store & booking hours. Customers see real-time "Open Now" or "Closed" statuses.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                       height: 1.3,
                     ),
                   ),
@@ -328,16 +324,16 @@ class _MerchantHoursCoverageScreenState
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Column(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.schedule_outlined,
                     size: 32,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -345,10 +341,10 @@ class _MerchantHoursCoverageScreenState
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Create a draft schedule, review it, then save it for customers.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.secondaryText),
+                    style: TextStyle(color: context.abashyaka.textSecondary),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -376,12 +372,12 @@ class _MerchantHoursCoverageScreenState
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Special Holiday Hours',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     const Spacer(),
@@ -403,11 +399,11 @@ class _MerchantHoursCoverageScreenState
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Override your standard weekly hours for festivals, national holidays, or planned shop maintenance.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                     height: 1.3,
                   ),
                 ),
@@ -442,7 +438,7 @@ class _MerchantHoursCoverageScreenState
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.abashyaka.card,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: hour.isClosed
@@ -481,7 +477,7 @@ class _MerchantHoursCoverageScreenState
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                       color: hour.isClosed
-                          ? AppTheme.secondaryText
+                          ? context.abashyaka.textSecondary
                           : (isWeekend ? AppTheme.coral : AppTheme.primary),
                     ),
                   ),
@@ -497,8 +493,8 @@ class _MerchantHoursCoverageScreenState
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: hour.isClosed
-                              ? AppTheme.secondaryText
-                              : AppTheme.mainText,
+                              ? context.abashyaka.textSecondary
+                              : context.abashyaka.textPrimary,
                         ),
                       ),
                       Text(
@@ -530,17 +526,17 @@ class _MerchantHoursCoverageScreenState
               const Divider(height: 18),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.access_time,
                     size: 16,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Hours:',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                   const Spacer(),
@@ -570,21 +566,21 @@ class _MerchantHoursCoverageScreenState
                       ),
                       child: Text(
                         _formatTimeDisplay(hour.opensAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.mainText,
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                     ),
                   ),
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       'to',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                   ),
@@ -614,10 +610,10 @@ class _MerchantHoursCoverageScreenState
                       ),
                       child: Text(
                         _formatTimeDisplay(hour.closesAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.mainText,
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                     ),
@@ -681,29 +677,29 @@ class _MerchantHoursCoverageScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Base Service Hub',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${state.locality}, ${state.city}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.mainText,
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Lat: ${state.latitude.toStringAsFixed(4)}, Lon: ${state.longitude.toStringAsFixed(4)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                       ),
                     ],
@@ -723,12 +719,12 @@ class _MerchantHoursCoverageScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Service Radius',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     Container(
@@ -754,9 +750,9 @@ class _MerchantHoursCoverageScreenState
                 const SizedBox(height: 8),
                 Text(
                   'You will receive requests and appear to customers within ~$approxArea sq km.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -785,7 +781,7 @@ class _MerchantHoursCoverageScreenState
                       selected: isSelected,
                       selectedColor: AppTheme.coral,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppTheme.mainText,
+                        color: isSelected ? Colors.white : context.abashyaka.textPrimary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
@@ -807,27 +803,27 @@ class _MerchantHoursCoverageScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Coverage Localities',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     Text(
                       '${_localities.length} Areas',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Primary localities within your configured delivery and service zone.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
                 ),
                 const SizedBox(height: 14),
                 Wrap(
@@ -901,12 +897,12 @@ class _MerchantHoursCoverageScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Accept Immediate Bookings',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.mainText,
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -914,9 +910,9 @@ class _MerchantHoursCoverageScreenState
                         state.acceptsRequests
                             ? 'Your profile is live for customer direct inquiries'
                             : 'Currently paused for new service requests',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                       ),
                     ],
@@ -947,7 +943,7 @@ class _MerchantHoursCoverageScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         border: const Border(
           top: BorderSide(color: AbashyakaColors.aquaSilverBorder),
         ),
@@ -975,12 +971,12 @@ class _MerchantHoursCoverageScreenState
               elevation: 0,
             ),
             child: isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: context.abashyaka.card,
                     ),
                   )
                 : Text(

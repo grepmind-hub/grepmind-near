@@ -10,6 +10,7 @@ import 'package:grepmind_mobile/core/screens/merchant_earnings_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_hours_coverage_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
@@ -54,57 +55,65 @@ class _MerchantWorkspaceScreenState
     final profileState = ref.watch(merchantProfileProvider(''));
     final analyticsState = ref.watch(merchantAnalyticsProvider);
 
+    final palette = context.abashyaka;
+    final businessTitle =
+        profileState.profile?['business_name']?.toString().trim();
+
     return Scaffold(
-      backgroundColor: context.abashyaka.canvas,
-      appBar: AppBar(
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        title: Text(
-          'Merchant Workspace',
-          style: AbashyakaTypography.pageTitle(fontSize: 18),
-        ),
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AbashyakaColors.signatureTeal,
-          labelColor: AbashyakaColors.signatureTeal,
-          unselectedLabelColor: AppTheme.secondaryText,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard_outlined), text: 'Dashboard'),
-            Tab(icon: Icon(Icons.request_quote_outlined), text: 'Requests'),
-            Tab(icon: Icon(Icons.store_outlined), text: 'Profile'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_outlined),
-            onPressed: () {
-              ref.read(merchantProvider.notifier).loadRequests();
-              ref.read(merchantProfileProvider('').notifier).load();
-              ref.read(merchantAnalyticsProvider.notifier).load();
-            },
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
+      backgroundColor: palette.canvas,
+      body: Column(
         children: [
-          Stack(
-            fit: StackFit.expand,
-            children: [
-              const FluidWaveBackground(variant: FluidWaveVariant.discovery),
-              _buildDashboardTab(merchantState, analyticsState),
+          AbashyakaWaveHeader(
+            title: 'Merchant Workspace',
+            subtitle: (businessTitle != null && businessTitle.isNotEmpty)
+                ? businessTitle
+                : 'Manage your business & requests',
+            variant: FluidWaveVariant.merchant,
+            actions: [
+              AbashyakaWaveActionButton(
+                icon: Icons.refresh_outlined,
+                tooltip: 'Refresh',
+                onPressed: () {
+                  ref.read(merchantProvider.notifier).loadRequests();
+                  ref.read(merchantProfileProvider('').notifier).load();
+                  ref.read(merchantAnalyticsProvider.notifier).load();
+                },
+              ),
             ],
           ),
-          _buildRequestsTab(merchantState),
-          _buildProfileTab(profileState),
+          Material(
+            color: palette.card,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: palette.accent,
+              labelColor: palette.accent,
+              unselectedLabelColor: palette.textSecondary,
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.dashboard_outlined), text: 'Dashboard'),
+                Tab(icon: Icon(Icons.request_quote_outlined), text: 'Requests'),
+                Tab(icon: Icon(Icons.store_outlined), text: 'Profile'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const FluidWaveBackground(
+                      variant: FluidWaveVariant.discovery,
+                    ),
+                    _buildDashboardTab(merchantState, analyticsState),
+                  ],
+                ),
+                _buildRequestsTab(merchantState),
+                _buildProfileTab(profileState),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -162,7 +171,7 @@ class _MerchantWorkspaceScreenState
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -171,7 +180,7 @@ class _MerchantWorkspaceScreenState
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         SizedBox(height: 4),
@@ -179,7 +188,7 @@ class _MerchantWorkspaceScreenState
                           'Manage your business and service requests',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                           ),
                         ),
                       ],
@@ -263,9 +272,9 @@ class _MerchantWorkspaceScreenState
             ),
           ] else ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Unique signed-in customer views. Repeat visits count once per day.',
-              style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+              style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
             ),
           ],
           const SizedBox(height: 20),
@@ -401,7 +410,7 @@ class _MerchantWorkspaceScreenState
             ...state.items.take(3).map((r) => _requestItem(r)),
           ] else ...[
             const SizedBox(height: 20),
-            const Center(
+            Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -416,7 +425,7 @@ class _MerchantWorkspaceScreenState
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -424,7 +433,7 @@ class _MerchantWorkspaceScreenState
                     'Customers will send service requests here',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ],
@@ -450,7 +459,7 @@ class _MerchantWorkspaceScreenState
     return RefreshIndicator(
       onRefresh: () => ref.read(merchantProvider.notifier).loadRequests(),
       child: state.items.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -465,13 +474,13 @@ class _MerchantWorkspaceScreenState
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                     ),
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Customers will send service requests here',
-                    style: TextStyle(color: AppTheme.secondaryText),
+                    style: TextStyle(color: context.abashyaka.textSecondary),
                   ),
                 ],
               ),
@@ -535,10 +544,10 @@ class _MerchantWorkspaceScreenState
                   _extractString(profile['name']).isEmpty
                       ? 'My Business'
                       : _extractString(profile['name']),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -548,9 +557,9 @@ class _MerchantWorkspaceScreenState
                       : _extractString(profile['category_slug']).isEmpty
                       ? 'Business'
                       : _extractString(profile['category_slug']),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                 ),
               ],
@@ -607,11 +616,11 @@ class _MerchantWorkspaceScreenState
               ),
             )
           else
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Text(
                 'Only the business owner can edit this profile.',
-                style: TextStyle(color: AppTheme.secondaryText),
+                style: TextStyle(color: context.abashyaka.textSecondary),
               ),
             ),
           const SizedBox(height: 12),
@@ -667,20 +676,20 @@ class _MerchantWorkspaceScreenState
             key: Key(
               'merchant_view_metric_${title.toLowerCase().replaceAll(' ', '_')}',
             ),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 25,
               fontWeight: FontWeight.w800,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
               height: 1.1,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.secondaryText,
+              color: context.abashyaka.textSecondary,
             ),
           ),
         ],
@@ -717,15 +726,15 @@ class _MerchantWorkspaceScreenState
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
             ),
           ),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
           ),
         ],
       ),
@@ -739,12 +748,13 @@ class _MerchantWorkspaceScreenState
     VoidCallback onTap, {
     Key? key,
   }) {
+    final palette = context.abashyaka;
     return Material(
       key: key,
-      color: AbashyakaColors.pureWhite,
+      color: palette.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AbashyakaRadius.md),
-        side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
+        side: BorderSide(color: palette.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -776,10 +786,10 @@ class _MerchantWorkspaceScreenState
       padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: AppTheme.mainText,
+          color: context.abashyaka.textPrimary,
         ),
       ),
     );
@@ -807,17 +817,17 @@ class _MerchantWorkspaceScreenState
               children: [
                 Text(
                   r.customerName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.mainText,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   r.description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -859,9 +869,9 @@ class _MerchantWorkspaceScreenState
                   r.customerName.isEmpty ? 'Customer request' : r.customerName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
               ),
@@ -887,23 +897,23 @@ class _MerchantWorkspaceScreenState
           if (r.serviceName != null)
             Text(
               'Service: ${r.serviceName}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           const SizedBox(height: 4),
           Text(
             r.description,
-            style: const TextStyle(fontSize: 14, color: AppTheme.mainText),
+            style: TextStyle(fontSize: 14, color: context.abashyaka.textPrimary),
           ),
           const SizedBox(height: 8),
           if (r.requestedFor != null)
             Text(
               'Requested for: ${r.requestedFor}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           const SizedBox(height: 16),
@@ -984,9 +994,9 @@ class _MerchantWorkspaceScreenState
                 Expanded(
                   child: Text(
                     'Status: ${r.status}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ),
@@ -1144,7 +1154,7 @@ class _MerchantWorkspaceScreenState
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('EEEE, d MMMM').format(selectedDate),
-                    style: const TextStyle(color: AppTheme.secondaryText),
+                    style: TextStyle(color: context.abashyaka.textSecondary),
                   ),
                   const SizedBox(height: 12),
                   Flexible(
@@ -1172,7 +1182,7 @@ class _MerchantWorkspaceScreenState
                                   : Icons.radio_button_unchecked,
                               color: selectedSlotId == id
                                   ? AppTheme.primary
-                                  : AppTheme.secondaryText,
+                                  : context.abashyaka.textSecondary,
                             ),
                             title: Text('$startLabel – $endLabel'),
                             subtitle: Text(
@@ -1274,19 +1284,19 @@ class _MerchantWorkspaceScreenState
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           ),
           Expanded(
             child: Text(
               displayValue,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
             ),
           ),
@@ -1343,10 +1353,10 @@ class _MerchantWorkspaceScreenState
                   : (isNotFound
                         ? 'Business Profile Required'
                         : 'Unable to Load Workspace'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -1357,9 +1367,9 @@ class _MerchantWorkspaceScreenState
                         ? 'You have not registered or claimed a business listing yet. Register your business to start receiving customer service requests and managing catalog.'
                         : 'We encountered an error while loading your merchant profile. Please check your network and try again.'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
                 height: 1.4,
               ),
             ),

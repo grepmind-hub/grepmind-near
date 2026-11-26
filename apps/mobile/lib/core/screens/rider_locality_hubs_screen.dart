@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 /// Screen 19 & 20: Rider Service Locality Hubs & Coverage Settings Screen.
 ///
@@ -122,35 +124,28 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      appBar: AppBar(
-        title: const Text(
-          'Service Locality Hubs',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-            color: Colors.white,
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Service Locality Hubs',
+            subtitle: 'Dispatch zones & coverage radius',
+            variant: FluidWaveVariant.rider,
+            actions: [
+              AbashyakaWaveActionButton(
+                icon: Icons.refresh_rounded,
+                tooltip: 'Refresh hubs',
+                onPressed: _loading ? null : _load,
+              ),
+            ],
           ),
-        ),
-        backgroundColor: AppTheme.emeraldDark,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            tooltip: 'Refresh hubs',
-            onPressed: _loading ? null : _load,
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.emerald),
-            )
+          Expanded(
+            child: _loading
+                ? Center(
+                    child: CircularProgressIndicator(color: palette.accent),
+                  )
           : _error != null
           ? Center(
               child: Padding(
@@ -167,9 +162,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppTheme.brandText,
+                        color: context.abashyaka.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -228,21 +223,21 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   color: Colors.white.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.hub_rounded,
-                                  color: Colors.white,
+                                  color: context.abashyaka.card,
                                   size: 24,
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Expanded(
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       'Cuttack & Jajpur Central Hubs',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: context.abashyaka.card,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 16,
                                       ),
@@ -267,10 +262,10 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   color: const Color(0xFF10B981),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'ACTIVE',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: context.abashyaka.card,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -324,7 +319,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Container(
                       height: 220,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.abashyaka.card,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: const [
@@ -368,7 +363,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                     color: const Color(0xFFCBD5E1),
                                   ),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
@@ -382,7 +377,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
-                                        color: AppTheme.brandText,
+                                        color: context.abashyaka.textPrimary,
                                       ),
                                     ),
                                   ],
@@ -399,7 +394,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.abashyaka.card,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
@@ -421,13 +416,13 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'Shift Delivery Radius',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 15,
-                                    color: AppTheme.brandText,
+                                    color: context.abashyaka.textPrimary,
                                   ),
                                 ),
                               ),
@@ -452,11 +447,11 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                             ],
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             'Adjust your active dispatch zone radius relative to approved regional hubs.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.secondaryText,
+                              color: context.abashyaka.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -516,7 +511,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                         fontWeight: FontWeight.w700,
                                         color: _shiftRadiusKm == preset
                                             ? Colors.white
-                                            : AppTheme.brandText,
+                                            : context.abashyaka.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -541,12 +536,12 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                               ),
                               onPressed: _saving ? null : _savePreferences,
                               icon: _saving
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: context.abashyaka.card,
                                       ),
                                     )
                                   : const Icon(
@@ -568,12 +563,12 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     const SizedBox(height: 16),
 
                     // 4. Approved Localities Directory (Screen 19)
-                    const Text(
+                    Text(
                       'Operational Locality Directory',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.brandText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -582,14 +577,14 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.abashyaka.card,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             'No localities registered for this regional hub.',
-                            style: TextStyle(color: AppTheme.secondaryText),
+                            style: TextStyle(color: context.abashyaka.textSecondary),
                           ),
                         ),
                       )
@@ -637,6 +632,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                 ),
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -645,8 +643,8 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.abashyaka.card,
             fontWeight: FontWeight.w800,
             fontSize: 14,
           ),
@@ -673,7 +671,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isApproved
@@ -717,10 +715,10 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 14.5,
-                        color: AppTheme.brandText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     if (isApproved) ...[
@@ -749,9 +747,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                 const SizedBox(height: 2),
                 Text(
                   '$district District · Active Hub',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                 ),
               ],
@@ -919,7 +917,7 @@ class _HubCoverageRadarPainter extends CustomPainter {
         style: TextStyle(
           fontSize: 10,
           fontWeight: isApproved ? FontWeight.w800 : FontWeight.w600,
-          color: isApproved ? AppTheme.emeraldDark : AppTheme.brandText,
+          color: isApproved ? AppTheme.emeraldDark : const Color(0xFF64748B),
         ),
       );
       tp.layout();

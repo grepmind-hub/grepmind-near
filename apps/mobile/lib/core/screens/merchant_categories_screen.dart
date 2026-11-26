@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
 /// Merchant-owned catalog categories persisted by the API.
 class MerchantCategoriesScreen extends StatefulWidget {
@@ -144,60 +146,67 @@ class _MerchantCategoriesScreenState extends State<MerchantCategoriesScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppTheme.background,
-    appBar: AppBar(
-      leading: Navigator.canPop(context)
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back',
-              onPressed: () => Navigator.of(context).pop(),
-            )
-          : null,
-      title: const Text('Catalog categories'),
-      actions: [
-        IconButton(
-          tooltip: 'Refresh categories',
-          onPressed: _saving ? null : _load,
-          icon: const Icon(Icons.refresh),
-        ),
-      ],
-    ),
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: _saving ? null : () => _edit(),
-      icon: const Icon(Icons.add),
-      label: const Text('Add category'),
-    ),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : _error != null
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_error!, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _load,
-                    child: const Text('Try again'),
-                  ),
-                ],
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Scaffold(
+      backgroundColor: palette.canvas,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _saving ? null : () => _edit(),
+        icon: const Icon(Icons.add),
+        label: const Text('Add category'),
+      ),
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Catalog Categories',
+            subtitle: 'Organize products & services',
+            variant: FluidWaveVariant.merchant,
+            actions: [
+              AbashyakaWaveActionButton(
+                tooltip: 'Refresh categories',
+                onPressed: _saving ? null : _load,
+                icon: Icons.refresh,
               ),
-            ),
-          )
-        : _items.isEmpty
-        ? const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Organize your catalog with categories.\nAdd your first category to get started.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          )
-        : RefreshIndicator(
+            ],
+          ),
+          Expanded(
+            child: _loading
+                ? Center(
+                    child: CircularProgressIndicator(color: palette.accent),
+                  )
+                : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: palette.textPrimary),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton(
+                            onPressed: _load,
+                            child: const Text('Try again'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _items.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Organize your catalog with categories.\nAdd your first category to get started.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: palette.textSecondary),
+                      ),
+                    ),
+                  )
+                : RefreshIndicator(
             onRefresh: _load,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
@@ -206,16 +215,21 @@ class _MerchantCategoriesScreenState extends State<MerchantCategoriesScreen> {
               itemBuilder: (context, index) {
                 final category = _items[index];
                 return Card(
+                  color: palette.card,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: palette.border),
                   ),
                   child: ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.category_outlined,
-                      color: AppTheme.primary,
+                      color: palette.accent,
                     ),
-                    title: Text(category['name'] as String),
+                    title: Text(
+                      category['name'] as String,
+                      style: TextStyle(color: palette.textPrimary),
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -236,5 +250,9 @@ class _MerchantCategoriesScreenState extends State<MerchantCategoriesScreen> {
               },
             ),
           ),
-  );
+          ),
+        ],
+      ),
+    );
+  }
 }

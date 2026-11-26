@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/luxe_components.dart';
 
 class RiderEarningsScreen extends StatefulWidget {
@@ -126,34 +128,33 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                 sum + ((row['unpriced_deliveries'] as num?)?.toInt() ?? 0),
           )
         : (summary?['unpriced_deliveries'] as num?)?.toInt();
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text(
-          'Rider earnings',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w800,
+      backgroundColor: palette.canvas,
+      body: Column(
+        children: [
+          AbashyakaWaveHeader(
+            title: 'Rider Earnings',
+            subtitle: 'Completed deliveries & settlement summary',
+            variant: FluidWaveVariant.rider,
+            actions: [
+              AbashyakaWaveActionButton(
+                icon: Icons.refresh_rounded,
+                tooltip: 'Refresh earnings',
+                onPressed: _loading ? null : _load,
+              ),
+            ],
           ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppTheme.riderAmberBorder),
                 boxShadow: [
@@ -167,10 +168,10 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Recorded compensation',
                     style: TextStyle(
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -212,15 +213,15 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     '${completed ?? '—'} completed deliveries · last $_days days',
-                    style: const TextStyle(color: AppTheme.secondaryText),
+                    style: TextStyle(color: context.abashyaka.textSecondary),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Real bank payouts are disabled. Settlement and QA simulation status is shown separately and does not confirm bank credit.',
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ],
@@ -266,7 +267,7 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -288,15 +289,15 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Icon(
                       Icons.receipt_long_outlined,
                       size: 34,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -307,7 +308,7 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                     Text(
                       'Eligible completed deliveries will appear here when compensation policy is approved.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.secondaryText),
+                      style: TextStyle(color: context.abashyaka.textSecondary),
                     ),
                   ],
                 ),
@@ -326,15 +327,15 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   _settlementError!,
-                  style: const TextStyle(color: AppTheme.secondaryText),
+                  style: TextStyle(color: context.abashyaka.textSecondary),
                 ),
               )
             else if (_settlements.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   'No settlement batches are recorded for this rider.',
-                  style: TextStyle(color: AppTheme.secondaryText),
+                  style: TextStyle(color: context.abashyaka.textSecondary),
                 ),
               )
             else
@@ -345,6 +346,9 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
             const _RiderBeneficiarySection(),
           ],
         ),
+      ),
+          ),
+        ],
       ),
     );
   }
@@ -371,7 +375,7 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFFE4EAF4)),
       ),
@@ -399,9 +403,9 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
           if (attempt != null && attempt.isNotEmpty)
             Text('Latest attempt: ${attempt.replaceAll('_', ' ')}'),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Settlement status is informational. QA transfer simulations are not bank payments; rider earnings remain separate from COD cash.',
-            style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
           ),
         ],
       ),
@@ -424,7 +428,7 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: const Color(0xFFE4EAF4)),
       ),
@@ -454,9 +458,9 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                 if (date != null)
                   Text(
                     '${date.day}/${date.month}/${date.year}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 if (row['reason'] != null)
@@ -464,9 +468,9 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                     row['reason'].toString(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
               ],
@@ -491,7 +495,7 @@ class _CashAccountabilityTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.abashyaka.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: AppTheme.border),
@@ -515,13 +519,13 @@ class _CashAccountabilityTile extends StatelessWidget {
           'Cash Accountability',
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
-        subtitle: const Text(
+        subtitle: Text(
           'COD collections & remittance history (separate from earnings)',
-          style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.chevron_right_rounded,
-          color: AppTheme.secondaryText,
+          color: context.abashyaka.textSecondary,
         ),
         onTap: () => Navigator.push(
           context,
@@ -588,7 +592,7 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.abashyaka.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -626,9 +630,9 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Enter verified bank account details for rider payouts.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -746,11 +750,11 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
                             }
                           },
                     child: submitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: context.abashyaka.card,
                               strokeWidth: 2,
                             ),
                           )
@@ -791,7 +795,7 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         border: Border.all(color: AppTheme.border),
       ),
@@ -810,7 +814,7 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -819,13 +823,13 @@ class _RiderBeneficiarySectionState extends State<_RiderBeneficiarySection> {
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: AppTheme.textPrimary,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'Register your bank details for verified payouts.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                  style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
                 ),
               ],
             ),

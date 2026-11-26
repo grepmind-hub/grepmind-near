@@ -131,8 +131,8 @@ class _MerchantAvailabilityScreenState
           ),
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -162,7 +162,7 @@ class _MerchantAvailabilityScreenState
                 const SizedBox(height: 4),
                 Text(
                   'Local time • $_timeZone',
-                  style: const TextStyle(color: AppTheme.secondaryText),
+                  style: TextStyle(color: context.abashyaka.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -324,8 +324,8 @@ class _MerchantAvailabilityScreenState
           ),
           child: Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -340,7 +340,7 @@ class _MerchantAvailabilityScreenState
                 const SizedBox(height: 4),
                 Text(
                   DateFormat('EEEE, d MMMM yyyy').format(_selectedDate),
-                  style: const TextStyle(color: AppTheme.secondaryText),
+                  style: TextStyle(color: context.abashyaka.textSecondary),
                 ),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
@@ -463,7 +463,7 @@ class _MerchantAvailabilityScreenState
   Widget build(BuildContext context) {
     final exception = _exceptionForSelectedDate;
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FC),
+      backgroundColor: context.abashyaka.canvas,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -471,10 +471,10 @@ class _MerchantAvailabilityScreenState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.event_busy,
                     size: 40,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                   ),
                   const SizedBox(height: 12),
                   Text(_error!, textAlign: TextAlign.center),
@@ -516,10 +516,10 @@ class _MerchantAvailabilityScreenState
                           ],
                         ),
                         const SizedBox(height: 6),
-                        const Text(
+                        Text(
                           'Appointment times are shown in your local business time and stored safely as UTC.',
                           style: TextStyle(
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                             height: 1.35,
                           ),
                         ),
@@ -566,7 +566,7 @@ class _MerchantAvailabilityScreenState
                                   style: TextStyle(
                                     color: selected
                                         ? Colors.white70
-                                        : AppTheme.secondaryText,
+                                        : context.abashyaka.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -576,7 +576,7 @@ class _MerchantAvailabilityScreenState
                                   style: TextStyle(
                                     color: selected
                                         ? Colors.white
-                                        : AppTheme.mainText,
+                                        : context.abashyaka.textPrimary,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -634,10 +634,10 @@ class _MerchantAvailabilityScreenState
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.event_available_outlined,
                             size: 34,
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                           ),
                           const SizedBox(height: 8),
                           const Text(
@@ -645,10 +645,10 @@ class _MerchantAvailabilityScreenState
                             style: TextStyle(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             'Create real bookable times for customers.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.secondaryText),
+                            style: TextStyle(color: context.abashyaka.textSecondary),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
@@ -708,7 +708,7 @@ class _MerchantAvailabilityScreenState
                 status == 'open' ? Icons.event_available : Icons.event_busy,
                 color: status == 'open'
                     ? AppTheme.coral
-                    : AppTheme.secondaryText,
+                    : context.abashyaka.textSecondary,
               ),
             ),
             const SizedBox(width: 12),
@@ -723,8 +723,8 @@ class _MerchantAvailabilityScreenState
                   const SizedBox(height: 3),
                   Text(
                     '$booked of $capacity booked • ${status == 'open' ? 'Open' : 'Closed'}',
-                    style: const TextStyle(
-                      color: AppTheme.secondaryText,
+                    style: TextStyle(
+                      color: context.abashyaka.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -752,12 +752,12 @@ class _MerchantAvailabilityScreenState
                 ],
               )
             else
-              const Tooltip(
+              Tooltip(
                 message: 'Booked or closed slots cannot be edited',
                 child: Icon(
                   Icons.lock_outline,
                   size: 18,
-                  color: AppTheme.secondaryText,
+                  color: context.abashyaka.textSecondary,
                 ),
               ),
           ],

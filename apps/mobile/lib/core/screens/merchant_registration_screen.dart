@@ -11,8 +11,8 @@ import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
-import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/metallic_button.dart';
 
@@ -85,7 +85,7 @@ class _ClaimRequestSheetState extends State<_ClaimRequestSheet> {
           const SizedBox(height: 6),
           Text(
             widget.businessName,
-            style: const TextStyle(color: AppTheme.secondaryText),
+            style: TextStyle(color: context.abashyaka.textSecondary),
           ),
           const SizedBox(height: 14),
           Container(
@@ -181,7 +181,7 @@ class _CategoryPickerState extends State<_CategoryPicker> {
             hintText: 'Search all ${widget.categories.length} categories',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.abashyaka.cardElevated,
           ),
         ),
         const SizedBox(height: 10),
@@ -196,11 +196,11 @@ class _CategoryPickerState extends State<_CategoryPicker> {
               padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
               child: Text(
                 entry.key.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.secondaryText,
+                  color: context.abashyaka.textSecondary,
                 ),
               ),
             ),
@@ -246,9 +246,9 @@ class _CategoryPickerState extends State<_CategoryPicker> {
                                     category.description!,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppTheme.secondaryText,
+                                      color: context.abashyaka.textSecondary,
                                     ),
                                   ),
                               ],
@@ -476,7 +476,7 @@ class _MerchantRegistrationScreenState
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.abashyaka.card,
       builder: (_) => _ClaimRequestSheet(
         businessName: business['name'] as String? ?? 'Business listing',
       ),
@@ -801,25 +801,14 @@ class _MerchantRegistrationScreenState
       return _buildSuccessScreen();
     }
 
+    final palette = context.abashyaka;
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
-      appBar: AppBar(
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        title: const Text('Merchant Onboarding'),
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.mainText,
-      ),
+      backgroundColor: palette.canvas,
       body: Column(
         children: [
-          AbashyakaPremiumHeader(
+          AbashyakaWaveHeader(
+            title: 'Merchant Onboarding',
+            subtitle: 'Register or claim your local business',
             variant: FluidWaveVariant.merchant,
             bottom: _buildModeSegmentedControl(),
           ),
@@ -1008,18 +997,18 @@ class _MerchantRegistrationScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Select Enterprise Classification',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Choose the model that best describes how you conduct business.',
-          style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const SizedBox(height: 16),
 
@@ -1057,18 +1046,18 @@ class _MerchantRegistrationScreenState
         ),
 
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Primary business category',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Choose the closest match. This helps customers find your listing.',
-          style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const SizedBox(height: 12),
         if (categoryState.isLoading && categories.isEmpty)
@@ -1161,7 +1150,7 @@ class _MerchantRegistrationScreenState
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: isSelected ? color : AppTheme.mainText,
+                              color: isSelected ? color : context.abashyaka.textPrimary,
                             ),
                           ),
                         ),
@@ -1172,9 +1161,9 @@ class _MerchantRegistrationScreenState
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -1195,18 +1184,18 @@ class _MerchantRegistrationScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Enterprise & Ownership Details',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Official details displayed to customers and verified on receipts.',
-            style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+            style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
           ),
           const SizedBox(height: 16),
 
@@ -1221,7 +1210,7 @@ class _MerchantRegistrationScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: context.abashyaka.cardElevated,
             ),
           ),
           const SizedBox(height: 14),
@@ -1237,7 +1226,7 @@ class _MerchantRegistrationScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: context.abashyaka.cardElevated,
             ),
           ),
           const SizedBox(height: 14),
@@ -1257,7 +1246,7 @@ class _MerchantRegistrationScreenState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: context.abashyaka.cardElevated,
                   ),
                 ),
               ),
@@ -1276,7 +1265,7 @@ class _MerchantRegistrationScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: context.abashyaka.cardElevated,
             ),
           ),
           const SizedBox(height: 14),
@@ -1292,7 +1281,7 @@ class _MerchantRegistrationScreenState
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: context.abashyaka.cardElevated,
             ),
           ),
           const SizedBox(height: 18),
@@ -1306,12 +1295,12 @@ class _MerchantRegistrationScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Tax / Registration ID',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.mainText,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     Row(
@@ -1322,11 +1311,11 @@ class _MerchantRegistrationScreenState
                               setState(() => _isUnorganized = v ?? false),
                           activeColor: AppTheme.primary,
                         ),
-                        const Text(
+                        Text(
                           'Local artisan / No GST',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                           ),
                         ),
                       ],
@@ -1345,7 +1334,7 @@ class _MerchantRegistrationScreenState
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: context.abashyaka.cardElevated,
                     ),
                   ),
                 ] else ...[
@@ -1353,14 +1342,14 @@ class _MerchantRegistrationScreenState
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AbashyakaColors.pearlWhite,
+                      color: context.abashyaka.cardElevated,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Unregistered businesses and artisans can still list with Aadhaar or Electricity Bill proof.',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.secondaryText,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                   ),
@@ -1378,18 +1367,18 @@ class _MerchantRegistrationScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Storefront Location & Signage',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Accurate location ensures nearby customers can find and visit your shop.',
-          style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const SizedBox(height: 16),
 
@@ -1402,7 +1391,7 @@ class _MerchantRegistrationScreenState
             prefixIcon: const Icon(Icons.location_on_outlined),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.abashyaka.cardElevated,
           ),
         ),
         const SizedBox(height: 14),
@@ -1420,7 +1409,7 @@ class _MerchantRegistrationScreenState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.abashyaka.cardElevated,
                 ),
               ),
             ),
@@ -1443,7 +1432,7 @@ class _MerchantRegistrationScreenState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.abashyaka.cardElevated,
                 ),
               ),
             ),
@@ -1461,7 +1450,7 @@ class _MerchantRegistrationScreenState
             prefixIcon: const Icon(Icons.pin_drop_outlined),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.abashyaka.cardElevated,
           ),
         ),
         const SizedBox(height: 18),
@@ -1483,9 +1472,9 @@ class _MerchantRegistrationScreenState
                       color: AbashyakaColors.success,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.my_location,
-                      color: Colors.white,
+                      color: context.abashyaka.card,
                       size: 20,
                     ),
                   ),
@@ -1505,7 +1494,7 @@ class _MerchantRegistrationScreenState
                             color:
                                 _businessLatitude == null ||
                                     _businessLongitude == null
-                                ? AppTheme.mainText
+                                ? context.abashyaka.textPrimary
                                 : AbashyakaColors.success,
                           ),
                         ),
@@ -1514,9 +1503,9 @@ class _MerchantRegistrationScreenState
                                   _businessLongitude == null
                               ? 'Use GPS or enter the storefront pin coordinates.'
                               : '${_businessLatitude!.toStringAsFixed(5)}, ${_businessLongitude!.toStringAsFixed(5)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.secondaryText,
+                            color: context.abashyaka.textSecondary,
                           ),
                         ),
                       ],
@@ -1608,12 +1597,12 @@ class _MerchantRegistrationScreenState
         const SizedBox(height: 18),
 
         // Storefront photo is a real authenticated media upload.
-        const Text(
+        Text(
           'Storefront Signage Photo',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -1624,7 +1613,7 @@ class _MerchantRegistrationScreenState
           child: Container(
             height: 140,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _coverPhotoUrl != null
@@ -1660,14 +1649,14 @@ class _MerchantRegistrationScreenState
                             color: Colors.black.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
                               Icon(Icons.edit, size: 12, color: Colors.white),
                               SizedBox(width: 4),
                               Text(
                                 'Change',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: context.abashyaka.card,
                                   fontSize: 11,
                                 ),
                               ),
@@ -1697,10 +1686,10 @@ class _MerchantRegistrationScreenState
                           _isUploadingPhoto
                               ? 'Uploading photo…'
                               : 'Add a storefront photo',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.mainText,
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         const Text(
@@ -1724,18 +1713,18 @@ class _MerchantRegistrationScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Operating Mode & Radius',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Set how you service orders and define your service reach.',
-          style: TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const SizedBox(height: 16),
 
@@ -1759,12 +1748,12 @@ class _MerchantRegistrationScreenState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Service & Delivery Coverage',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                     ),
                   ),
                   Container(
@@ -1788,9 +1777,9 @@ class _MerchantRegistrationScreenState
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Customers within this perimeter will see your listing under "Nearby".',
-                style: TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+                style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
               ),
               Slider(
                 value: _serviceRadiusKm,
@@ -1819,12 +1808,12 @@ class _MerchantRegistrationScreenState
         const SizedBox(height: 16),
 
         // Operating Hours Preset
-        const Text(
+        Text(
           'Operating Schedule Preset',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: AppTheme.mainText,
+            color: context.abashyaka.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -1852,14 +1841,14 @@ class _MerchantRegistrationScreenState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AbashyakaColors.pearlWhite,
+            color: context.abashyaka.cardElevated,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(
                     Icons.fact_check_outlined,
@@ -1872,7 +1861,7 @@ class _MerchantRegistrationScreenState
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                     ),
                   ),
                 ],
@@ -1904,16 +1893,16 @@ class _MerchantRegistrationScreenState
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppTheme.secondaryText),
+            style: TextStyle(fontSize: 12, color: context.abashyaka.textSecondary),
           ),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1945,7 +1934,7 @@ class _MerchantRegistrationScreenState
               Icon(
                 icon,
                 size: 18,
-                color: isSelected ? Colors.white : AppTheme.secondaryText,
+                color: isSelected ? Colors.white : context.abashyaka.textSecondary,
               ),
               const SizedBox(height: 4),
               Text(
@@ -1953,7 +1942,7 @@ class _MerchantRegistrationScreenState
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isSelected ? Colors.white : AppTheme.mainText,
+                  color: isSelected ? Colors.white : context.abashyaka.textPrimary,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -1999,14 +1988,14 @@ class _MerchantRegistrationScreenState
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? AppTheme.primary : AppTheme.mainText,
+                      color: isSelected ? AppTheme.primary : context.abashyaka.textPrimary,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ],
@@ -2023,7 +2012,7 @@ class _MerchantRegistrationScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.abashyaka.card,
         border: const Border(top: BorderSide(color: AppTheme.border)),
         boxShadow: [
           BoxShadow(
@@ -2122,12 +2111,12 @@ class _MerchantRegistrationScreenState
         const SizedBox(height: 16),
 
         if (_myClaimRequests.isNotEmpty) ...[
-          const Text(
+          Text(
             'Your claim requests',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -2144,7 +2133,7 @@ class _MerchantRegistrationScreenState
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.abashyaka.card,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.border),
               ),
@@ -2205,7 +2194,7 @@ class _MerchantRegistrationScreenState
             prefixIcon: const Icon(Icons.search),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.abashyaka.cardElevated,
           ),
         ),
         const SizedBox(height: 18),
@@ -2213,21 +2202,21 @@ class _MerchantRegistrationScreenState
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Available listings for claim',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.mainText,
+                color: context.abashyaka.textPrimary,
               ),
             ),
             Text(
               _claimSearchLoading
                   ? 'Searching…'
                   : '${_filteredClaimable.length} found',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
               ),
             ),
           ],
@@ -2262,13 +2251,13 @@ class _MerchantRegistrationScreenState
             ),
           )
         else if (_searchClaimController.text.trim().length < 2)
-          const Center(
+          Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 34),
               child: Text(
                 'Enter at least 2 characters to search approved listings.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.secondaryText),
+                style: TextStyle(color: context.abashyaka.textSecondary),
               ),
             ),
           )
@@ -2289,11 +2278,11 @@ class _MerchantRegistrationScreenState
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Try a different business name, category or locality.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2327,8 +2316,8 @@ class _MerchantRegistrationScreenState
             item['name'] as String,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppTheme.mainText,
+            style: TextStyle(
+              color: context.abashyaka.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -2338,7 +2327,7 @@ class _MerchantRegistrationScreenState
             '${item['category']} • ${item['locality']}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppTheme.secondaryText, fontSize: 13),
+            style: TextStyle(color: context.abashyaka.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 6),
           Text(
@@ -2350,10 +2339,10 @@ class _MerchantRegistrationScreenState
           const SizedBox(height: 10),
           MetallicButton(
             text: 'Request review',
-            leadingIcon: const Icon(
+            leadingIcon: Icon(
               Icons.verified_outlined,
               size: 16,
-              color: AbashyakaColors.pureWhite,
+              color: context.abashyaka.card,
             ),
             onPressed: () => _showClaimConfirmationSheet(item),
           ),
@@ -2367,7 +2356,7 @@ class _MerchantRegistrationScreenState
   // -------------------------------------------------------------
   Widget _buildSuccessScreen() {
     return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: context.abashyaka.canvas,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -2381,11 +2370,11 @@ class _MerchantRegistrationScreenState
                   shape: BoxShape.circle,
                   color: AbashyakaColors.signatureTeal,
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.check_rounded,
                     size: 54,
-                    color: Colors.white,
+                    color: context.abashyaka.card,
                   ),
                 ),
               ),
@@ -2537,11 +2526,11 @@ class _MerchantRegistrationScreenState
   Widget _buildSuccessRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppTheme.secondaryText),
+        Icon(icon, size: 18, color: context.abashyaka.textSecondary),
         const SizedBox(width: 10),
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: AppTheme.secondaryText),
+          style: TextStyle(fontSize: 13, color: context.abashyaka.textSecondary),
         ),
         const Spacer(),
         Expanded(
@@ -2549,10 +2538,10 @@ class _MerchantRegistrationScreenState
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
