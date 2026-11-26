@@ -43,8 +43,8 @@ class CategoryCircleItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF087F0D)
-                      : const Color(0xFFE1EBE5),
+                      ? context.abashyaka.accent
+                      : context.abashyaka.border,
                   width: isSelected ? 2.5 : 1.0,
                 ),
                 boxShadow: [
@@ -74,8 +74,8 @@ class CategoryCircleItem extends StatelessWidget {
                   height: 1.2,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: isSelected
-                      ? const Color(0xFF087F0D)
-                      : AppTheme.mainText,
+                      ? context.abashyaka.accent
+                      : context.abashyaka.textPrimary,
                   letterSpacing: -0.2,
                 ),
               ),

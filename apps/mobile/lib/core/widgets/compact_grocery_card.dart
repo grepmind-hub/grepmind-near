@@ -42,9 +42,9 @@ class CompactGroceryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.brandBorder),
+        border: Border.all(color: context.abashyaka.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0A17352C),
@@ -72,7 +72,7 @@ class CompactGroceryCard extends StatelessWidget {
                       child: Container(
                         height: 110,
                         width: double.infinity,
-                        color: AppTheme.brandCanvas,
+                        color: context.abashyaka.canvas,
                         child: imageUrl != null && imageUrl!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: apiClient.resolveMediaUrl(imageUrl!),
@@ -131,10 +131,10 @@ class CompactGroceryCard extends StatelessWidget {
                   name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.brandText,
+                    color: context.abashyaka.textPrimary,
                     height: 1.25,
                   ),
                 ),
@@ -143,9 +143,9 @@ class CompactGroceryCard extends StatelessWidget {
                 // Unit / Pack Size
                 Text(
                   unit,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.brandTextMuted,
+                    color: context.abashyaka.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -162,19 +162,19 @@ class CompactGroceryCard extends StatelessWidget {
                         children: [
                           Text(
                             _formatPrice(priceMinor),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.brandText,
+                              color: context.abashyaka.textPrimary,
                             ),
                           ),
                           if (mrpMinor != null && mrpMinor! > priceMinor)
                             Text(
                               _formatPrice(mrpMinor!),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 decoration: TextDecoration.lineThrough,
-                                color: AppTheme.brandTextMuted,
+                                color: context.abashyaka.textSecondary,
                               ),
                             ),
                         ],

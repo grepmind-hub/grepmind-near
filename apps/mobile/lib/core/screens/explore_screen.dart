@@ -1075,8 +1075,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               return SizedBox(
                                 width: 270,
                                 child: Material(
-                                  color: AbashyakaColors.pureWhite,
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: context.abashyaka.card,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: context.abashyaka.border,
+                                    ),
+                                  ),
                                   clipBehavior: Clip.antiAlias,
                                   child: InkWell(
                                     onTap: () => Navigator.push(
@@ -1225,12 +1230,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Fresh Groceries (15–30 mins)',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.brandText,
+                              color: context.abashyaka.textPrimary,
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -2022,7 +2027,7 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
     ];
 
     return Container(
-      color: AppTheme.brandCanvas,
+      color: context.abashyaka.canvas,
       alignment: Alignment.centerLeft,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -2052,12 +2057,12 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.emerald : AbashyakaColors.pureWhite,
+                  color: isSelected ? AppTheme.emerald : context.abashyaka.card,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? AppTheme.emerald
-                        : const Color(0xFFE1EBE5),
+                        : context.abashyaka.border,
                   ),
                   boxShadow: isSelected
                       ? [
@@ -2093,7 +2098,9 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                         fontWeight: isSelected
                             ? FontWeight.w700
                             : FontWeight.w600,
-                        color: isSelected ? AbashyakaColors.pureWhite : AppTheme.brandText,
+                        color: isSelected
+                            ? AbashyakaColors.pureWhite
+                            : context.abashyaka.textPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
