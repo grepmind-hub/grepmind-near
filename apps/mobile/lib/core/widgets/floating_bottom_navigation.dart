@@ -60,49 +60,54 @@ class FloatingBottomNavigation extends StatelessWidget {
   Widget _buildNavItem(BuildContext context, int index, FloatingNavItem item) {
     final isSelected = index == currentIndex;
 
-    return InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap(index);
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AbashyakaColors.iceAquaWhite
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
+    return Semantics(
+      selected: isSelected,
+      button: true,
+      label: item.label,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap(index);
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AbashyakaColors.iceAquaWhite
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isSelected ? item.activeIcon : item.icon,
+                  size: 22,
+                  color: isSelected
+                      ? AbashyakaColors.metallicTeal
+                      : AbashyakaColors.inkBlack,
+                ),
               ),
-              child: Icon(
-                isSelected ? item.activeIcon : item.icon,
-                size: 22,
-                color: isSelected
-                    ? AbashyakaColors.metallicTeal
-                    : AbashyakaColors.inkBlack,
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                style: AbashyakaTypography.categoryLabel(
+                  fontSize: 10.5,
+                  color: isSelected
+                      ? AbashyakaColors.metallicTeal
+                      : AbashyakaColors.secondaryText,
+                ).copyWith(
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              item.label,
-              style: AbashyakaTypography.categoryLabel(
-                fontSize: 10.5,
-                color: isSelected
-                    ? AbashyakaColors.metallicTeal
-                    : AbashyakaColors.secondaryText,
-              ).copyWith(
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

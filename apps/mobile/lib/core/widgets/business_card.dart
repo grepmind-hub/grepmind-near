@@ -155,30 +155,35 @@ class BusinessCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       // Rating row: ★ 4.8 (128)
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 16,
-                            color: AbashyakaColors.ratingStar,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            ratingVal?.toStringAsFixed(1) ?? 'Not rated',
-                            style: AbashyakaTypography.ratingText(
-                              color: AppTheme.mainText,
-                              fontSize: 12,
+                      Semantics(
+                        label: ratingVal == null
+                            ? 'Not rated'
+                            : 'Rated ${ratingVal.toStringAsFixed(1)} out of 5${reviewsCount != null ? ', $reviewsCount reviews' : ''}',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: AbashyakaColors.ratingStar,
                             ),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            reviewsCount == null ? '' : '($reviewsCount)',
-                            style: AbashyakaTypography.supportingText(
-                              color: AppTheme.secondaryText,
-                              fontSize: 12,
+                            const SizedBox(width: 3),
+                            Text(
+                              ratingVal?.toStringAsFixed(1) ?? 'Not rated',
+                              style: AbashyakaTypography.ratingText(
+                                color: AppTheme.mainText,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 3),
+                            Text(
+                              reviewsCount == null ? '' : '($reviewsCount)',
+                              style: AbashyakaTypography.supportingText(
+                                color: AppTheme.secondaryText,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 4),
                       // Category & Locality / Distance: Hardware • Badambadi • 0.8 km
@@ -326,48 +331,59 @@ class BusinessCard extends StatelessWidget {
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    InkWell(
-                      onTap: () => _makeCall(business.phoneE164),
-                      borderRadius: BorderRadius.circular(18),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+                    Semantics(
+                      button: true,
+                      label: 'Call ${business.name}',
+                      child: InkWell(
+                        onTap: () => _makeCall(business.phoneE164),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primary.withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Call',
+                            style: AbashyakaTypography.buttonText(
+                              color: AbashyakaColors.pureWhite,
+                              fontSize: 12,
                             ),
-                          ],
-                        ),
-                        child: Text(
-                          'Call',
-                          style: AbashyakaTypography.buttonText(
-                            color: AbashyakaColors.pureWhite,
-                            fontSize: 12,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    InkWell(
-                      onTap: onFavoriteToggled,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(
-                          isFavorited
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: isFavorited
-                              ? AppTheme.error
-                              : AbashyakaColors.disabledText,
-                          size: 20,
+                    Semantics(
+                      button: true,
+                      toggled: isFavorited,
+                      label: isFavorited
+                          ? 'Remove ${business.name} from saved places'
+                          : 'Save ${business.name}',
+                      child: InkWell(
+                        onTap: onFavoriteToggled,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            isFavorited
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isFavorited
+                                ? AppTheme.error
+                                : AbashyakaColors.disabledText,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),

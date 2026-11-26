@@ -123,64 +123,73 @@ class AbashyakaPremiumHeader extends StatelessWidget {
         const Spacer(),
 
         // Notification Bell with Badge
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AbashyakaColors.pureWhite,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
-                  width: 1.0,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0A003F46),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+        Semantics(
+          button: true,
+          label: notificationCount > 0
+              ? 'Notifications, $notificationCount unread'
+              : 'Notifications',
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AbashyakaColors.pureWhite,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AbashyakaColors.silverGlass.withValues(alpha: 0.8),
+                    width: 1.0,
                   ),
-                ],
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: AbashyakaColors.inkBlack,
-                  size: 20,
-                ),
-                onPressed: onNotificationTap,
-              ),
-            ),
-            if (notificationCount > 0)
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AbashyakaColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    notificationCount > 9 ? '9+' : '$notificationCount',
-                    style: const TextStyle(
-                      color: AbashyakaColors.pureWhite,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      height: 1.0,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A003F46),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
                     ),
-                    textAlign: TextAlign.center,
+                  ],
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Notifications',
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: AbashyakaColors.inkBlack,
+                    size: 20,
                   ),
+                  onPressed: onNotificationTap,
                 ),
               ),
-          ],
+              if (notificationCount > 0)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: ExcludeSemantics(
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AbashyakaColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        notificationCount > 9 ? '9+' : '$notificationCount',
+                        style: const TextStyle(
+                          color: AbashyakaColors.pureWhite,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          height: 1.0,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
