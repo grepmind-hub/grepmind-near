@@ -26,6 +26,23 @@ import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_earnings_screen.dart';
 
+/// Cached Riverpod provider for customer delivery addresses, keyed by user ID.
+final customerAddressesProvider =
+    FutureProvider.autoDispose.family<List<CustomerAddress>, String>((
+      ref,
+      userId,
+    ) async {
+      try {
+        final response = await apiClient.get('/customer/addresses');
+        final rows = response.data['data'] as List<dynamic>? ?? const [];
+        return rows
+            .map((e) => CustomerAddress.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {
+        return const <CustomerAddress>[];
+      }
+    });
+
 /// User profile screen showing user info and settings.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -37,39 +54,42 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _savingPhoto = false;
   String? _email;
-  List<CustomerAddress> _addresses = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadProfileDetails();
+    _loadStoredEmail();
   }
 
-  Future<void> _loadProfileDetails() async {
+  Future<void> _loadStoredEmail() async {
     final user = ref.read(authProvider).user;
     if (user == null) return;
     try {
       final storedEmail = await const FlutterSecureStorage().read(
         key: 'user_email_${user.id}',
       );
-      final response = await apiClient.get('/customer/addresses');
-      final rows = response.data['data'] as List<dynamic>? ?? const [];
-      final addrs = rows
-          .map((e) => CustomerAddress.fromJson(e as Map<String, dynamic>))
-          .toList();
       if (!mounted) return;
-      setState(() {
-        _email = storedEmail;
-        _addresses = addrs;
-      });
+      setState(() => _email = storedEmail);
     } catch (_) {}
   }
 
+  Future<void> _loadProfileDetails() async {
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      ref.invalidate(customerAddressesProvider(user.id));
+    }
+    await _loadStoredEmail();
+  }
+
   CustomerAddress? get _primaryAddress {
-    if (_addresses.isEmpty) return null;
-    return _addresses.firstWhere(
+    final user = ref.read(authProvider).user;
+    if (user == null) return null;
+    final addresses =
+        ref.read(customerAddressesProvider(user.id)).valueOrNull ?? const [];
+    if (addresses.isEmpty) return null;
+    return addresses.firstWhere(
       (a) => a.isDefault,
-      orElse: () => _addresses.first,
+      orElse: () => addresses.first,
     );
   }
 
@@ -457,6 +477,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildProfileInfo(AppUser user, String activeRole) {
+    ref.watch(customerAddressesProvider(user.id));
     final isMerchant = activeRole == 'merchant';
     final isRider = activeRole == 'rider';
     final primaryAddr = _primaryAddress;
