@@ -202,6 +202,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   return (
     <aside className={`w-64 shrink-0 overflow-y-auto border-r border-[#E4E7EC] bg-white flex-col justify-between py-4 ${hideOnNarrow ? 'hidden xl:flex' : 'flex'}`}>
       <div>
+        <div className="px-4 mb-4 pb-3 border-b border-[#E4E7EC] flex items-center gap-2.5">
+          <svg width="34" height="34" viewBox="0 0 64 64" fill="none" aria-label="Abashyaka logo" className="shrink-0">
+            <rect width="64" height="64" rx="16" fill="#00545B" />
+            <path d="M32 14L19 50" stroke="#FFFFFF" strokeWidth="6.5" strokeLinecap="round" />
+            <path d="M32 14L45 50" stroke="#FFFFFF" strokeWidth="6.5" strokeLinecap="round" />
+            <path d="M23.5 39H40.5" stroke="#FF8A00" strokeWidth="5.2" strokeLinecap="round" />
+          </svg>
+          <div>
+            <div className="text-sm font-extrabold tracking-tight text-[#00545B]">Abashyaka</div>
+            <div className="text-[11px] font-medium text-[#667085]">Admin Console</div>
+          </div>
+        </div>
+
         <div className="px-5 mb-3">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#98A2B3]">
             Operations &amp; Governance

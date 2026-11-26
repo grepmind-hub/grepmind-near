@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ShieldCheck,
+  UserCheck,
   UserPlus,
   Trash2,
   Lock,
@@ -13,7 +14,18 @@ import {
   Calendar,
   X,
 } from 'lucide-react';
-import { AdminUser } from '@/lib/api';
+import { AdminUser, api } from '@/lib/api';
+
+interface FieldExecutiveRow {
+  id: string;
+  user_id: string;
+  executive_code: string;
+  display_name: string;
+  phone_e164: string;
+  is_active: boolean;
+  onboarded_riders_count: number;
+  onboarded_merchants_count: number;
+}
 
 interface AdminUsersViewProps {
   admins: AdminUser[];
@@ -33,6 +45,65 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [fieldExecutives, setFieldExecutives] = useState<FieldExecutiveRow[]>([]);
+  const [fePhone, setFePhone] = useState('+91');
+  const [feName, setFeName] = useState('');
+  const [feBusy, setFeBusy] = useState(false);
+  const [feError, setFeError] = useState<string | null>(null);
+
+  const loadFieldExecutives = useCallback(async () => {
+    try {
+      const res = await api.get<{ data: FieldExecutiveRow[] }>('/admin/field-executives');
+      setFieldExecutives(res.data.data ?? []);
+      setFeError(null);
+    } catch {
+      setFeError('Could not load Field Executives.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFieldExecutives();
+  }, [loadFieldExecutives]);
+
+  async function handleGrantFieldExecutive(e: React.FormEvent) {
+    e.preventDefault();
+    const cleanPhone = fePhone.trim().replace(/\s+/g, '');
+    if (!cleanPhone.startsWith('+91') || cleanPhone.length < 13) {
+      setFeError('Enter a valid +91 mobile number of an existing registered user.');
+      return;
+    }
+    setFeBusy(true);
+    setFeError(null);
+    try {
+      await api.post('/admin/field-executives', {
+        phone_e164: cleanPhone,
+        display_name: feName.trim(),
+      });
+      setFePhone('+91');
+      setFeName('');
+      await loadFieldExecutives();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ??
+        'Could not grant Field Executive designation.';
+      setFeError(msg);
+    } finally {
+      setFeBusy(false);
+    }
+  }
+
+  async function handleRevokeFieldExecutive(id: string) {
+    setFeBusy(true);
+    setFeError(null);
+    try {
+      await api.post(`/admin/field-executives/${id}/revoke`);
+      await loadFieldExecutives();
+    } catch {
+      setFeError('Could not revoke Field Executive.');
+    } finally {
+      setFeBusy(false);
+    }
+  }
 
   async function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -179,6 +250,122 @@ export const AdminUsersView: React.FC<AdminUsersViewProps> = ({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Field Executives (AFE-1000) Section */}
+      <div className="rounded-2xl border border-[#E4E7EC] bg-white p-5 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-[#0F766E]" />
+              <h3 className="text-base font-bold text-[#172033]">Field Executives (AFE-1000 Series)</h3>
+            </div>
+            <p className="text-xs text-[#667085] mt-0.5">
+              Designate registered users as Field Executives to track who onboarded each Rider and Merchant.
+            </p>
+          </div>
+        </div>
+
+        {feError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-800">
+            {feError}
+          </div>
+        )}
+
+        <form onSubmit={handleGrantFieldExecutive} className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-[11px] font-semibold text-[#344054] mb-1">
+              User Mobile (+91...)
+            </label>
+            <input
+              type="tel"
+              value={fePhone}
+              onChange={(e) => setFePhone(e.target.value)}
+              placeholder="+919876543210"
+              className="w-full rounded-xl border border-[#D0D5DD] px-3 py-2 text-xs font-mono text-[#172033]"
+            />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-[11px] font-semibold text-[#344054] mb-1">
+              Executive Name (optional)
+            </label>
+            <input
+              type="text"
+              value={feName}
+              onChange={(e) => setFeName(e.target.value)}
+              placeholder="e.g. Rajesh Kumar"
+              className="w-full rounded-xl border border-[#D0D5DD] px-3 py-2 text-xs text-[#172033]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={feBusy || !canManageRoles}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F766E] px-4 py-2 text-xs font-bold text-white hover:bg-[#0D635C] disabled:opacity-50"
+          >
+            <UserPlus className="h-4 w-4" /> Grant AFE-1000 Role
+          </button>
+        </form>
+
+        <div className="overflow-x-auto rounded-xl border border-[#E4E7EC]">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#E4E7EC] bg-[#F7F8FA] text-[#667085] font-semibold">
+                <th className="py-2.5 px-4">Executive ID</th>
+                <th className="py-2.5 px-4">Name &amp; Phone</th>
+                <th className="py-2.5 px-4">Onboarded Riders</th>
+                <th className="py-2.5 px-4">Onboarded Merchants</th>
+                <th className="py-2.5 px-4">Status</th>
+                <th className="py-2.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F2F4F7]">
+              {fieldExecutives.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-[#667085]">
+                    No Field Executives assigned yet.
+                  </td>
+                </tr>
+              ) : (
+                fieldExecutives.map((fe) => (
+                  <tr key={fe.id} className="hover:bg-[#FAFAFA]">
+                    <td className="py-2.5 px-4 font-mono font-bold text-[#0F766E]">
+                      {fe.executive_code}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <div className="font-semibold text-[#172033]">{fe.display_name}</div>
+                      <div className="text-[11px] text-[#667085]">{fe.phone_e164}</div>
+                    </td>
+                    <td className="py-2.5 px-4 font-bold text-[#172033]">{fe.onboarded_riders_count}</td>
+                    <td className="py-2.5 px-4 font-bold text-[#172033]">{fe.onboarded_merchants_count}</td>
+                    <td className="py-2.5 px-4">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          fe.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {fe.is_active ? 'Active' : 'Revoked'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-4 text-right">
+                      {fe.is_active ? (
+                        <button
+                          type="button"
+                          disabled={feBusy || !canManageRoles}
+                          onClick={() => void handleRevokeFieldExecutive(fe.id)}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                        >
+                          Revoke
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Revoked</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add Admin Modal */}

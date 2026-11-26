@@ -34,7 +34,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`text-base font-bold tracking-tight text-[#172033] ${compactOnNarrow ? 'whitespace-nowrap' : ''}`}>Grepmind Near</span>
+              <span className={`text-base font-bold tracking-tight text-[#172033] ${compactOnNarrow ? 'whitespace-nowrap' : ''}`}>Abashyaka</span>
               <span className={`rounded-full bg-[#123D36]/10 px-2 py-0.5 text-[10px] font-bold text-[#123D36] ${compactOnNarrow ? 'hidden sm:inline' : ''}`}>
                 ADMIN
               </span>

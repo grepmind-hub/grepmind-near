@@ -153,25 +153,27 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     const SizedBox(height: 6),
 
                     // Brand Name
-                    const Text(
+                    Text(
                       'Abashyaka',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F766E),
+                        color: context.abashyaka.isDark
+                            ? const Color(0xFF55D6CD)
+                            : const Color(0xFF0F766E),
                         letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 4),
 
                     // Screen Title
-                    const Text(
+                    Text(
                       'Choose Your Role',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
+                        color: context.abashyaka.textPrimary,
                         fontSize: 26,
                         letterSpacing: -0.5,
                       ),
@@ -179,11 +181,11 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     const SizedBox(height: 4),
 
                     // Subtitle
-                    const Text(
+                    Text(
                       'Select how you want to use Abashyaka',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0xFF475569),
+                        color: context.abashyaka.textSecondary,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                       ),

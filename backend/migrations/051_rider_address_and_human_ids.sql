@@ -97,3 +97,10 @@ BEGIN
     GRANT USAGE, SELECT ON SEQUENCE field_executive_code_seq TO abashyaka_api;
   END IF;
 END $$;
+
+INSERT INTO rider_document_requirements (code, label, vehicle_type, is_required, is_active)
+VALUES
+  ('aadhaar_card', 'Aadhaar Card', 'any', true, true),
+  ('driving_licence', 'Driving Licence', 'any', true, true),
+  ('rider_photo', 'Passport / Profile Photo', 'any', true, true)
+ON CONFLICT (code) DO NOTHING;

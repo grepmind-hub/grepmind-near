@@ -574,22 +574,84 @@ class _RiderApplicationScreenState
                                 .whereType<Map<String, dynamic>>()
                                 .where((d) => d['requirement_id'] == req['id'])
                                 .toList();
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(req['label']?.toString() ?? ''),
-                              subtitle: Text(
-                                uploaded.isEmpty
-                                    ? (req['is_required'] == true
-                                          ? 'Required by current platform policy'
-                                          : 'Optional')
-                                    : 'Uploaded · ${uploaded.last['review_status']}',
+                            final isDone = uploaded.isNotEmpty;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: palette.cardElevated,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isDone
+                                      ? AbashyakaColors.success
+                                          .withValues(alpha: 0.45)
+                                      : palette.border,
+                                ),
                               ),
-                              trailing: IconButton(
-                                tooltip: 'Upload private document image',
-                                onPressed: _saving
-                                    ? null
-                                    : () => _upload(req['code'] as String),
-                                icon: const Icon(Icons.upload_file_outlined),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isDone
+                                        ? Icons.check_circle_rounded
+                                        : Icons.badge_outlined,
+                                    color: isDone
+                                        ? AbashyakaColors.success
+                                        : palette.accent,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          req['label']?.toString() ?? '',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
+                                            color: palette.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          uploaded.isEmpty
+                                              ? (req['is_required'] == true
+                                                  ? 'Required · Upload via Camera or Gallery'
+                                                  : 'Optional · Upload via Camera or Gallery')
+                                              : 'Uploaded · ${uploaded.last['review_status']}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDone
+                                                ? AbashyakaColors.success
+                                                : palette.textSecondary,
+                                            fontWeight: isDone
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: _saving
+                                        ? null
+                                        : () => _upload(req['code'] as String),
+                                    icon: const Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 16,
+                                    ),
+                                    label: Text(isDone ? 'Replace' : 'Upload'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: palette.accent,
+                                      side: BorderSide(color: palette.border),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           }).toList(),
