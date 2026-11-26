@@ -1228,12 +1228,12 @@ class _PopularNearYouSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Popular near you',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF172820),
+              color: context.abashyaka.textPrimary,
               letterSpacing: -0.2,
             ),
           ),
@@ -1327,10 +1327,10 @@ class _PopularNearYouSection extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF172820),
+                color: AbashyakaColors.primaryText,
               ),
             ),
             const SizedBox(height: 2),
@@ -1358,12 +1358,12 @@ class _HealthcareNearYouSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Healthcare near you',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF172820),
+              color: context.abashyaka.textPrimary,
               letterSpacing: -0.2,
             ),
           ),
@@ -1403,7 +1403,7 @@ class _HealthcareNearYouSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1412,7 +1412,7 @@ class _HealthcareNearYouSection extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF172820),
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
@@ -1454,12 +1454,12 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Travel around your area',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF172820),
+              color: context.abashyaka.textPrimary,
               letterSpacing: -0.2,
             ),
           ),
@@ -1499,7 +1499,7 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1508,7 +1508,7 @@ class _TravelAroundYourAreaSection extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF172820),
+                            color: context.abashyaka.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
@@ -1569,12 +1569,12 @@ class _NearbyTrendingSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Nearby & Trending',
                 style: TextStyle(
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF172820),
+                  color: context.abashyaka.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -1717,10 +1717,10 @@ class _NearbyTrendingSection extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF172820),
+                      color: context.abashyaka.textPrimary,
                       height: 1.2,
                     ),
                     maxLines: 2,
@@ -1802,9 +1802,9 @@ class _BuyLocalBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Fresh groceries, local food & trusted pros nearby.',
-                  style: TextStyle(color: Color(0xFF172820), fontSize: 11.5),
+                  style: TextStyle(color: context.abashyaka.textPrimary, fontSize: 11.5),
                 ),
               ],
             ),
@@ -1860,10 +1860,10 @@ class _SectionHeading extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF172820),
+                  color: context.abashyaka.textPrimary,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -1993,10 +1993,10 @@ class _OfferCard extends StatelessWidget {
                         offer.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF172820),
+                          color: context.abashyaka.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -2085,7 +2085,7 @@ class _BusinessTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: AppTheme.surface,
+    color: context.abashyaka.card,
     borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: onTap,
@@ -2150,10 +2150,10 @@ class _BusinessTile extends StatelessWidget {
                       ),
                       if (business.distanceText.isNotEmpty) ...[
                         const SizedBox(width: 10),
-                        const Icon(
+                        Icon(
                           Icons.near_me_outlined,
                           size: 12,
-                          color: AppTheme.secondaryText,
+                          color: context.abashyaka.textSecondary,
                         ),
                         const SizedBox(width: 3),
                         Text(
@@ -2166,9 +2166,9 @@ class _BusinessTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
-              color: AppTheme.secondaryText,
+              color: context.abashyaka.textSecondary,
             ),
           ],
         ),
@@ -2273,10 +2273,10 @@ class _NewArrivalCard extends StatelessWidget {
                       item.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF172820),
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -2343,7 +2343,7 @@ class _InlineState extends StatelessWidget {
     margin: const EdgeInsets.fromLTRB(20, 0, 20, 18),
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: AppTheme.surface,
+      color: context.abashyaka.card,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: AppTheme.border),
     ),

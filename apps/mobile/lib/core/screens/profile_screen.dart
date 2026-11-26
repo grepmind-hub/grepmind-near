@@ -742,8 +742,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ? FontWeight.w400
                           : FontWeight.w600,
                       color: isPlaceholder
-                          ? AbashyakaColors.signatureTeal
-                          : AbashyakaColors.premiumObsidian,
+                          ? context.abashyaka.accentSoft
+                          : context.abashyaka.textPrimary,
                     ),
                   ),
                   if (badge != null) ...[

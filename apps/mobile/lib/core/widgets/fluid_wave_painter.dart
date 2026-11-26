@@ -489,20 +489,27 @@ class FluidWavePainter extends CustomPainter {
     final h = size.height;
     final bgRect = Offset.zero & size;
 
+    canvas.drawRect(
+      bgRect,
+      Paint()..color = AbashyakaColors.pearlWhite,
+    );
+
     final path = Path()
-      ..moveTo(0, h * 0.7)
-      ..quadraticBezierTo(w * 0.5, h * 0.9, w, h * 0.7)
+      ..moveTo(0, 0)
       ..lineTo(w, 0)
-      ..lineTo(0, 0)
+      ..lineTo(w, h * 0.78)
+      ..quadraticBezierTo(w * 0.5, h * 1.04, 0, h * 0.84)
       ..close();
 
     canvas.drawPath(
       path,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            AbashyakaColors.metallicTeal.withValues(alpha: 0.15),
-            AbashyakaColors.lightAqua.withValues(alpha: 0.2),
+            AbashyakaColors.signatureTeal,
+            AbashyakaColors.metallicTeal,
           ],
         ).createShader(bgRect),
     );

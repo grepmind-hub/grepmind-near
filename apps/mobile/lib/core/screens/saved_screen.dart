@@ -56,9 +56,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         ),
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.arrow_back_rounded,
-                  color: palette.textPrimary,
+                  color: AbashyakaColors.pureWhite,
                 ),
                 tooltip: 'Back',
                 onPressed: () => Navigator.of(context).pop(),
@@ -71,7 +71,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
             Text(
               'Saved Places',
               style: AbashyakaTypography.pageTitle(
-                color: AbashyakaColors.premiumObsidian,
+                color: AbashyakaColors.pureWhite,
                 fontSize: 18,
               ).copyWith(fontWeight: FontWeight.w800),
             ),
@@ -81,7 +81,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   ? 'Chhatia, Kuanpal & nearby'
                   : '${state.items.length} ${state.items.length == 1 ? 'place' : 'places'} bookmarked',
               style: AbashyakaTypography.supportingText(
-                color: AbashyakaColors.graphiteCharcoal,
+                color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
                 fontSize: 12,
               ),
             ),
@@ -92,7 +92,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
             IconButton(
               icon: const Icon(
                 Icons.delete_outline_rounded,
-                color: AbashyakaColors.graphiteCharcoal,
+                color: AbashyakaColors.pureWhite,
               ),
               onPressed: _showClearDialog,
               tooltip: 'Clear all',

@@ -685,15 +685,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                                 .textTheme
                                                 .labelLarge
                                                 ?.copyWith(
-                                                  color: AppTheme.secondaryText,
+                                                  color: context.abashyaka.textSecondary,
                                                 ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        const Icon(
+                                        Icon(
                                           Icons.keyboard_arrow_down_rounded,
-                                          color: AppTheme.secondaryText,
+                                          color: context.abashyaka.textSecondary,
                                           size: 18,
                                         ),
                                       ],
@@ -856,12 +856,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Categories',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.mainText,
+                              color: context.abashyaka.textPrimary,
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -984,7 +984,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                   ? 'Search results'
                                   : 'Nearby Shops & Services',
                               style: AbashyakaTypography.sectionTitle(
-                                color: AppTheme.mainText,
+                                color: context.abashyaka.textPrimary,
                                 fontSize: 16,
                               ).copyWith(fontWeight: FontWeight.w800),
                             ),
@@ -1046,7 +1046,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                     'Newly approved businesses in ${appLocation.cityName}',
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          color: AppTheme.secondaryText,
+                                          color: context.abashyaka.textSecondary,
                                         ),
                                   ),
                                 ],
@@ -1174,9 +1174,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                               ],
                                             ),
                                           ),
-                                          const Icon(
+                                          Icon(
                                             Icons.chevron_right_rounded,
-                                            color: AppTheme.secondaryText,
+                                            color: context.abashyaka.textSecondary,
                                           ),
                                         ],
                                       ),
@@ -1464,12 +1464,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Try selecting another filter or show all nearby stores.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.secondaryText,
+                                color: context.abashyaka.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -1604,13 +1604,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_off, size: 56, color: AppTheme.hintText),
+          Icon(Icons.search_off, size: 56, color: AppTheme.hintText),
           const SizedBox(height: 16),
           Text(
             'No results found',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppTheme.mainText,
+              color: context.abashyaka.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
@@ -1656,10 +1656,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   _selectedCategory != 'all'
                       ? 'No businesses in ${_selectedCategory.toUpperCase()} yet'
                       : 'No listings found in $cityName',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.mainText,
+                    color: context.abashyaka.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1668,9 +1668,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   _selectedCategory != 'all'
                       ? 'Try switching to "All" or exploring other categories nearby.'
                       : 'Try broadening your search or switching to another locality.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.secondaryText,
+                    color: context.abashyaka.textSecondary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -1779,10 +1779,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   Text(
                     'Service Not Available in $cityName Yet',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.mainText,
+                      color: context.abashyaka.textPrimary,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -1791,9 +1791,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   Text(
                     'We are currently onboarding verified local shops and certified service professionals in $cityName. Abashyaka will provide services in this location soon!',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppTheme.secondaryText,
+                      color: context.abashyaka.textSecondary,
                       height: 1.45,
                     ),
                   ),
@@ -1833,14 +1833,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 24),
 
             // Explore Active Cities Section
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Explore Active Service Cities',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.mainText,
+                  color: context.abashyaka.textPrimary,
                 ),
               ),
             ),
@@ -1881,10 +1881,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               children: [
                 Text(
                   'Launch Alert for ${appLocation.cityName}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.mainText,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
                 IconButton(
@@ -1896,9 +1896,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 6),
             Text(
               'Enter your mobile number to receive instant SMS & WhatsApp notification when Abashyaka launches in ${appLocation.cityName}.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppTheme.secondaryText,
+                color: context.abashyaka.textSecondary,
                 height: 1.4,
               ),
             ),

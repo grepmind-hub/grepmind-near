@@ -417,15 +417,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: AbashyakaColors.premiumObsidian,
+                color: AbashyakaColors.pureWhite,
                 letterSpacing: -0.3,
               ),
             ),
             Text(
               '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AbashyakaColors.graphiteCharcoal,
+                color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -436,7 +436,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: Icon(
               _useRadarView ? Icons.map_rounded : Icons.radar_rounded,
-              color: AbashyakaColors.signatureTeal,
+              color: AbashyakaColors.pureWhite,
             ),
             tooltip: _useRadarView ? 'Show Map Tiles' : 'Show Radar View',
             onPressed: () {
@@ -446,7 +446,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           IconButton(
             icon: const Icon(
               Icons.my_location_rounded,
-              color: AbashyakaColors.signatureTeal,
+              color: AbashyakaColors.pureWhite,
             ),
             onPressed: _centerOnUser,
             tooltip: 'Center on Me',
@@ -1186,12 +1186,13 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
     final distanceText = biz.distanceText;
     final categoryName = biz.categoryName ?? biz.categorySlug;
     final isService = biz.shouldOpenServiceProfile;
+    final palette = context.abashyaka;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE1EBE5)),
+        border: Border.all(color: palette.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -1245,10 +1246,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         Flexible(
                           child: Text(
                             biz.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AbashyakaColors.premiumObsidian,
+                              color: palette.textPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1256,10 +1257,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         ),
                         if (biz.verificationStatus == 'verified') ...[
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 15,
-                            color: AbashyakaColors.signatureTeal,
+                            color: palette.accent,
                           ),
                         ],
                       ],
@@ -1277,10 +1278,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           rating == null
                               ? 'Not rated'
                               : '${rating.toStringAsFixed(1)}${reviewCount == null ? '' : ' ($reviewCount)'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AbashyakaColors.premiumObsidian,
+                            color: palette.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 6),
