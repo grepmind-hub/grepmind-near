@@ -32,7 +32,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final _searchController = TextEditingController();
   String _selectedCategory = 'all';
   String _activeQuickFilter = 'all'; // 'all', 'fast_delivery', 'grocery', 'food', 'services', 'open_now', 'top_rated'
-  bool _isSearching = false;
+  final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
   bool _isOpenNow = false;
   final bool _isAvailableNow = false;
   final String _sortBy = 'relevance';
@@ -86,11 +86,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _isSearching.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String value) {
-    setState(() => _isSearching = value.isNotEmpty);
+    _isSearching.value = value.isNotEmpty;
   }
 
   void _search() {
@@ -765,28 +766,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               color: Color(0xFF9AA5B1),
                               size: 22,
                             ),
-                            suffixIcon: _isSearching
-                                ? IconButton(
-                                    icon: const Icon(
-                                      Icons.clear_rounded,
-                                      color: Color(0xFF9AA5B1),
-                                      size: 18,
+                            suffixIcon: ValueListenableBuilder<bool>(
+                              valueListenable: _isSearching,
+                              builder: (_, searching, _) => searching
+                                  ? IconButton(
+                                      icon: const Icon(
+                                        Icons.clear_rounded,
+                                        color: AbashyakaColors.disabledText,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _isSearching.value = false;
+                                        _onFiltersChanged();
+                                      },
+                                    )
+                                  : IconButton(
+                                      tooltip: 'Search',
+                                      icon: const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: AppTheme.emerald,
+                                        size: 20,
+                                      ),
+                                      onPressed: _search,
                                     ),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() => _isSearching = false);
-                                      _onFiltersChanged();
-                                    },
-                                  )
-                                : IconButton(
-                                    tooltip: 'Search',
-                                    icon: const Icon(
-                                      Icons.arrow_forward_rounded,
-                                      color: AppTheme.emerald,
-                                      size: 20,
-                                    ),
-                                    onPressed: _search,
-                                  ),
+                            ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 14,
@@ -973,15 +977,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            _isSearching
-                                ? 'Search results'
-                                : 'Nearby Shops & Services',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.mainText,
-                              letterSpacing: -0.3,
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _isSearching,
+                            builder: (_, searching, _) => Text(
+                              searching
+                                  ? 'Search results'
+                                  : 'Nearby Shops & Services',
+                              style: AbashyakaTypography.sectionTitle(
+                                color: AppTheme.mainText,
+                                fontSize: 16,
+                              ).copyWith(fontWeight: FontWeight.w800),
                             ),
                           ),
                           InkWell(
