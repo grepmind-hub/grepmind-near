@@ -828,21 +828,21 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'No matching places nearby',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AbashyakaColors.premiumObsidian,
+                        color: context.abashyaka.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Try resetting your shop/service filters or expanding search radius.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: AbashyakaColors.graphiteCharcoal,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -876,14 +876,15 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               itemBuilder: (context, index) {
                 final business = businesses[index];
                 final isService = business.shouldOpenServiceProfile;
+                final palette = context.abashyaka;
                 return Card(
                   margin: EdgeInsets.zero,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    side: BorderSide(color: palette.border),
                   ),
-                  color: Colors.white,
+                  color: palette.card,
                   child: ListTile(
                     key: ValueKey('nearby_result_${business.id}'),
                     minVerticalPadding: 12,
@@ -902,9 +903,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             business.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: AbashyakaColors.premiumObsidian,
+                              color: palette.textPrimary,
                             ),
                           ),
                         ),
@@ -914,18 +915,20 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             vertical: 2.5,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE6F7F7),
+                            color: palette.isDark
+                                ? palette.accentSurface
+                                : const Color(0xFFE6F7F7),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: AbashyakaColors.metallicTeal.withValues(alpha: 0.3),
+                              color: palette.accent.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
                             business.categoryNatureLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              color: AbashyakaColors.signatureTeal,
+                              color: palette.accent,
                             ),
                           ),
                         ),
@@ -939,9 +942,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           '${business.categoryName ?? business.categorySlug} · ${business.distanceText}${business.locality == null ? '' : ' · ${business.locality}'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AbashyakaColors.graphiteCharcoal,
+                            color: palette.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -951,25 +954,25 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                               isService
                                   ? 'Book Service'
                                   : business.shopActionLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
-                                color: AbashyakaColors.signatureTeal,
+                                color: palette.accent,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.arrow_forward_rounded,
                               size: 13,
-                              color: AbashyakaColors.signatureTeal,
+                              color: palette.accent,
                             ),
                           ],
                         ),
                       ],
                     ),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.chevron_right_rounded,
-                      color: AppTheme.secondaryText,
+                      color: palette.textSecondary,
                     ),
                     onTap: () => _openBusinessDetail(business),
                   ),
