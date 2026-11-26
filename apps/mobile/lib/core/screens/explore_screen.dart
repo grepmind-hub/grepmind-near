@@ -2116,7 +2116,6 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _StickyQuickFilterDelegate oldDelegate) {
-    return oldDelegate.activeFilter != activeFilter ||
-        oldDelegate.totalCount != totalCount;
+    return true;
   }
 }
