@@ -967,10 +967,10 @@ class _OrderShoppingHubScreenState
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 22, 16, 32),
                 child: Material(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    side: BorderSide(color: context.abashyaka.border),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
@@ -982,11 +982,11 @@ class _OrderShoppingHubScreenState
                         subtitle: 'Track a recent order or booking',
                         onTap: () => _openOrders(context),
                       ),
-                      const Divider(
+                      Divider(
                         height: 1,
                         indent: 18,
                         endIndent: 18,
-                        color: Color(0xFFF1F5F9),
+                        color: context.abashyaka.border,
                       ),
                       _HubAction(
                         keyName: 'orders_history_entry',
