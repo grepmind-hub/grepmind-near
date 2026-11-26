@@ -7,6 +7,7 @@ import 'package:grepmind_mobile/core/providers/home_feed_provider.dart';
 import 'package:grepmind_mobile/core/providers/platform_cart_provider.dart';
 import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
@@ -610,24 +611,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 38,
-                                    height: 38,
-                                    margin: const EdgeInsets.only(right: 12),
-                                    decoration: BoxDecoration(
-                                      color: AbashyakaColors.pureWhite,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                    child: Image.asset(
-                                      'assets/abashyaka/emblem_official.png',
-                                      fit: BoxFit.contain,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Image.asset(
-                                                'assets/abashyaka/splash_emblem.png',
-                                                fit: BoxFit.contain,
-                                              ),
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 12),
+                                    child: AbashyakaLogoMark(
+                                      size: 38,
+                                      badgeColor: AbashyakaColors.pureWhite,
+                                      letterColor:
+                                          AbashyakaColors.signatureTeal,
                                     ),
                                   ),
                                   Expanded(

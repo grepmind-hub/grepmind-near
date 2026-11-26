@@ -14,6 +14,7 @@ import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/search_results_screen.dart';
 import 'package:grepmind_mobile/core/screens/home_new_near_you_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
@@ -495,14 +496,11 @@ class _HeaderCardState extends State<_HeaderCard> {
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.all(5),
-                        child: Image.asset(
-                          'assets/branding/abashyaka_logo.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Image.asset(
-                            'assets/abashyaka/splash_emblem.png',
-                            fit: BoxFit.contain,
-                          ),
+                        padding: const EdgeInsets.all(2),
+                        child: const AbashyakaLogoMark(
+                          size: 38,
+                          badgeColor: AbashyakaColors.pureWhite,
+                          letterColor: AbashyakaColors.signatureTeal,
                         ),
                       ),
                       const SizedBox(width: 10),

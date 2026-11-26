@@ -12,6 +12,7 @@ import 'package:grepmind_mobile/core/screens/service_pro_screen.dart';
 import 'package:grepmind_mobile/core/screens/categories_screen.dart';
 import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/utils/category_sample_image.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
@@ -411,25 +412,39 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         ),
         title: Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              const Text(
-                'Nearby Map',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AbashyakaColors.pureWhite,
-                  letterSpacing: -0.3,
-                ),
+              const AbashyakaLogoMark(
+                size: 30,
+                badgeColor: AbashyakaColors.pureWhite,
+                letterColor: AbashyakaColors.signatureTeal,
               ),
-              const SizedBox(height: 1),
-              Text(
-                '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nearby Map',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AbashyakaColors.pureWhite,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

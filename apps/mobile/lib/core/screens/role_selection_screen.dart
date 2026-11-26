@@ -4,6 +4,7 @@ import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 
@@ -147,21 +148,8 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                   children: [
                     const SizedBox(height: 4),
 
-                    // Top Brand Logo (3D lock emblem)
-                    Center(
-                      child: Image.asset(
-                        'assets/branding/abashyaka_logo.png',
-                        width: 72,
-                        height: 72,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/abashyaka/splash_emblem.png',
-                          width: 72,
-                          height: 72,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
+                    // Top Brand Logo (Option 2 Commerce-A)
+                    const Center(child: AbashyakaLogoMark(size: 68)),
                     const SizedBox(height: 6),
 
                     // Brand Name

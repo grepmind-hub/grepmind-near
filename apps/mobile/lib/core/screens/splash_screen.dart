@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/screens/admin_portal_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
-import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
+import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/features/onboarding/introduction_screen.dart';
 import 'package:grepmind_mobile/main.dart';
 
@@ -77,154 +80,156 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.isDark
-        ? _buildDarkSplash(context)
-        : _buildOpeningScreen(context);
-  }
+    final palette = context.abashyaka;
+    final dark = widget.isDark || palette.isDark;
+    final canvas = dark ? const Color(0xFF0B1320) : AbashyakaColors.pearlWhite;
+    final primaryText = dark ? AbashyakaColors.pureWhite : AbashyakaColors.signatureTeal;
+    final subtitleText = dark
+        ? const Color(0xFF94A3B8)
+        : AbashyakaColors.graphiteCharcoal;
 
-  /// Screen 01: Flutter Premium Dark Splash Screen
-  Widget _buildDarkSplash(BuildContext context) {
     return Scaffold(
-      backgroundColor: AbashyakaColors.darkOceanTeal,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background: Approved Edge-to-Edge Metallic Dark Splash
-          Positioned.fill(
-            child: Image.asset(
-              'assets/backgrounds/premium/flutter_splash.webp',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-
-          // Foreground Content: Centered Final Logo
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) => SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Final Approved 3D Logo
-                          Image.asset(
-                            'assets/branding/abashyaka_logo.png',
-                            width: 140,
-                            height: 140,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Image.asset(
-                              'assets/branding/logo_white_monochrome.webp',
-                              width: 140,
-                              height: 140,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-
-                          // Pure White Wordmark
-                          Text(
-                            'Abashyaka',
-                            style:
-                                AbashyakaTypography.brandWordmark(
-                                  color: AbashyakaColors.pureWhite,
-                                ).copyWith(
-                                  fontSize: 40,
-                                  letterSpacing: -0.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 6),
-
-                          Text(
-                            'Everything nearby. One tap away.',
-                            style: TextStyle(
-                              color: AbashyakaColors.aquaGlow.withValues(
-                                alpha: 0.9,
-                              ),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-
-                          // 3 Lightweight Loading Dots
-                          const _SplashLoadingDots(),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Screen 02: Opening Screen (Brand introduction with Odisha touch & 3s auto-transition)
-  Widget _buildOpeningScreen(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AbashyakaColors.pearlWhite,
+      backgroundColor: canvas,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _handleTransition,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Full-screen complete approved background (bg-2-complete.png)
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(
-                      'assets/backgrounds/premium/opening_complete.png',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-
-            // Animated loader overlay placed in the luminous open area
+            // Top crisp vector FluidWave curve (no raster opening_complete.png)
             const Positioned(
+              top: 0,
               left: 0,
               right: 0,
-              bottom: 240,
-              child: Center(
-                child: _SplashLoadingDots(
-                  color: AbashyakaColors.deepMetallicTeal,
+              height: 190,
+              child: FluidWaveBackground(
+                variant: FluidWaveVariant.discovery,
+                child: SizedBox.expand(),
+              ),
+            ),
+
+            // Odisha Heritage landscape anchored cleanly at the bottom
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/abashyaka/splash_landscape.png',
+                      width: double.infinity,
+                      height: 175,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.bottomCenter,
+                      color: dark
+                          ? const Color(0xFF0B1320).withValues(alpha: 0.25)
+                          : null,
+                      colorBlendMode: dark ? BlendMode.darken : null,
+                      errorBuilder: (_, _, _) => const SizedBox(height: 80),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            // Preserved for test assertion compatibility without rendering visible duplicate widgets
-            Positioned(
-              left: 0,
-              top: 0,
-              child: Opacity(
-                opacity: 0.0,
-                child: SizedBox(
-                  width: 0,
-                  height: 0,
-                  child: Column(
-                    children: [
-                      Image.asset('assets/abashyaka/splash_emblem.png'),
-                      Image.asset('assets/abashyaka/splash_landscape.png'),
-                      const Text(
-                        'ସବୁ ଆବଶ୍ୟକତା,\nଆପଣଙ୍କ ପାଖରେ।',
-                        locale: Locale('or'),
+            // Foreground: Centered Option 2 Commerce-A Brand Lockup + Heritage Tagline
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 36, 24, 190),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AbashyakaLogoMark(
+                      size: 108,
+                      badgeColor: dark
+                          ? const Color(0xFF152232)
+                          : AbashyakaColors.signatureTeal,
+                      borderColor: dark
+                          ? const Color(0xFF243447)
+                          : Colors.white.withValues(alpha: 0.35),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Abashyaka',
+                      style: AbashyakaTypography.brandWordmark(
+                        color: primaryText,
+                      ).copyWith(
+                        fontSize: 38,
+                        letterSpacing: -0.6,
+                        fontWeight: FontWeight.w800,
                       ),
-                      const Text('Everything You Need, Locally.'),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: dark
+                            ? const Color(0xFF152232)
+                            : const Color(0xFFE6F7F7),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: dark
+                              ? const Color(0xFF243447)
+                              : AbashyakaColors.metallicTeal.withValues(
+                                  alpha: 0.25,
+                                ),
+                        ),
+                      ),
+                      child: Text(
+                        'ଆବଶ୍ୟକ · Odisha’s Own Local Commerce',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: dark
+                              ? const Color(0xFF55D6CD)
+                              : AbashyakaColors.signatureTeal,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: 44,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: AbashyakaColors.saffronOrange,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ସବୁ ଆବଶ୍ୟକତା,\nଆପଣଙ୍କ ପାଖରେ।',
+                      locale: const Locale('or'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        color: primaryText,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Everything You Need, Locally.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        fontStyle: FontStyle.italic,
+                        color: subtitleText,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _SplashLoadingDots(
+                      color: dark
+                          ? const Color(0xFF55D6CD)
+                          : AbashyakaColors.deepMetallicTeal,
+                    ),
+                  ],
                 ),
               ),
             ),

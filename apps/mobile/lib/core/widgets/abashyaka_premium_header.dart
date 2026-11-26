@@ -4,6 +4,7 @@ import '../theme/abashyaka_colors.dart';
 import '../theme/abashyaka_palette.dart';
 import '../theme/abashyaka_tokens.dart';
 import '../theme/abashyaka_typography.dart';
+import 'abashyaka_logo_mark.dart';
 import 'fluid_wave_painter.dart';
 
 /// The official reusable header for Abashyaka screens.
@@ -103,18 +104,8 @@ class AbashyakaPremiumHeader extends StatelessWidget {
     final palette = context.abashyaka;
     return Row(
       children: [
-        // Brand Logo
-        Image.asset(
-          'assets/abashyaka/brand_logo_teal_aqua.png',
-          width: 32,
-          height: 32,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => Image.asset(
-            'assets/abashyaka/splash_emblem.png',
-            width: 32,
-            height: 32,
-          ),
-        ),
+        // Brand Logo (Option 2 Commerce-A)
+        const AbashyakaLogoMark(size: 32),
         const SizedBox(width: 8),
 
         // Brand Wordmark

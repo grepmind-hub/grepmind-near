@@ -10,6 +10,7 @@ import 'package:grepmind_mobile/features/branding/abashyaka_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/notifications/notification_manager.dart';
@@ -427,18 +428,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                           // Standalone Hero Artwork & Brand Name (Screens 04 & 05):
                           if (!keyboardOpen) ...[
-                            Center(
-                              child: Image.asset(
-                                'assets/branding/abashyaka_logo.png',
-                                key: const Key('loginWelcomeImage'),
-                                height: 72,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Image.asset(
-                                  'assets/branding/logo_metallic_teal.webp',
-                                  key: const Key('loginWelcomeImage'),
-                                  height: 72,
-                                  fit: BoxFit.contain,
-                                ),
+                            const Center(
+                              child: AbashyakaLogoMark(
+                                key: Key('loginWelcomeImage'),
+                                size: 68,
                               ),
                             ),
                             const SizedBox(height: 6),

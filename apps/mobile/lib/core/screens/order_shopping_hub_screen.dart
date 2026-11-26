@@ -14,6 +14,7 @@ import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/screens/platform_product_detail_screen.dart';
 import 'package:grepmind_mobile/core/screens/platform_cart_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
+import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
 
 class OrderShoppingHubScreen extends ConsumerStatefulWidget {
   const OrderShoppingHubScreen({super.key});
@@ -735,14 +736,24 @@ class _OrderShoppingHubScreenState
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Order on Abashyaka',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.3,
-                      ),
+                    const Row(
+                      children: [
+                        AbashyakaLogoMark(
+                          size: 28,
+                          badgeColor: AbashyakaColors.pureWhite,
+                          letterColor: AbashyakaColors.signatureTeal,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Order on Abashyaka',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
                     ),
                     const Opacity(
                       opacity: 0.0,
