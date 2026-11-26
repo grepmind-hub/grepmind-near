@@ -8,10 +8,12 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/mail"
 	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
+	"grepmind-near/backend/internal/platformcatalog"
 	"grepmind-near/backend/pkg/database"
 )
 
@@ -27,8 +29,21 @@ type createMerchantBusinessRequest struct {
 	PostalCode    string               `json:"postal_code"`
 	Latitude      float64              `json:"latitude"`
 	Longitude     float64              `json:"longitude"`
-	CoverPhotoURL string               `json:"cover_photo_url"`
-	Hours         []createBusinessHour `json:"hours"`
+	CoverPhotoURL      string               `json:"cover_photo_url"`
+	OnboardingSource   string               `json:"onboarding_source,omitempty"`
+	FieldExecutiveCode string               `json:"field_executive_code,omitempty"`
+	Hours              []createBusinessHour `json:"hours"`
+	Application   *merchantApplication `json:"application"`
+}
+
+type merchantApplication struct {
+	OwnerName     string `json:"owner_name"`
+	Email         string `json:"email,omitempty"`
+	TaxID         string `json:"tax_id,omitempty"`
+	NoGST         bool   `json:"no_gst"`
+	Enterprise    string `json:"enterprise_type"`
+	OperatingMode string `json:"operating_mode"`
+	RadiusKM      int    `json:"service_radius_km"`
 }
 
 type createBusinessHour struct {
@@ -60,6 +75,28 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 	req.City, req.PostalCode = trim(req.City), trim(req.PostalCode)
 	req.PhoneE164, req.WhatsAppE164 = trim(req.PhoneE164), trim(req.WhatsAppE164)
 	req.CoverPhotoURL = trim(req.CoverPhotoURL)
+	var applicationJSON []byte
+	if application := req.Application; application != nil {
+		application.OwnerName, application.Email, application.TaxID = trim(application.OwnerName), trim(application.Email), trim(application.TaxID)
+		if application.NoGST {
+			application.TaxID = ""
+		}
+		email, emailErr := mail.ParseAddress(application.Email)
+		if application.OwnerName == "" || len([]rune(application.OwnerName)) > 100 ||
+			len(application.Email) > 254 || (application.Email != "" && (emailErr != nil || email.Address != application.Email)) ||
+			len(application.TaxID) > 40 || application.RadiusKM < 1 || application.RadiusKM > 20 ||
+			(application.OperatingMode != "store_only" && application.OperatingMode != "home_only" && application.OperatingMode != "both") ||
+			(application.Enterprise != "retail" && application.Enterprise != "service_pro" && application.Enterprise != "food" && application.Enterprise != "wellness") {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Review the owner name, email, registration ID and operating details.")
+			return
+		}
+		var err error
+		applicationJSON, err = json.Marshal(application)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to prepare the application details.")
+			return
+		}
+	}
 	if len([]rune(req.Name)) < 2 || len([]rune(req.Name)) > 100 || len([]rune(req.Description)) > 2000 ||
 		req.CategorySlug == "" || len(req.CategorySlug) > 100 || len([]rune(req.AddressText)) < 5 || len([]rune(req.AddressText)) > 240 ||
 		len([]rune(req.Locality)) < 2 || len([]rune(req.Locality)) > 100 || len(req.PostalCode) != 6 || !digitsOnly(req.PostalCode) ||
@@ -72,26 +109,6 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 	city := strings.ToLower(req.City)
 	if city != "cuttack" && city != "jajpur" {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Only Cuttack and Jajpur are supported.")
-		return
-	}
-	var centerLat, centerLng float64
-	var cityListingCount int
-	if err := db.QueryRowxContext(r.Context(), `
-		SELECT count(*), COALESCE(avg(ST_Y(location::geometry)),0), COALESCE(avg(ST_X(location::geometry)),0)
-		FROM businesses WHERE lower(city)=lower($1) AND status='approved' AND location IS NOT NULL
-	`, req.City).Scan(&cityListingCount, &centerLat, &centerLng); err != nil || cityListingCount == 0 {
-		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "This city has no active location coverage yet.")
-		return
-	}
-	var locationInCity bool
-	if err := db.QueryRowxContext(r.Context(), `
-		SELECT ST_DWithin(
-			ST_SetSRID(ST_MakePoint($1,$2),4326)::geography,
-			ST_SetSRID(ST_MakePoint($3,$4),4326)::geography,
-			30000
-		)
-	`, req.Longitude, req.Latitude, centerLng, centerLat).Scan(&locationInCity); err != nil || !locationInCity {
-		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "The business pin must be within 30 km of the selected city center.")
 		return
 	}
 	if len(req.Hours) != 7 {
@@ -124,6 +141,15 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 		return
 	}
 	defer tx.Rollback()
+	covered, err := platformcatalog.MerchantRegistrationCovered(r.Context(), tx, req.City, req.Locality, req.PostalCode, req.Latitude, req.Longitude)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to verify business location coverage.")
+		return
+	}
+	if !covered {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Enter the approved locality and its PIN code, and place the GPS pin within that service area.")
+		return
+	}
 	if err = tx.GetContext(r.Context(), &categoryName, `SELECT name FROM categories WHERE slug=$1 AND is_active=true`, req.CategorySlug); errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Choose an active business category.")
 		return
@@ -148,11 +174,33 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 	id := uuid.NewString()
 	slugBase := slugify(req.Name)
 	slug := fmt.Sprintf("%s-%s", slugBase, strings.ReplaceAll(id[:8], "-", ""))
+	onboardingSource := strings.TrimSpace(req.OnboardingSource)
+	if onboardingSource == "" {
+		onboardingSource = "self"
+	}
+	if onboardingSource != "self" && onboardingSource != "field_executive" {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Unsupported onboarding source.")
+		return
+	}
+	var fieldExecID *string
+	if onboardingSource == "field_executive" {
+		code := strings.ToUpper(strings.TrimSpace(req.FieldExecutiveCode))
+		if code == "" {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Select or enter a valid Field Executive ID (AFE-1000).")
+			return
+		}
+		var feID string
+		if err := db.GetContext(r.Context(), &feID, `SELECT id::text FROM field_executives WHERE UPPER(executive_code)=$1 AND is_active=true`, code); err != nil {
+			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "Active Field Executive ID not found.")
+			return
+		}
+		fieldExecID = &feID
+	}
 	err = tx.QueryRowxContext(r.Context(), `
-		INSERT INTO businesses (id,owner_user_id,name,slug,description,category_slug,phone_e164,whatsapp_e164,address_text,locality,city,postal_code,location,status,verification_status,time_zone,cover_photo_url)
-		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,ST_SetSRID(ST_MakePoint($13,$14),4326)::geography,'pending','pending','Asia/Kolkata',NULLIF($15,''))
+		INSERT INTO businesses (id,owner_user_id,name,slug,description,category_slug,phone_e164,whatsapp_e164,address_text,locality,city,postal_code,location,status,verification_status,time_zone,cover_photo_url,onboarding_source,field_executive_id)
+		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,ST_SetSRID(ST_MakePoint($13,$14),4326)::geography,'pending','pending','Asia/Kolkata',NULLIF($15,''),$16,$17)
 		RETURNING id::text
-	`, id, userID, req.Name, slug, req.Description, req.CategorySlug, req.PhoneE164, req.WhatsAppE164, req.AddressText, req.Locality, req.City, req.PostalCode, req.Longitude, req.Latitude, req.CoverPhotoURL).Scan(&businessID)
+	`, id, userID, req.Name, slug, req.Description, req.CategorySlug, req.PhoneE164, req.WhatsAppE164, req.AddressText, req.Locality, req.City, req.PostalCode, req.Longitude, req.Latitude, req.CoverPhotoURL, onboardingSource, fieldExecID).Scan(&businessID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to save the business listing.")
 		return
@@ -160,6 +208,12 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 	if _, err = tx.ExecContext(r.Context(), `INSERT INTO user_roles(user_id,role) VALUES($1,'merchant') ON CONFLICT DO NOTHING`, userID); err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to activate merchant access.")
 		return
+	}
+	if applicationJSON != nil {
+		if _, err = tx.ExecContext(r.Context(), `INSERT INTO merchant_application_details (business_id, details) VALUES ($1, $2::jsonb)`, businessID, string(applicationJSON)); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to save application details.")
+			return
+		}
 	}
 	if _, err = tx.ExecContext(r.Context(), `INSERT INTO business_members(business_id,user_id,role,status) VALUES($1,$2,'owner','active')`, businessID, userID); err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to link the owner to the new business.")

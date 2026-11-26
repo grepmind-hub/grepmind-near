@@ -19,13 +19,17 @@ class RiderApplicationScreen extends ConsumerStatefulWidget {
 class _RiderApplicationScreenState
     extends ConsumerState<RiderApplicationScreen> {
   final _name = TextEditingController();
+  final _address = TextEditingController();
   final _vehicleDetails = TextEditingController();
+  final _fieldExecutiveCode = TextEditingController();
   final _picker = ImagePicker();
   List<Map<String, dynamic>> _localities = [];
   List<Map<String, dynamic>> _requirements = [];
+  List<Map<String, dynamic>> _fieldExecutives = [];
   Map<String, dynamic>? _application;
   final Set<String> _selectedLocalities = {};
   String _vehicleType = 'two_wheeler';
+  String _onboardingSource = 'self';
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -43,6 +47,16 @@ class _RiderApplicationScreenState
         apiClient.get('/rider/document-requirements'),
         apiClient.get('/rider/application'),
       ]);
+      List<Map<String, dynamic>> fieldExecs = [];
+      try {
+        final feRes = await apiClient.get('/field-executives/directory');
+        final feData =
+            (feRes.data as Map<String, dynamic>)['data'] as List<dynamic>? ??
+                [];
+        fieldExecs = feData.whereType<Map<String, dynamic>>().toList();
+      } catch (_) {
+        // Optional directory; manual AFE-1000 entry still works.
+      }
       final localityData =
           (responses[0].data as Map<String, dynamic>)['data']
               as List<dynamic>? ??
@@ -60,11 +74,19 @@ class _RiderApplicationScreenState
       setState(() {
         _localities = localityData.cast<Map<String, dynamic>>();
         _requirements = requirementData.cast<Map<String, dynamic>>();
+        _fieldExecutives = fieldExecs;
         _application = app;
         if (app != null) {
           _name.text = app['display_name'] as String? ?? '';
+          _address.text = app['address'] as String? ?? '';
           _vehicleType = app['vehicle_type'] as String? ?? 'two_wheeler';
           _vehicleDetails.text = app['vehicle_details'] as String? ?? '';
+          _onboardingSource =
+              (app['onboarding_source'] as String?) == 'field_executive'
+                  ? 'field_executive'
+                  : 'self';
+          _fieldExecutiveCode.text =
+              app['field_executive_code'] as String? ?? '';
           final places = app['localities'] as List<dynamic>? ?? [];
           _selectedLocalities.addAll(
             places
@@ -113,6 +135,21 @@ class _RiderApplicationScreenState
       );
       return;
     }
+    if (_address.text.trim().length < 5) {
+      setState(
+        () => _error =
+            'Enter your complete residential address (street, area, city & PIN).',
+      );
+      return;
+    }
+    if (_onboardingSource == 'field_executive' &&
+        _fieldExecutiveCode.text.trim().isEmpty) {
+      setState(
+        () => _error =
+            'Select or enter the Field Executive ID (AFE-1000 series).',
+      );
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -122,8 +159,12 @@ class _RiderApplicationScreenState
         '/rider/application',
         data: {
           'display_name': _name.text.trim(),
+          'address': _address.text.trim(),
           'vehicle_type': _vehicleType,
           'vehicle_details': _vehicleDetails.text.trim(),
+          'onboarding_source': _onboardingSource,
+          if (_onboardingSource == 'field_executive')
+            'field_executive_code': _fieldExecutiveCode.text.trim().toUpperCase(),
           'locality_ids': _selectedLocalities.toList(),
         },
       );
@@ -159,8 +200,67 @@ class _RiderApplicationScreenState
   }
 
   Future<void> _upload(String code) async {
+    final palette = context.abashyaka;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: palette.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(
+                'Upload Verification Document',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: palette.textPrimary,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt_rounded, color: palette.accent),
+              title: Text(
+                'Take Photo with Camera',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: palette.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                'Capture Aadhaar Card or Driving Licence clearly',
+                style: TextStyle(fontSize: 12, color: palette.textSecondary),
+              ),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library_rounded, color: palette.accent),
+              title: Text(
+                'Choose from Mobile Gallery',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: palette.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                'Select JPEG, PNG or WebP image (up to 8 MB)',
+                style: TextStyle(fontSize: 12, color: palette.textSecondary),
+              ),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
     final image = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 88,
       maxWidth: 2200,
     );
@@ -200,7 +300,9 @@ class _RiderApplicationScreenState
   @override
   void dispose() {
     _name.dispose();
+    _address.dispose();
     _vehicleDetails.dispose();
+    _fieldExecutiveCode.dispose();
     super.dispose();
   }
 
@@ -238,10 +340,36 @@ class _RiderApplicationScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.pedal_bike_rounded,
-                      color: AppTheme.riderAmberDark,
-                      size: 34,
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.pedal_bike_rounded,
+                          color: AppTheme.riderAmberDark,
+                          size: 34,
+                        ),
+                        const Spacer(),
+                        if ((_application?['rider_code']?.toString() ?? '')
+                            .isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: palette.accentSurface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: palette.border),
+                            ),
+                            child: Text(
+                              'ID: ${_application!['rider_code']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: palette.accent,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -284,6 +412,19 @@ class _RiderApplicationScreenState
                         ),
                       ),
                       const SizedBox(height: 12),
+                      TextField(
+                        controller: _address,
+                        minLines: 2,
+                        maxLines: 3,
+                        maxLength: 500,
+                        decoration: const InputDecoration(
+                          labelText: 'Complete residential address *',
+                          hintText:
+                              'House/Flat No, Street, Landmark, City, PIN code',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: _vehicleType,
                         decoration: const InputDecoration(
@@ -322,6 +463,71 @@ class _RiderApplicationScreenState
                           border: OutlineInputBorder(),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _onboardingSource,
+                        decoration: const InputDecoration(
+                          labelText: 'Onboarded Via',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'self',
+                            child: Text('Self-Registered'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'field_executive',
+                            child: Text('Field Executive (AFE-1000)'),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) setState(() => _onboardingSource = v);
+                        },
+                      ),
+                      if (_onboardingSource == 'field_executive') ...[
+                        const SizedBox(height: 12),
+                        if (_fieldExecutives.isNotEmpty)
+                          DropdownButtonFormField<String>(
+                            initialValue: _fieldExecutives.any(
+                              (e) =>
+                                  e['executive_code']?.toString() ==
+                                  _fieldExecutiveCode.text.trim().toUpperCase(),
+                            )
+                                ? _fieldExecutiveCode.text.trim().toUpperCase()
+                                : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Select Field Executive',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _fieldExecutives
+                                .map(
+                                  (fe) => DropdownMenuItem<String>(
+                                    value:
+                                        fe['executive_code']?.toString() ?? '',
+                                    child: Text(
+                                      '${fe['executive_code']} · ${fe['display_name']}',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) {
+                                setState(() => _fieldExecutiveCode.text = v);
+                              }
+                            },
+                          ),
+                        if (_fieldExecutives.isNotEmpty)
+                          const SizedBox(height: 10),
+                        TextField(
+                          controller: _fieldExecutiveCode,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(
+                            labelText: 'Field Executive ID (e.g. AFE-1000)',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

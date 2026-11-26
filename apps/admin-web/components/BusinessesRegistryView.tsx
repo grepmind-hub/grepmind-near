@@ -15,17 +15,16 @@ import { Business } from '@/lib/api';
 
 interface BusinessesRegistryViewProps {
   businesses: Business[];
-  onApprove: (id: string) => Promise<void>;
-  onVerify: (id: string) => Promise<void>;
+  onViewDetails: (id: string) => void;
 }
 
 export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
   businesses,
-  onApprove,
-  onVerify,
+  onViewDetails,
 }) => {
   const [cityFilter, setCityFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sourceFilter, setSourceFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filtered = businesses.filter((b) => {
@@ -34,11 +33,17 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
     const targetCity = cityFilter.toLowerCase();
     const matchesCity = cityFilter === 'All' || bCity.includes(targetCity) || bAddr.includes(targetCity);
     const matchesStatus = statusFilter === 'All' || b.status.toLowerCase() === statusFilter.toLowerCase();
+    const source = b.onboarding_source || 'self';
+    const matchesSource = sourceFilter === 'All' || source === sourceFilter;
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.category_name && b.category_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (b.address_text && b.address_text.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCity && matchesStatus && matchesSearch;
+      b.name.toLowerCase().includes(q) ||
+      (b.merchant_code && b.merchant_code.toLowerCase().includes(q)) ||
+      (b.category_name && b.category_name.toLowerCase().includes(q)) ||
+      (b.address_text && b.address_text.toLowerCase().includes(q)) ||
+      (b.field_executive_code && b.field_executive_code.toLowerCase().includes(q)) ||
+      (b.field_executive_name && b.field_executive_name.toLowerCase().includes(q));
+    return matchesCity && matchesStatus && matchesSource && matchesSearch;
   });
 
   return (
@@ -83,7 +88,7 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search businesses by name, category, or address..."
+            placeholder="Search by AM-1000 ID, name, category, address, or AFE-1000..."
             className="w-full text-xs text-[#172033] placeholder-[#98A2B3] focus:outline-none"
           />
         </div>
@@ -99,6 +104,17 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
           <option value="pending">Pending Verification</option>
           <option value="rejected">Rejected</option>
         </select>
+
+        {/* Onboarded Via Dropdown */}
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value)}
+          className="rounded-xl border border-[#E4E7EC] bg-white px-3 py-2 text-xs font-medium text-[#344054] shadow-xs focus:outline-none"
+        >
+          <option value="All">All Sources</option>
+          <option value="self">Self-Registered</option>
+          <option value="field_executive">Field Executive (AFE)</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -107,9 +123,11 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-[#E4E7EC] bg-[#F7F8FA] text-[#667085] font-semibold">
+                <th className="py-3 px-4">Merchant ID</th>
                 <th className="py-3 px-4">Business / Pro</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">City / Locality</th>
+                <th className="py-3 px-4">Onboarded Via</th>
                 <th className="py-3 px-4">Listing Status</th>
                 <th className="py-3 px-4">Verification</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -118,6 +136,9 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
             <tbody className="divide-y divide-[#F2F4F7]">
               {filtered.map((biz) => (
                 <tr key={biz.id} className="hover:bg-[#FAFAFA] transition-colors">
+                  <td className="py-3 px-4 font-mono font-bold text-[#0F766E] whitespace-nowrap">
+                    {biz.merchant_code || '—'}
+                  </td>
                   <td className="py-3 px-4">
                     <div className="font-bold text-[#172033]">{biz.name}</div>
                     <div className="text-[11px] text-[#667085] flex items-center gap-1.5 mt-0.5">
@@ -130,6 +151,22 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
                   <td className="py-3 px-4">
                     <div className="font-medium text-[#172033]">{biz.city || 'Odisha'}</div>
                     <div className="text-[11px] text-[#667085] truncate max-w-xs">{biz.address_text}</div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {biz.onboarding_source === 'field_executive' ? (
+                      <div>
+                        <span className="inline-block rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-[10px] font-bold text-teal-800">
+                          {biz.field_executive_code || 'AFE'}
+                        </span>
+                        {biz.field_executive_name && (
+                          <div className="text-[11px] text-[#667085] mt-0.5">{biz.field_executive_name}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                        Self
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span
@@ -159,14 +196,7 @@ export const BusinessesRegistryView: React.FC<BusinessesRegistryViewProps> = ({
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    {biz.status === 'pending' && (
-                      <button
-                        onClick={() => onApprove(biz.id)}
-                        className="rounded-lg bg-[#2457D6] px-2.5 py-1 text-[11px] font-bold text-white hover:bg-[#1E40AF]"
-                      >
-                        Approve
-                      </button>
-                    )}
+                    <button onClick={() => onViewDetails(biz.id)} className="rounded-lg border border-teal-200 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-50">View details</button>
                     {biz.status === 'approved' && (
                       <span className="text-[11px] font-semibold text-emerald-600 flex items-center justify-end gap-1">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Active

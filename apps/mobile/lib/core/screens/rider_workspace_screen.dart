@@ -284,10 +284,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           width: 1.5,
                         ),
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Icon(
                           Icons.sports_motorsports_rounded,
-                          color: context.abashyaka.card,
+                          color: Colors.white,
                           size: 26,
                         ),
                       ),
@@ -299,20 +299,20 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         children: [
                           Text(
                             'Hello, $displayName',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: context.abashyaka.card,
+                              color: Colors.white,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'ID: $shortId',
+                            'ID: ${_profile?['rider_code']?.toString().isNotEmpty == true ? _profile!['rider_code'] : shortId}',
                             style: const TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               color: Color(0xFFA7F3D0),
                             ),
                           ),
@@ -2958,21 +2958,27 @@ class _RiderWorkspaceProfileScreenState
                                           ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AbashyakaColors.successSurface,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: const Color(0xFF86EFAC),
-                                        ),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                AbashyakaColors.successSurface,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: const Color(0xFF86EFAC),
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
                                           Icon(
                                             Icons.verified_rounded,
                                             color: AbashyakaColors.success,
@@ -2989,6 +2995,34 @@ class _RiderWorkspaceProfileScreenState
                                           ),
                                         ],
                                       ),
+                                    ),
+                                        if ((_profile?['rider_code']
+                                                    ?.toString() ??
+                                                '')
+                                            .isNotEmpty)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: palette.accentSurface,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: palette.border,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'ID: ${_profile!['rider_code']}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: palette.accent,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -3182,6 +3216,51 @@ class _RiderWorkspaceProfileScreenState
                       ),
 
                     const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: palette.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: palette.accentSurface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.palette_outlined,
+                            color: palette.accent,
+                          ),
+                        ),
+                        title: Text(
+                          'Appearance',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: palette.textPrimary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          switch (ref.watch(themeModeProvider)) {
+                            ThemeMode.light => 'Light (Pearl White)',
+                            ThemeMode.dark => 'Dark (Midnight Slate)',
+                            ThemeMode.system => 'System default',
+                          },
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: palette.textMuted,
+                        ),
+                        onTap: () => _showAppearanceSheet(context),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     const _PhaseNotice(
                       title: 'Privacy & Operational Security',
                       body: 'Your service locality access is controlled by Abashyaka Admin. GPS tracking is not active in this phase and no real customer locations are shared outside assigned delivery scopes.',
@@ -3204,6 +3283,65 @@ class _RiderWorkspaceProfileScreenState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAppearanceSheet(BuildContext context) {
+    final current = ref.read(themeModeProvider);
+    final palette = context.abashyaka;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: palette.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(
+                'Appearance',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: palette.textPrimary,
+                ),
+              ),
+            ),
+            for (final option in const [
+              (ThemeMode.system, 'System default', Icons.brightness_auto_rounded),
+              (ThemeMode.light, 'Light (Pearl White)', Icons.light_mode_rounded),
+              (ThemeMode.dark, 'Dark (Midnight Slate)', Icons.dark_mode_rounded),
+            ])
+              ListTile(
+                leading: Icon(
+                  option.$3,
+                  color: current == option.$1
+                      ? palette.accent
+                      : palette.textSecondary,
+                ),
+                title: Text(
+                  option.$2,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: palette.textPrimary,
+                  ),
+                ),
+                trailing: current == option.$1
+                    ? Icon(Icons.check_circle_rounded, color: palette.accent)
+                    : null,
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(option.$1);
+                  Navigator.pop(ctx);
+                },
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

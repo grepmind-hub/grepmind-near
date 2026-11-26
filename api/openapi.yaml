@@ -1521,50 +1521,6 @@ paths:
                   meta:
                     $ref: '#/components/schemas/Meta'
 
-  /merchant/businesses:
-    get:
-      summary: List businesses the user manages
-      tags: [merchant]
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Managed businesses
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Business'
-                  meta:
-                    $ref: '#/components/schemas/Meta'
-    post:
-      summary: Create a business listing
-      tags: [merchant]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBusinessRequest'
-      responses:
-        '201':
-          description: Business created (draft)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Business'
-                  meta:
-                    $ref: '#/components/schemas/Meta'
-
   /merchant/businesses/{id}:
     patch:
       summary: Update an authorized business
@@ -1878,6 +1834,30 @@ paths:
         '404': {description: Business profile not found}
 
   /merchant/businesses:
+    post:
+      summary: Create a business listing
+      description: Creates a pending listing in an active area where merchant discovery is enabled. The district, locality, postal PIN, and GPS point must agree with the same configured service area.
+      tags: [merchant]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBusinessRequest'
+      responses:
+        '201':
+          description: Business created with pending review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Business'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
     get:
       summary: List businesses available to the authenticated merchant
       description: Returns only businesses owned by the authenticated user or joined through an active membership.
@@ -2735,6 +2715,84 @@ paths:
                       $ref: '#/components/schemas/Business'
                   meta:
                     $ref: '#/components/schemas/Meta'
+
+  /admin/businesses/{id}:
+    get:
+      summary: Read a listing application for Admin review
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: Private listing application, with weekly hours and any extra fields saved at submission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: {type: string, format: uuid}
+                      name: {type: string}
+                      category_slug: {type: string}
+                      category_name: {type: string}
+                      status: {type: string}
+                      verification_status: {type: string}
+                      created_at: {type: string, format: date-time}
+                      description: {type: string, nullable: true}
+                      owner_name: {type: string, nullable: true}
+                      owner_phone: {type: string}
+                      phone_e164: {type: string, nullable: true}
+                      whatsapp_e164: {type: string, nullable: true}
+                      address_text: {type: string}
+                      locality: {type: string, nullable: true}
+                      city: {type: string, nullable: true}
+                      postal_code: {type: string, nullable: true}
+                      latitude: {type: number, nullable: true}
+                      longitude: {type: number, nullable: true}
+                      time_zone: {type: string}
+                      has_storefront_photo: {type: boolean}
+                      application:
+                        description: Extra review fields are null for applications submitted by older clients.
+                        allOf:
+                          - $ref: '#/components/schemas/MerchantApplicationDetails'
+                        nullable: true
+                      hours:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BusinessHourInput'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '403':
+          description: Admin role required
+        '404':
+          description: Business not found
+
+  /admin/businesses/{id}/storefront:
+    get:
+      summary: Read a submitted storefront photo for Admin review
+      tags: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BusinessIdPath'
+      responses:
+        '200':
+          description: Private storefront image
+          content:
+            image/jpeg:
+              schema: {type: string, format: binary}
+            image/png:
+              schema: {type: string, format: binary}
+            image/webp:
+              schema: {type: string, format: binary}
+        '403':
+          description: Admin role required
+        '404':
+          description: Storefront photo not found
 
   /admin/businesses/{id}/approve:
     post:
@@ -4173,6 +4231,9 @@ paths:
                 display_name: {type: string, minLength: 2, maxLength: 120}
                 vehicle_type: {type: string, enum: [bicycle, two_wheeler, three_wheeler, other]}
                 vehicle_details: {type: string, maxLength: 500}
+                address: {type: string, minLength: 5, maxLength: 500}
+                onboarding_source: {type: string, enum: [self, field_executive]}
+                field_executive_code: {type: string, maxLength: 32}
                 locality_ids: {type: array, minItems: 1, maxItems: 10, items: {type: string, format: uuid}}
       responses:
         '200': {description: Application draft saved}
@@ -4213,6 +4274,46 @@ paths:
       responses:
         '200': {description: Approved rider profile}
         '403': {description: Rider entitlement, active account, and approved profile are required}
+  /field-executives/directory:
+    get:
+      summary: List active Admin-approved Field Executives (AFE-1000 series) for onboarding attribution
+      tags: [field-executives]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Active Field Executive directory}
+  /admin/field-executives:
+    get:
+      summary: List all Field Executives with onboarded rider and merchant counts
+      tags: [admin-field-executives]
+      security: [{bearerAuth: []}]
+      responses:
+        '200': {description: Field Executives list}
+    post:
+      summary: Grant Field Executive designation (AFE-1000 series) to an existing user
+      tags: [admin-field-executives]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone_e164: {type: string}
+                user_id: {type: string, format: uuid}
+                display_name: {type: string, maxLength: 120}
+      responses:
+        '200': {description: Field Executive granted or reactivated}
+        '404': {description: User not found}
+  /admin/field-executives/{id}/revoke:
+    post:
+      summary: Revoke an active Field Executive designation
+      tags: [admin-field-executives]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Field Executive revoked}
   /admin/rider-applications:
     get:
       summary: List rider applications for Admin review
@@ -5752,12 +5853,26 @@ components:
         cover_photo_url:
           type: string
           description: Relative URL returned by an owned storefront media upload.
+        application:
+          $ref: '#/components/schemas/MerchantApplicationDetails'
         hours:
           type: array
           minItems: 7
           maxItems: 7
           items:
             $ref: '#/components/schemas/BusinessHourInput'
+
+    MerchantApplicationDetails:
+      type: object
+      required: [owner_name, no_gst, enterprise_type, operating_mode, service_radius_km]
+      properties:
+        owner_name: {type: string, minLength: 1, maxLength: 100}
+        email: {type: string, format: email, maxLength: 254}
+        tax_id: {type: string, maxLength: 40}
+        no_gst: {type: boolean}
+        enterprise_type: {type: string, enum: [retail, service_pro, food, wellness]}
+        operating_mode: {type: string, enum: [store_only, home_only, both]}
+        service_radius_km: {type: integer, minimum: 1, maximum: 20}
 
     UpdateBusinessRequest:
       type: object

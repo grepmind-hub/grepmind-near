@@ -53,7 +53,7 @@ func fail(w http.ResponseWriter, code int, message string) {
 
 func (s *Service) OwnApplication(w http.ResponseWriter, r *http.Request, userID string) {
 	var raw string
-	err := s.db.GetContext(r.Context(), &raw, `SELECT (to_jsonb(p) || jsonb_build_object('localities', COALESCE((SELECT jsonb_agg(jsonb_build_object('locality_id',l.locality_id,'name',d.name,'status',l.status)) FROM rider_profile_localities l JOIN platform_delivery_localities d ON d.id=l.locality_id WHERE l.rider_profile_id=p.id),'[]'::jsonb), 'documents', COALESCE((SELECT jsonb_agg(jsonb_build_object('id',x.id,'requirement_id',x.requirement_id,'review_status',x.review_status,'rejection_reason',x.rejection_reason,'uploaded_at',x.uploaded_at)) FROM rider_documents x WHERE x.rider_profile_id=p.id),'[]'::jsonb)))::text FROM rider_profiles p WHERE p.user_id=$1`, userID)
+	err := s.db.GetContext(r.Context(), &raw, `SELECT (to_jsonb(p) || jsonb_build_object('field_executive_code', COALESCE(fe.executive_code,''), 'field_executive_name', COALESCE(fe.display_name,''), 'localities', COALESCE((SELECT jsonb_agg(jsonb_build_object('locality_id',l.locality_id,'name',d.name,'status',l.status)) FROM rider_profile_localities l JOIN platform_delivery_localities d ON d.id=l.locality_id WHERE l.rider_profile_id=p.id),'[]'::jsonb), 'documents', COALESCE((SELECT jsonb_agg(jsonb_build_object('id',x.id,'requirement_id',x.requirement_id,'review_status',x.review_status,'rejection_reason',x.rejection_reason,'uploaded_at',x.uploaded_at)) FROM rider_documents x WHERE x.rider_profile_id=p.id),'[]'::jsonb)))::text FROM rider_profiles p LEFT JOIN field_executives fe ON fe.id=p.field_executive_id WHERE p.user_id=$1`, userID)
 	if err == sql.ErrNoRows {
 		write(w, 200, envelope{"data": nil})
 		return
@@ -90,18 +90,43 @@ func (s *Service) Localities(w http.ResponseWriter, r *http.Request, _ string) {
 
 func (s *Service) SaveDraft(w http.ResponseWriter, r *http.Request, userID string) {
 	var in struct {
-		DisplayName    string   `json:"display_name"`
-		VehicleType    string   `json:"vehicle_type"`
-		VehicleDetails string   `json:"vehicle_details"`
-		LocalityIDs    []string `json:"locality_ids"`
+		DisplayName        string   `json:"display_name"`
+		VehicleType        string   `json:"vehicle_type"`
+		VehicleDetails     string   `json:"vehicle_details"`
+		Address            string   `json:"address"`
+		OnboardingSource   string   `json:"onboarding_source"`
+		FieldExecutiveCode string   `json:"field_executive_code"`
+		LocalityIDs        []string `json:"locality_ids"`
 	}
-	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&in) != nil || len(in.LocalityIDs) == 0 || len(in.LocalityIDs) > 10 || len(strings.TrimSpace(in.DisplayName)) < 2 || len(in.DisplayName) > 120 || len(in.VehicleDetails) > 500 {
-		fail(w, 400, "Provide a name, vehicle type, and one to ten supported localities.")
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 32<<10)).Decode(&in) != nil || len(in.LocalityIDs) == 0 || len(in.LocalityIDs) > 10 || len(strings.TrimSpace(in.DisplayName)) < 2 || len(in.DisplayName) > 120 || len(in.VehicleDetails) > 500 || len(in.Address) > 500 {
+		fail(w, 400, "Provide a name, vehicle type, valid address, and one to ten supported localities.")
 		return
 	}
 	if !oneOf(in.VehicleType, "bicycle", "two_wheeler", "three_wheeler", "other") {
 		fail(w, 400, "Unsupported vehicle type.")
 		return
+	}
+	source := strings.TrimSpace(in.OnboardingSource)
+	if source == "" {
+		source = "self"
+	}
+	if !oneOf(source, "self", "field_executive") {
+		fail(w, 400, "Unsupported onboarding source.")
+		return
+	}
+	var fieldExecID *string
+	if source == "field_executive" {
+		code := strings.ToUpper(strings.TrimSpace(in.FieldExecutiveCode))
+		if code == "" {
+			fail(w, 400, "Enter or select a valid Field Executive ID (AFE-1000).")
+			return
+		}
+		var feID string
+		if err := s.db.GetContext(r.Context(), &feID, `SELECT id::text FROM field_executives WHERE UPPER(executive_code)=$1 AND is_active=true`, code); err != nil {
+			fail(w, 400, "Active Field Executive ID not found.")
+			return
+		}
+		fieldExecID = &feID
 	}
 	tx, err := s.db.BeginTxx(r.Context(), nil)
 	if err != nil {
@@ -110,7 +135,7 @@ func (s *Service) SaveDraft(w http.ResponseWriter, r *http.Request, userID strin
 	}
 	defer tx.Rollback()
 	var id, status string
-	err = tx.QueryRowxContext(r.Context(), `INSERT INTO rider_profiles(user_id,display_name,vehicle_type,vehicle_details,status) VALUES($1,$2,$3,$4,'draft') ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name,vehicle_type=EXCLUDED.vehicle_type,vehicle_details=EXCLUDED.vehicle_details,updated_at=now() WHERE rider_profiles.status IN ('draft','changes_requested','rejected') RETURNING id,status`, userID, strings.TrimSpace(in.DisplayName), in.VehicleType, strings.TrimSpace(in.VehicleDetails)).Scan(&id, &status)
+	err = tx.QueryRowxContext(r.Context(), `INSERT INTO rider_profiles(user_id,display_name,vehicle_type,vehicle_details,address,onboarding_source,field_executive_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,'draft') ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name,vehicle_type=EXCLUDED.vehicle_type,vehicle_details=EXCLUDED.vehicle_details,address=EXCLUDED.address,onboarding_source=EXCLUDED.onboarding_source,field_executive_id=EXCLUDED.field_executive_id,updated_at=now() WHERE rider_profiles.status IN ('draft','changes_requested','rejected') RETURNING id,status`, userID, strings.TrimSpace(in.DisplayName), in.VehicleType, strings.TrimSpace(in.VehicleDetails), strings.TrimSpace(in.Address), source, fieldExecID).Scan(&id, &status)
 	if err != nil {
 		fail(w, 409, "This application cannot be edited in its current state.")
 		return
@@ -277,7 +302,7 @@ func (s *Service) AdminList(w http.ResponseWriter, r *http.Request, _ string) {
 		fail(w, 400, "Invalid rider status filter.")
 		return
 	}
-	rows, err := queryMaps(r.Context(), s.db, `SELECT p.id,p.user_id,p.display_name,p.vehicle_type,p.vehicle_details,p.status,p.review_notes,p.submitted_at,p.approved_at,p.created_at,u.phone_e164 FROM rider_profiles p JOIN users u ON u.id=p.user_id WHERE ($1='' OR p.status=$1) ORDER BY p.updated_at DESC LIMIT 200`, status)
+	rows, err := queryMaps(r.Context(), s.db, `SELECT p.id,p.rider_code,p.user_id,p.display_name,p.vehicle_type,p.vehicle_details,p.address,p.onboarding_source,COALESCE(fe.executive_code,'') AS field_executive_code,COALESCE(fe.display_name,'') AS field_executive_name,p.status,p.review_notes,p.submitted_at,p.approved_at,p.created_at,u.phone_e164,COALESCE(ra.is_online AND ra.lease_expires_at > now(), false) AS is_online,ra.lease_expires_at AS availability_expires_at,ra.last_heartbeat_at FROM rider_profiles p JOIN users u ON u.id=p.user_id LEFT JOIN field_executives fe ON fe.id=p.field_executive_id LEFT JOIN rider_availability_sessions ra ON ra.rider_user_id=p.user_id WHERE ($1='' OR p.status=$1) ORDER BY p.updated_at DESC LIMIT 200`, status)
 	if err != nil {
 		fail(w, 500, "Unable to list rider applications.")
 		return
@@ -287,7 +312,7 @@ func (s *Service) AdminList(w http.ResponseWriter, r *http.Request, _ string) {
 
 func (s *Service) AdminDetail(w http.ResponseWriter, r *http.Request, _ string) {
 	id := r.PathValue("id")
-	rows, err := queryMaps(r.Context(), s.db, `SELECT p.id,p.user_id,p.display_name,p.vehicle_type,p.vehicle_details,p.status,p.review_notes,p.submitted_at,p.approved_at,p.created_at,u.phone_e164 FROM rider_profiles p JOIN users u ON u.id=p.user_id WHERE p.id=$1`, id)
+	rows, err := queryMaps(r.Context(), s.db, `SELECT p.id,p.rider_code,p.user_id,p.display_name,p.vehicle_type,p.vehicle_details,p.address,p.onboarding_source,COALESCE(fe.executive_code,'') AS field_executive_code,COALESCE(fe.display_name,'') AS field_executive_name,p.status,p.review_notes,p.submitted_at,p.approved_at,p.created_at,u.phone_e164,COALESCE(ra.is_online AND ra.lease_expires_at > now(), false) AS is_online,ra.lease_expires_at AS availability_expires_at,ra.last_heartbeat_at FROM rider_profiles p JOIN users u ON u.id=p.user_id LEFT JOIN field_executives fe ON fe.id=p.field_executive_id LEFT JOIN rider_availability_sessions ra ON ra.rider_user_id=p.user_id WHERE p.id=$1`, id)
 	if err != nil || len(rows) == 0 {
 		fail(w, 404, "Rider application not found.")
 		return
@@ -566,7 +591,7 @@ func (s *Service) AdminReactivate(w http.ResponseWriter, r *http.Request, adminI
 
 func (s *Service) RiderProfile(w http.ResponseWriter, r *http.Request, userID string) {
 	var raw string
-	err := s.db.GetContext(r.Context(), &raw, `SELECT jsonb_build_object('id',p.id,'display_name',p.display_name,'vehicle_type',p.vehicle_type,'vehicle_details',p.vehicle_details,'status',p.status,'approved_localities',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',l.id,'name',l.name,'district',d.name)) FROM rider_profile_localities rl JOIN platform_delivery_localities l ON l.id=rl.locality_id JOIN platform_districts d ON d.id=l.district_id WHERE rl.rider_profile_id=p.id AND rl.status='approved'),'[]'::jsonb))::text FROM rider_profiles p JOIN user_roles ur ON ur.user_id=p.user_id AND ur.role='rider' JOIN users u ON u.id=p.user_id AND u.status='active' WHERE p.user_id=$1 AND p.status='approved'`, userID)
+	err := s.db.GetContext(r.Context(), &raw, `SELECT jsonb_build_object('id',p.id,'rider_code',p.rider_code,'display_name',p.display_name,'vehicle_type',p.vehicle_type,'vehicle_details',p.vehicle_details,'address',p.address,'onboarding_source',p.onboarding_source,'field_executive_code',COALESCE(fe.executive_code,''),'status',p.status,'approved_localities',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',l.id,'name',l.name,'district',d.name)) FROM rider_profile_localities rl JOIN platform_delivery_localities l ON l.id=rl.locality_id JOIN platform_districts d ON d.id=l.district_id WHERE rl.rider_profile_id=p.id AND rl.status='approved'),'[]'::jsonb))::text FROM rider_profiles p JOIN user_roles ur ON ur.user_id=p.user_id AND ur.role='rider' JOIN users u ON u.id=p.user_id AND u.status='active' LEFT JOIN field_executives fe ON fe.id=p.field_executive_id WHERE p.user_id=$1 AND p.status='approved'`, userID)
 	if err != nil {
 		fail(w, 403, "Approved rider access is required.")
 		return

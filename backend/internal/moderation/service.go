@@ -44,6 +44,7 @@ type Stats struct {
 
 type AdminBusiness struct {
 	ID                 string `json:"id"`
+	MerchantCode       string `json:"merchant_code,omitempty"`
 	Name               string `json:"name"`
 	Slug               string `json:"slug,omitempty"`
 	CategorySlug       string `json:"category_slug"`
@@ -54,6 +55,9 @@ type AdminBusiness struct {
 	VerificationStatus string `json:"verification_status"`
 	PhoneE164          string `json:"phone_e164,omitempty"`
 	OwnerPhone         string `json:"owner_phone,omitempty"`
+	OnboardingSource   string `json:"onboarding_source,omitempty"`
+	FieldExecutiveCode string `json:"field_executive_code,omitempty"`
+	FieldExecutiveName string `json:"field_executive_name,omitempty"`
 	CreatedAt          string `json:"created_at"`
 }
 
@@ -354,7 +358,7 @@ func (s *Service) ListPendingBusinesses(w http.ResponseWriter, r *http.Request, 
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		LEFT JOIN users u ON u.id = b.owner_user_id
-		WHERE b.status = 'pending_review' OR b.verification_status = 'pending' OR b.status = 'draft'
+		WHERE b.status IN ('pending_review', 'pending', 'draft') OR b.verification_status = 'pending'
 		ORDER BY b.created_at DESC
 		LIMIT 50
 	`)
@@ -404,20 +408,24 @@ func (s *Service) ListPendingBusinesses(w http.ResponseWriter, r *http.Request, 
 func (s *Service) ListAllBusinesses(w http.ResponseWriter, r *http.Request, adminUserID string) {
 	statusFilter := r.URL.Query().Get("status")
 	query := `
-		SELECT b.id, b.name, b.slug, b.category_slug, c.name as category_name,
+		SELECT b.id, COALESCE(b.merchant_code, '') as merchant_code, b.name, b.slug, b.category_slug, c.name as category_name,
 		       b.address_text, b.city, b.status, b.verification_status,
 		       b.phone_e164, COALESCE(u.phone_e164, '') as owner_phone,
+		       COALESCE(b.onboarding_source, 'self') as onboarding_source,
+		       COALESCE(fe.executive_code, '') as field_executive_code,
+		       COALESCE(fe.display_name, '') as field_executive_name,
 		       b.created_at
 		FROM businesses b
 		LEFT JOIN categories c ON c.slug = b.category_slug
 		LEFT JOIN users u ON u.id = b.owner_user_id
+		LEFT JOIN field_executives fe ON fe.id = b.field_executive_id
 	`
 	args := []interface{}{}
 	if statusFilter != "" && statusFilter != "all" {
 		query += " WHERE b.status = $1"
 		args = append(args, statusFilter)
 	}
-	query += " ORDER BY b.created_at DESC LIMIT 50"
+	query += " ORDER BY b.created_at DESC LIMIT 200"
 
 	rows, err := s.db.QueryxContext(r.Context(), query, args...)
 	if err != nil {
@@ -431,9 +439,9 @@ func (s *Service) ListAllBusinesses(w http.ResponseWriter, r *http.Request, admi
 		var b AdminBusiness
 		var slug, catName, city, phone, ownerPhone sql.NullString
 		var createdAt time.Time
-		if err := rows.Scan(&b.ID, &b.Name, &slug, &b.CategorySlug, &catName,
+		if err := rows.Scan(&b.ID, &b.MerchantCode, &b.Name, &slug, &b.CategorySlug, &catName,
 			&b.AddressText, &city, &b.Status, &b.VerificationStatus,
-			&phone, &ownerPhone, &createdAt); err != nil {
+			&phone, &ownerPhone, &b.OnboardingSource, &b.FieldExecutiveCode, &b.FieldExecutiveName, &createdAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to parse business row.")
 			return
 		}

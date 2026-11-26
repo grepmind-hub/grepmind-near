@@ -98,6 +98,7 @@ export interface Stats {
 
 export interface Business {
   id: string;
+  merchant_code?: string;
   name: string;
   slug?: string;
   category_slug: string;
@@ -108,7 +109,45 @@ export interface Business {
   verification_status: string;
   phone_e164?: string;
   owner_phone?: string;
+  onboarding_source?: string;
+  field_executive_code?: string;
+  field_executive_name?: string;
   created_at: string;
+}
+
+export interface BusinessApplication extends Business {
+  description: string | null;
+  owner_name: string | null;
+  whatsapp_e164: string | null;
+  locality: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  time_zone: string;
+  has_storefront_photo: boolean;
+  application: {
+    owner_name: string;
+    email?: string;
+    tax_id?: string;
+    no_gst: boolean;
+    enterprise_type: 'retail' | 'service_pro' | 'food' | 'wellness';
+    operating_mode: 'store_only' | 'home_only' | 'both';
+    service_radius_km: number;
+  } | null;
+  hours: { weekday: number; opens_at: string | null; closes_at: string | null; is_closed: boolean }[];
+}
+
+export async function getBusinessApplication(id: string, signal: AbortSignal) {
+  const response = await api.get<{ data: BusinessApplication }>(`/admin/businesses/${encodeURIComponent(id)}`, { signal });
+  return response.data.data;
+}
+
+export async function getBusinessStorefront(id: string, signal: AbortSignal) {
+  const response = await api.get<Blob>(`/admin/businesses/${encodeURIComponent(id)}/storefront`, { signal, responseType: 'blob' });
+  if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(response.data.type)) {
+    throw new Error('Unexpected storefront image type');
+  }
+  return response.data;
 }
 
 export interface PlatformCatalogCategory {

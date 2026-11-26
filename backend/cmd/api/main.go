@@ -288,6 +288,18 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 		mux.HandleFunc("GET /api/v1/rider/profile", requireRider(authSvc, riderSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			riderSvc.RiderProfile(w, r, uid)
 		}))
+		mux.HandleFunc("GET /api/v1/field-executives/directory", requireAuth(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.FieldExecutiveDirectory(w, r, uid)
+		}))
+		mux.HandleFunc("GET /api/v1/admin/field-executives", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminListFieldExecutives(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/field-executives", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminGrantFieldExecutive(w, r, uid)
+		}))
+		mux.HandleFunc("POST /api/v1/admin/field-executives/{id}/revoke", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
+			riderSvc.AdminRevokeFieldExecutive(w, r, uid)
+		}))
 		mux.HandleFunc("GET /api/v1/admin/rider-applications", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 			riderSvc.AdminList(w, r, uid)
 		}))
@@ -1133,6 +1145,16 @@ func setupRouter(authSvc *auth.Service, discSvc *discovery.Service, modSvc *mode
 	}))
 	mux.HandleFunc("GET /api/v1/admin/businesses", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.ListAllBusinesses(w, r, uid)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/businesses/{id}", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
+		modSvc.BusinessApplication(w, r)
+	}))
+	mux.HandleFunc("GET /api/v1/admin/businesses/{id}/storefront", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, _ string) {
+		if mediaSvc == nil {
+			writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "Storefront photo service is unavailable.")
+			return
+		}
+		mediaSvc.BusinessStorefront(w, r)
 	}))
 	mux.HandleFunc("POST /api/v1/admin/businesses/{id}/approve", requireAdmin(authSvc, func(_ *auth.Service, _ *database.DB, w http.ResponseWriter, r *http.Request, uid string) {
 		modSvc.ApproveBusiness(w, r, uid)

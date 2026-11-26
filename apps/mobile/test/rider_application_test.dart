@@ -74,6 +74,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Kuanpal'), findsOneWidget);
       expect(find.byType(CheckboxListTile), findsOneWidget);
+      await tester.ensureVisible(find.byType(CheckboxListTile).first);
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(CheckboxListTile).first);
       await tester.pumpAndSettle();
       expect(

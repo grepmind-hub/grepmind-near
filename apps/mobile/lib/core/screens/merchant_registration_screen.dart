@@ -295,11 +295,15 @@ class _MerchantRegistrationScreenState
   final _longitudeController = TextEditingController();
 
   final _searchClaimController = TextEditingController();
+  final _fieldExecutiveCodeController = TextEditingController();
 
   // Registration Selections
   String _enterpriseType = 'retail'; // retail, service_pro, food, wellness
   String? _selectedCategorySlug = 'hardware';
   String _selectedCategoryName = 'Hardware';
+  String _onboardingSource = 'self';
+  List<Map<String, dynamic>> _fieldExecutives = [];
+  bool _fieldExecutivesLoaded = false;
   String? _coverPhotoUrl;
   double? _businessLatitude;
   double? _businessLongitude;
@@ -539,6 +543,7 @@ class _MerchantRegistrationScreenState
     _latitudeController.dispose();
     _longitudeController.dispose();
     _searchClaimController.dispose();
+    _fieldExecutiveCodeController.dispose();
     _claimSearchDebounce?.cancel();
     super.dispose();
   }
@@ -585,6 +590,11 @@ class _MerchantRegistrationScreenState
           'postal_code': _pinController.text.trim(),
           'latitude': _businessLatitude,
           'longitude': _businessLongitude,
+          'onboarding_source': _onboardingSource,
+          if (_onboardingSource == 'field_executive' &&
+              _fieldExecutiveCodeController.text.trim().isNotEmpty)
+            'field_executive_code':
+                _fieldExecutiveCodeController.text.trim().toUpperCase(),
           if (_coverPhotoUrl != null) 'cover_photo_url': _coverPhotoUrl,
           'application': {
             'owner_name': _ownerNameController.text.trim(),
@@ -1357,9 +1367,128 @@ class _MerchantRegistrationScreenState
               ],
             ),
           ),
+          const SizedBox(height: 14),
+          PremiumCard(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Onboarded Via',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: context.abashyaka.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _onboardingSource,
+                  decoration: InputDecoration(
+                    labelText: 'Registration source',
+                    filled: true,
+                    fillColor: context.abashyaka.cardElevated,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'self',
+                      child: Text('Self-Registered'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'field_executive',
+                      child: Text('Field Executive (AFE-1000)'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => _onboardingSource = v);
+                      if (v == 'field_executive' && !_fieldExecutivesLoaded) {
+                        _loadFieldExecutives();
+                      }
+                    }
+                  },
+                ),
+                if (_onboardingSource == 'field_executive') ...[
+                  const SizedBox(height: 10),
+                  if (_fieldExecutives.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: _fieldExecutives.any(
+                        (e) =>
+                            e['executive_code']?.toString() ==
+                            _fieldExecutiveCodeController.text
+                                .trim()
+                                .toUpperCase(),
+                      )
+                          ? _fieldExecutiveCodeController.text
+                                .trim()
+                                .toUpperCase()
+                          : null,
+                      decoration: InputDecoration(
+                        labelText: 'Select Field Executive',
+                        filled: true,
+                        fillColor: context.abashyaka.cardElevated,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: _fieldExecutives
+                          .map(
+                            (fe) => DropdownMenuItem<String>(
+                              value: fe['executive_code']?.toString() ?? '',
+                              child: Text(
+                                '${fe['executive_code']} · ${fe['display_name']}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(
+                            () => _fieldExecutiveCodeController.text = v,
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  TextFormField(
+                    controller: _fieldExecutiveCodeController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'Field Executive ID (e.g. AFE-1000)',
+                      filled: true,
+                      fillColor: context.abashyaka.cardElevated,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _loadFieldExecutives() async {
+    _fieldExecutivesLoaded = true;
+    try {
+      final res = await apiClient.get('/field-executives/directory');
+      final rows =
+          (res.data as Map<String, dynamic>)['data'] as List<dynamic>? ?? [];
+      if (!mounted) return;
+      setState(() {
+        _fieldExecutives = rows.whereType<Map<String, dynamic>>().toList();
+      });
+    } catch (_) {
+      // Optional directory; manual AFE-1000 entry still works.
+    }
   }
 
   // Step 3: Location & Storefront Media
