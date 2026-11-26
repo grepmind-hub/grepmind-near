@@ -200,6 +200,19 @@ class _RiderApplicationScreenState
   }
 
   Future<void> _upload(String code) async {
+    if (_application == null) {
+      if (_name.text.trim().length < 2 ||
+          _address.text.trim().length < 5 ||
+          _selectedLocalities.isEmpty) {
+        setState(
+          () => _error =
+              'Enter your name, complete address, and select at least one locality before uploading documents.',
+        );
+        return;
+      }
+      await _save(submit: false);
+      if (_application == null || !mounted) return;
+    }
     final palette = context.abashyaka;
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -797,17 +810,38 @@ class _ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFFFFF1F2),
-    borderRadius: BorderRadius.circular(12),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Expanded(child: Text(message)),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Material(
+      color: palette.isDark
+          ? const Color(0xFF3A1A1E)
+          : const Color(0xFFFFF1F2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
       ),
-    ),
-  );
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: palette.isDark
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFF991B1B),
+                ),
+              ),
+            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -188,7 +188,7 @@ func (s *Service) Submit(w http.ResponseWriter, r *http.Request, userID string) 
 		return
 	}
 	var missing int
-	err = tx.GetContext(r.Context(), &missing, `SELECT count(*) FROM rider_document_requirements q WHERE q.is_active AND q.is_required AND q.vehicle_type IN ('any',(SELECT vehicle_type FROM rider_profiles WHERE id=$1)) AND NOT EXISTS(SELECT 1 FROM rider_documents d WHERE d.rider_profile_id=$1 AND d.requirement_id=q.id AND d.review_status='pending')`, id)
+	err = tx.GetContext(r.Context(), &missing, `SELECT count(*) FROM rider_document_requirements q WHERE q.is_active AND q.is_required AND q.vehicle_type IN ('any',(SELECT vehicle_type FROM rider_profiles WHERE id=$1)) AND NOT EXISTS(SELECT 1 FROM rider_documents d WHERE d.rider_profile_id=$1 AND d.requirement_id=q.id AND d.review_status IN ('pending','accepted'))`, id)
 	if err != nil {
 		fail(w, 500, "Unable to validate documents.")
 		return
