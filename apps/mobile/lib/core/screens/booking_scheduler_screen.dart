@@ -214,7 +214,7 @@ class _BookingSchedulerScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Select a time slot and enter the service address'),
-          backgroundColor: Color(0xFFDC2626),
+          backgroundColor: AbashyakaColors.error,
         ),
       );
       return;
@@ -287,7 +287,7 @@ class _BookingSchedulerScreenState
       builder: (ctx) => Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -298,7 +298,7 @@ class _BookingSchedulerScreenState
               width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1),
+                color: AbashyakaColors.aquaSilverBorder,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -309,13 +309,13 @@ class _BookingSchedulerScreenState
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
+                color: AbashyakaColors.successSurface,
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFA7F3D0), width: 2),
               ),
               child: const Icon(
                 Icons.check_circle_rounded,
-                color: Color(0xFF059669),
+                color: AbashyakaColors.success,
                 size: 46,
               ),
             ),
@@ -346,14 +346,14 @@ class _BookingSchedulerScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AbashyakaColors.pearlWhite,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AbashyakaColors.softGrey),
               ),
               child: Column(
                 children: [
                   _buildReceiptRow('Booking ID', '#$bookingId', isBold: true),
-                  const Divider(height: 20, color: Color(0xFFE2E8F0)),
+                  const Divider(height: 20, color: AbashyakaColors.softGrey),
                   _buildReceiptRow('Professional', _providerName),
                   const SizedBox(height: 8),
                   _buildReceiptRow(
@@ -368,7 +368,7 @@ class _BookingSchedulerScreenState
                   ),
                   const SizedBox(height: 8),
                   _buildReceiptRow('Location', _locationController.text),
-                  const Divider(height: 20, color: Color(0xFFE2E8F0)),
+                  const Divider(height: 20, color: AbashyakaColors.softGrey),
                   _buildReceiptRow(
                     'Estimated Amount',
                     '₹$_calculatedPrice',
@@ -445,7 +445,7 @@ class _BookingSchedulerScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                     ),
                   ),
@@ -495,9 +495,9 @@ class _BookingSchedulerScreenState
     final formattedMonth = monthFormat.format(_selectedDate);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AbashyakaColors.pureWhite,
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
@@ -570,9 +570,9 @@ class _BookingSchedulerScreenState
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -601,7 +601,7 @@ class _BookingSchedulerScreenState
                 child: Text(
                   _providerShortName.isNotEmpty ? _providerShortName[0] : 'P',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AbashyakaColors.pureWhite,
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                   ),
@@ -616,7 +616,7 @@ class _BookingSchedulerScreenState
                     color: AppTheme.mint,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, size: 10, color: Colors.white),
+                  child: const Icon(Icons.check, size: 10, color: AbashyakaColors.pureWhite),
                 ),
               ),
             ],
@@ -715,9 +715,9 @@ class _BookingSchedulerScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -755,9 +755,9 @@ class _BookingSchedulerScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AbashyakaColors.unavailableSurface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFCBD5E1)),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Row(
                 children: [
@@ -831,12 +831,12 @@ class _BookingSchedulerScreenState
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppTheme.mintLight
-                                : const Color(0xFFF8FAFC),
+                                : AbashyakaColors.pearlWhite,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected
                                   ? AppTheme.mint
-                                  : const Color(0xFFE2E8F0),
+                                  : AbashyakaColors.softGrey,
                               width: isSelected ? 1.5 : 1,
                             ),
                           ),
@@ -906,9 +906,9 @@ class _BookingSchedulerScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -936,7 +936,7 @@ class _BookingSchedulerScreenState
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: AbashyakaColors.unavailableSurface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1001,12 +1001,12 @@ class _BookingSchedulerScreenState
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppTheme.primary
-                              : const Color(0xFFF8FAFC),
+                              : AbashyakaColors.pearlWhite,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isSelected
                                 ? AppTheme.primary
-                                : const Color(0xFFE2E8F0),
+                                : AbashyakaColors.softGrey,
                             width: isSelected ? 1.5 : 1,
                           ),
                           boxShadow: isSelected
@@ -1031,7 +1031,7 @@ class _BookingSchedulerScreenState
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: isSelected
-                                    ? Colors.white.withValues(alpha: 0.85)
+                                    ? AbashyakaColors.pureWhite.withValues(alpha: 0.85)
                                     : AppTheme.secondaryText,
                               ),
                             ),
@@ -1042,7 +1042,7 @@ class _BookingSchedulerScreenState
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: isSelected
-                                    ? Colors.white
+                                    ? AbashyakaColors.pureWhite
                                     : AppTheme.mainText,
                               ),
                             ),
@@ -1054,7 +1054,7 @@ class _BookingSchedulerScreenState
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? Colors.white
+                                      ? AbashyakaColors.pureWhite
                                       : AppTheme.primary,
                                 ),
                               ),
@@ -1077,9 +1077,9 @@ class _BookingSchedulerScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1103,7 +1103,7 @@ class _BookingSchedulerScreenState
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
+                  color: AbashyakaColors.successSurface,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1113,7 +1113,7 @@ class _BookingSchedulerScreenState
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF059669),
+                    color: AbashyakaColors.success,
                   ),
                 ),
               ),
@@ -1127,13 +1127,13 @@ class _BookingSchedulerScreenState
             periodTitle: 'Morning',
             timeRange: '8:00 AM - 12:00 PM',
             icon: Icons.wb_sunny_outlined,
-            iconColor: const Color(0xFFF59E0B),
+            iconColor: AbashyakaColors.ratingStar,
             slots: _getMorningSlots(),
           ),
 
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            child: Divider(height: 1, color: AbashyakaColors.unavailableSurface),
           ),
 
           // Afternoon Slots
@@ -1147,7 +1147,7 @@ class _BookingSchedulerScreenState
 
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            child: Divider(height: 1, color: AbashyakaColors.unavailableSurface),
           ),
 
           // Evening Slots
@@ -1232,17 +1232,17 @@ class _BookingSchedulerScreenState
                 ),
                 decoration: BoxDecoration(
                   color: isBooked
-                      ? const Color(0xFFF1F5F9)
+                      ? AbashyakaColors.unavailableSurface
                       : isSelected
                       ? AppTheme.primary
-                      : Colors.white,
+                      : AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isBooked
-                        ? const Color(0xFFE2E8F0)
+                        ? AbashyakaColors.softGrey
                         : isSelected
                         ? AppTheme.primary
-                        : const Color(0xFFCBD5E1),
+                        : AbashyakaColors.aquaSilverBorder,
                     width: isSelected ? 1.5 : 1,
                   ),
                   boxShadow: isSelected
@@ -1266,9 +1266,9 @@ class _BookingSchedulerScreenState
                           : Icons.schedule_rounded,
                       size: 14,
                       color: isBooked
-                          ? const Color(0xFF94A3B8)
+                          ? AbashyakaColors.disabledText
                           : isSelected
-                          ? Colors.white
+                          ? AbashyakaColors.pureWhite
                           : AppTheme.secondaryText,
                     ),
                     const SizedBox(width: 6),
@@ -1280,9 +1280,9 @@ class _BookingSchedulerScreenState
                             ? FontWeight.w800
                             : FontWeight.w600,
                         color: isBooked
-                            ? const Color(0xFF94A3B8)
+                            ? AbashyakaColors.disabledText
                             : isSelected
-                            ? Colors.white
+                            ? AbashyakaColors.pureWhite
                             : AppTheme.mainText,
                         decoration: isBooked
                             ? TextDecoration.lineThrough
@@ -1314,9 +1314,9 @@ class _BookingSchedulerScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1335,9 +1335,9 @@ class _BookingSchedulerScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AbashyakaColors.pearlWhite,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AbashyakaColors.softGrey),
             ),
             child: Row(
               children: [
@@ -1395,14 +1395,14 @@ class _BookingSchedulerScreenState
               ),
               contentPadding: const EdgeInsets.all(12),
               filled: true,
-              fillColor: const Color(0xFFF8FAFC),
+              fillColor: AbashyakaColors.pearlWhite,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AbashyakaColors.softGrey),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: const BorderSide(color: AbashyakaColors.softGrey),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1424,8 +1424,8 @@ class _BookingSchedulerScreenState
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        color: AbashyakaColors.pureWhite,
+        border: const Border(top: BorderSide(color: AbashyakaColors.softGrey)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1497,7 +1497,7 @@ class _BookingSchedulerScreenState
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                             strokeWidth: 2,
                           ),
                         )
@@ -1506,7 +1506,7 @@ class _BookingSchedulerScreenState
                           children: [
                             Icon(
                               Icons.check_rounded,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                               size: 18,
                             ),
                             SizedBox(width: 6),
@@ -1515,7 +1515,7 @@ class _BookingSchedulerScreenState
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AbashyakaColors.pureWhite,
                               ),
                             ),
                           ],

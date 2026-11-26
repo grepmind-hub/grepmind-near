@@ -442,8 +442,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             : null,
         title: const Text('Order details'),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        backgroundColor: AbashyakaColors.pureWhite,
+        foregroundColor: AbashyakaColors.primaryText,
         actions: [
           IconButton(
             onPressed: _loading ? null : () => _loadOrder(),
@@ -492,7 +492,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   onPressed: _showDeliveryCode,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppTheme.emerald,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AbashyakaColors.pureWhite,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -519,7 +519,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               OutlinedButton.icon(
                 onPressed: () => _confirmCancel(order),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFDC2626),
+                  foregroundColor: AbashyakaColors.error,
                   side: const BorderSide(color: Color(0xFFFECACA)),
                   backgroundColor: const Color(0xFFFEF2F2),
                   padding: const EdgeInsets.symmetric(vertical: 13),
@@ -541,7 +541,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 onPressed: _reordering ? null : () => _reorder(order),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.emerald,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -552,7 +552,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         dimension: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       )
                     : const Icon(Icons.replay_rounded, size: 18),
@@ -567,8 +567,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               onPressed: _supportSubmitting ? null : _showSupportForm,
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF334155),
-                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                backgroundColor: Colors.white,
+                side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
+                backgroundColor: AbashyakaColors.pureWhite,
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -770,7 +770,7 @@ class _SummaryCard extends StatelessWidget {
       statusIcon,
     ) = switch (order.status) {
       OrderStatus.delivered || OrderStatus.completed => (
-        const Color(0xFFE8F5E9),
+        AbashyakaColors.successSurface,
         AppTheme.emerald.withValues(alpha: 0.25),
         AppTheme.emeraldDark,
         Icons.check_circle_rounded,
@@ -790,7 +790,7 @@ class _SummaryCard extends StatelessWidget {
         Icons.schedule_rounded,
       ),
       _ => (
-        const Color(0xFFE8F5E9),
+        AbashyakaColors.successSurface,
         AppTheme.emerald.withValues(alpha: 0.25),
         AppTheme.emerald,
         Icons.receipt_rounded,
@@ -830,7 +830,7 @@ class _SummaryCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
+                        color: AbashyakaColors.primaryText,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -884,9 +884,9 @@ class _SummaryCard extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: AbashyakaColors.unavailableSurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AbashyakaColors.softGrey),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -931,7 +931,7 @@ class _DeliveryTruthCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: AbashyakaColors.successSurface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: AppTheme.emerald.withValues(alpha: 0.25),
@@ -949,7 +949,7 @@ class _DeliveryTruthCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: Color(0xFF0F172A),
+                color: AbashyakaColors.primaryText,
               ),
             ),
           ],
@@ -962,7 +962,7 @@ class _DeliveryTruthCard extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1E293B),
+            color: AbashyakaColors.primaryText,
           ),
         ),
         const SizedBox(height: 4),
@@ -973,7 +973,7 @@ class _DeliveryTruthCard extends StatelessWidget {
         if (order.deliveryAddress?.isNotEmpty == true) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+            child: Divider(height: 1, color: AbashyakaColors.softGrey),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -982,7 +982,7 @@ class _DeliveryTruthCard extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: AbashyakaColors.successSurface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -1001,7 +1001,7 @@ class _DeliveryTruthCard extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
-                        color: Color(0xFF0F172A),
+                        color: AbashyakaColors.primaryText,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1042,13 +1042,13 @@ class _DispatchStatusCard extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFECFDF5),
+            color: AbashyakaColors.successSurface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFA7F3D0)),
           ),
           child: const Icon(
             Icons.delivery_dining_rounded,
-            color: Color(0xFF059669),
+            color: AbashyakaColors.success,
             size: 24,
           ),
         ),
@@ -1062,7 +1062,7 @@ class _DispatchStatusCard extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
-                  color: Color(0xFF0F172A),
+                  color: AbashyakaColors.primaryText,
                 ),
               ),
               const SizedBox(height: 5),
@@ -1110,7 +1110,7 @@ class _LiveConnectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isGood ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+        color: isGood ? AbashyakaColors.successSurface : const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isGood ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
@@ -1122,7 +1122,7 @@ class _LiveConnectionCard extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: isGood ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+              color: isGood ? AbashyakaColors.successSurface : AbashyakaColors.warningSurface,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1132,7 +1132,7 @@ class _LiveConnectionCard extends StatelessWidget {
                   ? Icons.check_circle_outline_rounded
                   : Icons.sync_rounded,
               size: 16,
-              color: isGood ? const Color(0xFF059669) : const Color(0xFFD97706),
+              color: isGood ? AbashyakaColors.success : AbashyakaColors.warning,
             ),
           ),
           const SizedBox(width: 10),
@@ -1153,7 +1153,7 @@ class _LiveConnectionCard extends StatelessWidget {
                     fontSize: 13,
                     color: isGood
                         ? const Color(0xFF065F46)
-                        : const Color(0xFF92400E),
+                        : AbashyakaColors.warning,
                   ),
                 ),
                 if (lastUpdatedAt != null)
@@ -1161,7 +1161,7 @@ class _LiveConnectionCard extends StatelessWidget {
                     'Last checked ${TimeOfDay.fromDateTime(lastUpdatedAt!.toLocal()).format(context)}',
                     style: TextStyle(
                       color: isGood
-                          ? const Color(0xFF047857).withValues(alpha: 0.8)
+                          ? AbashyakaColors.success.withValues(alpha: 0.8)
                           : const Color(0xFFB45309),
                       fontSize: 11,
                     ),
@@ -1272,8 +1272,8 @@ class _TimelineStepItem extends StatelessWidget {
                   color: isFirst
                       ? Colors.transparent
                       : (isCompleted || isActive
-                            ? const Color(0xFF059669)
-                            : const Color(0xFFE2E8F0)),
+                            ? AbashyakaColors.success
+                            : AbashyakaColors.softGrey),
                 ),
                 // Indicator Node
                 Container(
@@ -1282,22 +1282,22 @@ class _TimelineStepItem extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isActive
-                        ? const Color(0xFF059669)
+                        ? AbashyakaColors.success
                         : isCompleted
-                        ? const Color(0xFFECFDF5)
-                        : const Color(0xFFF8FAFC),
+                        ? AbashyakaColors.successSurface
+                        : AbashyakaColors.pearlWhite,
                     border: Border.all(
                       color: isActive
-                          ? const Color(0xFF047857)
+                          ? AbashyakaColors.success
                           : isCompleted
-                          ? const Color(0xFF059669)
-                          : const Color(0xFFCBD5E1),
+                          ? AbashyakaColors.success
+                          : AbashyakaColors.aquaSilverBorder,
                       width: isActive ? 2.5 : 1.5,
                     ),
                     boxShadow: isActive
                         ? [
                             BoxShadow(
-                              color: const Color(0xFF059669)
+                              color: AbashyakaColors.success
                                   .withValues(alpha: 0.3),
                               blurRadius: 6,
                               spreadRadius: 1,
@@ -1315,10 +1315,10 @@ class _TimelineStepItem extends StatelessWidget {
                           ? 13
                           : (isCompleted || isActive ? 14 : 6),
                       color: isActive
-                          ? Colors.white
+                          ? AbashyakaColors.pureWhite
                           : isCompleted
-                          ? const Color(0xFF059669)
-                          : const Color(0xFF94A3B8),
+                          ? AbashyakaColors.success
+                          : AbashyakaColors.disabledText,
                     ),
                   ),
                 ),
@@ -1329,8 +1329,8 @@ class _TimelineStepItem extends StatelessWidget {
                       : Container(
                           width: 2.5,
                           color: isCompleted
-                              ? const Color(0xFF059669)
-                              : const Color(0xFFE2E8F0),
+                              ? AbashyakaColors.success
+                              : AbashyakaColors.softGrey,
                         ),
                 ),
               ],
@@ -1357,7 +1357,7 @@ class _TimelineStepItem extends StatelessWidget {
                                 : FontWeight.w700,
                             color: isActive
                                 ? const Color(0xFF065F46)
-                                : const Color(0xFF0F172A),
+                                : AbashyakaColors.primaryText,
                           ),
                         ),
                       ),
@@ -1368,7 +1368,7 @@ class _TimelineStepItem extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
+                            color: AbashyakaColors.successSurface,
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: const Color(0xFFA7F3D0)),
                           ),
@@ -1377,7 +1377,7 @@ class _TimelineStepItem extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF047857),
+                              color: AbashyakaColors.success,
                             ),
                           ),
                         ),
@@ -1389,7 +1389,7 @@ class _TimelineStepItem extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
+                      color: AbashyakaColors.mutedText,
                     ),
                   ),
                   if (detail != null && detail!.isNotEmpty) ...[
@@ -1494,14 +1494,14 @@ class _UnifiedOrderTimeline extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AbashyakaColors.successSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
                 child: const Icon(
                   Icons.alt_route_rounded,
                   size: 18,
-                  color: Color(0xFF059669),
+                  color: AbashyakaColors.success,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1510,7 +1510,7 @@ class _UnifiedOrderTimeline extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
-                  color: Color(0xFF0F172A),
+                  color: AbashyakaColors.primaryText,
                 ),
               ),
             ],
@@ -1548,9 +1548,9 @@ class _UnifiedOrderTimeline extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AbashyakaColors.pearlWhite,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AbashyakaColors.softGrey),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1562,7 +1562,7 @@ class _UnifiedOrderTimeline extends StatelessWidget {
                         width: 6,
                         height: 6,
                         decoration: const BoxDecoration(
-                          color: Color(0xFF059669),
+                          color: AbashyakaColors.success,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1616,14 +1616,14 @@ class _StatusTimeline extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AbashyakaColors.successSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFBBF7D0)),
                 ),
                 child: const Icon(
                   Icons.history_rounded,
                   size: 18,
-                  color: Color(0xFF059669),
+                  color: AbashyakaColors.success,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1632,7 +1632,7 @@ class _StatusTimeline extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+                  color: AbashyakaColors.primaryText,
                 ),
               ),
             ],
@@ -1683,14 +1683,14 @@ class _OrderItemsCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
+                color: AbashyakaColors.successSurface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFFBBF7D0)),
               ),
               child: const Icon(
                 Icons.receipt_long_rounded,
                 size: 18,
-                color: Color(0xFF059669),
+                color: AbashyakaColors.success,
               ),
             ),
             const SizedBox(width: 10),
@@ -1699,14 +1699,14 @@ class _OrderItemsCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: Color(0xFF0F172A),
+                color: AbashyakaColors.primaryText,
               ),
             ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: AbashyakaColors.unavailableSurface,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -1714,7 +1714,7 @@ class _OrderItemsCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B),
+                  color: AbashyakaColors.mutedText,
                 ),
               ),
             ),
@@ -1732,9 +1732,9 @@ class _OrderItemsCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: AbashyakaColors.pearlWhite,
                     borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AbashyakaColors.softGrey),
                   ),
                   child: Text(
                     '${item.quantity}×',
@@ -1752,7 +1752,7 @@ class _OrderItemsCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                      color: AbashyakaColors.primaryText,
                     ),
                   ),
                 ),
@@ -1761,7 +1761,7 @@ class _OrderItemsCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AbashyakaColors.primaryText,
                   ),
                 ),
               ],
@@ -1769,14 +1769,14 @@ class _OrderItemsCard extends StatelessWidget {
           ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+          child: Divider(height: 1, color: AbashyakaColors.softGrey),
         ),
         _MoneyRow(label: 'Items', value: order.itemTotal),
         _MoneyRow(label: 'Delivery', value: order.deliveryFee),
         _MoneyRow(label: 'Tax', value: order.tax),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
-          child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+          child: Divider(height: 1, color: AbashyakaColors.softGrey),
         ),
         _MoneyRow(
           label: 'Total',
@@ -1812,7 +1812,7 @@ class _MoneyRow extends StatelessWidget {
             fontSize: highlight ? 15 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
             color: highlight
-                ? const Color(0xFF0F172A)
+                ? AbashyakaColors.primaryText
                 : const Color(0xFF475569),
           ),
         ),
@@ -1822,8 +1822,8 @@ class _MoneyRow extends StatelessWidget {
             fontSize: highlight ? 16 : 13,
             fontWeight: bold ? FontWeight.w800 : FontWeight.normal,
             color: highlight
-                ? const Color(0xFF047857)
-                : const Color(0xFF0F172A),
+                ? AbashyakaColors.success
+                : AbashyakaColors.primaryText,
           ),
         ),
       ],
@@ -1838,12 +1838,12 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: 14),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AbashyakaColors.pureWhite,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: AppTheme.brandBorder, width: 1.2),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+          color: AbashyakaColors.primaryText.withValues(alpha: 0.03),
           blurRadius: 10,
           offset: const Offset(0, 3),
         ),
@@ -1886,7 +1886,7 @@ class _LoadFailure extends StatelessWidget {
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

@@ -212,7 +212,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: CircleAvatar(
                       radius: 36,
-                      backgroundColor: Colors.white,
+                      backgroundColor: AbashyakaColors.pureWhite,
                       child: CircleAvatar(
                         radius: 33,
                         backgroundColor: isRider
@@ -1173,7 +1173,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AbashyakaColors.pureWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1519,7 +1519,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   : (isMerchant
                                         ? AppTheme.coral
                                         : AbashyakaColors.signatureTeal),
-                              foregroundColor: Colors.white,
+                              foregroundColor: AbashyakaColors.pureWhite,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -1567,7 +1567,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     children: [
                                       const Icon(
                                         Icons.check_circle,
-                                        color: Colors.white,
+                                        color: AbashyakaColors.pureWhite,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),

@@ -168,7 +168,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.riderAmberBorder),
       ),
@@ -233,14 +233,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
           style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 18,
-            color: Colors.white,
+            color: AbashyakaColors.pureWhite,
           ),
         ),
         backgroundColor: AppTheme.emeraldDark,
         elevation: 0,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                icon: const Icon(Icons.arrow_back_rounded, color: AbashyakaColors.pureWhite),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
@@ -248,7 +248,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
           IconButton(
             icon: const Icon(
               Icons.notifications_none_rounded,
-              color: Colors.white,
+              color: AbashyakaColors.pureWhite,
             ),
             tooltip: 'Notifications',
             onPressed: () {},
@@ -268,7 +268,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF064D3A), Color(0xFF0B6B4A)],
+                    colors: [Color(0xFF064D3A), AbashyakaColors.success],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -287,17 +287,17 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: AbashyakaColors.pureWhite.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: AbashyakaColors.pureWhite.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                       ),
                       child: const Center(
                         child: Icon(
                           Icons.sports_motorsports_rounded,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                           size: 26,
                         ),
                       ),
@@ -312,7 +312,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -336,13 +336,13 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: _online
-                            ? const Color(0xFF16A34A).withValues(alpha: 0.25)
-                            : Colors.white.withValues(alpha: 0.15),
+                            ? AbashyakaColors.success.withValues(alpha: 0.25)
+                            : AbashyakaColors.pureWhite.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _online
                               ? const Color(0xFF86EFAC)
-                              : Colors.white.withValues(alpha: 0.3),
+                              : AbashyakaColors.pureWhite.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -355,7 +355,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                               shape: BoxShape.circle,
                               color: _online
                                   ? const Color(0xFF4ADE80)
-                                  : const Color(0xFFCBD5E1),
+                                  : AbashyakaColors.aquaSilverBorder,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -381,12 +381,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _online ? const Color(0xFFE8F5E9) : Colors.white,
+                  color: _online ? AbashyakaColors.successSurface : AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: _online
                         ? const Color(0xFF86EFAC)
-                        : const Color(0xFFE2E8F0),
+                        : AbashyakaColors.softGrey,
                     width: 1.5,
                   ),
                   boxShadow: const [
@@ -405,8 +405,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: _online
-                                ? const Color(0xFFDCFCE7)
-                                : const Color(0xFFF1F5F9),
+                                ? AbashyakaColors.successSurface
+                                : AbashyakaColors.unavailableSurface,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -414,8 +414,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 ? Icons.check_circle_rounded
                                 : Icons.pause_circle_outline_rounded,
                             color: _online
-                                ? const Color(0xFF16A34A)
-                                : const Color(0xFF64748B),
+                                ? AbashyakaColors.success
+                                : AbashyakaColors.mutedText,
                             size: 24,
                           ),
                         ),
@@ -431,7 +431,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                   fontWeight: FontWeight.w800,
                                   color: _online
                                       ? const Color(0xFF064D3A)
-                                      : const Color(0xFF1E293B),
+                                      : AbashyakaColors.primaryText,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -442,8 +442,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: _online
-                                      ? const Color(0xFF047857)
-                                      : const Color(0xFF64748B),
+                                      ? AbashyakaColors.success
+                                      : AbashyakaColors.mutedText,
                                 ),
                               ),
                             ],
@@ -466,14 +466,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
                           backgroundColor: _online
-                              ? Colors.white
+                              ? AbashyakaColors.pureWhite
                               : AppTheme.emerald,
                           foregroundColor: _online
-                              ? const Color(0xFF1E293B)
-                              : Colors.white,
+                              ? AbashyakaColors.primaryText
+                              : AbashyakaColors.pureWhite,
                           side: _online
                               ? const BorderSide(
-                                  color: Color(0xFFCBD5E1),
+                                  color: AbashyakaColors.aquaSilverBorder,
                                   width: 1.2,
                                 )
                               : null,
@@ -533,9 +533,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AbashyakaColors.softGrey),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,7 +548,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
+                                  color: AbashyakaColors.mutedText,
                                 ),
                               ),
                               Icon(
@@ -564,7 +564,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF1E293B),
+                              color: AbashyakaColors.primaryText,
                             ),
                           ),
                         ],
@@ -579,9 +579,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AbashyakaColors.softGrey),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,7 +594,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF64748B),
+                                  color: AbashyakaColors.mutedText,
                                 ),
                               ),
                               Icon(
@@ -610,7 +610,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
-                              color: Color(0xFF1E293B),
+                              color: AbashyakaColors.primaryText,
                             ),
                           ),
                         ],
@@ -664,9 +664,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AbashyakaColors.softGrey),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,12 +676,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
+                            color: AbashyakaColors.successSurface,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.verified_user_rounded,
-                            color: Color(0xFF16A34A),
+                            color: AbashyakaColors.success,
                             size: 22,
                           ),
                         ),
@@ -712,7 +712,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                     const SizedBox(height: 10),
                     const Text(
                       'Dispatch availability is controlled by approved service localities. No GPS is collected.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 12, color: AbashyakaColors.mutedText),
                     ),
                     if (_loading)
                       const Padding(
@@ -741,7 +741,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                         'Vehicle · $vehicleType',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF64748B),
+                          color: AbashyakaColors.mutedText,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -782,7 +782,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: const Color(0xFFD8E3F5)),
                 ),
@@ -836,7 +836,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               ),
               const SizedBox(height: 12),
               Material(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: const BorderSide(color: Color(0xFFD8E3F5)),
@@ -845,7 +845,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F4F0),
+                      color: AbashyakaColors.iceAquaWhite,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -871,7 +871,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               ),
               const SizedBox(height: 12),
               Material(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: const BorderSide(color: AppTheme.riderAmberBorder),
@@ -906,7 +906,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               ),
               const SizedBox(height: 12),
               Material(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: const BorderSide(color: Color(0xFFD8E3F5)),
@@ -915,7 +915,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: AbashyakaColors.successSurface,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -1349,21 +1349,21 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
         style: TextStyle(
           fontWeight: FontWeight.w800,
           fontSize: 18,
-          color: Colors.white,
+          color: AbashyakaColors.pureWhite,
         ),
       ),
       backgroundColor: AppTheme.emeraldDark,
       elevation: 0,
       leading: Navigator.canPop(context)
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              icon: const Icon(Icons.arrow_back_rounded, color: AbashyakaColors.pureWhite),
               onPressed: () => Navigator.pop(context),
             )
           : null,
       actions: [
         IconButton(
           onPressed: _load,
-          icon: const Icon(Icons.refresh, color: Colors.white),
+          icon: const Icon(Icons.refresh, color: AbashyakaColors.pureWhite),
           tooltip: 'Refresh',
         ),
       ],
@@ -1413,9 +1413,9 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AbashyakaColors.softGrey),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x05000000),
@@ -1429,7 +1429,7 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFE6F4F0),
+                      color: AbashyakaColors.iceAquaWhite,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1453,7 +1453,7 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF64748B),
+                      color: AbashyakaColors.mutedText,
                       height: 1.4,
                     ),
                   ),
@@ -1493,7 +1493,7 @@ class _OfferCard extends StatelessWidget {
     margin: const EdgeInsets.only(top: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AbashyakaColors.pureWhite,
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: const Color(0xFFB8F2DC), width: 1.5),
       boxShadow: const [
@@ -1514,7 +1514,7 @@ class _OfferCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F0),
+                color: AbashyakaColors.iceAquaWhite,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -1536,7 +1536,7 @@ class _OfferCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: AbashyakaColors.warningSurface,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -1544,7 +1544,7 @@ class _OfferCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF92400E),
+                  color: AbashyakaColors.warning,
                 ),
               ),
             ),
@@ -1558,7 +1558,7 @@ class _OfferCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFF8FAF9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AbashyakaColors.softGrey),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1568,7 +1568,7 @@ class _OfferCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F4F0),
+                      color: AbashyakaColors.iceAquaWhite,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Icon(
@@ -1632,7 +1632,7 @@ class _OfferCard extends StatelessWidget {
           child: Icon(
             Icons.arrow_downward_rounded,
             size: 16,
-            color: Color(0xFF94A3B8),
+            color: AbashyakaColors.disabledText,
           ),
         ),
         const SizedBox(height: 8),
@@ -1641,9 +1641,9 @@ class _OfferCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AbashyakaColors.pearlWhite,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AbashyakaColors.softGrey),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1659,7 +1659,7 @@ class _OfferCard extends StatelessWidget {
                     child: const Icon(
                       Icons.person_pin_circle_rounded,
                       size: 16,
-                      color: Color(0xFF0284C7),
+                      color: AbashyakaColors.information,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1669,7 +1669,7 @@ class _OfferCard extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
-                      color: Color(0xFF0284C7),
+                      color: AbashyakaColors.information,
                     ),
                   ),
                 ],
@@ -1773,8 +1773,8 @@ class _OfferCard extends StatelessWidget {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
-                  foregroundColor: const Color(0xFF64748B),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  foregroundColor: AbashyakaColors.mutedText,
+                  side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1789,7 +1789,7 @@ class _OfferCard extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   backgroundColor: AppTheme.emerald,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1849,7 +1849,7 @@ class _AssignmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: AbashyakaColors.unavailableSurface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -1861,7 +1861,7 @@ class _AssignmentCard extends StatelessWidget {
                   height: 2,
                   color: i <= current
                       ? AppTheme.emerald
-                      : const Color(0xFFCBD5E1),
+                      : AbashyakaColors.aquaSilverBorder,
                 ),
               ),
             Column(
@@ -1876,15 +1876,15 @@ class _AssignmentCard extends StatelessWidget {
                         ? AppTheme.emerald
                         : i == current
                         ? AppTheme.emeraldDark
-                        : const Color(0xFFCBD5E1),
+                        : AbashyakaColors.aquaSilverBorder,
                   ),
                   child: Center(
                     child: i < current
-                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        ? const Icon(Icons.check, size: 14, color: AbashyakaColors.pureWhite)
                         : Text(
                             '${i + 1}',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1901,7 +1901,7 @@ class _AssignmentCard extends StatelessWidget {
                         : FontWeight.w500,
                     color: i == current
                         ? AppTheme.emeraldDark
-                        : const Color(0xFF64748B),
+                        : AbashyakaColors.mutedText,
                   ),
                 ),
               ],
@@ -1919,9 +1919,9 @@ class _AssignmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -1946,7 +1946,7 @@ class _AssignmentCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE6F4F0),
+                  color: AbashyakaColors.iceAquaWhite,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFB8F2DC)),
                 ),
@@ -1973,7 +1973,7 @@ class _AssignmentCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAF9),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AbashyakaColors.softGrey),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1983,7 +1983,7 @@ class _AssignmentCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE6F4F0),
+                        color: AbashyakaColors.iceAquaWhite,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
@@ -2021,9 +2021,9 @@ class _AssignmentCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE6F4F0),
+                          color: AbashyakaColors.iceAquaWhite,
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                          border: Border.all(color: AbashyakaColors.aquaSilverBorder),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2088,9 +2088,9 @@ class _AssignmentCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AbashyakaColors.pearlWhite,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AbashyakaColors.softGrey),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2106,7 +2106,7 @@ class _AssignmentCard extends StatelessWidget {
                       child: const Icon(
                         Icons.person_pin_circle_rounded,
                         size: 16,
-                        color: Color(0xFF0284C7),
+                        color: AbashyakaColors.information,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -2116,7 +2116,7 @@ class _AssignmentCard extends StatelessWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        color: Color(0xFF0284C7),
+                        color: AbashyakaColors.information,
                       ),
                     ),
                     const Spacer(),
@@ -2148,7 +2148,7 @@ class _AssignmentCard extends StatelessWidget {
                             Icon(
                               Icons.navigation_outlined,
                               size: 12,
-                              color: Color(0xFF0284C7),
+                              color: AbashyakaColors.information,
                             ),
                             SizedBox(width: 4),
                             Text(
@@ -2156,7 +2156,7 @@ class _AssignmentCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF0284C7),
+                                color: AbashyakaColors.information,
                               ),
                             ),
                           ],
@@ -2236,7 +2236,7 @@ class _AssignmentCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AbashyakaColors.unavailableSurface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -2283,7 +2283,7 @@ class _AssignmentCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
+                color: AbashyakaColors.successSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -2351,7 +2351,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2368,7 +2368,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2385,7 +2385,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2402,7 +2402,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.emerald,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2419,7 +2419,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.emeraldDark,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2436,7 +2436,7 @@ class _AssignmentCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
                 backgroundColor: AppTheme.riderAmberDark,
-                foregroundColor: Colors.white,
+                foregroundColor: AbashyakaColors.pureWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2460,7 +2460,7 @@ class _AssignmentCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(46),
                 foregroundColor: AppTheme.textPrimary,
-                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -2589,7 +2589,7 @@ class _RiderWorkspaceProfileScreenState
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: AbashyakaColors.pureWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -2679,7 +2679,7 @@ class _RiderWorkspaceProfileScreenState
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pearlWhite,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -2752,7 +2752,7 @@ class _RiderWorkspaceProfileScreenState
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.riderAmberDark,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AbashyakaColors.pureWhite,
                       minimumSize: const Size.fromHeight(50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -2889,7 +2889,7 @@ class _RiderWorkspaceProfileScreenState
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Rider profile'),
-        backgroundColor: Colors.white,
+        backgroundColor: AbashyakaColors.pureWhite,
         leading: Navigator.canPop(context)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -2915,7 +2915,7 @@ class _RiderWorkspaceProfileScreenState
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                          colors: [Color(0xFFFFFBEB), AbashyakaColors.warningSurface],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -2938,7 +2938,7 @@ class _RiderWorkspaceProfileScreenState
                                 width: 58,
                                 height: 58,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: AbashyakaColors.pureWhite,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: AppTheme.riderAmberBorder,
@@ -2976,7 +2976,7 @@ class _RiderWorkspaceProfileScreenState
                                         vertical: 3,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFDCFCE7),
+                                        color: AbashyakaColors.successSurface,
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: const Color(0xFF86EFAC),
@@ -2987,7 +2987,7 @@ class _RiderWorkspaceProfileScreenState
                                         children: [
                                           Icon(
                                             Icons.verified_rounded,
-                                            color: Color(0xFF16A34A),
+                                            color: AbashyakaColors.success,
                                             size: 14,
                                           ),
                                           SizedBox(width: 4),
@@ -2996,7 +2996,7 @@ class _RiderWorkspaceProfileScreenState
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w800,
-                                              color: Color(0xFF15803D),
+                                              color: AbashyakaColors.success,
                                             ),
                                           ),
                                         ],
@@ -3011,7 +3011,7 @@ class _RiderWorkspaceProfileScreenState
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.riderAmberDark,
-                              backgroundColor: Colors.white,
+                              backgroundColor: AbashyakaColors.pureWhite,
                               side: const BorderSide(
                                 color: AppTheme.riderAmberBorder,
                                 width: 1.5,
@@ -3038,7 +3038,7 @@ class _RiderWorkspaceProfileScreenState
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppTheme.riderAmberBorder),
                       ),
@@ -3074,14 +3074,14 @@ class _RiderWorkspaceProfileScreenState
                             label: 'Registered Mobile',
                             value: user?.phoneE164 ?? '+91 99900 00173',
                             iconColor: AppTheme.forest,
-                            containerColor: const Color(0xFFE8F5E9),
+                            containerColor: AbashyakaColors.successSurface,
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6,
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDCFCE7),
+                                color: AbashyakaColors.successSurface,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
@@ -3089,7 +3089,7 @@ class _RiderWorkspaceProfileScreenState
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF15803D),
+                                  color: AbashyakaColors.success,
                                 ),
                               ),
                             ),
@@ -3138,9 +3138,9 @@ class _RiderWorkspaceProfileScreenState
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: AbashyakaColors.softGrey),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3251,7 +3251,7 @@ class _PhaseNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AbashyakaColors.pureWhite,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: const Color(0xFFE4EAF2)),
     ),
@@ -3389,7 +3389,7 @@ class _RemittanceSubmissionDialogState
         onPressed: _submit,
         style: FilledButton.styleFrom(
           backgroundColor: AppTheme.riderAmberDark,
-          foregroundColor: Colors.white,
+          foregroundColor: AbashyakaColors.pureWhite,
         ),
         child: const Text('Submit'),
       ),
@@ -3585,7 +3585,7 @@ class _RiderCashAccountabilityScreenState
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.riderAmberDark,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AbashyakaColors.pureWhite,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

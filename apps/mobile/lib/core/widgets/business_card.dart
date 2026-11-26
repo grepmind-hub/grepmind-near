@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
-import 'package:grepmind_mobile/core/theme/abashyaka_colors.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/category_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -107,16 +106,10 @@ class BusinessCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+        boxShadow: AbashyakaShadows.card,
       ),
       child: Material(
         color: Colors.transparent,
@@ -170,7 +163,7 @@ class BusinessCard extends StatelessWidget {
                           const Icon(
                             Icons.star_rounded,
                             size: 16,
-                            color: Color(0xFFF59E0B),
+                            color: AbashyakaColors.ratingStar,
                           ),
                           const SizedBox(width: 3),
                           Text(
@@ -240,8 +233,8 @@ class BusinessCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: business.isOpenNow
-                                  ? const Color(0xFFECFDF3)
-                                  : const Color(0xFFF2F4F7),
+                                  ? AbashyakaColors.successSurface
+                                  : AbashyakaColors.unavailableSurface,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -253,8 +246,8 @@ class BusinessCard extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: business.isOpenNow
-                                        ? const Color(0xFF15803D)
-                                        : const Color(0xFF9AA5B1),
+                                        ? AbashyakaColors.success
+                                        : AbashyakaColors.disabledText,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
@@ -264,8 +257,8 @@ class BusinessCard extends StatelessWidget {
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: business.isOpenNow
-                                        ? const Color(0xFF15803D)
-                                        : const Color(0xFF667085),
+                                        ? AbashyakaColors.success
+                                        : AbashyakaColors.mutedText,
                                   ),
                                 ),
                               ],
@@ -281,8 +274,8 @@ class BusinessCard extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: business.deliveryEnabled
-                                    ? const Color(0xFFE8F5E9)
-                                    : const Color(0xFFF3F4F6),
+                                    ? AbashyakaColors.successSurface
+                                    : AbashyakaColors.unavailableSurface,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -293,8 +286,8 @@ class BusinessCard extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: business.deliveryEnabled
-                                      ? const Color(0xFF064D3A)
-                                      : const Color(0xFF4B5563),
+                                      ? AbashyakaColors.success
+                                      : AbashyakaColors.secondaryText,
                                 ),
                               ),
                             ),
@@ -306,7 +299,7 @@ class BusinessCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE6F7F7),
+                              color: AbashyakaColors.iceAquaWhite,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: AbashyakaColors.metallicTeal.withValues(alpha: 0.25),
@@ -361,7 +354,7 @@ class BusinessCard extends StatelessWidget {
                         child: const Text(
                           'Call',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -380,7 +373,7 @@ class BusinessCard extends StatelessWidget {
                               : Icons.favorite_border_rounded,
                           color: isFavorited
                               ? AppTheme.error
-                              : const Color(0xFF9AA5B1),
+                              : AbashyakaColors.disabledText,
                           size: 20,
                         ),
                       ),

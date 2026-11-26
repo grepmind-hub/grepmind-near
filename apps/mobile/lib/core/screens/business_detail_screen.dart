@@ -63,7 +63,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 top: 20,
               ),
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SingleChildScrollView(
@@ -76,7 +76,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
+                          color: AbashyakaColors.softGrey,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -113,7 +113,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                       ],
                     ),
-                    const Divider(height: 24, color: Color(0xFFE2E8F0)),
+                    const Divider(height: 24, color: AbashyakaColors.softGrey),
 
                     // Star Rating Picker
                     const Text(
@@ -144,7 +144,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                         ? Icons.star_rounded
                                         : Icons.star_outline_rounded,
                                     size: 28,
-                                    color: const Color(0xFFF59E0B),
+                                    color: AbashyakaColors.ratingStar,
                                   ),
                                 ),
                               ),
@@ -153,7 +153,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            color: AbashyakaColors.warningSurface,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -169,7 +169,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFD97706),
+                              color: AbashyakaColors.warning,
                             ),
                           ),
                         ),
@@ -192,14 +192,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       decoration: InputDecoration(
                         hintText: 'Enter your name',
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AbashyakaColors.pearlWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AbashyakaColors.softGrey),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AbashyakaColors.softGrey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -234,14 +234,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         hintText:
                             'Share your experience with this business, staff behavior, pricing, service quality...',
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AbashyakaColors.pearlWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AbashyakaColors.softGrey),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          borderSide: const BorderSide(color: AbashyakaColors.softGrey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -303,7 +303,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AbashyakaColors.signatureTeal,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AbashyakaColors.pureWhite,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -533,7 +533,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         .any((business) => business.id == biz.id);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AbashyakaColors.pureWhite,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -547,7 +547,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 padding: const EdgeInsets.all(8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: AbashyakaColors.pureWhite.withValues(alpha: 0.9),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -565,7 +565,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   padding: const EdgeInsets.only(right: 8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: AbashyakaColors.pureWhite.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -584,7 +584,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   padding: const EdgeInsets.only(right: 12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: AbashyakaColors.pureWhite.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -638,7 +638,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           color: AbashyakaColors.signatureTeal.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
+                            color: AbashyakaColors.pureWhite.withValues(alpha: 0.35),
                             width: 1,
                           ),
                         ),
@@ -648,7 +648,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             const Icon(
                               Icons.verified_user_rounded,
                               size: 14,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -656,7 +656,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               style: const TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
+                                color: AbashyakaColors.pureWhite,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -673,7 +673,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             SliverToBoxAdapter(
               child: Container(
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 transform: Matrix4.translationValues(0, -16, 0),
@@ -703,7 +703,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE6F7F7),
+                              color: AbashyakaColors.iceAquaWhite,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: AbashyakaColors.metallicTeal.withValues(alpha: 0.3),
@@ -745,7 +745,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             const Icon(
                               Icons.star_rounded,
                               size: 18,
-                              color: Color(0xFFF59E0B),
+                              color: AbashyakaColors.ratingStar,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -790,7 +790,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE6F7F7),
+                            color: AbashyakaColors.iceAquaWhite,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -840,7 +840,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               const Icon(
                                 Icons.circle,
                                 size: 8,
-                                color: Color(0xFF15803D),
+                                color: AbashyakaColors.success,
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -848,7 +848,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF15803D),
+                                  color: AbashyakaColors.success,
                                 ),
                               ),
                             ],
@@ -896,7 +896,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDF4),
+                              color: AbashyakaColors.successSurface,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: const Color(0xFFBBF7D0),
@@ -933,7 +933,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'Call',
                           Icons.phone_rounded,
-                          const Color(0xFFE6F7F7),
+                          AbashyakaColors.iceAquaWhite,
                           AbashyakaColors.signatureTeal,
                           contactPhone != null
                               ? () => _launchContact(
@@ -947,7 +947,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           'Directions',
                           Icons.directions_rounded,
                           const Color(0xFFDFEEFF),
-                          const Color(0xFF0284C7),
+                          AbashyakaColors.information,
                           () => _launchUrl(
                             'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(biz.addressText)}',
                           ),
@@ -955,8 +955,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         _buildCircleAction(
                           'WhatsApp',
                           Icons.chat_bubble_rounded,
-                          const Color(0xFFDCFCE7),
-                          const Color(0xFF16A34A),
+                          AbashyakaColors.successSurface,
+                          AbashyakaColors.success,
                           whatsappPhone != null
                               ? () => _launchContact(
                                   () => ref
@@ -973,7 +973,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           const Color(0xFFFFF3E0),
                           isFavorited
                               ? const Color(0xFFFF8A00)
-                              : const Color(0xFFD97706),
+                              : AbashyakaColors.warning,
                           () => _toggleFavorite(biz.id),
                         ),
                       ],
@@ -1048,7 +1048,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AbashyakaColors.pureWhite,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -1084,7 +1084,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
+                        color: AbashyakaColors.pureWhite.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -1092,7 +1092,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       ),
                     ),
@@ -1102,7 +1102,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                     ),
                   ],
@@ -1114,14 +1114,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                     ),
                     SizedBox(width: 6),
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 18,
-                      color: Colors.white,
+                      color: AbashyakaColors.pureWhite,
                     ),
                   ],
                 ),
@@ -1161,7 +1161,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -1211,14 +1211,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       icon: const Icon(
                         Icons.delivery_dining_rounded,
                         size: 20,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                       label: const Text(
                         'Order Delivery',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -1280,14 +1280,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           icon: const Icon(
                             Icons.calendar_month_rounded,
                             size: 19,
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                           ),
                           label: const Text(
                             'Book Stay / Room',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -1349,14 +1349,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                               icon: const Icon(
                                 Icons.local_taxi_rounded,
                                 size: 19,
-                                color: Colors.white,
+                                color: AbashyakaColors.pureWhite,
                               ),
                               label: const Text(
                                 'Book Ride',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AbashyakaColors.pureWhite,
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
@@ -1420,14 +1420,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   icon: const Icon(
                                     Icons.calendar_month_rounded,
                                     size: 19,
-                                    color: Colors.white,
+                                    color: AbashyakaColors.pureWhite,
                                   ),
                                   label: const Text(
                                     'Book Appointment',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                      color: AbashyakaColors.pureWhite,
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -1495,14 +1495,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                             ? Icons.spa_rounded
                                             : Icons.fitness_center_rounded,
                                         size: 19,
-                                        color: Colors.white,
+                                        color: AbashyakaColors.pureWhite,
                                       ),
                                       label: Text(
                                         biz.primaryActionLabel,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: Colors.white,
+                                          color: AbashyakaColors.pureWhite,
                                         ),
                                       ),
                                       style: ElevatedButton.styleFrom(
@@ -1574,14 +1574,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                           icon: const Icon(
                                             Icons.handyman_rounded,
                                             size: 19,
-                                            color: Colors.white,
+                                            color: AbashyakaColors.pureWhite,
                                           ),
                                           label: Text(
                                             biz.primaryActionLabel,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
-                                              color: Colors.white,
+                                              color: AbashyakaColors.pureWhite,
                                             ),
                                           ),
                                           style: ElevatedButton.styleFrom(
@@ -1653,14 +1653,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                               icon: const Icon(
                                                 Icons.school_rounded,
                                                 size: 19,
-                                                color: Colors.white,
+                                                color: AbashyakaColors.pureWhite,
                                               ),
                                               label: const Text(
                                                 'Enquire Now',
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
+                                                  color: AbashyakaColors.pureWhite,
                                                 ),
                                               ),
                                               style: ElevatedButton.styleFrom(
@@ -1739,14 +1739,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                                     : Icons
                                                         .storefront_outlined,
                                                 size: 19,
-                                                color: Colors.white,
+                                                color: AbashyakaColors.pureWhite,
                                               ),
                                               label: Text(
                                                 biz.primaryActionLabel,
                                                 style: const TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
+                                                  color: AbashyakaColors.pureWhite,
                                                 ),
                                               ),
                                               style: ElevatedButton.styleFrom(
@@ -1825,9 +1825,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
+                  color: AbashyakaColors.successSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFDCFCE7)),
+                  border: Border.all(color: AbashyakaColors.successSurface),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1835,7 +1835,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     const Icon(
                       Icons.check_circle_rounded,
                       size: 14,
-                      color: Color(0xFF16A34A),
+                      color: AbashyakaColors.success,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -1843,7 +1843,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF15803D),
+                        color: AbashyakaColors.success,
                       ),
                     ),
                   ],
@@ -1867,9 +1867,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
+            color: AbashyakaColors.pearlWhite,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: AbashyakaColors.aquaSilverBorder),
           ),
           child: Row(
             children: [
@@ -1941,9 +1941,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
+            color: AbashyakaColors.pearlWhite,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE4E7EC)),
+            border: Border.all(color: AbashyakaColors.aquaSilverBorder),
           ),
           child: hours.isEmpty
               ? const Align(
@@ -2006,7 +2006,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AbashyakaColors.pureWhite,
             border: Border(bottom: BorderSide(color: Color(0xFFF2F4F7))),
           ),
           child: SingleChildScrollView(
@@ -2022,7 +2022,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       height: 14,
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: const Color(0xFF16A34A),
+                          color: AbashyakaColors.success,
                           width: 1.5,
                         ),
                         borderRadius: BorderRadius.circular(3),
@@ -2030,7 +2030,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       child: const Center(
                         child: CircleAvatar(
                           radius: 3,
-                          backgroundColor: Color(0xFF16A34A),
+                          backgroundColor: AbashyakaColors.success,
                         ),
                       ),
                     ),
@@ -2043,12 +2043,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     ),
                     selected: _vegOnly,
                     onSelected: (val) => setState(() => _vegOnly = val),
-                    backgroundColor: const Color(0xFFF8F9FA),
-                    selectedColor: const Color(0xFFDCFCE7),
-                    checkmarkColor: const Color(0xFF16A34A),
+                    backgroundColor: AbashyakaColors.pearlWhite,
+                    selectedColor: AbashyakaColors.successSurface,
+                    checkmarkColor: AbashyakaColors.success,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
-                      side: const BorderSide(color: Color(0xFFE4E7EC)),
+                      side: const BorderSide(color: AbashyakaColors.aquaSilverBorder),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2070,16 +2070,16 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         fontWeight: isSelected
                             ? FontWeight.w700
                             : FontWeight.w500,
-                        color: isSelected ? Colors.white : AppTheme.mainText,
+                        color: isSelected ? AbashyakaColors.pureWhite : AppTheme.mainText,
                       ),
-                      backgroundColor: const Color(0xFFF8F9FA),
+                      backgroundColor: AbashyakaColors.pearlWhite,
                       selectedColor: AppTheme.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
                           color: isSelected
                               ? AppTheme.primary
-                              : const Color(0xFFE4E7EC),
+                              : AbashyakaColors.aquaSilverBorder,
                         ),
                       ),
                     ),
@@ -2128,8 +2128,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: p.isVeg
-                            ? const Color(0xFF16A34A)
-                            : const Color(0xFFDC2626),
+                            ? AbashyakaColors.success
+                            : AbashyakaColors.error,
                         width: 1.5,
                       ),
                       borderRadius: BorderRadius.circular(3),
@@ -2141,8 +2141,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: p.isVeg
-                              ? const Color(0xFF16A34A)
-                              : const Color(0xFFDC2626),
+                              ? AbashyakaColors.success
+                              : AbashyakaColors.error,
                         ),
                       ),
                     ),
@@ -2226,7 +2226,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         vertical: 1.5,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
+                        color: AbashyakaColors.successSurface,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -2234,7 +2234,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF16A34A),
+                          color: AbashyakaColors.success,
                         ),
                       ),
                     ),
@@ -2266,16 +2266,16 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               width: 88,
               height: 80,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FA),
+                color: AbashyakaColors.pearlWhite,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE4E7EC)),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Center(
                 child: Icon(
                   p.isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
                   color: p.isVeg
-                      ? const Color(0xFF16A34A)
-                      : const Color(0xFFDC2626),
+                      ? AbashyakaColors.success
+                      : AbashyakaColors.error,
                   size: 32,
                 ),
               ),
@@ -2290,7 +2290,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       onPressed: () => _addToCart(p, biz),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(
-                          color: Color(0xFF16A34A),
+                          color: AbashyakaColors.success,
                           width: 1.5,
                         ),
                         padding: EdgeInsets.zero,
@@ -2303,7 +2303,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF16A34A),
+                          color: AbashyakaColors.success,
                         ),
                       ),
                     ),
@@ -2312,7 +2312,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     height: 32,
                     width: 88,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF16A34A),
+                      color: AbashyakaColors.success,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -2328,7 +2328,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             child: Icon(
                               Icons.remove,
                               size: 16,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                             ),
                           ),
                         ),
@@ -2337,7 +2337,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                           ),
                         ),
                         InkWell(
@@ -2350,7 +2350,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             child: Icon(
                               Icons.add,
                               size: 16,
-                              color: Colors.white,
+                              color: AbashyakaColors.pureWhite,
                             ),
                           ),
                         ),
@@ -2366,9 +2366,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
   Widget _buildHotelRoomCard(Business biz, Product room) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4E7EC)),
+        border: Border.all(color: AbashyakaColors.aquaSilverBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -2402,7 +2402,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: AbashyakaColors.pureWhite.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
@@ -2410,7 +2410,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       Icon(
                         Icons.king_bed_rounded,
                         size: 14,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                       SizedBox(width: 4),
                       Text(
@@ -2418,7 +2418,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       ),
                     ],
@@ -2430,7 +2430,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AbashyakaColors.pureWhite,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -2499,14 +2499,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       icon: const Icon(
                         Icons.bookmark_add_rounded,
                         size: 16,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                       label: const Text(
                         'Reserve Room',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -2568,7 +2568,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             return Container(
               height: MediaQuery.of(context).size.height * 0.78,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -2580,7 +2580,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       width: 44,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE4E7EC),
+                        color: AbashyakaColors.aquaSilverBorder,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -2637,7 +2637,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
-                                        ? Colors.white
+                                        ? AbashyakaColors.pureWhite
                                         : AppTheme.mainText,
                                     fontWeight: isSel
                                         ? FontWeight.w700
@@ -2681,7 +2681,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                       selectedColor: AppTheme.emerald,
                                       labelStyle: TextStyle(
                                         color: isSel
-                                            ? Colors.white
+                                            ? AbashyakaColors.pureWhite
                                             : AppTheme.mainText,
                                         fontWeight: isSel
                                             ? FontWeight.w700
@@ -2724,7 +2724,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
-                                        ? Colors.white
+                                        ? AbashyakaColors.pureWhite
                                         : AppTheme.mainText,
                                     fontWeight: isSel
                                         ? FontWeight.w700
@@ -2762,7 +2762,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selectedColor: AppTheme.emerald,
                                   labelStyle: TextStyle(
                                     color: isSel
-                                        ? Colors.white
+                                        ? AbashyakaColors.pureWhite
                                         : AppTheme.mainText,
                                     fontWeight: isSel
                                         ? FontWeight.w700
@@ -2852,7 +2852,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                     ),
                                     child: const Text(
                                       'Awesome, Done!',
-                                      style: TextStyle(color: Colors.white),
+                                      style: TextStyle(color: AbashyakaColors.pureWhite),
                                     ),
                                   ),
                                 ],
@@ -2881,7 +2881,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                           ),
                         ),
                       ),
@@ -2923,7 +2923,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
             return Container(
               height: MediaQuery.of(context).size.height * 0.78,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -2935,7 +2935,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       width: 44,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE4E7EC),
+                        color: AbashyakaColors.aquaSilverBorder,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -3035,7 +3035,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selectedColor: AppTheme.primary,
                                   labelStyle: TextStyle(
                                     color: isSel
-                                        ? Colors.white
+                                        ? AbashyakaColors.pureWhite
                                         : AppTheme.mainText,
                                     fontWeight: isSel
                                         ? FontWeight.w700
@@ -3075,7 +3075,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                   selectedColor: AppTheme.primary,
                                   labelStyle: TextStyle(
                                     color: isSel
-                                        ? Colors.white
+                                        ? AbashyakaColors.pureWhite
                                         : AppTheme.mainText,
                                     fontWeight: isSel
                                         ? FontWeight.w700
@@ -3092,9 +3092,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8F9FA),
+                            color: AbashyakaColors.pearlWhite,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE4E7EC)),
+                            border: Border.all(color: AbashyakaColors.aquaSilverBorder),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3233,7 +3233,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                                           child: const Text(
                                             'View Booking Receipt',
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: AbashyakaColors.pureWhite,
                                             ),
                                           ),
                                         ),
@@ -3263,7 +3263,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                           ),
                         ),
                       ),
@@ -3324,10 +3324,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF3C7).withValues(alpha: 0.3),
+            color: AbashyakaColors.warningSurface.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+              color: AbashyakaColors.ratingStar.withValues(alpha: 0.4),
             ),
           ),
           child: Row(
@@ -3336,12 +3336,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                 width: 48,
                 height: 48,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF59E0B),
+                  color: AbashyakaColors.ratingStar,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.local_offer_rounded,
-                  color: Colors.white,
+                  color: AbashyakaColors.pureWhite,
                   size: 24,
                 ),
               ),
@@ -3373,7 +3373,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFD97706),
+                        color: AbashyakaColors.warning,
                       ),
                     ),
                   ],
@@ -3398,9 +3398,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: AbashyakaColors.pearlWhite,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AbashyakaColors.softGrey),
           ),
           child: Row(
             children: [
@@ -3420,7 +3420,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                       (index) => const Icon(
                         Icons.star_rounded,
                         size: 17,
-                        color: Color(0xFFF59E0B),
+                        color: AbashyakaColors.ratingStar,
                       ),
                     ),
                   ),
@@ -3480,7 +3480,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
-              backgroundColor: const Color(0xFFE6F7F7),
+              backgroundColor: AbashyakaColors.iceAquaWhite,
             ),
           ),
         ),
@@ -3538,8 +3538,8 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: pct,
-                backgroundColor: const Color(0xFFE4E7EC),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFFF59E0B)),
+                backgroundColor: AbashyakaColors.aquaSilverBorder,
+                valueColor: const AlwaysStoppedAnimation(AbashyakaColors.ratingStar),
                 minHeight: 6,
               ),
             ),
@@ -3559,9 +3559,9 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AbashyakaColors.pureWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AbashyakaColors.softGrey),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -3600,7 +3600,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               (index) => const Icon(
                 Icons.star_rounded,
                 size: 15,
-                color: Color(0xFFF59E0B),
+                color: AbashyakaColors.ratingStar,
               ),
             ),
           ),
@@ -3733,7 +3733,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AbashyakaColors.pureWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -3745,7 +3745,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: AbashyakaColors.softGrey,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -3757,12 +3757,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
+                      color: AbashyakaColors.warningSurface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.local_taxi_rounded,
-                      color: Color(0xFFD97706),
+                      color: AbashyakaColors.warning,
                       size: 24,
                     ),
                   ),
@@ -3797,7 +3797,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                   ),
                 ],
               ),
-              const Divider(height: 24, color: Color(0xFFE2E8F0)),
+              const Divider(height: 24, color: AbashyakaColors.softGrey),
               // Option 1: Instant Driver Call
               Material(
                 type: MaterialType.transparency,
@@ -3807,7 +3807,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F7F7),
+                      color: AbashyakaColors.iceAquaWhite,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -3854,12 +3854,12 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
+                      color: AbashyakaColors.successSurface,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.schedule_rounded,
-                      color: Color(0xFF16A34A),
+                      color: AbashyakaColors.success,
                       size: 20,
                     ),
                   ),
@@ -3905,7 +3905,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         slug == 'cab' ||
         slug == 'auto') {
       icon = Icons.local_taxi_rounded;
-      iconColor = const Color(0xFFD97706);
+      iconColor = AbashyakaColors.warning;
       title = 'On-Demand Rides & Fares';
       message =
           'Auto-rickshaw and cab services are active in ${biz.locality}. Tap "Book Ride" below or call the driver stand directly.';
@@ -3914,7 +3914,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         slug == 'clinic' ||
         slug == 'hospital') {
       icon = Icons.medical_services_rounded;
-      iconColor = const Color(0xFF0284C7);
+      iconColor = AbashyakaColors.information;
       title = 'Doctor Consultations & Care';
       message =
           'Clinic consultations and specialist appointments are active in ${biz.locality}. Tap "Book Appointment" below.';
@@ -3948,7 +3948,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
         slug == 'fitness' ||
         slug == 'gym') {
       icon = Icons.fitness_center_rounded;
-      iconColor = const Color(0xFF059669);
+      iconColor = AbashyakaColors.success;
       title = 'Fitness & Memberships';
       message =
           'Gym memberships, personal training, and wellness slots in ${biz.locality}. Tap "Join Now" below.';
@@ -4027,7 +4027,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: Colors.white, child: tabBar);
+    return Container(color: AbashyakaColors.pureWhite, child: tabBar);
   }
 
   @override

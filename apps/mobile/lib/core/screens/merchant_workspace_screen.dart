@@ -601,7 +601,7 @@ class _MerchantWorkspaceScreenState
                 icon: const Icon(Icons.edit_outlined),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AbashyakaColors.signatureTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -974,7 +974,7 @@ class _MerchantWorkspaceScreenState
                     key: Key('merchant_complete_request_${r.id}'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.coral,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AbashyakaColors.pureWhite,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1123,7 +1123,7 @@ class _MerchantWorkspaceScreenState
               ),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
@@ -1372,7 +1372,7 @@ class _MerchantWorkspaceScreenState
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AbashyakaColors.signatureTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -1396,7 +1396,7 @@ class _MerchantWorkspaceScreenState
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AbashyakaColors.signatureTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -1415,7 +1415,7 @@ class _MerchantWorkspaceScreenState
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AbashyakaColors.signatureTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,

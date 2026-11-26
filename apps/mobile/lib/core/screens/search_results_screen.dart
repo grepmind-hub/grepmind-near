@@ -116,7 +116,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   void _showRadiusSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AbashyakaColors.pureWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -149,7 +149,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const Divider(height: 1, color: AbashyakaColors.softGrey),
               const SizedBox(height: 8),
               ...[1000, 2000, 5000, 10000, 20000].map((r) {
                 final km = r ~/ 1000;
@@ -160,7 +160,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     isSel ? Icons.radio_button_checked : Icons.radio_button_off,
                     color: isSel
                         ? AbashyakaColors.signatureTeal
-                        : const Color(0xFF94A3B8),
+                        : AbashyakaColors.disabledText,
                   ),
                   title: Text(
                     'Within $km km',
@@ -188,7 +188,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   void _showSortSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AbashyakaColors.pureWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -221,7 +221,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+              const Divider(height: 1, color: AbashyakaColors.softGrey),
               const SizedBox(height: 8),
               _buildSortOption('distance', 'Nearest First (Distance)', Icons.near_me_outlined),
               _buildSortOption('relevance', 'Best Match (Relevance)', Icons.auto_awesome_outlined),
@@ -241,7 +241,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         isSel ? Icons.radio_button_checked : Icons.radio_button_off,
         color: isSel
             ? AbashyakaColors.signatureTeal
-            : const Color(0xFF94A3B8),
+            : AbashyakaColors.disabledText,
       ),
       title: Row(
         children: [
@@ -250,7 +250,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             size: 18,
             color: isSel
                 ? AbashyakaColors.signatureTeal
-                : const Color(0xFF64748B),
+                : AbashyakaColors.mutedText,
           ),
           const SizedBox(width: 8),
           Text(
@@ -317,7 +317,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     return Scaffold(
       backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AbashyakaColors.pureWhite,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         flexibleSpace: Stack(
@@ -329,7 +329,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               alignment: Alignment.topCenter,
             ),
             Container(
-              color: Colors.white.withValues(alpha: 0.88),
+              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
             ),
           ],
         ),
@@ -342,9 +342,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           margin: const EdgeInsets.only(right: 8),
           height: 44,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: AbashyakaColors.unavailableSurface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AbashyakaColors.softGrey),
           ),
           child: TextField(
             controller: _searchController,
@@ -357,7 +357,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             decoration: InputDecoration(
               hintText: 'Search food, shops, services, doctors...',
               hintStyle: const TextStyle(
-                color: Color(0xFF94A3B8),
+                color: AbashyakaColors.disabledText,
                 fontSize: 14,
               ),
               prefixIcon: const Icon(
@@ -369,7 +369,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   ? IconButton(
                       icon: const Icon(
                         Icons.clear_rounded,
-                        color: Color(0xFF94A3B8),
+                        color: AbashyakaColors.disabledText,
                         size: 18,
                       ),
                       onPressed: () {
@@ -387,7 +387,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFE6F7F7),
+              color: AbashyakaColors.iceAquaWhite,
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -433,7 +433,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE6F7F7),
+                            color: AbashyakaColors.iceAquaWhite,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: AbashyakaColors.metallicTeal,
@@ -510,7 +510,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+              const Divider(height: 1, thickness: 1, color: AbashyakaColors.softGrey),
             ],
           ),
         ),
@@ -521,7 +521,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           if (_selectedCategory == null) ...[
             Container(
               height: 42,
-              color: Colors.white,
+              color: AbashyakaColors.pureWhite,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -541,9 +541,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: AbashyakaColors.pearlWhite,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AbashyakaColors.softGrey),
                       ),
                       child: Text(
                         cat['name']!,
@@ -558,7 +558,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 },
               ),
             ),
-            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            const Divider(height: 1, thickness: 1, color: AbashyakaColors.softGrey),
           ],
 
           // Results Header bar
@@ -598,7 +598,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFD97706),
+                        color: AbashyakaColors.warning,
                       ),
                     ),
                   ),
@@ -636,7 +636,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE6F7F7),
+                              color: AbashyakaColors.iceAquaWhite,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Icon(
@@ -704,7 +704,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               child: const Text(
                                 'Reset Filters & Show All',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AbashyakaColors.pureWhite,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                 ),
@@ -754,12 +754,12 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFE6F7F7) : Colors.white,
+          color: isActive ? AbashyakaColors.iceAquaWhite : AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive
                 ? AbashyakaColors.metallicTeal
-                : const Color(0xFFE2E8F0),
+                : AbashyakaColors.softGrey,
             width: isActive ? 1.5 : 1.0,
           ),
           boxShadow: [
@@ -778,7 +778,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               size: 14,
               color: isActive
                   ? AbashyakaColors.metallicTeal
-                  : const Color(0xFF64748B),
+                  : AbashyakaColors.mutedText,
             ),
             const SizedBox(width: 5),
             Text(

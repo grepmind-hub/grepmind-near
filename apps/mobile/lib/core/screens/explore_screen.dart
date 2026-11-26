@@ -163,7 +163,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               content: const Text(
                 'Location permission denied. Switched to default hub: Chhatia, Jajpur.',
               ),
-              backgroundColor: const Color(0xFF374151),
+              backgroundColor: AbashyakaColors.secondaryText,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -212,14 +212,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               children: [
                 const Icon(
                   Icons.my_location_rounded,
-                  color: Colors.white,
+                  color: AbashyakaColors.pureWhite,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
                 Expanded(child: Text(message)),
               ],
             ),
-            backgroundColor: const Color(0xFF0B6B4A),
+            backgroundColor: AbashyakaColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -237,7 +237,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             content: const Text(
               'GPS unavailable. Switched to default hub: Chhatia, Jajpur.',
             ),
-            backgroundColor: const Color(0xFF374151),
+            backgroundColor: AbashyakaColors.secondaryText,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -342,17 +342,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: AbashyakaColors.successSurface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(0xFF0B6B4A).withValues(alpha: 0.3),
+                        color: AbashyakaColors.success.withValues(alpha: 0.3),
                       ),
                     ),
                     child: const Row(
                       children: [
                         Icon(
                           Icons.my_location_rounded,
-                          color: Color(0xFF0B6B4A),
+                          color: AbashyakaColors.success,
                           size: 22,
                         ),
                         SizedBox(width: 12),
@@ -365,7 +365,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
-                                  color: Color(0xFF0B6B4A),
+                                  color: AbashyakaColors.success,
                                 ),
                               ),
                               Text(
@@ -381,7 +381,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         Icon(
                           Icons.arrow_forward_ios_rounded,
                           size: 14,
-                          color: Color(0xFF0B6B4A),
+                          color: AbashyakaColors.success,
                         ),
                       ],
                     ),
@@ -444,11 +444,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
+          color: isSelected ? AbashyakaColors.successSurface : AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF0B6B4A)
+                ? AbashyakaColors.success
                 : const Color(0xFFE5E7EB),
             width: isSelected ? 1.5 : 1.0,
           ),
@@ -459,14 +459,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF0B6B4A)
+                    ? AbashyakaColors.success
                     : const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.store_rounded,
                 size: 20,
-                color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                color: isSelected ? AbashyakaColors.pureWhite : const Color(0xFF6B7280),
               ),
             ),
             const SizedBox(width: 12),
@@ -482,7 +482,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                           color: isSelected
-                              ? const Color(0xFF0B6B4A)
+                              ? AbashyakaColors.success
                               : const Color(0xFF1F2937),
                         ),
                       ),
@@ -503,7 +503,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFD97706),
+                              color: AbashyakaColors.warning,
                             ),
                           ),
                         ),
@@ -524,7 +524,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
+                color: AbashyakaColors.successSurface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFFBBF7D0)),
               ),
@@ -533,7 +533,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0B6B4A),
+                  color: AbashyakaColors.success,
                 ),
               ),
             ),
@@ -603,7 +603,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             height: 38,
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: AbashyakaColors.successSurface,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             padding: const EdgeInsets.all(4),
@@ -639,10 +639,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE8F5E9),
+                                        color: AbashyakaColors.successSurface,
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: const Color(0xFF0B6B4A)
+                                          color: AbashyakaColors.success
                                               .withValues(alpha: 0.3),
                                         ),
                                       ),
@@ -651,7 +651,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF0B6B4A),
+                                          color: AbashyakaColors.success,
                                         ),
                                       ),
                                     ),
@@ -705,7 +705,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF5),
+                              color: AbashyakaColors.successSurface,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: const Color(0xFFA7F3D0),
@@ -738,9 +738,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE4E7EC)),
+                          border: Border.all(color: AbashyakaColors.aquaSilverBorder),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
@@ -1069,7 +1069,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               return SizedBox(
                                 width: 270,
                                 child: Material(
-                                  color: Colors.white,
+                                  color: AbashyakaColors.pureWhite,
                                   borderRadius: BorderRadius.circular(16),
                                   clipBehavior: Clip.antiAlias,
                                   child: InkWell(
@@ -1439,7 +1439,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
-                                color: Color(0xFFE8F5E9),
+                                color: AbashyakaColors.successSurface,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -1477,7 +1477,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               label: const Text('Show all nearby'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.emerald,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AbashyakaColors.pureWhite,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -1707,9 +1707,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AbashyakaColors.softGrey),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
@@ -1728,7 +1728,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
+                      color: AbashyakaColors.warningSurface,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
@@ -1738,7 +1738,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         const Icon(
                           Icons.radar_rounded,
                           size: 16,
-                          color: Color(0xFFD97706),
+                          color: AbashyakaColors.warning,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1800,14 +1800,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       icon: const Icon(
                         Icons.notifications_active_outlined,
                         size: 18,
-                        color: Colors.white,
+                        color: AbashyakaColors.pureWhite,
                       ),
                       label: const Text(
                         'Notify Me When Available',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -1959,7 +1959,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   'Confirm Notification Alert',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: AbashyakaColors.pureWhite,
                   ),
                 ),
               ),
@@ -2046,7 +2046,7 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.emerald : Colors.white,
+                  color: isSelected ? AppTheme.emerald : AbashyakaColors.pureWhite,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
@@ -2076,7 +2076,7 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                       Icon(
                         icon,
                         size: 15,
-                        color: isSelected ? Colors.white : AppTheme.emerald,
+                        color: isSelected ? AbashyakaColors.pureWhite : AppTheme.emerald,
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -2087,7 +2087,7 @@ class _StickyQuickFilterDelegate extends SliverPersistentHeaderDelegate {
                         fontWeight: isSelected
                             ? FontWeight.w700
                             : FontWeight.w600,
-                        color: isSelected ? Colors.white : AppTheme.brandText,
+                        color: isSelected ? AbashyakaColors.pureWhite : AppTheme.brandText,
                         letterSpacing: -0.2,
                       ),
                     ),

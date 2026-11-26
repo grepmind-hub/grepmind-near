@@ -42,10 +42,10 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: AbashyakaColors.pureWhite,
         surfaceTintColor: Colors.transparent,
         flexibleSpace: Stack(
           fit: StackFit.expand,
@@ -56,7 +56,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               alignment: Alignment.topCenter,
             ),
             Container(
-              color: Colors.white.withValues(alpha: 0.88),
+              color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
             ),
           ],
         ),
@@ -171,7 +171,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                         const Icon(
                           Icons.filter_list_off_rounded,
                           size: 40,
-                          color: Color(0xFF94A3B8),
+                          color: AbashyakaColors.disabledText,
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -243,12 +243,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AbashyakaColors.signatureTeal
-                    : Colors.white,
+                    : AbashyakaColors.pureWhite,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
                       ? AbashyakaColors.signatureTeal
-                      : const Color(0xFFE2E8F0),
+                      : AbashyakaColors.softGrey,
                 ),
                 boxShadow: isSelected
                     ? [
@@ -266,7 +266,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   fontSize: 12.5,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: isSelected
-                      ? Colors.white
+                      ? AbashyakaColors.pureWhite
                       : AbashyakaColors.graphiteCharcoal,
                 ),
               ),
@@ -289,9 +289,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AbashyakaColors.pureWhite,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: AbashyakaColors.softGrey),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF00545B).withValues(alpha: 0.04),
@@ -306,7 +306,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE6F7F7),
+                    color: AbashyakaColors.iceAquaWhite,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: AbashyakaColors.signatureTeal.withValues(alpha: 0.2),
@@ -344,7 +344,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   key: const ValueKey('explore_nearby_button'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AbashyakaColors.signatureTeal,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AbashyakaColors.pureWhite,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -432,9 +432,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AbashyakaColors.pureWhite,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: AbashyakaColors.softGrey),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.04),
@@ -458,7 +458,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                       ? Icons.lock_outline_rounded
                       : Icons.error_outline_rounded,
                   size: 32,
-                  color: const Color(0xFFDC2626),
+                  color: AbashyakaColors.error,
                 ),
               ),
               const SizedBox(height: 16),
@@ -488,7 +488,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: AbashyakaColors.signatureTeal,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AbashyakaColors.pureWhite,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -560,7 +560,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
+              backgroundColor: AbashyakaColors.error,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -607,9 +607,9 @@ class _SavedBusinessCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AbashyakaColors.softGrey),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF00545B).withValues(alpha: 0.04),
@@ -682,7 +682,7 @@ class _SavedBusinessCard extends StatelessWidget {
                           const Icon(
                             Icons.location_on_rounded,
                             size: 13,
-                            color: Color(0xFF64748B),
+                            color: AbashyakaColors.mutedText,
                           ),
                           const SizedBox(width: 2),
                           Flexible(
@@ -725,7 +725,7 @@ class _SavedBusinessCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: AbashyakaColors.unavailableSurface),
             const SizedBox(height: 10),
             // Bottom Row: Rating / Distance + Action CTA Button
             Row(
@@ -740,7 +740,7 @@ class _SavedBusinessCard extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
+                        color: AbashyakaColors.warningSurface,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -749,7 +749,7 @@ class _SavedBusinessCard extends StatelessWidget {
                           const Icon(
                             Icons.star_rounded,
                             size: 13,
-                            color: Color(0xFFD97706),
+                            color: AbashyakaColors.warning,
                           ),
                           const SizedBox(width: 3),
                           Text(
@@ -759,7 +759,7 @@ class _SavedBusinessCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF92400E),
+                              color: AbashyakaColors.warning,
                             ),
                           ),
                         ],
@@ -771,7 +771,7 @@ class _SavedBusinessCard extends StatelessWidget {
                         business.distanceText,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF64748B),
+                          color: AbashyakaColors.mutedText,
                         ),
                       ),
                     ],
@@ -796,7 +796,7 @@ class _SavedBusinessCard extends StatelessWidget {
                         Icon(
                           _getActionIcon(business.categorySlug),
                           size: 14,
-                          color: Colors.white,
+                          color: AbashyakaColors.pureWhite,
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -804,7 +804,7 @@ class _SavedBusinessCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AbashyakaColors.pureWhite,
                           ),
                         ),
                       ],
@@ -824,7 +824,7 @@ class _SavedBusinessCard extends StatelessWidget {
     switch (slug) {
       case 'cab_auto':
       case 'transport':
-        return const Color(0xFFD97706); // Amber
+        return AbashyakaColors.warning; // Amber
       case 'doctors':
       case 'healthcare':
       case 'medicines':
@@ -836,7 +836,7 @@ class _SavedBusinessCard extends StatelessWidget {
       case 'beauty_salon':
         return const Color(0xFFDB2777); // Pink
       case 'fitness_wellness':
-        return const Color(0xFF059669); // Emerald
+        return AbashyakaColors.success; // Emerald
       case 'hotels_stays':
         return const Color(0xFF7C3AED); // Purple
       default:
@@ -932,9 +932,9 @@ class _SuggestedBusinessCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AbashyakaColors.pureWhite,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AbashyakaColors.softGrey),
         ),
         child: Row(
           children: [
@@ -942,7 +942,7 @@ class _SuggestedBusinessCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F7F7),
+                color: AbashyakaColors.iceAquaWhite,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
