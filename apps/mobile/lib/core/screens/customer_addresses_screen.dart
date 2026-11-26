@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:grepmind_mobile/core/models/customer_address.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
@@ -99,20 +100,29 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppTheme.background,
-    appBar: AppBar(
-      leading: Navigator.canPop(context)
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back',
-              onPressed: () => Navigator.of(context).pop(),
-            )
-          : null,
-      title: Text(
-        widget.selectAddress ? 'Delivery address' : 'Saved addresses',
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return Scaffold(
+      backgroundColor: palette.canvas,
+      appBar: AppBar(
+        backgroundColor: palette.canvas,
+        foregroundColor: palette.textPrimary,
+        systemOverlayStyle: palette.isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        elevation: 0,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        title: Text(
+          widget.selectAddress ? 'Delivery address' : 'Saved addresses',
+          style: TextStyle(color: palette.textPrimary),
+        ),
       ),
-    ),
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _edit(),
       backgroundColor: AppTheme.emerald,
@@ -157,30 +167,30 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE8F5E9),
+                    decoration: BoxDecoration(
+                      color: palette.accentSurface,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_off_outlined,
                       size: 40,
-                      color: AppTheme.emerald,
+                      color: palette.accent,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No saved addresses yet',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.mainText,
+                      color: palette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Add a delivery address to continue to quick checkout.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.secondaryText),
+                    style: TextStyle(color: palette.textSecondary),
                   ),
                   const SizedBox(height: 20),
                   FilledButton.icon(
@@ -339,5 +349,6 @@ class _CustomerAddressesScreenState extends State<CustomerAddressesScreen> {
               },
             ),
           ),
-  );
+    );
+  }
 }

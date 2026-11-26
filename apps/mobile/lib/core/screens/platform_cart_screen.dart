@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/models/customer_address.dart';
 import 'package:grepmind_mobile/core/network/api_client.dart';
@@ -239,32 +240,37 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(platformCartProvider(_currentScope));
+    final palette = context.abashyaka;
 
     return Scaffold(
-      backgroundColor: AppTheme.brandCanvas,
+      backgroundColor: palette.canvas,
       appBar: AppBar(
-        backgroundColor: AppTheme.brandCanvas,
+        backgroundColor: palette.canvas,
+        foregroundColor: palette.textPrimary,
+        systemOverlayStyle: palette.isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.brandText),
+          icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Your Cart',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.brandText,
+                color: palette.textPrimary,
               ),
             ),
             Text(
               'Abashyaka · ${_currentScope.locality}, ${_currentScope.district}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppTheme.brandTextMuted,
+                color: palette.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -332,18 +338,19 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                 TextField(
                   controller: _notes,
                   maxLength: 300,
+                  style: TextStyle(color: palette.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Order note (optional)',
                     hintText: 'Add an instruction for delivery or packing',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: palette.card,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.brandBorder),
+                      borderSide: BorderSide(color: palette.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.brandBorder),
+                      borderSide: BorderSide(color: palette.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -402,11 +409,13 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   }
 
   Widget _buildVerticalSwitcher() {
+    final palette = context.abashyaka;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEBEFEA),
+        color: palette.isDark ? palette.card : const Color(0xFFEBEFEA),
         borderRadius: BorderRadius.circular(14),
+        border: palette.isDark ? Border.all(color: palette.border) : null,
       ),
       child: Row(
         children: [
@@ -434,13 +443,16 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
     required bool active,
     required VoidCallback onTap,
   }) {
+    final palette = context.abashyaka;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
+          color: active
+              ? (palette.isDark ? palette.accent : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           boxShadow: active
               ? const [
@@ -458,7 +470,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-              color: active ? AppTheme.brandText : AppTheme.brandTextMuted,
+              color: active
+                  ? (palette.isDark
+                        ? const Color(0xFF0B1320)
+                        : AppTheme.brandText)
+                  : palette.textSecondary,
             ),
           ),
         ),
@@ -506,11 +522,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   }
 
   Widget _buildItemsCard(PlatformCartState cart) {
+    final palette = context.abashyaka;
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.brandBorder),
+        border: Border.all(color: palette.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0817352C),
@@ -524,11 +541,11 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           for (int i = 0; i < cart.lines.values.length; i++) ...[
             _buildCartLineRow(cart.lines.values.elementAt(i)),
             if (i < cart.lines.values.length - 1)
-              const Divider(
+              Divider(
                 height: 1,
                 indent: 16,
                 endIndent: 16,
-                color: Color(0xFFF1F5F3),
+                color: palette.border,
               ),
           ],
         ],
@@ -537,6 +554,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   }
 
   Widget _buildCartLineRow(PlatformCartLine line) {
+    final palette = context.abashyaka;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -547,7 +565,7 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
             child: Container(
               width: 52,
               height: 52,
-              color: const Color(0xFFF1F5F3),
+              color: palette.canvas,
               child: line.imageUrl != null && line.imageUrl!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: apiClient.resolveMediaUrl(line.imageUrl!),
@@ -568,10 +586,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                   line.productName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.brandText,
+                    color: palette.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -580,18 +598,18 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                           line.variantName != line.unitLabel
                       ? '${line.variantName} · ${line.unitLabel}'
                       : line.unitLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.brandTextMuted,
+                    color: palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   _money(line.priceHintMinor),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.brandText,
+                    color: palette.textPrimary,
                   ),
                 ),
               ],
@@ -601,9 +619,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           // Stepper: [-] qty [+] with 48dp touch targets
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: palette.card,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFD1D5DB)),
+              border: Border.all(color: palette.border),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -707,12 +725,13 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
         ? (quote['grand_total_minor'] as num).toInt()
         : cart.subtotalHintMinor;
 
+    final palette = context.abashyaka;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.brandBorder),
+        border: Border.all(color: palette.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0617352C),
@@ -724,12 +743,12 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Bill details',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppTheme.brandText,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -738,16 +757,16 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Item total',
-                style: TextStyle(fontSize: 13, color: AppTheme.brandTextMuted),
+                style: TextStyle(fontSize: 13, color: palette.textSecondary),
               ),
               Text(
                 _money(itemTotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.brandText,
+                  color: palette.textPrimary,
                 ),
               ),
             ],
@@ -758,9 +777,9 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Delivery and other fees',
-                style: TextStyle(fontSize: 13, color: AppTheme.brandTextMuted),
+                style: TextStyle(fontSize: 13, color: palette.textSecondary),
               ),
               Text(
                 deliveryFee != null
@@ -795,10 +814,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
               ),
               Text(
                 _money(grandTotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.brandText,
+                  color: palette.textPrimary,
                 ),
               ),
             ],
@@ -809,11 +828,14 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
   }
 
   Widget _buildAddressCard() {
+    final palette = context.abashyaka;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F6F3),
+        color: palette.isDark ? palette.card : const Color(0xFFE8F6F3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFB8F2DC)),
+        border: Border.all(
+          color: palette.isDark ? palette.border : const Color(0xFFB8F2DC),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -826,8 +848,8 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: palette.isDark ? palette.canvas : Colors.white,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -843,10 +865,10 @@ class _PlatformCartScreenState extends ConsumerState<PlatformCartScreen> {
                     children: [
                       Text(
                         _address != null ? _address!.label : 'Delivery address',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.brandText,
+                          color: palette.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),

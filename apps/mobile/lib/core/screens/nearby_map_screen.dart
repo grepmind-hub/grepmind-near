@@ -409,27 +409,31 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
         flexibleSpace: const FluidWaveBackground(
           variant: FluidWaveVariant.compact,
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Nearby Map',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AbashyakaColors.pureWhite,
-                letterSpacing: -0.3,
+        title: Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Nearby Map',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AbashyakaColors.pureWhite,
+                  letterSpacing: -0.3,
+                ),
               ),
-            ),
-            Text(
-              '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
-              style: TextStyle(
-                fontSize: 11,
-                color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 1),
+              Text(
+                '${ref.watch(appLocationProvider).displayName} · $_radiusKm km radius',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AbashyakaColors.pureWhite.withValues(alpha: 0.88),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           // View Switcher: Radar / Satellite Map
@@ -625,12 +629,16 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFE6F7F7) : Colors.white,
+                color: isSelected
+                    ? (context.abashyaka.isDark
+                          ? context.abashyaka.accentSurface
+                          : const Color(0xFFE6F7F7))
+                    : context.abashyaka.card,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected
-                      ? AbashyakaColors.metallicTeal
-                      : const Color(0xFFE2E8F0),
+                      ? context.abashyaka.accent
+                      : context.abashyaka.border,
                   width: isSelected ? 1.5 : 1.0,
                 ),
                 boxShadow: [
@@ -651,8 +659,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                       icon,
                       size: 15,
                       color: isSelected
-                          ? AbashyakaColors.signatureTeal
-                          : const Color(0xFF64748B),
+                          ? context.abashyaka.accent
+                          : context.abashyaka.textSecondary,
                     ),
                     const SizedBox(width: 5),
                   ],
@@ -664,8 +672,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                           ? FontWeight.w700
                           : FontWeight.w600,
                       color: isSelected
-                          ? AbashyakaColors.signatureTeal
-                          : AbashyakaColors.graphiteCharcoal,
+                          ? context.abashyaka.accent
+                          : context.abashyaka.textPrimary,
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -691,8 +699,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
           height: 38,
           padding: const EdgeInsets.only(left: 8, right: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFE1EBE5)),
+            color: context.abashyaka.card,
+            border: Border.all(color: context.abashyaka.border),
             borderRadius: BorderRadius.circular(19),
             boxShadow: [
               BoxShadow(
@@ -749,8 +757,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: context.abashyaka.card,
+              border: Border.all(color: context.abashyaka.border),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -764,8 +772,8 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
               '$count $typeLabel${isAll ? ' · All' : ''}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AbashyakaColors.graphiteCharcoal,
+              style: TextStyle(
+                color: context.abashyaka.textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -783,9 +791,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
             _showResultsList ? Icons.map_outlined : Icons.list_rounded,
           ),
           style: IconButton.styleFrom(
-            backgroundColor: const Color(0xFFE6F7F7),
-            foregroundColor: AbashyakaColors.signatureTeal,
-            side: const BorderSide(color: Color(0xFFE2E8F0)),
+            backgroundColor: context.abashyaka.card,
+            foregroundColor: context.abashyaka.accent,
+            side: BorderSide(color: context.abashyaka.border),
           ),
         ),
       ],
@@ -794,7 +802,7 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
   Widget _buildResultsList(List<Business> businesses) {
     return Container(
-      color: const Color(0xFFF1F5F9),
+      color: context.abashyaka.canvas,
       child: businesses.isEmpty
           ? Center(
               child: Padding(
@@ -1290,9 +1298,9 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                             '• $categoryName',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AbashyakaColors.graphiteCharcoal,
+                              color: palette.textSecondary,
                             ),
                           ),
                         ),
@@ -1304,10 +1312,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                         Flexible(
                           child: Text(
                             '$distanceText • ${biz.locality ?? biz.city ?? ''}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AbashyakaColors.graphiteCharcoal,
+                              color: palette.textSecondary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1366,10 +1374,10 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
 
               // Dismiss X button
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 18,
-                  color: AbashyakaColors.graphiteCharcoal,
+                  color: palette.textSecondary,
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -1389,28 +1397,28 @@ class _NearbyMapScreenState extends ConsumerState<NearbyMapScreen>
                   height: 44,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      side: BorderSide(color: palette.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     onPressed: () => _openDirections(biz),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.directions_rounded,
                           size: 18,
-                          color: AbashyakaColors.signatureTeal,
+                          color: palette.accent,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             'Directions',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AbashyakaColors.signatureTeal,
+                              color: palette.accent,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

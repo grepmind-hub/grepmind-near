@@ -132,7 +132,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: context.abashyaka.canvas,
       appBar: AppBar(
         title: const Text('My Profile'),
-        systemOverlayStyle: isCustomer ? SystemUiOverlayStyle.dark : null,
+        systemOverlayStyle: context.abashyaka.isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -403,7 +405,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ? AbashyakaColors.rider
                                 : (isMerchant
                                       ? AppTheme.coral
-                                      : AbashyakaColors.signatureTeal),
+                                      : context.abashyaka.accent),
                           ),
                           icon: const Icon(Icons.edit_outlined, size: 16),
                           label: const Text('Edit Profile'),
@@ -1085,7 +1087,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     Color? iconBgColor,
   }) {
     final fg = iconColor ?? AppTheme.emerald;
-    final bg = iconBgColor ?? AbashyakaColors.iceAquaWhite;
+    final bg = context.abashyaka.isDark
+        ? fg.withValues(alpha: 0.14)
+        : (iconBgColor ?? AbashyakaColors.iceAquaWhite);
     return InkWell(
       key: key,
       onTap: onTap,

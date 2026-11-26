@@ -9,6 +9,8 @@ import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
 import 'package:grepmind_mobile/core/widgets/category_chip.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
+import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/marketplace_cards.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
@@ -580,6 +582,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           ? StickyCartSummaryBar(scope: foodScope)
           : null,
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: () async => _onFiltersChanged(),
           child: CustomScrollView(
@@ -591,118 +594,148 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Explore is a task-focused search surface; Home owns promotional discovery.
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        kScreenPadding,
-                        10,
-                        kScreenPadding,
-                        8,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              color: AbashyakaColors.successSurface,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: Image.asset(
-                              'assets/abashyaka/emblem_official.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Image.asset(
-                                    'assets/abashyaka/splash_emblem.png',
-                                    fit: BoxFit.contain,
+                    FluidWaveBackground(
+                      variant: FluidWaveVariant.compact,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                kScreenPadding,
+                                10,
+                                kScreenPadding,
+                                10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      color: AbashyakaColors.pureWhite,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    child: Image.asset(
+                                      'assets/abashyaka/emblem_official.png',
+                                      fit: BoxFit.contain,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Image.asset(
+                                                'assets/abashyaka/splash_emblem.png',
+                                                fit: BoxFit.contain,
+                                              ),
+                                    ),
                                   ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Explore',
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w800,
-                                        color: context.abashyaka.textPrimary,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AbashyakaColors.successSurface,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: AbashyakaColors.success
-                                              .withValues(alpha: 0.3),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'ଆବଶ୍ୟକ',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: AbashyakaColors.success,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                InkWell(
-                                  key: const Key('explore_location_selector'),
-                                  onTap: _showLocationModal,
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 2,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        const Icon(
-                                          Icons.location_on_rounded,
-                                          color: AppTheme.emerald,
-                                          size: 17,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Flexible(
-                                          child: Text(
-                                            appLocation.displayName.isEmpty
-                                                ? 'Chhatia, Jajpur'
-                                                : appLocation.displayName,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelLarge
-                                                ?.copyWith(
-                                                  color: context.abashyaka.textSecondary,
+                                        Row(
+                                          children: [
+                                            const Text(
+                                              'Explore',
+                                              style: TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w800,
+                                                color: AbashyakaColors.pureWhite,
+                                                letterSpacing: -0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.18,
                                                 ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.35),
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'ଆବଶ୍ୟକ',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      AbashyakaColors.pureWhite,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          color: context.abashyaka.textSecondary,
-                                          size: 18,
+                                        InkWell(
+                                          key: const Key(
+                                            'explore_location_selector',
+                                          ),
+                                          onTap: _showLocationModal,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 2,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.location_on_rounded,
+                                                  color: AbashyakaColors
+                                                      .pureWhite,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Flexible(
+                                                  child: Text(
+                                                    appLocation
+                                                            .displayName
+                                                            .isEmpty
+                                                        ? 'Chhatia, Jajpur'
+                                                        : appLocation
+                                                              .displayName,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelLarge
+                                                        ?.copyWith(
+                                                          color: AbashyakaColors
+                                                              .pureWhite
+                                                              .withValues(
+                                                                alpha: 0.92,
+                                                              ),
+                                                        ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons
+                                                      .keyboard_arrow_down_rounded,
+                                                  color: AbashyakaColors
+                                                      .pureWhite
+                                                      .withValues(alpha: 0.92),
+                                                  size: 18,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
                           Container(
                             width: 40,
                             height: 40,
@@ -735,14 +768,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
                     // Screen 7 Search Bar with QR scanner icon
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: kScreenPadding,
+                      padding: const EdgeInsets.fromLTRB(
+                        kScreenPadding,
+                        0,
+                        kScreenPadding,
+                        16,
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AbashyakaColors.pureWhite,
+                          color: context.abashyaka.card,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AbashyakaColors.aquaSilverBorder),
+                          border: Border.all(color: context.abashyaka.border),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
@@ -753,26 +789,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ),
                         child: TextField(
                           controller: _searchController,
+                          style: TextStyle(color: context.abashyaka.textPrimary),
                           onChanged: _onSearchChanged,
                           onSubmitted: (_) => _search(),
                           decoration: InputDecoration(
+                            filled: false,
                             hintText: 'Search shops, services, products...',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9AA5B1),
+                            hintStyle: TextStyle(
+                              color: context.abashyaka.textSecondary,
                               fontSize: 14,
                             ),
-                            prefixIcon: const Icon(
+                            prefixIcon: Icon(
                               Icons.search_rounded,
-                              color: Color(0xFF9AA5B1),
+                              color: context.abashyaka.accent,
                               size: 22,
                             ),
                             suffixIcon: ValueListenableBuilder<bool>(
                               valueListenable: _isSearching,
                               builder: (_, searching, _) => searching
                                   ? IconButton(
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.clear_rounded,
-                                        color: AbashyakaColors.disabledText,
+                                        color: context.abashyaka.textSecondary,
                                         size: 18,
                                       ),
                                       onPressed: () {
@@ -783,15 +821,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                     )
                                   : IconButton(
                                       tooltip: 'Search',
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.arrow_forward_rounded,
-                                        color: AppTheme.emerald,
+                                        color: context.abashyaka.accent,
                                         size: 20,
                                       ),
                                       onPressed: _search,
                                     ),
                             ),
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 14,
                             ),
@@ -799,7 +839,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(
