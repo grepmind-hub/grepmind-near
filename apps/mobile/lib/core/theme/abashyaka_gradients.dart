@@ -4,14 +4,14 @@ import 'abashyaka_colors.dart';
 
 /// Official gradient system for Abashyaka Metallic Teal + Pearl White UI.
 abstract final class AbashyakaGradients {
-  /// Metallic button gradient: luminousAqua -> metallicTeal -> signatureTeal
+  /// Metallic button gradient with contrast for white labels at every stop.
   static const LinearGradient metallicButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      AbashyakaColors.luminousAqua,
       AbashyakaColors.metallicTeal,
       AbashyakaColors.signatureTeal,
+      AbashyakaColors.darkOceanTeal,
     ],
     stops: [0.0, 0.45, 1.0],
   );

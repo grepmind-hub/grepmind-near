@@ -192,21 +192,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: isRider
-                            ? const [
-                                AppTheme.riderAmber,
-                                Color(0xFFF59E0B),
-                                Color(0xFFD97706),
-                              ]
-                            : (isMerchant
-                                  ? const [
-                                      AppTheme.coral,
-                                      Color(0xFFF97316),
-                                      Color(0xFFFB923C),
-                                    ]
-                                  : AbashyakaGradients
-                                        .promotionalBanner
-                                        .colors),
+                        colors: AbashyakaGradients.metallicButton.colors,
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -214,7 +200,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         BoxShadow(
                           color:
                               (isRider
-                                      ? AppTheme.riderAmberDark
+                                      ? AbashyakaColors.rider
                                       : (isMerchant
                                             ? AppTheme.coral
                                             : AbashyakaColors.signatureTeal))
@@ -230,9 +216,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       child: CircleAvatar(
                         radius: 33,
                         backgroundColor: isRider
-                            ? AppTheme.riderAmberContainer
+                            ? AbashyakaColors.riderSurface
                             : (isMerchant
-                                  ? AppTheme.merchantCoralContainer
+                                  ? AbashyakaColors.merchantSurface
                                   : AbashyakaColors.iceAquaWhite),
                         backgroundImage: photoUrl == null
                             ? null
@@ -242,7 +228,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Icons.person_rounded,
                                 size: 36,
                                 color: isRider
-                                    ? AppTheme.riderAmberDark
+                                    ? AbashyakaColors.rider
                                     : (isMerchant
                                           ? AppTheme.coral
                                           : AbashyakaColors.signatureTeal),
@@ -263,7 +249,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           AbashyakaSpacing.touchTargetMin,
                         ),
                         backgroundColor: isRider
-                            ? AppTheme.riderAmberDark
+                            ? AbashyakaColors.rider
                             : (isMerchant
                                   ? AppTheme.coral
                                   : AbashyakaColors.signatureTeal),
@@ -357,9 +343,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: isRider
-                                ? AppTheme.riderAmberContainer
+                                ? AbashyakaColors.riderSurface
                                 : (isMerchant
-                                      ? AppTheme.merchantCoralContainer
+                                      ? AbashyakaColors.merchantSurface
                                       : AbashyakaColors.iceAquaWhite),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -385,7 +371,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               AbashyakaSpacing.touchTargetMin,
                             ),
                             foregroundColor: isRider
-                                ? AppTheme.riderAmberDark
+                                ? AbashyakaColors.rider
                                 : (isMerchant
                                       ? AppTheme.coral
                                       : AbashyakaColors.signatureTeal),
@@ -487,7 +473,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Icons.badge_outlined,
                 size: 20,
                 color: isRider
-                    ? AppTheme.riderAmberDark
+                    ? AbashyakaColors.rider
                     : (isMerchant
                           ? AppTheme.coral
                           : AbashyakaColors.signatureTeal),
@@ -510,7 +496,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     AbashyakaSpacing.touchTargetMin,
                   ),
                   foregroundColor: isRider
-                      ? AppTheme.riderAmberDark
+                      ? AbashyakaColors.rider
                       : (isMerchant
                             ? AppTheme.coral
                             : AbashyakaColors.signatureTeal),
@@ -542,9 +528,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isRider
-                    ? AppTheme.riderAmberContainer
+                    ? AbashyakaColors.riderSurface
                     : (isMerchant
-                          ? AppTheme.merchantCoralContainer
+                          ? AbashyakaColors.merchantSurface
                           : AbashyakaColors.iceAquaWhite),
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -554,7 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: isRider
-                      ? AppTheme.riderAmberDark
+                      ? AbashyakaColors.rider
                       : (isMerchant
                             ? AppTheme.coral
                             : AbashyakaColors.signatureTeal),
@@ -610,16 +596,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: isRider
-                      ? AppTheme.riderAmberContainer
+                      ? AbashyakaColors.riderSurface
                       : (isMerchant
-                            ? AppTheme.merchantCoralContainer
+                            ? AbashyakaColors.merchantSurface
                             : AbashyakaColors.iceAquaWhite),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.tag_rounded,
                   color: isRider
-                      ? AppTheme.riderAmberDark
+                      ? AbashyakaColors.rider
                       : (isMerchant ? AppTheme.coral : AppTheme.emerald),
                   size: 18,
                 ),
@@ -713,16 +699,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               height: 36,
               decoration: BoxDecoration(
                 color: isRider
-                    ? AppTheme.riderAmberContainer
+                    ? AbashyakaColors.riderSurface
                     : (isMerchant
-                          ? AppTheme.merchantCoralContainer
+                          ? AbashyakaColors.merchantSurface
                           : AbashyakaColors.iceAquaWhite),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 color: isRider
-                    ? AppTheme.riderAmberDark
+                    ? AbashyakaColors.rider
                     : (isMerchant ? AppTheme.coral : AppTheme.emerald),
                 size: 18,
               ),
@@ -876,8 +862,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         title: 'Switch Portal / Experience',
         subtitle:
             'Current mode: ${activeRole.toUpperCase()} · Available: ${availableRoles.join(', ')}',
-        iconColor: const Color(0xFFD97706),
-        iconBgColor: const Color(0xFFFEF3C7),
+        iconColor: AbashyakaColors.warning,
+        iconBgColor: AbashyakaColors.warningSurface,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => const RoleSelectionScreen(isSwitching: true),
@@ -893,7 +879,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           title: 'Merchant Workspace',
           subtitle: 'Manage your storefront, requests & catalog',
           iconColor: AppTheme.coral,
-          iconBgColor: AppTheme.merchantCoralContainer,
+          iconBgColor: AbashyakaColors.merchantSurface,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const MerchantWorkspaceScreen()),
           ),
@@ -907,8 +893,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           icon: Icons.delivery_dining_outlined,
           title: 'Rider Dashboard',
           subtitle: 'Active deliveries, dispatch & availability',
-          iconColor: AppTheme.riderAmberDark,
-          iconBgColor: AppTheme.riderAmberContainer,
+          iconColor: AbashyakaColors.rider,
+          iconBgColor: AbashyakaColors.riderSurface,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const RiderDashboardScreen()),
           ),
@@ -918,8 +904,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           icon: Icons.account_balance_wallet_outlined,
           title: 'Rider Earnings & COD Liability',
           subtitle: 'Delivery compensation, ledger summary & remittances',
-          iconColor: AppTheme.riderAmberDark,
-          iconBgColor: AppTheme.riderAmberContainer,
+          iconColor: AbashyakaColors.rider,
+          iconBgColor: AbashyakaColors.riderSurface,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const RiderEarningsScreen()),
           ),
@@ -933,8 +919,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           icon: Icons.admin_panel_settings_outlined,
           title: 'Admin Moderation Portal',
           subtitle: 'Review listings, claims & platform audit logs',
-          iconColor: const Color(0xFF7C3AED),
-          iconBgColor: const Color(0xFFF5F3FF),
+          iconColor: AbashyakaColors.admin,
+          iconBgColor: AbashyakaColors.adminSurface,
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const AdminPortalScreen())),
@@ -951,7 +937,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ? AppTheme.coral
             : AbashyakaColors.signatureTeal,
         iconBgColor: isMerchantRole
-            ? AppTheme.merchantCoralContainer
+            ? AbashyakaColors.merchantSurface
             : AbashyakaColors.iceAquaWhite,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const MerchantRegistrationScreen()),
@@ -972,8 +958,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         icon: Icons.notifications_outlined,
         title: 'Notification Settings',
         subtitle: 'Choose updates for your account',
-        iconColor: const Color(0xFFEA580C),
-        iconBgColor: const Color(0xFFFFF7ED),
+        iconColor: AbashyakaColors.offer,
+        iconBgColor: AbashyakaColors.offerSurface,
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
         ),
@@ -1433,7 +1419,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: isRider
-                                        ? AppTheme.riderAmberDark
+                                        ? AbashyakaColors.rider
                                         : (isMerchant
                                               ? AppTheme.coral
                                               : AbashyakaColors.signatureTeal),
@@ -1529,7 +1515,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: FilledButton(
                             style: FilledButton.styleFrom(
                               backgroundColor: isRider
-                                  ? AppTheme.riderAmberDark
+                                  ? AbashyakaColors.rider
                                   : (isMerchant
                                         ? AppTheme.coral
                                         : AbashyakaColors.signatureTeal),
@@ -1569,7 +1555,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   backgroundColor: isRider
-                                      ? AppTheme.riderAmberDark
+                                      ? AbashyakaColors.rider
                                       : (isMerchant
                                             ? AppTheme.coral
                                             : AbashyakaColors.signatureTeal),

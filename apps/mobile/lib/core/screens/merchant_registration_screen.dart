@@ -1018,7 +1018,7 @@ class _MerchantRegistrationScreenState
           title: 'Retail Shop & Showroom',
           subtitle:
               'Physical storefront with counter sales and customer walk-ins.',
-          color: const Color(0xFF2457D6),
+          color: AbashyakaColors.information,
         ),
         const SizedBox(height: 12),
         _buildEnterpriseTypeCard(
@@ -1034,7 +1034,7 @@ class _MerchantRegistrationScreenState
           icon: Icons.restaurant_outlined,
           title: 'Food, Dining & Cafe',
           subtitle: 'Dine-in restaurant, takeaway outlet, bakery, or cafe.',
-          color: const Color(0xFFEA580C),
+          color: AbashyakaColors.offer,
         ),
         const SizedBox(height: 12),
         _buildEnterpriseTypeCard(
@@ -1042,7 +1042,7 @@ class _MerchantRegistrationScreenState
           icon: Icons.spa_outlined,
           title: 'Salon, Spa & Wellness',
           subtitle: 'Appointment-based beauty salon, unisex parlour, or therapy studio.',
-          color: const Color(0xFF7C3AED),
+          color: AbashyakaColors.admin,
         ),
 
         const SizedBox(height: 24),
@@ -1458,8 +1458,8 @@ class _MerchantRegistrationScreenState
         // Actual device location, captured only after merchant consent.
         PremiumCard(
           padding: const EdgeInsets.all(14),
-          color: const Color(0xFFF0FDF4),
-          borderColor: const Color(0xFFBBF7D0),
+          color: AbashyakaColors.successSurface,
+          borderColor: AbashyakaColors.successSurface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1469,7 +1469,7 @@ class _MerchantRegistrationScreenState
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF16A34A),
+                      color: AbashyakaColors.success,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -1495,7 +1495,7 @@ class _MerchantRegistrationScreenState
                                 _businessLatitude == null ||
                                     _businessLongitude == null
                                 ? AppTheme.mainText
-                                : const Color(0xFF15803D),
+                                : AbashyakaColors.success,
                           ),
                         ),
                         Text(
@@ -2125,9 +2125,9 @@ class _MerchantRegistrationScreenState
             final approved = status == 'approved';
             final rejected = status == 'rejected';
             final color = approved
-                ? const Color(0xFF15803D)
+                ? AbashyakaColors.success
                 : rejected
-                ? const Color(0xFFB42318)
+                ? AbashyakaColors.error
                 : AppTheme.primary;
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -2408,9 +2408,9 @@ class _MerchantRegistrationScreenState
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: AbashyakaColors.luminousWhite,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  border: Border.all(color: AbashyakaColors.aquaSilverBorder),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -2426,7 +2426,7 @@ class _MerchantRegistrationScreenState
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: AbashyakaColors.secondaryText,
                       ),
                     ),
                   ],

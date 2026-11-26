@@ -59,7 +59,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     ref.watch(merchantProfileProvider(''));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
         leading: Navigator.canPop(context)
             ? IconButton(
@@ -130,7 +130,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           )
                         : null,
                     filled: true,
-                    fillColor: const Color(0xFFF1F5F9),
+                    fillColor: AbashyakaColors.pureWhite,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -181,7 +181,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 0
-                                ? const Color(0xFFE8F5E9)
+                                ? AbashyakaColors.verifiedSurface
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -217,7 +217,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: _tabController.index == 1
-                                ? const Color(0xFFE8F5E9)
+                                ? AbashyakaColors.verifiedSurface
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -382,9 +382,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: AbashyakaColors.verifiedSurface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFC8E6C9)),
+                  border: Border.all(color: AbashyakaColors.lightAqua),
                 ),
                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                     ? ClipRRect(
@@ -475,7 +475,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               vertical: 1,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
+                              color: AbashyakaColors.warningSurface,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -483,7 +483,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF92400E),
+                                color: AbashyakaColors.warning,
                               ),
                             ),
                           ),
@@ -500,7 +500,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const Divider(height: 1, color: AbashyakaColors.aquaSilverBorder),
           const SizedBox(height: 8),
 
           // Actions row with Screen 14 Quick Stock Stepper
@@ -509,12 +509,14 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
               // Screen 14 Quick Stock Stepper
               if (qty != null)
                 Material(
-                  color: const Color(0xFFF1F5F9),
+                  color: AbashyakaColors.unavailableSurface,
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: AbashyakaColors.aquaSilverBorder,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -782,8 +784,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                           ),
                           decoration: BoxDecoration(
                             color: s.isActive
-                                ? const Color(0xFFD1FAE5)
-                                : const Color(0xFFF1F5F9),
+                                ? AbashyakaColors.successSurface
+                                : AbashyakaColors.unavailableSurface,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -792,7 +794,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: s.isActive
-                                  ? const Color(0xFF065F46)
+                                  ? AbashyakaColors.success
                                   : AppTheme.secondaryText,
                             ),
                           ),
@@ -826,7 +828,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const Divider(height: 1, color: AbashyakaColors.aquaSilverBorder),
           const SizedBox(height: 8),
 
           Row(
@@ -911,7 +913,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
           color: isSelected ? AppTheme.emerald : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppTheme.emerald : const Color(0xFFCBD5E1),
+            color: isSelected
+                ? AppTheme.emerald
+                : AbashyakaColors.aquaSilverBorder,
           ),
         ),
         child: Text(
@@ -934,25 +938,25 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
 
     switch (stock) {
       case 'in_stock':
-        bg = const Color(0xFFD1FAE5);
-        fg = const Color(0xFF065F46);
+        bg = AbashyakaColors.successSurface;
+        fg = AbashyakaColors.success;
         label = 'In Stock';
         icon = Icons.check_circle_outline;
         break;
       case 'limited':
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
+        bg = AbashyakaColors.warningSurface;
+        fg = AbashyakaColors.warning;
         label = 'Limited';
         icon = Icons.timelapse;
         break;
       case 'out_of_stock':
-        bg = const Color(0xFFFEE2E2);
-        fg = const Color(0xFF991B1B);
+        bg = AbashyakaColors.errorSurface;
+        fg = AbashyakaColors.error;
         label = 'Out of Stock';
         icon = Icons.cancel_outlined;
         break;
       default:
-        bg = const Color(0xFFF1F5F9);
+        bg = AbashyakaColors.unavailableSurface;
         fg = AppTheme.secondaryText;
         label = 'Unknown';
         icon = Icons.help_outline;
@@ -986,7 +990,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isPublished ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+        color: isPublished
+            ? AbashyakaColors.informationSurface
+            : AbashyakaColors.unavailableSurface,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -1351,7 +1357,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'e.g. Copper Water Bottle 1L',
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1390,7 +1396,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '299',
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: AbashyakaColors.pureWhite,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -1424,7 +1430,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '399',
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: AbashyakaColors.pureWhite,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -1567,7 +1573,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     initialValue: stockStatus,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1601,7 +1607,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     initialValue: inventoryMode,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1643,7 +1649,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                         labelText: 'Available quantity',
                         hintText: 'Enter current stock',
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: AbashyakaColors.pureWhite,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -1666,7 +1672,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       hintText:
                           'Add details, material, dimensions or warranty...',
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -1715,7 +1721,8 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, _, _) =>
                                           const ColoredBox(
-                                            color: Color(0xFFEAF0F8),
+                                            color: AbashyakaColors
+                                                .informationSurface,
                                             child: Center(
                                               child: Text(
                                                 'Image preview unavailable',
@@ -1890,7 +1897,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             ),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              side: const BorderSide(
+                                color: AbashyakaColors.aquaSilverBorder,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -1919,7 +1928,9 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                             ),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              side: const BorderSide(
+                                color: AbashyakaColors.aquaSilverBorder,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -1983,7 +1994,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                       Switch.adaptive(
                         value: isPublished,
                         activeThumbColor: AppTheme.emerald,
-                        activeTrackColor: const Color(0xFFC8E6C9),
+                        activeTrackColor: AbashyakaColors.lightAqua,
                         onChanged: (val) =>
                             setModalState(() => isPublished = val),
                       ),
@@ -2267,7 +2278,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'e.g. Fan Installation & Repair',
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -2299,7 +2310,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '199',
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: AbashyakaColors.pureWhite,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -2330,7 +2341,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                                 prefixText: '₹ ',
                                 hintText: '499',
                                 filled: true,
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: AbashyakaColors.pureWhite,
                                 isDense: true,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -2357,7 +2368,7 @@ class _MerchantCatalogScreenState extends ConsumerState<MerchantCatalogScreen>
                     decoration: InputDecoration(
                       hintText: 'Includes diagnostic inspection, wiring check, and safety testing...',
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: AbashyakaColors.pureWhite,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

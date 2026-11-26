@@ -143,7 +143,7 @@ class _MerchantHoursCoverageScreenState
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AbashyakaColors.pearlWhite,
       appBar: AppBar(
         leading: Navigator.canPop(context)
             ? IconButton(
@@ -278,7 +278,9 @@ class _MerchantHoursCoverageScreenState
                     vertical: 10,
                     horizontal: 12,
                   ),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  side: const BorderSide(
+                    color: AbashyakaColors.aquaSilverBorder,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -291,7 +293,9 @@ class _MerchantHoursCoverageScreenState
                     vertical: 10,
                     horizontal: 14,
                   ),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  side: const BorderSide(
+                    color: AbashyakaColors.aquaSilverBorder,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -305,7 +309,9 @@ class _MerchantHoursCoverageScreenState
                     vertical: 10,
                     horizontal: 14,
                   ),
-                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  side: const BorderSide(
+                    color: AbashyakaColors.aquaSilverBorder,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -324,7 +330,7 @@ class _MerchantHoursCoverageScreenState
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AbashyakaColors.aquaSilverBorder),
               ),
               child: Column(
                 children: [
@@ -440,7 +446,7 @@ class _MerchantHoursCoverageScreenState
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: hour.isClosed
-                ? const Color(0xFFE2E8F0)
+                ? AbashyakaColors.aquaSilverBorder
                 : AppTheme.primary.withValues(alpha: 0.2),
           ),
           boxShadow: [
@@ -462,7 +468,7 @@ class _MerchantHoursCoverageScreenState
                   height: 34,
                   decoration: BoxDecoration(
                     color: hour.isClosed
-                        ? const Color(0xFFF1F5F9)
+                        ? AbashyakaColors.unavailableSurface
                         : (isWeekend
                               ? AppTheme.merchantCoralLight
                               : AppTheme.primary.withValues(alpha: 0.1)),
@@ -500,8 +506,8 @@ class _MerchantHoursCoverageScreenState
                         style: TextStyle(
                           fontSize: 12,
                           color: hour.isClosed
-                              ? const Color(0xFFDC2626)
-                              : const Color(0xFF16A34A),
+                              ? AbashyakaColors.error
+                              : AbashyakaColors.success,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -556,9 +562,11 @@ class _MerchantHoursCoverageScreenState
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: AbashyakaColors.unavailableSurface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                        border: Border.all(
+                          color: AbashyakaColors.aquaSilverBorder,
+                        ),
                       ),
                       child: Text(
                         _formatTimeDisplay(hour.opensAt),
@@ -598,9 +606,11 @@ class _MerchantHoursCoverageScreenState
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: AbashyakaColors.unavailableSurface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                        border: Border.all(
+                          color: AbashyakaColors.aquaSilverBorder,
+                        ),
                       ),
                       child: Text(
                         _formatTimeDisplay(hour.closesAt),
@@ -758,7 +768,7 @@ class _MerchantHoursCoverageScreenState
                   max: 50000.0,
                   divisions: 49,
                   activeColor: AppTheme.coral,
-                  inactiveColor: const Color(0xFFE2E8F0),
+                  inactiveColor: AbashyakaColors.aquaSilverBorder,
                   onChanged: (val) {
                     notifier.setServiceRadius(val.toInt());
                   },
@@ -826,7 +836,7 @@ class _MerchantHoursCoverageScreenState
                   children: [
                     ..._localities.map(
                       (loc) => Chip(
-                        backgroundColor: const Color(0xFFF1F5F9),
+                        backgroundColor: AbashyakaColors.unavailableSurface,
                         avatar: const Icon(
                           Icons.check_circle,
                           size: 16,
@@ -874,15 +884,15 @@ class _MerchantHoursCoverageScreenState
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: state.acceptsRequests
-                        ? const Color(0xFF16A34A).withValues(alpha: 0.1)
-                        : const Color(0xFFEF4444).withValues(alpha: 0.1),
+                        ? AbashyakaColors.success.withValues(alpha: 0.1)
+                        : AbashyakaColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     state.acceptsRequests ? Icons.flash_on : Icons.flash_off,
                     color: state.acceptsRequests
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFEF4444),
+                        ? AbashyakaColors.success
+                        : AbashyakaColors.error,
                     size: 24,
                   ),
                 ),
@@ -938,7 +948,9 @@ class _MerchantHoursCoverageScreenState
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        border: const Border(
+          top: BorderSide(color: AbashyakaColors.aquaSilverBorder),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),

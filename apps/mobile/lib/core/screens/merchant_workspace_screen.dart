@@ -600,7 +600,7 @@ class _MerchantWorkspaceScreenState
                 key: const Key('merchant_edit_business_profile'),
                 icon: const Icon(Icons.edit_outlined),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B6B4A),
+                  backgroundColor: AbashyakaColors.signatureTeal,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -1135,7 +1135,7 @@ class _MerchantWorkspaceScreenState
                       width: 42,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFCBD5E1),
+                        color: AbashyakaColors.aquaSilverBorder,
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -1371,7 +1371,7 @@ class _MerchantWorkspaceScreenState
             if (isNotFound)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B6B4A),
+                  backgroundColor: AbashyakaColors.signatureTeal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -1395,7 +1395,7 @@ class _MerchantWorkspaceScreenState
             else if (isAuthError)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B6B4A),
+                  backgroundColor: AbashyakaColors.signatureTeal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -1414,7 +1414,7 @@ class _MerchantWorkspaceScreenState
             else
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0B6B4A),
+                  backgroundColor: AbashyakaColors.signatureTeal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,

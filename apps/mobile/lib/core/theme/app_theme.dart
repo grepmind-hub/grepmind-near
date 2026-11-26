@@ -86,19 +86,19 @@ class AppTheme {
   static const Color textPrimary = mainText;
   static const Color secondaryText = mutedSlate;
   static const Color textSecondary = secondaryText;
-  static const Color hintText = Color(0xFF94A3B8);
-  static const Color textMuted = hintText;
+  static const Color hintText = AbashyakaColors.placeholderText;
+  static const Color textMuted = AbashyakaColors.mutedText;
   static const Color border = AbashyakaColors.silverGlass;
   static const Color divider = Color(0xFFF1F5F9);
   static const Color success = AbashyakaColors.success;
-  static const Color successContainer = lightMint;
+  static const Color successContainer = AbashyakaColors.successSurface;
   static const Color warning = AbashyakaColors.warning;
-  static const Color warningContainer = amberLight;
+  static const Color warningContainer = AbashyakaColors.warningSurface;
   static const Color error = AbashyakaColors.error;
-  static const Color errorContainer = coralLight;
+  static const Color errorContainer = AbashyakaColors.errorSurface;
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color onSurface = Color(0xFF102A33);
+  static const Color onSecondary = AbashyakaColors.primaryText;
+  static const Color onSurface = AbashyakaColors.primaryText;
   static const double cardRadius = AbashyakaRadius.categoryCard;
   static const double buttonRadius = AbashyakaRadius.button;
 
@@ -129,12 +129,14 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.light(
         primary: primary,
+        onPrimary: AbashyakaColors.inverseText,
         primaryContainer: primaryContainer,
         secondary: secondary,
         onSecondary: onSecondary,
         secondaryContainer: secondaryContainer,
         surface: surface,
         onSurface: onSurface,
+        onSurfaceVariant: AbashyakaColors.secondaryText,
         surfaceContainerHighest: surfaceVariant,
         outline: border,
         error: error,
@@ -179,7 +181,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(buttonRadius),
           borderSide: const BorderSide(color: error),
         ),
-        hintStyle: const TextStyle(color: hintText, fontSize: 14),
+        hintStyle: const TextStyle(
+          color: AbashyakaColors.mutedText,
+          fontSize: 14,
+        ),
         labelStyle: const TextStyle(
           color: secondaryText,
           fontSize: 14,

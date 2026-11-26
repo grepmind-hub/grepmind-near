@@ -13,6 +13,7 @@ abstract final class AbashyakaColors {
   static const Color metallicTeal = Color(0xFF007D80);
   static const Color luminousAqua = Color(0xFF00B3AE);
   static const Color metallicGold = Color(0xFFF4B942);
+  static const Color champagneHighlight = Color(0xFFF4F5C9);
   static const Color pearlWhite = Color(0xFFF5FAFA);
   static const Color pureWhite = Color(0xFFFFFFFF);
 
@@ -41,26 +42,48 @@ abstract final class AbashyakaColors {
   static const Color silverGlass = Color(0xFFDCEBED);
   static const Color softGrey = Color(0xFFE8EFF1);
 
-  // High-contrast clean typography tokens (V2.1 Approved)
-  static const Color premiumObsidian = Color(0xFF101820);
-  static const Color inkBlack =
-      premiumObsidian; // Clean, readable heading black (#101820)
-  static const Color graphiteCharcoal = Color(0xFF374151);
-  static const Color slateCharcoal =
-      graphiteCharcoal; // Clean, readable secondary text (#374151)
-  static const Color secondaryText = graphiteCharcoal;
-  static const Color mutedText = graphiteCharcoal;
+  static const Color primaryText = Color(0xFF102B32);
+  static const Color brandText = signatureTeal;
+  static const Color secondaryText = Color(0xFF36545C);
+  static const Color mutedText = Color(0xFF526971);
+  static const Color placeholderText = Color(0xFF607D85);
+  static const Color disabledText = Color(0xFF9AAEB3);
+  static const Color inverseText = pureWhite;
+  static const Color linkText = Color(0xFF006E75);
+  static const Color premiumObsidian = primaryText;
+  static const Color inkBlack = primaryText;
+  static const Color graphiteCharcoal = secondaryText;
+  static const Color slateCharcoal = secondaryText;
 
   // -------------------------------------------------------------
   // Functional Colours
   // -------------------------------------------------------------
-  static const Color success = Color(0xFF16A34A);
-  static const Color error = Color(0xFFDC3545);
-  static const Color warning = Color(0xFFF59E0B);
+  static const Color success = Color(0xFF047857);
+  static const Color successSurface = Color(0xFFD1FAE5);
+  static const Color error = Color(0xFFBE123C);
+  static const Color errorSurface = Color(0xFFFFE4E6);
+  static const Color warning = Color(0xFF92400E);
+  static const Color warningSurface = Color(0xFFFFF4D6);
   static const Color information = Color(0xFF0369A1);
-  static const Color ratingStar = metallicGold;
-  static const Color ratingText = Color(0xFF92400E);
+  static const Color informationSurface = Color(0xFFE0F2FE);
+  static const Color verified = linkText;
+  static const Color verifiedSurface = Color(0xFFE0F5F2);
+  static const Color unavailable = mutedText;
+  static const Color unavailableSurface = Color(0xFFEDF2F3);
+  static const Color offer = Color(0xFFC2410C);
+  static const Color offerSurface = Color(0xFFFFF0E0);
+  static const Color ratingStar = Color(0xFFF59E0B);
+  static const Color ratingText = warning;
   static const Color favourite = Color(0xFFEF476F);
+
+  static const Color customer = Color(0xFF166534);
+  static const Color customerSurface = Color(0xFFE8F8EE);
+  static const Color merchant = warning;
+  static const Color merchantSurface = Color(0xFFFFF3DC);
+  static const Color rider = information;
+  static const Color riderSurface = Color(0xFFE8F5FD);
+  static const Color admin = Color(0xFF6D28D9);
+  static const Color adminSurface = Color(0xFFF3EBFC);
 
   // -------------------------------------------------------------
   // Surface Translucent Highlights for Glass Effects

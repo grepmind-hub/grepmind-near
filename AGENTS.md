@@ -13,6 +13,8 @@ Design language:
 
 Metallic Teal Abstract Fluid Wave + Pearl White Glossy UI.
 
+Abashyaka Premium Functional Colour System V2.0 is the visual standard. Apply it through the existing Flutter Material 3 theme and shared Abashyaka tokens. The [Screens 17–22 migration record](docs/design/ABASHYAKA_V2_SCREENS_17_22_VALIDATION.md) tracks the implementation and acceptance evidence.
+
 Required references:
 
 - `docs/design/ABASHYAKA_MOBILE_AGENT_GUIDE.md`
