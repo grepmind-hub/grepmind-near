@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/abashyaka_colors.dart';
 import '../theme/abashyaka_tokens.dart';
@@ -60,22 +61,36 @@ class FloatingBottomNavigation extends StatelessWidget {
     final isSelected = index == currentIndex;
 
     return InkWell(
-      onTap: () => onTap(index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap(index);
+      },
       borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isSelected ? item.activeIcon : item.icon,
-              size: 22,
-              color: isSelected
-                  ? AbashyakaColors.metallicTeal
-                  : AbashyakaColors.inkBlack,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AbashyakaColors.iceAquaWhite
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                isSelected ? item.activeIcon : item.icon,
+                size: 22,
+                color: isSelected
+                    ? AbashyakaColors.metallicTeal
+                    : AbashyakaColors.inkBlack,
+              ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               item.label,
               style: AbashyakaTypography.categoryLabel(

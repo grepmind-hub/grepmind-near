@@ -14,6 +14,7 @@ import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
+import 'package:grepmind_mobile/core/widgets/screen_illustration_card.dart';
 import 'package:grepmind_mobile/core/screens/merchant_workspace_screen.dart';
 import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/screens/role_selection_screen.dart';
@@ -84,23 +85,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     if (!authState.isAuthenticated) {
-      // Should be redirected to onboarding, but show error for now
+      // Should be redirected to onboarding, but show illustrated empty state
       return const Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.person_outline, size: 64, color: AppTheme.hintText),
-              SizedBox(height: 16),
-              Text(
-                'Please sign in to view your profile',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AbashyakaColors.premiumObsidian,
-                ),
-              ),
-            ],
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: ScreenIllustrationCard(
+              illustration: ScreenIllustration.customer,
+              title: 'Sign in to view your profile',
+              subtitle:
+                  'Access your saved places, delivery addresses, and order history.',
+              icon: Icons.person_outline_rounded,
+            ),
           ),
         ),
       );

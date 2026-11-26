@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/abashyaka_colors.dart';
 import '../theme/abashyaka_gradients.dart';
@@ -63,7 +64,12 @@ class MetallicButton extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: isDisabled ? null : onPressed,
+            onTap: isDisabled
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    onPressed?.call();
+                  },
             borderRadius: BorderRadius.circular(radius),
             splashColor: AbashyakaColors.aquaGlow.withValues(alpha: 0.2),
             highlightColor: AbashyakaColors.darkOceanTeal.withValues(
@@ -175,7 +181,12 @@ class PremiumSecondaryButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onPressed,
+          onTap: onPressed == null
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  onPressed?.call();
+                },
           borderRadius: BorderRadius.circular(radius),
           splashColor: AbashyakaColors.lightAqua.withValues(alpha: 0.3),
           child: Center(
