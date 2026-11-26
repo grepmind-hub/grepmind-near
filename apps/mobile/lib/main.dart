@@ -186,53 +186,58 @@ class _MainNavigatorState extends ConsumerState<MainNavigator> {
                   : const SizedBox.shrink(),
           ],
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            decoration: BoxDecoration(
-              color: AbashyakaColors.pureWhite,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: AbashyakaShadows.floatingNav,
-              border: Border.all(
-                color: AbashyakaColors.silverGlass,
-                width: 1.2,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: BottomNavigationBar(
-                key: const ValueKey('workspace_bottom_navigation'),
-                type: BottomNavigationBarType.fixed,
-                backgroundColor: AbashyakaColors.pureWhite,
-                elevation: 0,
-                currentIndex: selectedIndex,
-                selectedItemColor: widget.activeRole == 'merchant'
-                    ? AbashyakaColors.metallicTealDark
-                    : (widget.activeRole == 'rider'
-                          ? AppTheme.riderAmberDark
-                          : AbashyakaColors.metallicTealDark),
-                unselectedItemColor: AbashyakaColors.secondaryText,
-                selectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
+        bottomNavigationBar: Builder(
+          builder: (context) {
+            final palette = context.abashyaka;
+            return SafeArea(
+              top: false,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                decoration: BoxDecoration(
+                  color: palette.navBackground,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: AbashyakaShadows.floatingNav,
+                  border: Border.all(
+                    color: palette.border,
+                    width: 1.2,
+                  ),
                 ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BottomNavigationBar(
+                    key: const ValueKey('workspace_bottom_navigation'),
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: palette.navBackground,
+                    elevation: 0,
+                    currentIndex: selectedIndex,
+                    selectedItemColor: widget.activeRole == 'merchant'
+                        ? palette.accent
+                        : (widget.activeRole == 'rider'
+                              ? AppTheme.riderAmberDark
+                              : palette.navActiveText),
+                    unselectedItemColor: palette.textMuted,
+                    selectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                    onTap: (i) {
+                      _mountedPageIndices.add(i);
+                      if (widget.activeRole == 'customer') {
+                        ref.read(customerTabIndexProvider.notifier).state = i;
+                      } else {
+                        setState(() => _selectedIndex = i);
+                      }
+                    },
+                    items: _itemsForRole(widget.activeRole),
+                  ),
                 ),
-                onTap: (i) {
-                  _mountedPageIndices.add(i);
-                  if (widget.activeRole == 'customer') {
-                    ref.read(customerTabIndexProvider.notifier).state = i;
-                  } else {
-                    setState(() => _selectedIndex = i);
-                  }
-                },
-                items: _itemsForRole(widget.activeRole),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

@@ -280,10 +280,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           : _getDisplayName(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AbashyakaColors.premiumObsidian,
+                        color: context.abashyaka.textPrimary,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -295,10 +295,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         Text(
                           user.phoneE164,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AbashyakaColors.graphiteCharcoal,
+                            color: context.abashyaka.textSecondary,
                           ),
                         ),
                         Container(
@@ -484,13 +484,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           : AbashyakaColors.signatureTeal),
               ),
               const SizedBox(width: AbashyakaSpacing.xs),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Personal Details',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AbashyakaColors.premiumObsidian,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
               ),
@@ -616,7 +616,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -625,7 +625,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AbashyakaColors.graphiteCharcoal,
+                        color: context.abashyaka.textSecondary,
                       ),
                     ),
                     SizedBox(height: 2),
@@ -637,9 +637,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _shortAccountId(user.id),
                   key: const ValueKey('short_account_id'),
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AbashyakaColors.premiumObsidian,
+                    color: context.abashyaka.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -725,10 +725,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AbashyakaColors.graphiteCharcoal,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1034,10 +1034,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AbashyakaColors.premiumObsidian,
+                    color: context.abashyaka.textPrimary,
                   ),
                 ),
               ),
@@ -1086,18 +1086,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AbashyakaColors.premiumObsidian,
+                      color: context.abashyaka.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AbashyakaColors.graphiteCharcoal,
+                      color: context.abashyaka.textSecondary,
                     ),
                   ),
                 ],
@@ -1215,15 +1215,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_rounded,
-                            color: AbashyakaColors.premiumObsidian,
+                            color: context.abashyaka.textPrimary,
                           ),
                           tooltip: 'Back',
                           onPressed: () => Navigator.pop(ctx),
                         ),
                         const SizedBox(width: 4),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1232,7 +1232,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: AbashyakaColors.premiumObsidian,
+                                  color: context.abashyaka.textPrimary,
                                 ),
                               ),
                               SizedBox(height: 2),
@@ -1240,16 +1240,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 'Update your personal information',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AbashyakaColors.graphiteCharcoal,
+                                  color: context.abashyaka.textSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close,
-                            color: AbashyakaColors.graphiteCharcoal,
+                            color: context.abashyaka.textSecondary,
                           ),
                           tooltip: 'Close',
                           onPressed: () => Navigator.pop(ctx),
@@ -1297,9 +1297,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       enabled: false,
                       decoration: InputDecoration(
                         labelText: 'Mobile Number',
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.phone_android_outlined,
-                          color: AbashyakaColors.graphiteCharcoal,
+                          color: context.abashyaka.textSecondary,
                         ),
                         suffixIcon: const Padding(
                           padding: EdgeInsets.only(right: 12),
@@ -1404,12 +1404,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         : AbashyakaColors.signatureTeal,
                                   ),
                                   const SizedBox(width: 6),
-                                  const Text(
+                                  Text(
                                     'Delivery Address',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: AbashyakaColors.premiumObsidian,
+                                      color: context.abashyaka.textPrimary,
                                     ),
                                   ),
                                 ],
@@ -1518,11 +1518,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 color: AbashyakaColors.aquaSilverBorder,
                               ),
                             ),
-                            child: const Text(
+                            child: Text(
                               'CANCEL',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AbashyakaColors.graphiteCharcoal,
+                                color: context.abashyaka.textSecondary,
                               ),
                             ),
                           ),

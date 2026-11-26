@@ -531,7 +531,7 @@ class _OrderShoppingHubScreenState
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: context.abashyaka.canvas,
       bottomNavigationBar: totalCartItems > 0
           ? Container(
               color: Colors.transparent,
@@ -862,10 +862,10 @@ class _OrderShoppingHubScreenState
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
                 child: Material(
-                  color: Colors.white,
+                  color: context.abashyaka.card,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    side: BorderSide(color: context.abashyaka.border),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: _HubAction(
@@ -1239,40 +1239,42 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.abashyaka;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-            letterSpacing: -0.2,
+          style: AbashyakaTypography.sectionTitle(
+            color: palette.textPrimary,
+            fontSize: 16.5,
           ),
         ),
         InkWell(
           onTap: onSeeAll,
-          borderRadius: BorderRadius.circular(6),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: palette.accentSurface,
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'See all',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF059669),
-                  ),
+                  style: AbashyakaTypography.categoryLabel(
+                    color: palette.accent,
+                    fontSize: 12,
+                  ).copyWith(fontWeight: FontWeight.w700),
                 ),
-                SizedBox(width: 2),
+                const SizedBox(width: 2),
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 16,
-                  color: Color(0xFF059669),
+                  color: palette.accent,
                 ),
               ],
             ),
@@ -1953,18 +1955,27 @@ class _HubAction extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => ListTile(
-    key: ValueKey(keyName),
-    minVerticalPadding: 13,
-    leading: CircleAvatar(
-      backgroundColor: AppTheme.primaryContainer,
-      child: Icon(icon, color: AppTheme.primary),
-    ),
-    title: Text(title, style: Theme.of(context).textTheme.titleMedium),
-    subtitle: Text(subtitle),
-    trailing: const Icon(Icons.chevron_right_rounded),
-    onTap: onTap,
-  );
+  Widget build(BuildContext context) {
+    final palette = context.abashyaka;
+    return ListTile(
+      key: ValueKey(keyName),
+      minVerticalPadding: 13,
+      leading: CircleAvatar(
+        backgroundColor: palette.accentSurface,
+        child: Icon(icon, color: palette.accent),
+      ),
+      title: Text(
+        title,
+        style: AbashyakaTypography.cardTitle(color: palette.textPrimary),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: AbashyakaTypography.supportingText(color: palette.textMuted),
+      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+      onTap: onTap,
+    );
+  }
 }
 
 class _ActiveOrderHubBanner extends StatelessWidget {

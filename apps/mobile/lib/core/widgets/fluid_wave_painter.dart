@@ -388,44 +388,75 @@ class FluidWavePainter extends CustomPainter {
     canvas.drawPath(bottomWave, paintBottom);
   }
 
-  /// Screen 06: Discovery / Home screen header
+  /// Screen 06: Discovery / Home screen header (Option 4 Pearl White Vector)
   void _paintDiscovery(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
     final bgRect = Offset.zero & size;
 
+    // Pearl White base behind the bottom curve
+    canvas.drawRect(
+      bgRect,
+      Paint()..color = AbashyakaColors.pearlWhite,
+    );
+
+    // Primary rich Signature Teal -> Metallic Teal wave
     final path1 = Path()
-      ..moveTo(0, h * 0.85)
-      ..cubicTo(w * 0.25, h * 1.05, w * 0.65, h * 0.70, w, h * 0.88)
+      ..moveTo(0, 0)
       ..lineTo(w, 0)
-      ..lineTo(0, 0)
+      ..lineTo(w, h * 0.76)
+      ..quadraticBezierTo(w * 0.72, h * 0.98, w * 0.45, h * 0.78)
+      ..quadraticBezierTo(w * 0.2, h * 0.60, 0, h * 0.84)
       ..close();
 
-    final paint1 = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AbashyakaColors.iceAquaWhite, AbashyakaColors.pearlWhite],
-      ).createShader(bgRect);
-    canvas.drawPath(path1, paint1);
+    canvas.drawPath(
+      path1,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AbashyakaColors.signatureTeal,
+            AbashyakaColors.metallicTeal,
+          ],
+        ).createShader(bgRect),
+    );
 
+    // Secondary Luminous Aqua -> Aqua Glow layered wave
     final path2 = Path()
-      ..moveTo(0, h * 0.65)
-      ..cubicTo(w * 0.35, h * 0.82, w * 0.75, h * 0.50, w, h * 0.60)
+      ..moveTo(0, 0)
       ..lineTo(w, 0)
-      ..lineTo(0, 0)
+      ..lineTo(w, h * 0.56)
+      ..quadraticBezierTo(w * 0.65, h * 0.82, w * 0.35, h * 0.60)
+      ..quadraticBezierTo(w * 0.14, h * 0.44, 0, h * 0.66)
       ..close();
 
-    final paint2 = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          AbashyakaColors.metallicTeal.withValues(alpha: 0.12),
-          AbashyakaColors.aquaGlow.withValues(alpha: 0.06),
-        ],
-      ).createShader(bgRect);
-    canvas.drawPath(path2, paint2);
+    canvas.drawPath(
+      path2,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            AbashyakaColors.luminousAqua.withValues(alpha: 0.65),
+            AbashyakaColors.aquaGlow.withValues(alpha: 0.35),
+          ],
+        ).createShader(bgRect),
+    );
+
+    // Crisp specular aqua rim along the wave edge
+    final rimPath = Path()
+      ..moveTo(0, h * 0.84)
+      ..quadraticBezierTo(w * 0.2, h * 0.60, w * 0.45, h * 0.78)
+      ..quadraticBezierTo(w * 0.72, h * 0.98, w, h * 0.76);
+
+    canvas.drawPath(
+      rimPath,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = AbashyakaColors.lightAqua.withValues(alpha: 0.85),
+    );
   }
 
   /// Promotional banner wave background
@@ -492,25 +523,25 @@ class FluidWavePainter extends CustomPainter {
         variant == FluidWaveVariant.discovery ||
         variant == FluidWaveVariant.compact ||
         variant == FluidWaveVariant.profile;
-    final waveBottom = isHeader ? h * 0.85 : h * 0.42;
+    final waveBottom = isHeader ? h * 0.78 : h * 0.34;
 
     final primaryWave = Path()
       ..moveTo(0, 0)
       ..lineTo(w, 0)
-      ..lineTo(w, waveBottom * 0.85)
-      ..quadraticBezierTo(w * 0.72, waveBottom * 1.12, w * 0.45, waveBottom * 0.88)
-      ..quadraticBezierTo(w * 0.2, waveBottom * 0.68, 0, waveBottom * 0.94)
+      ..lineTo(w, waveBottom * 0.96)
+      ..quadraticBezierTo(w * 0.72, waveBottom * 1.24, w * 0.45, waveBottom * 0.98)
+      ..quadraticBezierTo(w * 0.2, waveBottom * 0.76, 0, waveBottom * 1.06)
       ..close();
 
     canvas.drawPath(
       primaryWave,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AbashyakaColors.signatureTeal.withValues(alpha: 0.72),
-            AbashyakaColors.metallicTeal.withValues(alpha: 0.48),
+            AbashyakaColors.signatureTeal,
+            AbashyakaColors.metallicTeal,
           ],
         ).createShader(bgRect),
     );
@@ -518,9 +549,9 @@ class FluidWavePainter extends CustomPainter {
     final accentWave = Path()
       ..moveTo(0, 0)
       ..lineTo(w, 0)
-      ..lineTo(w, waveBottom * 0.62)
-      ..quadraticBezierTo(w * 0.65, waveBottom * 0.92, w * 0.35, waveBottom * 0.68)
-      ..quadraticBezierTo(w * 0.14, waveBottom * 0.52, 0, waveBottom * 0.74)
+      ..lineTo(w, waveBottom * 0.70)
+      ..quadraticBezierTo(w * 0.65, waveBottom * 1.02, w * 0.35, waveBottom * 0.75)
+      ..quadraticBezierTo(w * 0.14, waveBottom * 0.56, 0, waveBottom * 0.82)
       ..close();
 
     canvas.drawPath(
@@ -530,23 +561,23 @@ class FluidWavePainter extends CustomPainter {
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
           colors: [
-            AbashyakaColors.aquaGlow.withValues(alpha: 0.30),
-            AbashyakaColors.luminousAqua.withValues(alpha: 0.14),
+            AbashyakaColors.aquaGlow.withValues(alpha: 0.55),
+            AbashyakaColors.luminousAqua.withValues(alpha: 0.28),
           ],
         ).createShader(bgRect),
     );
 
     final rimPath = Path()
-      ..moveTo(0, waveBottom * 0.94)
-      ..quadraticBezierTo(w * 0.2, waveBottom * 0.68, w * 0.45, waveBottom * 0.88)
-      ..quadraticBezierTo(w * 0.72, waveBottom * 1.12, w, waveBottom * 0.85);
+      ..moveTo(0, waveBottom * 1.06)
+      ..quadraticBezierTo(w * 0.2, waveBottom * 0.76, w * 0.45, waveBottom * 0.98)
+      ..quadraticBezierTo(w * 0.72, waveBottom * 1.24, w, waveBottom * 0.96);
 
     canvas.drawPath(
       rimPath,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..color = AbashyakaColors.aquaGlow.withValues(alpha: 0.45),
+        ..strokeWidth = 1.6
+        ..color = AbashyakaColors.aquaGlow.withValues(alpha: 0.78),
     );
   }
 

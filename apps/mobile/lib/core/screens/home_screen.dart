@@ -57,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .where((business) => !usedBusinessIds.contains(business.id))
         .toList(growable: false);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: context.abashyaka.canvas,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () =>
@@ -519,7 +519,7 @@ class _HeaderCardState extends State<_HeaderCard> {
                                     'Abashyaka',
                                     style: AbashyakaTypography.brandWordmark(
                                       fontSize: 21,
-                                      color: AbashyakaColors.metallicTealDark,
+                                      color: AbashyakaColors.pureWhite,
                                     ).copyWith(fontWeight: FontWeight.w800),
                                   ),
                                   const SizedBox(width: 6),
@@ -527,7 +527,7 @@ class _HeaderCardState extends State<_HeaderCard> {
                                     'ଆବଶ୍ୟକ',
                                     style: AbashyakaTypography.odiaScript(
                                       fontSize: 13,
-                                      color: AbashyakaColors.saffronOrange,
+                                      color: AbashyakaColors.metallicGold,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -539,7 +539,9 @@ class _HeaderCardState extends State<_HeaderCard> {
                               'Everything nearby, one tap away',
                               style: AbashyakaTypography.supportingText(
                                 fontSize: 11,
-                                color: AbashyakaColors.secondaryText,
+                                color: AbashyakaColors.pureWhite.withValues(
+                                  alpha: 0.9,
+                                ),
                               ),
                             ),
                           ],
@@ -552,28 +554,28 @@ class _HeaderCardState extends State<_HeaderCard> {
                         child: Container(
                           width: 40,
                           height: 40,
-                          decoration: BoxDecoration(
-                            color: AbashyakaColors.pureWhite,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AbashyakaColors.silverGlass,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x08003F46),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
+                        decoration: BoxDecoration(
+                          color: context.abashyaka.card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: context.abashyaka.border,
                           ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              const Icon(
-                                Icons.notifications_none_rounded,
-                                color: AbashyakaColors.inkBlack,
-                                size: 22,
-                              ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x08003F46),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_none_rounded,
+                              color: context.abashyaka.textPrimary,
+                              size: 22,
+                            ),
                               Positioned(
                                 top: 8,
                                 right: 9,
@@ -604,10 +606,10 @@ class _HeaderCardState extends State<_HeaderCard> {
                         vertical: 9,
                       ),
                       decoration: BoxDecoration(
-                        color: AbashyakaColors.pureWhite,
+                        color: context.abashyaka.card,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AbashyakaColors.silverGlass,
+                          color: context.abashyaka.border,
                           width: 1.1,
                         ),
                         boxShadow: const [
@@ -643,11 +645,11 @@ class _HeaderCardState extends State<_HeaderCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
+                                Text(
                                   'DELIVERING TO',
                                   style: TextStyle(
                                     fontSize: 9.5,
-                                    color: AbashyakaColors.secondaryText,
+                                    color: context.abashyaka.textSecondary,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.4,
                                   ),
@@ -655,19 +657,19 @@ class _HeaderCardState extends State<_HeaderCard> {
                                 const SizedBox(height: 1),
                                 Text(
                                   displayLocation,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AbashyakaColors.inkBlack,
+                                    color: context.abashyaka.textPrimary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.keyboard_arrow_down_rounded,
-                            color: AbashyakaColors.inkBlack,
+                            color: context.abashyaka.textPrimary,
                             size: 20,
                           ),
                         ],
@@ -680,13 +682,15 @@ class _HeaderCardState extends State<_HeaderCard> {
                   Container(
                     height: 46,
                     decoration: BoxDecoration(
-                      color: AbashyakaColors.pureWhite,
+                      color: context.abashyaka.card,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: AbashyakaColors.silverGlass,
+                        color: context.abashyaka.border,
                         width: 1.1,
                       ),
-                      boxShadow: AbashyakaShadows.card,
+                      boxShadow: context.abashyaka.isDark
+                          ? null
+                          : AbashyakaShadows.card,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Row(
@@ -769,14 +773,12 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'What do you need today?',
-                style: TextStyle(
+                style: AbashyakaTypography.sectionTitle(
+                  color: context.abashyaka.textPrimary,
                   fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF172820),
-                  letterSpacing: -0.2,
-                ),
+                ).copyWith(fontWeight: FontWeight.w800),
               ),
               InkWell(
                 onTap: () => Navigator.push(
@@ -1049,16 +1051,18 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
             height: 66,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.abashyaka.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF003F46).withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              border: Border.all(color: context.abashyaka.border, width: 1.0),
+              boxShadow: context.abashyaka.isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF003F46).withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
             ),
             padding: const EdgeInsets.all(7),
             child: Center(
@@ -1080,12 +1084,10 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
             height: 28,
             child: Text(
               label,
-              style: const TextStyle(
+              style: AbashyakaTypography.categoryLabel(
                 fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-                height: 1.15,
-              ),
+                color: context.abashyaka.textPrimary,
+              ).copyWith(height: 1.15),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
