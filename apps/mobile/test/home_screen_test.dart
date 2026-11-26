@@ -12,6 +12,17 @@ class _QuietCategoriesNotifier extends CategoriesNotifier {
   Future<void> load() async {}
 }
 
+Widget _buildHomeTestApp(HomeFeed feed) {
+  return ProviderScope(
+    overrides: [
+      homeFeedProvider('').overrideWith((ref) async => feed),
+      homeFeedProvider('Cuttack').overrideWith((ref) async => feed),
+      categoriesProvider.overrideWith((ref) => _QuietCategoriesNotifier()),
+    ],
+    child: const MaterialApp(home: HomeScreen()),
+  );
+}
+
 void main() {
   setUpAll(() => apiClient.init());
   setUp(() => apiClient.dio.interceptors.clear());
@@ -64,17 +75,7 @@ void main() {
   testWidgets(
     'Home presents live empty states and keeps recent businesses off Home',
     (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            homeFeedProvider('').overrideWith((ref) async => const HomeFeed()),
-            categoriesProvider.overrideWith(
-              (ref) => _QuietCategoriesNotifier(),
-            ),
-          ],
-          child: const MaterialApp(home: HomeScreen()),
-        ),
-      );
+      await tester.pumpWidget(_buildHomeTestApp(const HomeFeed()));
       await tester.pumpAndSettle();
 
       expect(find.text('Your neighborhood,\ndiscovered.'), findsOneWidget);
@@ -107,16 +108,7 @@ void main() {
       city: 'Cuttack',
       discountPercent: 10,
     );
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeFeedProvider('')
-              .overrideWith((ref) async => const HomeFeed(offers: [offer])),
-          categoriesProvider.overrideWith((ref) => _QuietCategoriesNotifier()),
-        ],
-        child: const MaterialApp(home: HomeScreen()),
-      ),
-    );
+    await tester.pumpWidget(_buildHomeTestApp(const HomeFeed(offers: [offer])));
     await tester.pumpAndSettle();
 
     expect(find.text('Offer title from API'), findsOneWidget);
@@ -140,14 +132,7 @@ void main() {
       price: 75,
     );
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeFeedProvider('')
-              .overrideWith((ref) async => HomeFeed(newArrivals: [item])),
-          categoriesProvider.overrideWith((ref) => _QuietCategoriesNotifier()),
-        ],
-        child: const MaterialApp(home: HomeScreen()),
-      ),
+      _buildHomeTestApp(HomeFeed(newArrivals: [item])),
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
