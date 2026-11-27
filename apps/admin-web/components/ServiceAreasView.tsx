@@ -36,6 +36,7 @@ export const ServiceAreasView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [districtFilter, setDistrictFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
@@ -88,6 +89,7 @@ export const ServiceAreasView: React.FC = () => {
   });
 
   const handleOpenAdd = () => {
+    setEditingId(null);
     setFormData({
       district: locations[0]?.district_name || 'Cuttack',
       name: '',
@@ -108,6 +110,30 @@ export const ServiceAreasView: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const locationInput = (loc: ServiceLocation): ServiceLocationInput => ({
+    district: loc.district_name,
+    name: loc.name,
+    pin_codes: loc.pin_codes,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    service_radius_km: loc.service_radius_km,
+    delivery_enabled: loc.delivery_enabled,
+    is_active: loc.is_active,
+    food_delivery_enabled: loc.food_delivery_enabled,
+    grocery_delivery_enabled: loc.grocery_delivery_enabled,
+    medicines_delivery_enabled: loc.medicines_delivery_enabled,
+    local_services_enabled: loc.local_services_enabled,
+    transport_enabled: loc.transport_enabled,
+    merchant_discovery_enabled: loc.merchant_discovery_enabled,
+  });
+
+  const handleOpenEdit = (loc: ServiceLocation) => {
+    setEditingId(loc.id);
+    setFormData(locationInput(loc));
+    setPinCodesText(loc.pin_codes.join(', '));
+    setIsModalOpen(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.district.trim() || !formData.name.trim()) {
@@ -119,17 +145,23 @@ export const ServiceAreasView: React.FC = () => {
       .split(',')
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
+    if (pins.some((pin) => !/^\d{6}$/.test(pin))) {
+      alert('Enter six digits for each PIN code.');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      await addServiceLocation({
-        ...formData,
-        pin_codes: pins,
-      });
+      const input = { ...formData, pin_codes: pins };
+      if (editingId) {
+        await updateServiceLocation(editingId, input);
+      } else {
+        await addServiceLocation(input);
+      }
       setIsModalOpen(false);
       await fetchLocations();
     } catch (err: any) {
-      alert(err?.response?.data?.error?.message || 'Failed to add service location.');
+      alert(err?.response?.data?.error?.message || 'Failed to save service location.');
     } finally {
       setSubmitting(false);
     }
@@ -138,18 +170,8 @@ export const ServiceAreasView: React.FC = () => {
   const handleToggleDelivery = async (loc: ServiceLocation) => {
     try {
       await updateServiceLocation(loc.id, {
+        ...locationInput(loc),
         delivery_enabled: !loc.delivery_enabled,
-        is_active: loc.is_active,
-        district: loc.district_name,
-        name: loc.name,
-        pin_codes: loc.pin_codes,
-        service_radius_km: loc.service_radius_km,
-        food_delivery_enabled: loc.food_delivery_enabled,
-        grocery_delivery_enabled: loc.grocery_delivery_enabled,
-        medicines_delivery_enabled: loc.medicines_delivery_enabled,
-        local_services_enabled: loc.local_services_enabled,
-        transport_enabled: loc.transport_enabled,
-        merchant_discovery_enabled: loc.merchant_discovery_enabled,
       });
       await fetchLocations();
     } catch (err: any) {
@@ -400,6 +422,13 @@ export const ServiceAreasView: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <button
+                        onClick={() => handleOpenEdit(loc)}
+                        className="mr-2 rounded-lg bg-[#F2F4F7] px-2.5 py-1 text-xs font-semibold text-[#344054]"
+                        aria-label={`Edit ${loc.name} service area`}
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleToggleDelivery(loc)}
                         className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
                           loc.delivery_enabled
@@ -427,7 +456,7 @@ export const ServiceAreasView: React.FC = () => {
                 <div className="rounded-lg bg-[#E4F7E3] p-1.5 text-[#087F0D]">
                   <Plus className="h-4 w-4" />
                 </div>
-                <h3 className="text-base font-bold text-[#101828]">Add Service Location</h3>
+                <h3 className="text-base font-bold text-[#101828]">{editingId ? 'Edit Service Location' : 'Add Service Location'}</h3>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -447,6 +476,7 @@ export const ServiceAreasView: React.FC = () => {
                   required
                   placeholder="e.g. Cuttack, Jajpur, Khordha, Puri"
                   value={formData.district}
+                  readOnly={!!editingId}
                   onChange={(e) => setFormData({ ...formData, district: e.target.value })}
                   className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2 text-xs text-[#101828] focus:border-[#087F0D] focus:outline-none"
                 />
@@ -461,6 +491,7 @@ export const ServiceAreasView: React.FC = () => {
                   required
                   placeholder="e.g. Chhatia, Kuanpal, Infovalley, Chauliaganj"
                   value={formData.name}
+                  readOnly={!!editingId}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full rounded-xl border border-[#D0D5DD] px-3.5 py-2 text-xs text-[#101828] focus:border-[#087F0D] focus:outline-none"
                 />
@@ -486,7 +517,9 @@ export const ServiceAreasView: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    step="0.0001"
+                    step="any"
+                    min={-90}
+                    max={90}
                     value={formData.latitude ?? ''}
                     onChange={(e) =>
                       setFormData({
@@ -503,7 +536,9 @@ export const ServiceAreasView: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    step="0.0001"
+                    step="any"
+                    min={-180}
+                    max={180}
                     value={formData.longitude ?? ''}
                     onChange={(e) =>
                       setFormData({
@@ -520,7 +555,8 @@ export const ServiceAreasView: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    step="0.5"
+                    step="any"
+                    min={0.01}
                     value={formData.service_radius_km}
                     onChange={(e) =>
                       setFormData({

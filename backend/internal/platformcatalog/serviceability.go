@@ -1,8 +1,10 @@
 package platformcatalog
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"math"
 	"net/http"
 	"strings"
@@ -12,25 +14,48 @@ import (
 	"github.com/lib/pq"
 )
 
+// MerchantRegistrationCovered requires the address and GPS pin to match the
+// same Admin-configured discovery area. Delivery availability is independent.
+func MerchantRegistrationCovered(ctx context.Context, tx *sqlx.Tx, district, locality, pin string, latitude, longitude float64) (bool, error) {
+	var covered bool
+	err := tx.GetContext(ctx, &covered, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM platform_delivery_localities l
+			JOIN platform_districts d ON d.id = l.district_id
+			WHERE lower(d.name) = lower($1) AND lower(l.name) = lower($2)
+			  AND d.is_active AND l.is_active AND l.merchant_discovery_enabled
+			  AND $3 = ANY(l.pin_codes)
+			  AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+			  AND ST_DWithin(
+				ST_SetSRID(ST_MakePoint($4, $5), 4326)::geography,
+				ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+				l.service_radius_km * 1000
+			  )
+		)
+	`, district, locality, pin, longitude, latitude)
+	return covered, err
+}
+
 type ServiceLocationItem struct {
-	ID                       string    `json:"id"`
-	DistrictID               string    `json:"district_id"`
-	DistrictName             string    `json:"district_name"`
-	Name                     string    `json:"name"`
-	Slug                     string    `json:"slug"`
-	PinCodes                 []string  `json:"pin_codes"`
-	Latitude                 *float64  `json:"latitude"`
-	Longitude                *float64  `json:"longitude"`
-	ServiceRadiusKm          float64   `json:"service_radius_km"`
-	DeliveryEnabled          bool      `json:"delivery_enabled"`
-	IsActive                 bool      `json:"is_active"`
-	FoodDeliveryEnabled      bool      `json:"food_delivery_enabled"`
-	GroceryDeliveryEnabled   bool      `json:"grocery_delivery_enabled"`
-	MedicinesDeliveryEnabled bool      `json:"medicines_delivery_enabled"`
-	LocalServicesEnabled     bool      `json:"local_services_enabled"`
-	TransportEnabled         bool      `json:"transport_enabled"`
-	MerchantDiscoveryEnabled bool      `json:"merchant_discovery_enabled"`
-	CreatedAt                string    `json:"created_at"`
+	ID                       string   `json:"id"`
+	DistrictID               string   `json:"district_id"`
+	DistrictName             string   `json:"district_name"`
+	Name                     string   `json:"name"`
+	Slug                     string   `json:"slug"`
+	PinCodes                 []string `json:"pin_codes"`
+	Latitude                 *float64 `json:"latitude"`
+	Longitude                *float64 `json:"longitude"`
+	ServiceRadiusKm          float64  `json:"service_radius_km"`
+	DeliveryEnabled          bool     `json:"delivery_enabled"`
+	IsActive                 bool     `json:"is_active"`
+	FoodDeliveryEnabled      bool     `json:"food_delivery_enabled"`
+	GroceryDeliveryEnabled   bool     `json:"grocery_delivery_enabled"`
+	MedicinesDeliveryEnabled bool     `json:"medicines_delivery_enabled"`
+	LocalServicesEnabled     bool     `json:"local_services_enabled"`
+	TransportEnabled         bool     `json:"transport_enabled"`
+	MerchantDiscoveryEnabled bool     `json:"merchant_discovery_enabled"`
+	CreatedAt                string   `json:"created_at"`
 }
 
 type ServiceLocationInput struct {
@@ -293,8 +318,8 @@ func (s *Service) AdminUpdateServiceLocation(w http.ResponseWriter, r *http.Requ
 				delivery_enabled = $2,
 				is_active = $3,
 				pin_codes = $4,
-				latitude = $5,
-				longitude = $6,
+				latitude = COALESCE($5, latitude),
+				longitude = COALESCE($6, longitude),
 				service_radius_km = $7,
 				food_delivery_enabled = $8,
 				grocery_delivery_enabled = $9,
@@ -386,12 +411,15 @@ func (s *Service) PublicCheckServiceability(w http.ResponseWriter, r *http.Reque
 				COALESCE(l.merchant_discovery_enabled, true) AS merchant_discovery_enabled
 			FROM platform_delivery_localities l
 			JOIN platform_districts d ON d.id = l.district_id
-			WHERE $1 = ANY(l.pin_codes) AND l.is_active = true
+			WHERE $1 = ANY(l.pin_codes) AND l.is_active AND d.is_active
 			ORDER BY l.delivery_enabled DESC
 			LIMIT 1
 		`, req.PinCode)
 		if err == nil {
 			found = true
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			responseFailure(w, err)
+			return
 		}
 	}
 
@@ -413,17 +441,19 @@ func (s *Service) PublicCheckServiceability(w http.ResponseWriter, r *http.Reque
 				COALESCE(l.merchant_discovery_enabled, true) AS merchant_discovery_enabled
 			FROM platform_delivery_localities l
 			JOIN platform_districts d ON d.id = l.district_id
-			WHERE l.is_active = true AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+			WHERE l.is_active AND d.is_active AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
 		`)
-		if err == nil {
-			var minDistance = math.MaxFloat64
-			for _, loc := range allActive {
-				dist := haversineDistance(*req.Latitude, *req.Longitude, loc.Latitude.Float64, loc.Longitude.Float64)
-				if dist <= loc.ServiceRadiusKm && dist < minDistance {
-					minDistance = dist
-					match = loc
-					found = true
-				}
+		if err != nil {
+			responseFailure(w, err)
+			return
+		}
+		var minDistance = math.MaxFloat64
+		for _, loc := range allActive {
+			dist := haversineDistance(*req.Latitude, *req.Longitude, loc.Latitude.Float64, loc.Longitude.Float64)
+			if dist <= loc.ServiceRadiusKm && dist < minDistance {
+				minDistance = dist
+				match = loc
+				found = true
 			}
 		}
 	}

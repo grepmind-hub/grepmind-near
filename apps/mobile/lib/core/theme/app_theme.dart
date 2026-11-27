@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'abashyaka_colors.dart';
@@ -273,6 +274,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         iconTheme: const IconThemeData(color: mainText),
         titleTextStyle: AbashyakaTypography.pageTitle(
           color: mainText,
@@ -435,6 +437,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         iconTheme: IconThemeData(color: p.textPrimary),
         titleTextStyle: AbashyakaTypography.pageTitle(
           color: p.textPrimary,

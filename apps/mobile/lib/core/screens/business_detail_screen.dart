@@ -478,7 +478,11 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              biz.rating?.toStringAsFixed(1) ?? '4.8',
+                              biz.rating != null
+                                  ? biz.rating!.toStringAsFixed(1)
+                                  : ((biz.reviewCount ?? _customReviews.length) == 0
+                                        ? 'New'
+                                        : '4.8'),
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -817,7 +821,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '$_cartItemCount items',
+                        '$_cartItemCount ${_cartItemCount == 1 ? 'item' : 'items'}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -1840,6 +1844,10 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
 
   Widget _buildFoodItemRow(Business biz, Product p) {
     final qty = _cart[p.id] ?? 0;
+    final isFoodProduct =
+        biz.categorySlug == 'restaurant' ||
+        biz.categorySlug == 'food' ||
+        (p.foodCategory != null && p.foodCategory!.isNotEmpty);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1848,35 +1856,37 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Veg / Non-Veg Icon
+              // Veg / Non-Veg Icon (food items only)
               Row(
                 children: [
-                  Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: p.isVeg
-                            ? AbashyakaColors.success
-                            : AbashyakaColors.error,
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                  if (isFoodProduct) ...[
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        border: Border.all(
                           color: p.isVeg
                               ? AbashyakaColors.success
                               : AbashyakaColors.error,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: p.isVeg
+                                ? AbashyakaColors.success
+                                : AbashyakaColors.error,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                  ],
                   if ((p.foodCategory ?? p.groceryCategory) != null &&
                       (p.foodCategory ?? p.groceryCategory)!.isNotEmpty)
                     Text(
@@ -2001,10 +2011,14 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen>
               ),
               child: Center(
                 child: Icon(
-                  p.isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
-                  color: p.isVeg
-                      ? AbashyakaColors.success
-                      : AbashyakaColors.error,
+                  isFoodProduct
+                      ? (p.isVeg ? Icons.eco_rounded : Icons.restaurant_rounded)
+                      : Icons.shopping_bag_outlined,
+                  color: isFoodProduct
+                      ? (p.isVeg
+                            ? AbashyakaColors.success
+                            : AbashyakaColors.error)
+                      : AbashyakaColors.metallicTeal,
                   size: 32,
                 ),
               ),

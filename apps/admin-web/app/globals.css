@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+.application-photo {
+  max-height: 21rem;
+}
+
+@media print {
+  body:has(.merchant-application-dialog[open]) > :not(.merchant-application-dialog) {
+    display: none !important;
+  }
+
+  .merchant-application-dialog[open] {
+    position: static;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    overflow: visible;
+    background: white;
+    box-shadow: none;
+  }
+
+  .merchant-application-dialog::backdrop {
+    background: transparent;
+  }
+
+  .merchant-application-dialog > header {
+    position: static;
+  }
+
+  .merchant-application-dialog .application-controls {
+    display: none !important;
+  }
+
+  .merchant-application-dialog .application-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merchant-application-dialog .application-section {
+    break-inside: avoid;
+    background: white;
+  }
+
+  .application-photo {
+    max-height: 52mm;
+  }
+}
+
 :root {
   --background: 75 15% 96%; /* Canvas #F5F6F2 */
   --foreground: 221 37% 15%; /* #172033 */

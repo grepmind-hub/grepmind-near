@@ -189,7 +189,7 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
               onRefresh: _load,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -223,21 +223,21 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   color: Colors.white.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.hub_rounded,
-                                  color: context.abashyaka.card,
+                                  color: Colors.white,
                                   size: 24,
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(
+                              const Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       'Cuttack & Jajpur Central Hubs',
                                       style: TextStyle(
-                                        color: context.abashyaka.card,
+                                        color: Colors.white,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 16,
                                       ),
@@ -262,10 +262,10 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   color: const Color(0xFF10B981),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   'ACTIVE',
                                   style: TextStyle(
-                                    color: context.abashyaka.card,
+                                    color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -319,9 +319,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Container(
                       height: 220,
                       decoration: BoxDecoration(
-                        color: context.abashyaka.card,
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: palette.border),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x0A000000),
@@ -344,6 +344,8 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                     radiusKm: _shiftRadiusKm,
                                     localities: _localities,
                                     approvedIds: _approvedLocalityIds,
+                                    isDark: Theme.of(context).brightness ==
+                                        Brightness.dark,
                                   ),
                                 );
                               },
@@ -357,10 +359,10 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: palette.card.withValues(alpha: 0.92),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: const Color(0xFFCBD5E1),
+                                    color: palette.border,
                                   ),
                                 ),
                                 child: Row(
@@ -394,9 +396,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: context.abashyaka.card,
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,12 +498,12 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                     decoration: BoxDecoration(
                                       color: _shiftRadiusKm == preset
                                           ? AppTheme.emerald
-                                          : const Color(0xFFF1F5F9),
+                                          : palette.cardElevated,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
                                         color: _shiftRadiusKm == preset
                                             ? AppTheme.emerald
-                                            : const Color(0xFFCBD5E1),
+                                            : palette.border,
                                       ),
                                     ),
                                     child: Text(
@@ -539,9 +541,9 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                                   ? SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(
+                                      child: const CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: context.abashyaka.card,
+                                        color: Colors.white,
                                       ),
                                     )
                                   : const Icon(
@@ -600,27 +602,27 @@ class _RiderLocalityHubsScreenState extends State<RiderLocalityHubsScreen>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE6F4F0),
+                        color: palette.accentSurface,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: AppTheme.emerald.withValues(alpha: 0.2),
+                          color: palette.border,
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             Icons.verified_user_outlined,
                             size: 18,
-                            color: AppTheme.emeraldDark,
+                            color: palette.accent,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Dispatch availability is strictly controlled by backend-approved service localities. No background GPS tracking or unsolicited device geolocation is active.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.emeraldDark,
+                                color: palette.textSecondary,
                                 height: 1.4,
                               ),
                             ),
@@ -795,12 +797,14 @@ class _HubCoverageRadarPainter extends CustomPainter {
     required this.radiusKm,
     required this.localities,
     required this.approvedIds,
+    required this.isDark,
   });
 
   final double sweepProgress;
   final double radiusKm;
   final List<Map<String, dynamic>> localities;
   final Set<String> approvedIds;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -809,14 +813,16 @@ class _HubCoverageRadarPainter extends CustomPainter {
 
     // Background gradient
     final bgPaint = Paint()
-      ..shader = const RadialGradient(
-        colors: [Color(0xFFE2E8F0), Color(0xFFF1F5F9)],
+      ..shader = RadialGradient(
+        colors: isDark
+            ? const [Color(0xFF0F172A), Color(0xFF1E293B)]
+            : const [Color(0xFFE2E8F0), Color(0xFFF1F5F9)],
       ).createShader(Rect.fromCircle(center: center, radius: maxRadius * 1.3));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
     // Concentric distance rings
     final ringPaint = Paint()
-      ..color = const Color(0xFFCBD5E1)
+      ..color = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -891,7 +897,7 @@ class _HubCoverageRadarPainter extends CustomPainter {
       final linkPaint = Paint()
         ..color = isApproved
             ? AppTheme.emerald.withValues(alpha: 0.6)
-            : const Color(0xFFCBD5E1)
+            : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))
         ..strokeWidth = isApproved ? 1.5 : 1.0;
       canvas.drawLine(center, nodePos, linkPaint);
 
@@ -899,7 +905,10 @@ class _HubCoverageRadarPainter extends CustomPainter {
       canvas.drawCircle(
         nodePos,
         isApproved ? 9 : 7,
-        Paint()..color = isApproved ? AppTheme.emeraldDark : Colors.white,
+        Paint()
+          ..color = isApproved
+              ? AppTheme.emeraldDark
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
       );
       canvas.drawCircle(
         nodePos,
@@ -917,7 +926,9 @@ class _HubCoverageRadarPainter extends CustomPainter {
         style: TextStyle(
           fontSize: 10,
           fontWeight: isApproved ? FontWeight.w800 : FontWeight.w600,
-          color: isApproved ? AppTheme.emeraldDark : const Color(0xFF64748B),
+          color: isApproved
+              ? (isDark ? const Color(0xFF34D399) : AppTheme.emeraldDark)
+              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
       );
       tp.layout();
@@ -930,6 +941,7 @@ class _HubCoverageRadarPainter extends CustomPainter {
     return oldDelegate.sweepProgress != sweepProgress ||
         oldDelegate.radiusKm != radiusKm ||
         oldDelegate.localities != localities ||
-        oldDelegate.approvedIds != approvedIds;
+        oldDelegate.approvedIds != approvedIds ||
+        oldDelegate.isDark != isDark;
   }
 }

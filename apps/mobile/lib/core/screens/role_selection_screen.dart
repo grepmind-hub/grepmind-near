@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/models/business.dart';
+import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/screens/rider_application_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_logo_mark.dart';
@@ -22,7 +23,8 @@ class RoleSelectionScreen extends ConsumerStatefulWidget {
       _RoleSelectionScreenState();
 }
 
-class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
+class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen>
+    with WidgetsBindingObserver {
   late String _selectedRole;
   bool _checkingPermissions = true;
   bool _savingRole = false;
@@ -31,9 +33,23 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final currentActive = ref.read(authProvider).activeRole;
     _selectedRole = currentActive ?? 'customer';
     WidgetsBinding.instance.addPostFrameCallback((_) => _refreshPermissions());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_checkingPermissions) {
+      _refreshPermissions();
+    }
   }
 
   Future<void> _refreshPermissions() async {
@@ -279,10 +295,17 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                             buttonBgColor: const Color(0xFFFEF3C7),
                             buttonBorderColor: const Color(0xFFFDE68A),
                             buttonTextColor: const Color(0xFFB45309),
-                            enabled:
-                                !_checkingPermissions &&
-                                user != null &&
-                                _canUseRole(user, 'merchant'),
+                            enabled: !_checkingPermissions && user != null,
+                            onCustomTap: (user != null && !_canUseRole(user, 'merchant'))
+                                ? () async {
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => const MerchantRegistrationScreen(),
+                                      ),
+                                    );
+                                    if (mounted) _refreshPermissions();
+                                  }
+                                : null,
                           ),
                         ),
                       ],
@@ -430,6 +453,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     required Color buttonTextColor,
     required bool enabled,
     String? statusBadge,
+    VoidCallback? onCustomTap,
   }) {
     final isSelected = _selectedRole == roleId;
 
@@ -458,9 +482,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
           key: ValueKey('role_card_$roleId'),
           borderRadius: BorderRadius.circular(24),
           onTap: enabled
-              ? () {
-                  setState(() => _selectedRole = roleId);
-                }
+              ? (onCustomTap ??
+                  () {
+                    setState(() => _selectedRole = roleId);
+                  })
               : null,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(10, 16, 10, 14),
@@ -489,7 +514,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11,

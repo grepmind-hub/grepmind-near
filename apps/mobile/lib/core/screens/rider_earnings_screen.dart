@@ -149,14 +149,14 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
             child: RefreshIndicator(
               onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
           children: [
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: context.abashyaka.card,
+                color: palette.card,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.riderAmberBorder),
+                border: Border.all(color: palette.border),
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.riderAmber.withValues(alpha: 0.08),
@@ -168,21 +168,60 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Recorded compensation',
-                    style: TextStyle(
-                      color: context.abashyaka.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.riderAmberLight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 18,
+                          color: AppTheme.riderAmberDark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Recorded compensation',
+                          style: TextStyle(
+                            color: palette.textSecondary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.accentSurface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: palette.border),
+                        ),
+                        child: Text(
+                          'Last $_days days',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: palette.accent,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 14),
                   if (_loading && summary == null)
-                    const Text(
+                    Text(
                       'Loading…',
                       style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF172033),
+                        color: palette.textPrimary,
                       ),
                     )
                   else if (hasMultipleCurrencies) ...[
@@ -194,34 +233,42 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
                             total['total_recorded_minor'],
                             total['currency']?.toString() ?? 'INR',
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF172033),
+                            color: palette.textPrimary,
                           ),
                         ),
                       ),
                   ] else
                     Text(
                       _money(summary?['total_recorded_minor'], currency),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF172033),
+                        color: palette.textPrimary,
                       ),
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     '${completed ?? '—'} completed deliveries · last $_days days',
-                    style: TextStyle(color: context.abashyaka.textSecondary),
+                    style: TextStyle(color: palette.textSecondary),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Real bank payouts are disabled. Settlement and QA simulation status is shown separately and does not confirm bank credit.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.4,
-                      color: context.abashyaka.textSecondary,
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: palette.cardElevated,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: palette.border),
+                    ),
+                    child: Text(
+                      'Real bank payouts are disabled. Settlement and QA simulation status is shown separately and does not confirm bank credit.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: palette.textSecondary,
+                      ),
                     ),
                   ),
                 ],
@@ -229,6 +276,13 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
             ),
             const SizedBox(height: 14),
             SegmentedButton<int>(
+              style: SegmentedButton.styleFrom(
+                backgroundColor: palette.card,
+                selectedBackgroundColor: palette.accentSurface,
+                selectedForegroundColor: palette.accent,
+                foregroundColor: palette.textSecondary,
+                side: BorderSide(color: palette.border),
+              ),
               segments: const [
                 ButtonSegment(value: 7, label: Text('7 days')),
                 ButtonSegment(value: 30, label: Text('30 days')),
@@ -323,19 +377,65 @@ class _RiderEarningsScreenState extends State<RiderEarningsScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             if (_settlementError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _settlementError!,
-                  style: TextStyle(color: context.abashyaka.textSecondary),
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: palette.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: palette.textSecondary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _settlementError!,
+                        style: TextStyle(color: palette.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
               )
             else if (_settlements.isEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  'No settlement batches are recorded for this rider.',
-                  style: TextStyle(color: context.abashyaka.textSecondary),
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: palette.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.account_balance_outlined,
+                      size: 30,
+                      color: palette.textSecondary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No settlement batches recorded',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: palette.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Settlement and payout batches for this rider will appear here once generated.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               )
             else

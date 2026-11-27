@@ -28,6 +28,7 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
   Map<String, dynamic>? _quote;
   bool _delivery = true, _quoting = false, _submitting = false;
   bool _submissionUncertain = false;
+  String _paymentMethod = 'cash_on_delivery';
   String? _error, _quoteIdempotencyKey;
   final _notes = TextEditingController();
 
@@ -184,6 +185,7 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
           'order_type': 'food_delivery',
           'checkout_quote_id': quote['quote_id'],
           'fulfillment_type': _delivery ? 'delivery' : 'takeaway',
+          'payment_method': _paymentMethod,
           'notes': _notes.text.trim(),
         },
         idempotencyKey: _quoteIdempotencyKey,
@@ -407,15 +409,40 @@ class _CheckoutReviewScreenState extends ConsumerState<CheckoutReviewScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const ListTile(
+            const SizedBox(height: 4),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment<String>(
+                  value: 'cash_on_delivery',
+                  label: Text('Cash on Delivery'),
+                  icon: Icon(Icons.payments_outlined),
+                ),
+                ButtonSegment<String>(
+                  value: 'upi',
+                  label: Text('UPI (Sandbox)'),
+                  icon: Icon(Icons.qr_code_2_rounded),
+                ),
+              ],
+              selected: {_paymentMethod},
+              onSelectionChanged: _submitting
+                  ? null
+                  : (selected) =>
+                        setState(() => _paymentMethod = selected.first),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.info_outline, color: AppTheme.emerald),
+              leading: const Icon(Icons.payments_outlined, color: AppTheme.emerald),
               title: Text(
-                'Payment is unavailable',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                _paymentMethod == 'upi'
+                    ? 'Pay via Sandbox UPI on next step'
+                    : 'Cash on Delivery (QA)',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                'This order request does not collect money or confirm payment.',
+                _paymentMethod == 'upi'
+                    ? 'After submitting your order, tap Start sandbox payment on the tracking screen.'
+                    : 'Order is submitted for merchant acceptance; synthetic COD is recorded at handover.',
               ),
             ),
           ],

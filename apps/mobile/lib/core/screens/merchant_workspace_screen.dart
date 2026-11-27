@@ -12,8 +12,6 @@ import 'package:grepmind_mobile/core/screens/merchant_registration_screen.dart';
 import 'package:grepmind_mobile/core/theme/app_theme.dart';
 import 'package:grepmind_mobile/core/widgets/abashyaka_wave_header.dart';
 import 'package:grepmind_mobile/core/widgets/premium_card.dart';
-import 'package:grepmind_mobile/core/widgets/abashyaka_premium_header.dart';
-import 'package:grepmind_mobile/core/widgets/fluid_wave_background.dart';
 import 'package:grepmind_mobile/core/widgets/fluid_wave_painter.dart';
 import 'package:grepmind_mobile/core/widgets/premium_network_image.dart';
 
@@ -100,15 +98,7 @@ class _MerchantWorkspaceScreenState
             child: TabBarView(
               controller: _tabController,
               children: [
-                Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    const FluidWaveBackground(
-                      variant: FluidWaveVariant.discovery,
-                    ),
-                    _buildDashboardTab(merchantState, analyticsState),
-                  ],
-                ),
+                _buildDashboardTab(merchantState, analyticsState),
                 _buildRequestsTab(merchantState),
                 _buildProfileTab(profileState),
               ],
@@ -144,58 +134,60 @@ class _MerchantWorkspaceScreenState
         .length;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(kScreenPadding),
+      padding: const EdgeInsets.fromLTRB(
+        kScreenPadding,
+        kScreenPadding,
+        kScreenPadding,
+        96,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome header
-          AbashyakaPremiumHeader(
-            variant: FluidWaveVariant.merchant,
-            bottom: PremiumCard(
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AbashyakaColors.iceAquaWhite,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AbashyakaColors.aquaSilverBorder,
+          PremiumCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AbashyakaColors.iceAquaWhite,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AbashyakaColors.aquaSilverBorder,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.store_outlined,
+                    color: AbashyakaColors.signatureTeal,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome, Merchant',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: context.abashyaka.textPrimary,
+                        ),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.store_outlined,
-                      color: AbashyakaColors.signatureTeal,
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome, Merchant',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: context.abashyaka.textPrimary,
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Manage your business and service requests',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: context.abashyaka.textSecondary,
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Manage your business and service requests',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: context.abashyaka.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
@@ -515,7 +507,12 @@ class _MerchantWorkspaceScreenState
     ].where((part) => part.isNotEmpty).join(', ');
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(kScreenPadding),
+      padding: const EdgeInsets.fromLTRB(
+        kScreenPadding,
+        kScreenPadding,
+        kScreenPadding,
+        96,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

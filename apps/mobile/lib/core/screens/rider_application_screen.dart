@@ -394,7 +394,7 @@ class _RiderApplicationScreenState
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Rider approval provides workspace access only. Delivery assignments, GPS tracking and payments are not enabled in this phase.',
+                      'Once approved, your Rider workspace unlocks delivery offers, pickup and customer handover verification, and earnings tracking.',
                     ),
                     if (status == 'changes_requested' ||
                         status == 'rejected') ...[

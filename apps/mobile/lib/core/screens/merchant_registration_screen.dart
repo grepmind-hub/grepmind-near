@@ -629,7 +629,7 @@ class _MerchantRegistrationScreenState
           (response.data as Map<String, dynamic>)['data']
               as Map<String, dynamic>;
       final businessId = data['id'] as String;
-      _generatedAppId = 'GN-${businessId.substring(0, 8).toUpperCase()}';
+      _generatedAppId = 'AM-${businessId.substring(0, 8).toUpperCase()}';
       await ref.read(authProvider.notifier).updateProfile({
         'display_name': _ownerNameController.text.trim(),
       });

@@ -196,13 +196,34 @@ func createMerchantBusiness(db *database.DB, w http.ResponseWriter, r *http.Requ
 		}
 		fieldExecID = &feID
 	}
+	serviceRadiusM := 5000
+	deliveryEnabled := false
+	if req.Application != nil {
+		if req.Application.RadiusKM >= 1 && req.Application.RadiusKM <= 20 {
+			serviceRadiusM = req.Application.RadiusKM * 1000
+		}
+		if req.Application.OperatingMode != "store_only" &&
+			(req.Application.Enterprise == "food" || req.Application.Enterprise == "retail" ||
+				req.CategorySlug == "grocery" || req.CategorySlug == "restaurant" ||
+				req.CategorySlug == "medical" || req.CategorySlug == "general") {
+			deliveryEnabled = true
+		}
+	}
 	err = tx.QueryRowxContext(r.Context(), `
-		INSERT INTO businesses (id,owner_user_id,name,slug,description,category_slug,phone_e164,whatsapp_e164,address_text,locality,city,postal_code,location,status,verification_status,time_zone,cover_photo_url,onboarding_source,field_executive_id)
-		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,ST_SetSRID(ST_MakePoint($13,$14),4326)::geography,'pending','pending','Asia/Kolkata',NULLIF($15,''),$16,$17)
+		INSERT INTO businesses (id,owner_user_id,name,slug,description,category_slug,phone_e164,whatsapp_e164,address_text,locality,city,postal_code,location,status,verification_status,time_zone,cover_photo_url,onboarding_source,field_executive_id,delivery_enabled)
+		VALUES ($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8,$9,$10,$11,$12,ST_SetSRID(ST_MakePoint($13,$14),4326)::geography,'pending','pending','Asia/Kolkata',NULLIF($15,''),$16,$17,$18)
 		RETURNING id::text
-	`, id, userID, req.Name, slug, req.Description, req.CategorySlug, req.PhoneE164, req.WhatsAppE164, req.AddressText, req.Locality, req.City, req.PostalCode, req.Longitude, req.Latitude, req.CoverPhotoURL, onboardingSource, fieldExecID).Scan(&businessID)
+	`, id, userID, req.Name, slug, req.Description, req.CategorySlug, req.PhoneE164, req.WhatsAppE164, req.AddressText, req.Locality, req.City, req.PostalCode, req.Longitude, req.Latitude, req.CoverPhotoURL, onboardingSource, fieldExecID, deliveryEnabled).Scan(&businessID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to save the business listing.")
+		return
+	}
+	if _, err = tx.ExecContext(r.Context(), `
+		INSERT INTO professional_profiles (business_id, service_radius_m)
+		VALUES ($1, $2)
+		ON CONFLICT (business_id) DO UPDATE SET service_radius_m = EXCLUDED.service_radius_m
+	`, businessID, serviceRadiusM); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to configure service coverage radius.")
 		return
 	}
 	if _, err = tx.ExecContext(r.Context(), `INSERT INTO user_roles(user_id,role) VALUES($1,'merchant') ON CONFLICT DO NOTHING`, userID); err != nil {

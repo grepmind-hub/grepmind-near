@@ -145,7 +145,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       activeBusinessCount: 15,
     );
     const kuanpal = AppLocation(
-      cityName: 'Katak',
+      cityName: 'Cuttack',
       localityName: 'Kuanpal',
       localityId: '02200000-0000-4000-8000-000000000101',
       latitude: 20.5250,
@@ -263,7 +263,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       activeBusinessCount: 15,
     );
     const kuanpal = AppLocation(
-      cityName: 'Katak',
+      cityName: 'Cuttack',
       localityName: 'Kuanpal',
       localityId: '02200000-0000-4000-8000-000000000101',
       latitude: 20.5250,
@@ -416,7 +416,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ctx: ctx,
                   location: kuanpal,
                   title: 'Kuanpal Hub',
-                  subtitle: 'Katak District',
+                  subtitle: 'Cuttack District',
                   badge: '12 Active Stores',
                   isRecommended: false,
                 ),

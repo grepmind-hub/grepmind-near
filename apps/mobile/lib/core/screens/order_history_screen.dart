@@ -6,6 +6,7 @@ import 'package:grepmind_mobile/core/models/customer_order.dart';
 import 'package:grepmind_mobile/core/providers/app_provider.dart';
 import 'package:grepmind_mobile/core/providers/cart_provider.dart';
 import 'package:grepmind_mobile/core/providers/customer_orders_provider.dart';
+import 'package:grepmind_mobile/core/screens/checkout_review_screen.dart';
 import 'package:grepmind_mobile/core/screens/customer_cart_screen.dart';
 import 'package:grepmind_mobile/core/screens/order_tracking_screen.dart';
 import 'package:grepmind_mobile/core/screens/platform_catalog_screen.dart';
@@ -631,8 +632,19 @@ class _OrderCard extends ConsumerWidget {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(result.message)));
     if (result.ready) {
-      await Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const CustomerCartScreen()));
+      final proceed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CustomerCartScreen()),
+      );
+      if (proceed == true && context.mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CheckoutReviewScreen(
+              businessId: order.businessId,
+              businessName: order.businessName,
+            ),
+          ),
+        );
+      }
     }
   }
 

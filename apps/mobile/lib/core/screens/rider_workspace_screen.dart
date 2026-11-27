@@ -168,7 +168,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     required String value,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: context.abashyaka.card,
         borderRadius: BorderRadius.circular(14),
@@ -177,14 +177,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: AppTheme.riderAmberLight,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: AppTheme.riderAmberDark),
+            child: Icon(icon, size: 15, color: AppTheme.riderAmberDark),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,7 +201,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                     color: context.abashyaka.textPrimary,
                   ),
@@ -224,8 +224,15 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     final shortId = riderIdRaw.length >= 8
         ? riderIdRaw.substring(0, 8).toUpperCase()
         : 'RID-10234';
-    final vehicleType = (_profile?['vehicle_type']?.toString() ?? 'Two-Wheeler')
-        .replaceAll('_', ' ');
+    final rawVehicle = (_profile?['vehicle_type']?.toString() ?? '').toLowerCase();
+    final vehicleType = switch (rawVehicle) {
+      'two_wheeler' => '2-Wheeler',
+      'three_wheeler' => '3-Wheeler',
+      'four_wheeler' => '4-Wheeler',
+      'bicycle' => 'Bicycle',
+      '' => '2-Wheeler',
+      _ => rawVehicle.replaceAll('_', ' '),
+    };
 
     final palette = context.abashyaka;
     return Scaffold(
@@ -249,7 +256,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               onRefresh: _load,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -463,14 +470,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
                           backgroundColor: _online
-                              ? AbashyakaColors.pureWhite
+                              ? palette.card
                               : AppTheme.emerald,
                           foregroundColor: _online
-                              ? AbashyakaColors.primaryText
+                              ? palette.textPrimary
                               : AbashyakaColors.pureWhite,
                           side: _online
-                              ? const BorderSide(
-                                  color: AbashyakaColors.aquaSilverBorder,
+                              ? BorderSide(
+                                  color: palette.border,
                                   width: 1.2,
                                 )
                               : null,
@@ -557,7 +564,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _online ? '₹680' : '₹0',
+                            '₹0',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
@@ -603,7 +610,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _online ? '6' : '0',
+                            '0',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
@@ -661,9 +668,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: context.abashyaka.card,
+                  color: palette.card,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AbashyakaColors.softGrey),
+                  border: Border.all(color: palette.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1173,10 +1180,15 @@ class _RiderDeliveriesScreenState extends State<RiderDeliveriesScreen> {
         );
       }
       await _load();
-    } catch (_) {
+    } catch (error) {
+      const msg = 'Customer verification failed. The order was not marked delivered.';
       if (mounted) {
-        setState(
-          () => _error = 'Customer verification failed. The order was not marked delivered.',
+        setState(() => _error = msg);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(msg),
+            backgroundColor: Color(0xFFB91C1C),
+          ),
         );
       }
     } finally {
@@ -2506,10 +2518,10 @@ class _RiderWorkspaceProfileScreenState
   bool _loading = true;
   String? _error;
 
-  String? _email = 'rider.partner@abashyaka.near';
-  String? _address = 'Flat 204, Netaji Subhash Road, Cuttack, Odisha - 753001';
-  String? _vehiclePlate = 'OD 05 AX 4921';
-  String? _emergencyPhone = '+91 94370 12345';
+  String? _email;
+  String? _address;
+  String? _vehiclePlate;
+  String? _emergencyPhone;
 
   @override
   void initState() {
@@ -2898,7 +2910,7 @@ class _RiderWorkspaceProfileScreenState
               onRefresh: _load,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2909,13 +2921,9 @@ class _RiderWorkspaceProfileScreenState
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFFBEB), AbashyakaColors.warningSurface],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.riderAmberBorder),
+                        border: Border.all(color: palette.border),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x0A000000),
@@ -3040,9 +3048,9 @@ class _RiderWorkspaceProfileScreenState
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.riderAmberDark,
-                              backgroundColor: context.abashyaka.card,
-                              side: const BorderSide(
-                                color: AppTheme.riderAmberBorder,
+                              backgroundColor: palette.card,
+                              side: BorderSide(
+                                color: palette.border,
                                 width: 1.5,
                               ),
                               shape: RoundedRectangleBorder(
@@ -3067,9 +3075,9 @@ class _RiderWorkspaceProfileScreenState
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: context.abashyaka.card,
+                        color: palette.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.riderAmberBorder),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3126,19 +3134,40 @@ class _RiderWorkspaceProfileScreenState
                           _buildDetailRow(
                             icon: Icons.alternate_email_rounded,
                             label: 'Email Address',
-                            value: _email ?? 'rider.partner@abashyaka.near',
+                            value: (_email != null && _email!.trim().isNotEmpty)
+                                ? _email!
+                                : 'Not provided',
                           ),
                           _buildDetailRow(
                             icon: Icons.home_work_rounded,
                             label: 'Base / Residential Address',
-                            value: _address ?? 'Flat 204, Netaji Subhash Road, Cuttack, Odisha',
+                            value: (_address != null &&
+                                    _address!.trim().isNotEmpty)
+                                ? _address!
+                                : ((_profile?['residential_address']
+                                            ?.toString()
+                                            .trim()
+                                            .isNotEmpty ??
+                                        false)
+                                    ? _profile!['residential_address']!
+                                        .toString()
+                                    : 'Not provided'),
                             iconColor: const Color(0xFF4F46E5),
                             containerColor: const Color(0xFFEEF2FF),
                           ),
                           _buildDetailRow(
                             icon: Icons.numbers_rounded,
                             label: 'Vehicle Plate / Reg Number',
-                            value: _vehiclePlate ?? 'OD 05 AX 4921',
+                            value: (_vehiclePlate != null &&
+                                    _vehiclePlate!.trim().isNotEmpty)
+                                ? _vehiclePlate!
+                                : ((_profile?['vehicle_details']
+                                            ?.toString()
+                                            .trim()
+                                            .isNotEmpty ??
+                                        false)
+                                    ? _profile!['vehicle_details']!.toString()
+                                    : 'Not provided'),
                           ),
                           _buildDetailRow(
                             icon: Icons.electric_moped_rounded,
@@ -3152,7 +3181,10 @@ class _RiderWorkspaceProfileScreenState
                           _buildDetailRow(
                             icon: Icons.contact_phone_rounded,
                             label: 'Emergency Contact',
-                            value: _emergencyPhone ?? '+91 94370 12345',
+                            value: (_emergencyPhone != null &&
+                                    _emergencyPhone!.trim().isNotEmpty)
+                                ? _emergencyPhone!
+                                : 'Not provided',
                             iconColor: const Color(0xFFE11D48),
                             containerColor: const Color(0xFFFFE4E6),
                           ),
@@ -3167,9 +3199,9 @@ class _RiderWorkspaceProfileScreenState
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: context.abashyaka.card,
+                          color: palette.card,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AbashyakaColors.softGrey),
+                          border: Border.all(color: palette.border),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

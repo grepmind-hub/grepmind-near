@@ -620,6 +620,9 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 		if req.OrderType == "food_delivery" && paymentMethod == "cash_on_delivery" {
 			totalMinor := foodSubtotalMinor + deliveryFeeMinor + foodTaxMinor
 			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_obligations(order_id,customer_user_id,amount_minor,currency,policy_version) VALUES($1,$2,$3,'INR','synthetic-qa-v1') ON CONFLICT (order_id) DO NOTHING`, orderID, userID, totalMinor); err != nil {
+				if strings.Contains(err.Error(), "COD obligation") || strings.Contains(err.Error(), "P0001") {
+					return &checkoutFailure{status: 409, code: "COD_UNAVAILABLE", message: "Cash on Delivery is currently unavailable for this order."}
+				}
 				return err
 			}
 			if _, err := tx.ExecContext(r.Context(), `INSERT INTO cod_audit_events(actor_user_id,obligation_id,event_type,reason,metadata) SELECT $2,id,'obligation_created','Customer selected Cash on Delivery for merchant order',jsonb_build_object('mode','synthetic_qa','amount_minor',amount_minor) FROM cod_obligations WHERE order_id=$1`, orderID, userID); err != nil {
@@ -641,7 +644,7 @@ func (s *Service) CreateOrder(w http.ResponseWriter, r *http.Request, userID str
 		if errors.As(err, &failure) {
 			writeError(w, failure.status, failure.code, failure.message)
 		} else {
-			writeError(w, 400, "ORDER_REJECTED", err.Error())
+			writeError(w, 400, "ORDER_REJECTED", "Could not place your order. Please review your details and try again.")
 		}
 		return
 	}

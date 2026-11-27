@@ -1078,6 +1078,15 @@ class _AbashyakaCategoryGrid8 extends StatelessWidget {
                   ? Image.asset(
                       imageAsset,
                       fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      frameBuilder: (context, child, frame, wasSyncLoaded) {
+                        if (wasSyncLoaded || frame != null) return child;
+                        return Icon(
+                          icon,
+                          color: AbashyakaColors.metallicTeal,
+                          size: 28,
+                        );
+                      },
                       errorBuilder: (_, __, ___) => Icon(
                         icon,
                         color: AbashyakaColors.metallicTeal,

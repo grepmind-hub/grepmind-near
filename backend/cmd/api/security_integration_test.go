@@ -108,6 +108,192 @@ func TestMerchantCatalogPricingFlow(t *testing.T) {
 	}
 }
 
+func TestMerchantRegistrationServiceAreaFlow(t *testing.T) {
+	logger.Init("error")
+	db, _, _, customerA, customerB, _, _, _, _, _, _ := newAPISecurityFixture(t)
+	cfg := &config.Config{Env: "test", JWTSecret: "integration-test-secret-with-over-32-characters"}
+	authSvc := auth.NewService(db, cfg)
+	router := setupRouter(authSvc, discovery.NewService(db, cfg), moderation.NewService(db, cfg), nil, notifications.NewHub(db.DB), operations.NewService(db), platformcommerce.NewService(db))
+	token := func(subject string) string {
+		t.Helper()
+		tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			Subject: subject, Issuer: "grepmind-near", IssuedAt: jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		}).SignedString([]byte(cfg.JWTSecret))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tok
+	}
+	request := func(method, path, bearer, body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		if bearer != "" {
+			r.Header.Set("Authorization", "Bearer "+bearer)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		return w
+	}
+	var w *httptest.ResponseRecorder
+	adminID := uuid.NewString()
+	if _, err := db.Exec(`INSERT INTO users(id,phone_e164) VALUES($1,$2)`, adminID, "+919900000001"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO user_roles(user_id,role) VALUES($1,'admin')`, adminID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`ALTER TABLE businesses ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now()`); err != nil {
+		t.Fatal(err)
+	}
+
+	// A fresh authenticated customer can create a pending listing and receives
+	// merchant role atomically; caller-supplied approval state is rejected.
+	createBody := `{"name":"QA Merchant Fresh","description":"Local test listing","category_slug":"general","phone_e164":"+919876543219","whatsapp_e164":"+919876543219","address_text":"12 Test Road","locality":"Kuanpal","city":"Cuttack","postal_code":"754204","latitude":20.5348,"longitude":86.0827,"hours":[{"weekday":0,"is_closed":true},{"weekday":1,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":2,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":3,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":4,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":5,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":6,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"}]}`
+	areaPath := "/api/v1/admin/service-locations/02200000-0000-4000-8000-000000000101"
+	areaSettings := `{"is_active":true,"delivery_enabled":true,"pin_codes":["754204","754200"],"service_radius_km":10,"food_delivery_enabled":true,"grocery_delivery_enabled":false,"medicines_delivery_enabled":true,"local_services_enabled":true,"transport_enabled":true,"merchant_discovery_enabled":false}`
+	if w = request(http.MethodPatch, areaPath, token(customerA), areaSettings); w.Code != http.StatusForbidden {
+		t.Fatalf("customer edited service area: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if w = request(http.MethodPatch, areaPath, token(adminID), areaSettings); w.Code != http.StatusNoContent && w.Code != http.StatusOK {
+		t.Fatalf("admin service area update: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerA), createBody); w.Code != http.StatusBadRequest {
+		t.Fatalf("registration with merchant discovery disabled: status=%d body=%s", w.Code, w.Body.String())
+	}
+	areaSettings = strings.Replace(areaSettings, `"merchant_discovery_enabled":false`, `"merchant_discovery_enabled":true`, 1)
+	if w = request(http.MethodPatch, areaPath, token(adminID), areaSettings); w.Code != http.StatusNoContent && w.Code != http.StatusOK {
+		t.Fatalf("restore merchant discovery: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if w = request(http.MethodPost, "/api/v1/serviceability/check", "", `{"latitude":20.5348,"longitude":86.0827}`); w.Code != http.StatusOK ||
+		!strings.Contains(w.Body.String(), `"locality_name":"Kuanpal"`) ||
+		!strings.Contains(w.Body.String(), `"grocery_delivery":false`) {
+		t.Fatalf("public GPS and capability check after admin edit: status=%d body=%s", w.Code, w.Body.String())
+	}
+	for _, mismatch := range []struct{ from, to string }{
+		{`"postal_code":"754204"`, `"postal_code":"754023"`},
+		{`"latitude":20.5348`, `"latitude":21.5348`},
+		{`"locality":"Kuanpal"`, `"locality":"Tangi"`},
+	} {
+		body := strings.Replace(createBody, mismatch.from, mismatch.to, 1)
+		w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerA), body)
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "approved locality") {
+			t.Fatalf("mismatched coverage: status=%d body=%s", w.Code, w.Body.String())
+		}
+	}
+	applicationBody := strings.TrimSuffix(createBody, "}") + `,"application":{"owner_name":"Fixture Owner","email":"owner@example.test","tax_id":"TEST-GST","no_gst":false,"enterprise_type":"retail","operating_mode":"both","service_radius_km":6}}`
+	w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerA), applicationBody)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create business status=%d body=%s", w.Code, w.Body.String())
+	}
+	var createdBusiness struct {
+		Data struct {
+			ID           string `json:"id"`
+			Status       string `json:"status"`
+			Verification string `json:"verification_status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &createdBusiness); err != nil || createdBusiness.Data.ID == "" || createdBusiness.Data.Status != "pending" || createdBusiness.Data.Verification != "pending" {
+		t.Fatalf("business create response=%s err=%v", w.Body.String(), err)
+	}
+	if strings.Contains(w.Body.String(), "TEST-GST") {
+		t.Fatal("private registration data leaked into the listing response")
+	}
+	detailPath := "/api/v1/admin/businesses/" + createdBusiness.Data.ID
+	for _, path := range []string{detailPath, detailPath + "/storefront"} {
+		if w = request(http.MethodGet, path, token(customerA), ""); w.Code != http.StatusForbidden {
+			t.Fatalf("merchant accessed Admin application resource %s: status=%d", path, w.Code)
+		}
+	}
+	w = request(http.MethodGet, detailPath, token(adminID), "")
+	for _, expected := range []string{`"owner_name":"Fixture Owner"`, `"email":"owner@example.test"`, `"tax_id":"TEST-GST"`, `"service_radius_km":6`, `"postal_code":"754204"`, `"opens_at":"09:00"`, `"has_storefront_photo":false`} {
+		if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), expected) {
+			t.Fatalf("Admin detail response missing %s: status=%d body=%s", expected, w.Code, w.Body.String())
+		}
+	}
+	if w.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatal("private application detail must not be cached")
+	}
+	var merchantRole bool
+	if err := db.Get(&merchantRole, `SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role='merchant')`, customerA); err != nil || !merchantRole {
+		t.Fatalf("merchant role not assigned transactionally: role=%v err=%v", merchantRole, err)
+	}
+	var ownerMembership string
+	if err := db.Get(&ownerMembership, `SELECT role FROM business_members WHERE business_id=$1 AND user_id=$2 AND status='active'`, createdBusiness.Data.ID, customerA); err != nil || ownerMembership != "owner" {
+		t.Fatalf("new business owner membership=%q err=%v", ownerMembership, err)
+	}
+	var savedHours int
+	if err := db.Get(&savedHours, `SELECT count(*) FROM business_hours WHERE business_id=$1`, createdBusiness.Data.ID); err != nil || savedHours != 7 {
+		t.Fatalf("business schedule rows=%d err=%v, want seven", savedHours, err)
+	}
+	var listingAuditEvents int
+	if err := db.Get(&listingAuditEvents, `SELECT count(*) FROM audit_logs WHERE actor_user_id=$1 AND action='create_business' AND target_type='business' AND target_id=$2`, customerA, createdBusiness.Data.ID); err != nil || listingAuditEvents != 1 {
+		t.Fatalf("listing creation audit events=%d err=%v, want exactly one actor-attributed event", listingAuditEvents, err)
+	}
+	w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerB), strings.Replace(createBody, `"city":"Cuttack"`, `"city":"Bhubaneswar"`, 1))
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("unsupported city registration status=%d, want 400", w.Code)
+	}
+	var chhatiaCustomer string
+	if err := db.Get(&chhatiaCustomer, `INSERT INTO users(phone_e164) VALUES ($1) RETURNING id::text`, "+919900000027"); err != nil {
+		t.Fatal(err)
+	}
+	chhatiaBody := strings.NewReplacer(
+		`"locality":"Kuanpal"`, `"locality":"Chhatia"`,
+		`"city":"Cuttack"`, `"city":"Jajpur"`,
+		`"postal_code":"754204"`, `"postal_code":"754023"`,
+		`"latitude":20.5348`, `"latitude":20.6105`,
+		`"longitude":86.0827`, `"longitude":86.0270`,
+	).Replace(createBody)
+	if w = request(http.MethodPost, "/api/v1/merchant/businesses", token(chhatiaCustomer), chhatiaBody); w.Code != http.StatusCreated {
+		t.Fatalf("Chhatia registration: status=%d body=%s", w.Code, w.Body.String())
+	}
+	var legacyBusiness struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &legacyBusiness); err != nil || legacyBusiness.Data.ID == "" {
+		t.Fatalf("legacy business create response=%s err=%v", w.Body.String(), err)
+	}
+	w = request(http.MethodGet, "/api/v1/admin/businesses/"+legacyBusiness.Data.ID, token(adminID), "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"application":null`) || !strings.Contains(w.Body.String(), `"locality":"Chhatia"`) {
+		t.Fatalf("legacy application details: status=%d body=%s", w.Code, w.Body.String())
+	}
+
+	approvePath := "/api/v1/admin/businesses/" + createdBusiness.Data.ID + "/approve"
+	if w = request(http.MethodPost, approvePath, token(customerA), "{}"); w.Code != http.StatusForbidden {
+		t.Fatalf("merchant approved own listing: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if w = request(http.MethodPost, approvePath, token(adminID), "{}"); w.Code != http.StatusOK {
+		t.Fatalf("admin approval: status=%d body=%s", w.Code, w.Body.String())
+	}
+	var approved bool
+	if err := db.Get(&approved, `SELECT EXISTS(SELECT 1 FROM businesses WHERE id=$1 AND status='approved' AND category_slug='general' AND postal_code='754204')`, createdBusiness.Data.ID); err != nil || !approved {
+		t.Fatalf("approved listing lost its category or locality data: approved=%v err=%v", approved, err)
+	}
+	const coveragePath = "/api/v1/serviceability/check"
+	if w = request(http.MethodPost, coveragePath, "", `{"pin_code":"110001"}`); w.Code != http.StatusOK ||
+		!strings.Contains(w.Body.String(), `"status":"outside_service_area"`) {
+		t.Fatalf("unsupported PIN: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if _, err := db.Exec(`UPDATE platform_districts SET is_active=false WHERE name='Cuttack'`); err != nil {
+		t.Fatal(err)
+	}
+	if w = request(http.MethodPost, coveragePath, "", `{"pin_code":"754204"}`); w.Code != http.StatusOK ||
+		!strings.Contains(w.Body.String(), `"status":"outside_service_area"`) {
+		t.Fatalf("disabled district remained serviceable: status=%d body=%s", w.Code, w.Body.String())
+	}
+	if _, err := db.Exec(`ALTER TABLE platform_delivery_localities RENAME COLUMN pin_codes TO unavailable_pin_codes`); err != nil {
+		t.Fatal(err)
+	}
+	for _, lookup := range []string{`{"pin_code":"754204"}`, `{"latitude":20.6105,"longitude":86.0270}`} {
+		if w = request(http.MethodPost, coveragePath, "", lookup); w.Code != http.StatusInternalServerError ||
+			strings.Contains(w.Body.String(), "outside_service_area") {
+			t.Fatalf("lookup failure reported as a coverage decision: status=%d body=%s", w.Code, w.Body.String())
+		}
+	}
+}
+
 func TestOwnershipAndTenantRoutes(t *testing.T) {
 	logger.Init("error")
 	db, ownerA, memberA, customerA, customerB, businessA, businessB, productB, requestB, notificationB, orderB := newAPISecurityFixture(t)
@@ -357,44 +543,6 @@ func TestOwnershipAndTenantRoutes(t *testing.T) {
 	w = request(http.MethodGet, "/api/v1/merchant/products?business_id="+businessB, token(memberA), "")
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("cross-business catalog read status=%d, want 403: %s", w.Code, w.Body.String())
-	}
-
-	// A fresh authenticated customer can create a pending listing and receives
-	// merchant role atomically; caller-supplied approval state is rejected.
-	createBody := `{"name":"QA Merchant Fresh","description":"Local test listing","category_slug":"general","phone_e164":"+919876543219","whatsapp_e164":"+919876543219","address_text":"12 Test Road","locality":"Badambadi","city":"Cuttack","postal_code":"753001","latitude":20.46575,"longitude":85.879,"hours":[{"weekday":0,"is_closed":true},{"weekday":1,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":2,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":3,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":4,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":5,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"},{"weekday":6,"is_closed":false,"opens_at":"09:00","closes_at":"18:00"}]}`
-	w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerA), createBody)
-	if w.Code != http.StatusCreated {
-		t.Fatalf("create business status=%d body=%s", w.Code, w.Body.String())
-	}
-	var createdBusiness struct {
-		Data struct {
-			ID           string `json:"id"`
-			Status       string `json:"status"`
-			Verification string `json:"verification_status"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &createdBusiness); err != nil || createdBusiness.Data.ID == "" || createdBusiness.Data.Status != "pending" || createdBusiness.Data.Verification != "pending" {
-		t.Fatalf("business create response=%s err=%v", w.Body.String(), err)
-	}
-	var merchantRole bool
-	if err := db.Get(&merchantRole, `SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=$1 AND role='merchant')`, customerA); err != nil || !merchantRole {
-		t.Fatalf("merchant role not assigned transactionally: role=%v err=%v", merchantRole, err)
-	}
-	var ownerMembership string
-	if err := db.Get(&ownerMembership, `SELECT role FROM business_members WHERE business_id=$1 AND user_id=$2 AND status='active'`, createdBusiness.Data.ID, customerA); err != nil || ownerMembership != "owner" {
-		t.Fatalf("new business owner membership=%q err=%v", ownerMembership, err)
-	}
-	var savedHours int
-	if err := db.Get(&savedHours, `SELECT count(*) FROM business_hours WHERE business_id=$1`, createdBusiness.Data.ID); err != nil || savedHours != 7 {
-		t.Fatalf("business schedule rows=%d err=%v, want seven", savedHours, err)
-	}
-	var listingAuditEvents int
-	if err := db.Get(&listingAuditEvents, `SELECT count(*) FROM audit_logs WHERE actor_user_id=$1 AND action='create_business' AND target_type='business' AND target_id=$2`, customerA, createdBusiness.Data.ID); err != nil || listingAuditEvents != 1 {
-		t.Fatalf("listing creation audit events=%d err=%v, want exactly one actor-attributed event", listingAuditEvents, err)
-	}
-	w = request(http.MethodPost, "/api/v1/merchant/businesses", token(customerB), strings.Replace(createBody, `"city":"Cuttack"`, `"city":"Bhubaneswar"`, 1))
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("unsupported city registration status=%d, want 400", w.Code)
 	}
 
 	// Profile edits are scoped to the authenticated user and persisted by PATCH /me.
@@ -1890,12 +2038,13 @@ func newAPISecurityFixture(t *testing.T) (*database.DB, string, string, string, 
 			t.Fatalf("create isolated fixture: %v", err)
 		}
 	}
-	for _, migration := range []string{"021_platform_catalog.sql", "022_delivery_locality_hierarchy.sql", "023_platform_cart_checkout.sql", "024_platform_partner_fulfillment.sql", "025_rider_onboarding.sql", "050_merchant_product_gst.sql"} {
+	for _, migration := range []string{"021_platform_catalog.sql", "022_delivery_locality_hierarchy.sql", "023_platform_cart_checkout.sql", "024_platform_partner_fulfillment.sql", "025_rider_onboarding.sql", "047_service_locations_and_interest_leads.sql", "049_merchant_application_details.sql", "050_merchant_product_gst.sql"} {
 		migrationSQL, err := os.ReadFile("../../migrations/" + migration)
 		if err != nil {
 			t.Fatalf("read %s: %v", migration, err)
 		}
-		if migration == "024_platform_partner_fulfillment.sql" || migration == "025_rider_onboarding.sql" {
+		switch migration {
+		case "024_platform_partner_fulfillment.sql", "025_rider_onboarding.sql", "049_merchant_application_details.sql":
 			if _, err := raw.Exec(string(migrationSQL)); err != nil {
 				t.Fatalf("apply %s to isolated fixture: %v", migration, err)
 			}

@@ -92,10 +92,14 @@ func (s *Service) RecordCollectionTx(ctx context.Context, tx *sqlx.Tx, jobID, ri
 		return fail(409, "COD_ALREADY_COLLECTED", "Synthetic COD collection was already recorded.")
 	}
 	var receivableID, clearingID string
-	if err := tx.QueryRowxContext(ctx, `SELECT id::text FROM financial_accounts WHERE account_code='rider_cash_receivable' AND currency='INR' AND is_enabled`).Scan(&receivableID); err != nil {
+	if err := tx.QueryRowxContext(ctx, `SELECT id::text FROM financial_accounts WHERE account_code='rider_cash_receivable' AND currency='INR' AND is_enabled`).Scan(&receivableID); errors.Is(err, sql.ErrNoRows) {
+		return fail(503, "COD_ACCOUNTS_NOT_CONFIGURED", "Synthetic COD accounting accounts are not configured in this environment.")
+	} else if err != nil {
 		return err
 	}
-	if err := tx.QueryRowxContext(ctx, `SELECT id::text FROM financial_accounts WHERE account_code='cod_collection_clearing' AND currency='INR' AND is_enabled`).Scan(&clearingID); err != nil {
+	if err := tx.QueryRowxContext(ctx, `SELECT id::text FROM financial_accounts WHERE account_code='cod_collection_clearing' AND currency='INR' AND is_enabled`).Scan(&clearingID); errors.Is(err, sql.ErrNoRows) {
+		return fail(503, "COD_ACCOUNTS_NOT_CONFIGURED", "Synthetic COD accounting accounts are not configured in this environment.")
+	} else if err != nil {
 		return err
 	}
 	key := "cod-collection:" + obligationID

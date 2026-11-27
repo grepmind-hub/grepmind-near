@@ -7,6 +7,8 @@ import { AdminSidebar, AdminTab } from '@/components/AdminSidebar';
 import { GraphicalMetricsView } from '@/components/GraphicalMetricsView';
 import { VerificationQueueView } from '@/components/VerificationQueueView';
 import { BusinessesRegistryView } from '@/components/BusinessesRegistryView';
+import { MerchantApplicationDrawer } from '@/components/MerchantApplicationDrawer';
+import type { BusinessApplication } from '@/lib/api';
 import { ReportsDisputesView } from '@/components/ReportsDisputesView';
 import { OffersModerationView } from '@/components/OffersModerationView';
 import { AuditLogsView } from '@/components/AuditLogsView';
@@ -98,6 +100,7 @@ export function AdminPortalClient({ initialTab = 'overview', initialPaymentOrder
   // Live state from API
   const [stats, setStats] = useState<Stats | null>(null);
   const [pendingBusinesses, setPendingBusinesses] = useState<Business[]>([]);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -195,33 +198,19 @@ export function AdminPortalClient({ initialTab = 'overview', initialPaymentOrder
   }, [refreshMetrics]);
 
   // Handlers for moderation actions
-  async function handleApproveBusiness(id: string, reason = 'Approved via Admin business registry') {
+  async function handleBusinessDecision(item: BusinessApplication, action: 'approve' | 'reject', reason: string) {
     try {
-      await approveBusiness(id, reason);
+      if (action === 'reject') {
+        await rejectBusiness(item.id, reason);
+      } else {
+        const evidence = `Offline evidence reviewed: ${reason}`;
+        if (item.verification_status !== 'verified') await verifyBusiness(item.id, 'verified', evidence);
+        if (item.status !== 'approved') await approveBusiness(item.id, evidence);
+      }
       await initSessionAndLoad();
-    } catch (e) {
-      console.error('Approve failed:', e);
-      setActionError('Business approval failed. No successful update was confirmed.');
-    }
-  }
-
-  async function handleVerifyBusiness(id: string, reason = 'Verification status updated via Admin business registry') {
-    try {
-      await verifyBusiness(id, 'verified', reason);
-      await initSessionAndLoad();
-    } catch (e) {
-      console.error('Verify failed:', e);
-      setActionError('Business verification failed. No successful update was confirmed.');
-    }
-  }
-
-  async function handleRejectBusiness(id: string, reason: string) {
-    try {
-      await rejectBusiness(id, reason);
-      await initSessionAndLoad();
-    } catch (e) {
-      console.error('Reject failed:', e);
-      setActionError('Business rejection failed. No successful update was confirmed.');
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -369,20 +358,18 @@ export function AdminPortalClient({ initialTab = 'overview', initialPaymentOrder
             />
           )}
 
+          {applicationId && <MerchantApplicationDrawer key={applicationId} id={applicationId} onClose={() => setApplicationId(null)} onDecision={handleBusinessDecision} />}
           {currentTab === 'verification' && (
             <VerificationQueueView
               apiPendingList={pendingBusinesses}
-              onApproveBusiness={handleApproveBusiness}
-              onVerifyBusiness={handleVerifyBusiness}
-              onRejectBusiness={handleRejectBusiness}
+              onViewDetails={setApplicationId}
             />
           )}
 
           {currentTab === 'businesses' && (
             <BusinessesRegistryView
               businesses={allBusinesses}
-              onApprove={handleApproveBusiness}
-              onVerify={handleVerifyBusiness}
+              onViewDetails={setApplicationId}
             />
           )}
 

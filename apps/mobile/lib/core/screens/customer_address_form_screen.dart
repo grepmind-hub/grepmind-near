@@ -216,6 +216,7 @@ class _CustomerAddressFormScreenState extends State<CustomerAddressFormScreen> {
               },
             ),
           ],
+          const SizedBox(height: 16),
           _field('landmark', 'Landmark (optional)', required: false),
           _field(
             'postal_code',
@@ -295,6 +296,7 @@ class _CustomerAddressFormScreenState extends State<CustomerAddressFormScreen> {
                     ),
             ),
           ),
+          const SizedBox(height: 28),
         ],
       ),
     ),

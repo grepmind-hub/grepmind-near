@@ -409,7 +409,7 @@ class LocationNotifier extends StateNotifier<AppLocation> {
   LocationNotifier()
     : super(
         const AppLocation(
-          cityName: 'Cuttack',
+          cityName: 'Jajpur',
           localityName: 'Chhatia',
           localityId: '02200000-0000-4000-8000-000000000201',
           latitude: 20.6120,
